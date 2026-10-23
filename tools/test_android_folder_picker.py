@@ -83,6 +83,10 @@ def main():
     result=adb("shell","am","start","-W","-n","com.cod4.firstmission/.MainActivity",timeout=40)
     time.sleep(6)
     shot("00-launcher")
+    if tap_label(["Got it","Entendido","Aceptar"],True):
+        print("Dismissed system full-screen hint",flush=True)
+        shot("00-hint-dismissed")
+        time.sleep(3)
     size=adb("shell","wm","size")
     m=re.findall(r"(\d+)x(\d+)",size)
     if not m:
