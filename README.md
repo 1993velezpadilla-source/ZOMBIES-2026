@@ -1,5 +1,14 @@
 # ZOMBIES-2026
 
+## Auditoría de todo el repositorio y archivos internos (23 octubre 2026)
+
+- **Resumen y conclusiones:** [docs/audit/EXECUTIVE_AUDIT.md](docs/audit/EXECUTIVE_AUDIT.md)
+- **Inventario del ZIP y APK:** [docs/audit/README.md](docs/audit/README.md)
+- **Análisis de 22 archivos IWD y bibliotecas Android:** [docs/audit/NESTED_AUDIT.md](docs/audit/NESTED_AUDIT.md)
+- **24,104 archivos internos catalogados:** [docs/audit/c4-iwd-file-inventory.json](docs/audit/c4-iwd-file-inventory.json)
+
+Auditoría estática completada sin ejecutar los archivos. **Importante: el repositorio y sus Releases son públicos y pueden contener archivos propietarios de terceros.**
+
 Proyecto IGLESIA / ZOMBIES 2026 (Godot).
 
 ## Archivo original importado desde Gofile
