@@ -1,5 +1,13 @@
 # ZOMBIES-2026 — Auditoría ejecutiva completa (23 octubre 2026)
 
+## Seguimiento: análisis estático del motor Android y sus rutas (23 octubre 2026)
+
+Analicé `classes.dex` y las librerías nativas `arm64-v8a` sin ejecutarlas. El nuevo informe está en [APK_RUNTIME_AUDIT.md](APK_RUNTIME_AUDIT.md), con datos JSON en [apk-runtime-strings.json](apk-runtime-strings.json).
+
+**Hallazgo relevante:** aparecen las rutas y referencias `main/iw_00.iwd`, `common.ff`, `code_post_gfx.ff`, `fs_basepath`, `fs_homepath`, `fs_game`, `zone/english`, y el mensaje del APK: *"Import the complete campaign files"* y *"Use your own Steam 2007 game files"*. Esto es evidencia **estática** de que el APK contempla utilizar datos completos de una instalación propia del juego de PC, en carpetas `main/` y `zone/`.
+
+El ZIP descargado tiene carpeta `Call of Duty 4 Modern Warfare/main/` y `zone/spanish/` con archivos `.ff`. **No se comprobó que la variante española satisfaga todos los requisitos del APK**, ni que éste cargue y renderice correctamente en Android, ni la distribución legal de esos recursos. No equivale a un proyecto Godot.
+
 **Estado: auditoría estática GREEN en GitHub Actions. No significa que los juegos se ejecuten ni que los recursos sean compatibles con Godot.**
 
 Repositorio auditado: `1993velezpadilla-source/ZOMBIES-2026`, rama `main`. Se revisó el árbol Git, sus scripts y workflows, ambos GitHub Releases, los dos archivos binarios completos mediante sus índices ZIP, los 22 subarchivos IWD del juego de PC y los 6 subarchivos del APK. **No se ejecutaron EXE, APK ni librerías nativas.** Se verificaron SHA-256 de los dos archivos originales, no todas las CRC de cada archivo interno.
