@@ -3,6 +3,7 @@ on:
   push:
     paths:
       - '.github/workflows/cod4-import-picker.yml'
+      - 'tools/test_android_folder_picker.py'
   workflow_dispatch:
 
 permissions:
