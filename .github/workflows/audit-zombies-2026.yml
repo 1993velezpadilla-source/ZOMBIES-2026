@@ -1,0 +1,78 @@
+name: Full static audit — C4 ZIP and COD4 APK
+on:
+  push:
+    paths:
+      - '.github/workflows/audit-zombies-2026.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: zombies-2026-static-audit
+  cancel-in-progress: false
+
+jobs:
+  full-static-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Inspect repository file tree
+        run: |
+          set -euo pipefail
+          echo "Git commit: $(git rev-parse HEAD)"
+          echo "Tracked files:"
+          git ls-files
+          echo "Free disk before downloads:"
+          df -h .
+
+      - name: Install optional Android manifest analyzer
+        run: |
+          python3 -m venv /tmp/zombies-audit
+          /tmp/zombies-audit/bin/pip install --quiet 'androguard>=4.1,<5' || echo "Androguard unavailable; ZIP inspection still runs"
+
+      - name: Download both original releases without extracting or executing
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p _release_assets/c4 _release_assets/cod4
+          gh release download gofile-p2DdQHsz --repo "$GITHUB_REPOSITORY" \
+            --pattern 'C4-Mocs.zip.part-*' --dir _release_assets/c4
+          gh release download mediafire-COD4-apk --repo "$GITHUB_REPOSITORY" \
+            --pattern 'COD4.apk' --dir _release_assets/cod4
+          du -h _release_assets/c4/* _release_assets/cod4/*
+          df -h .
+
+      - name: Run ZIP and APK static audit (no execution)
+        run: |
+          set -euo pipefail
+          /tmp/zombies-audit/bin/python tools/audit_releases.py
+          echo "Audit report:"
+          sed -n '1,100p' docs/audit/README.md
+
+      - name: Keep complete audit reports as a workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zombies-2026-static-audit
+          path: docs/audit/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Commit audit reports to main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/audit/
+          git commit -m 'Add comprehensive C4 ZIP and COD4 APK static audit' || exit 0
+          auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)
+          git -c http.extraheader="AUTHORIZATION: basic $auth" push origin HEAD:main
