@@ -12,7 +12,7 @@ permissions:
 
 concurrency:
   group: cod4-real-source-import
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   isolated-real-source-check:
