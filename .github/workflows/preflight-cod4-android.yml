@@ -1,0 +1,52 @@
+name: COD4 Android and PC asset compatibility gate
+on:
+  push:
+    paths:
+      - '.github/workflows/preflight-cod4-android.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  compatibility-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout audit repo
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Download the original Android APK from GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p _release_assets/cod4
+          gh release download mediafire-COD4-apk --repo "$GITHUB_REPOSITORY" --pattern COD4.apk --dir _release_assets/cod4
+      - name: Verify package data and cross-check PC assets
+        run: |
+          set -euo pipefail
+          python3 tools/preflight_android_cod4.py --apk _release_assets/cod4/COD4.apk
+          sed -n '1,160p' docs/audit/ANDROID_PC_COMPATIBILITY.md
+      - name: Upload the preflight report
+        uses: actions/upload-artifact@v4
+        with:
+          name: cod4-android-asset-preflight
+          path: |
+            docs/audit/ANDROID_PC_COMPATIBILITY.md
+            docs/audit/android-pc-compatibility.json
+      - name: Commit reports back to main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/audit/ANDROID_PC_COMPATIBILITY.md docs/audit/android-pc-compatibility.json
+          if git diff --cached --quiet; then
+            echo "Report unchanged"; exit 0
+          fi
+          git commit -m "Report COD4 Android and PC asset compatibility preflight"
+          auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)
+          git -c http.extraheader="AUTHORIZATION: basic $auth" push origin HEAD:main
