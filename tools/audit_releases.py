@@ -61,6 +61,12 @@ class SplitReader:
             raise ValueError("negative offset")
         return self.pos
 
+    def seekable(self):
+        return True
+
+    def readable(self):
+        return True
+
     def tell(self):
         return self.pos
 
