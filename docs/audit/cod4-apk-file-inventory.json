@@ -1,0 +1,362 @@
+[
+  {
+    "path": "AndroidManifest.xml",
+    "bytes": 4048,
+    "compressed_bytes": 1330,
+    "crc32_hex": "82313475",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "assets/angle/libEGL_angle.so",
+    "bytes": 713088,
+    "compressed_bytes": 207119,
+    "crc32_hex": "1cc66aee",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "assets/angle/libGLESv2_angle.so",
+    "bytes": 6119784,
+    "compressed_bytes": 2462296,
+    "crc32_hex": "ff6048f1",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "assets/cod4x/cod4x_ambfix.ff",
+    "bytes": 496286,
+    "compressed_bytes": 491819,
+    "crc32_hex": "2c70c192",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "assets/cod4x/cod4x_patch.ff",
+    "bytes": 26284,
+    "compressed_bytes": 24625,
+    "crc32_hex": "77309d3c",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "assets/cod4x/cod4x_patchv2.ff",
+    "bytes": 550611,
+    "compressed_bytes": 536697,
+    "crc32_hex": "3f0998b1",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "assets/cod4x/jcod4x_00.iwd",
+    "bytes": 860805,
+    "compressed_bytes": 854151,
+    "crc32_hex": "d8573195",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "assets/cod4x/LICENSE.md",
+    "bytes": 884,
+    "compressed_bytes": 599,
+    "crc32_hex": "19de84b0",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "assets/drivers/bootstrap-v1.json",
+    "bytes": 652,
+    "compressed_bytes": 396,
+    "crc32_hex": "6ee74eb9",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "assets/drivers/catalog-v2.json",
+    "bytes": 4680,
+    "compressed_bytes": 1388,
+    "crc32_hex": "09bf113e",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "assets/drivers/HAL-ADAPTER-NOTICE.txt",
+    "bytes": 11811,
+    "compressed_bytes": 4157,
+    "crc32_hex": "f3dbbeae",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "assets/drivers/packages/mali-panvk-26.3.0-devel-r4.zip",
+    "bytes": 3423629,
+    "compressed_bytes": 3335789,
+    "crc32_hex": "4f47af07",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "assets/drivers/packages/mesa-turnip-android-26.2.4.zip",
+    "bytes": 3857923,
+    "compressed_bytes": 3743535,
+    "crc32_hex": "926c4e7d",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "assets/drivers/packages/PanVK-Kbase-Android-g615-v11-csf-v0.1.0-beta.18-rc1-5a07217f.adpkg.zip",
+    "bytes": 5720955,
+    "compressed_bytes": 5605400,
+    "crc32_hex": "605e0b11",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "assets/drivers/packages/PanVK-Kbase-Android-g615-v11-csf-v0.1.0-rc3-5a07217f.adpkg.zip",
+    "bytes": 5851150,
+    "compressed_bytes": 5737697,
+    "crc32_hex": "6c13fc76",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "assets/drivers/packages/radv-xclipse-26.3.0-devel-313870e.zip",
+    "bytes": 4380303,
+    "compressed_bytes": 4270401,
+    "crc32_hex": "99ba56d3",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "assets/drivers/UPSTREAM-NOTICES.txt",
+    "bytes": 1385,
+    "compressed_bytes": 656,
+    "crc32_hex": "0e9029d6",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "assets/licenses/adrenotools-LICENSE",
+    "bytes": 1299,
+    "compressed_bytes": 1299,
+    "crc32_hex": "ed98415b",
+    "method": 0,
+    "encrypted": false
+  },
+  {
+    "path": "assets/licenses/ANGLE/Android16-NOTICE.xml.gz",
+    "bytes": 713013,
+    "compressed_bytes": 698261,
+    "crc32_hex": "66a075c5",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "assets/licenses/ANGLE/ANGLE-LICENSE",
+    "bytes": 1643,
+    "compressed_bytes": 843,
+    "crc32_hex": "0bc1be1a",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "assets/licenses/ANGLE/glslang-LICENSE",
+    "bytes": 5387,
+    "compressed_bytes": 2143,
+    "crc32_hex": "9f96e160",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "assets/licenses/ANGLE/prebuilt-source.json",
+    "bytes": 804,
+    "compressed_bytes": 470,
+    "crc32_hex": "1231da93",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "assets/licenses/ANGLE/rapidjson-license.txt",
+    "bytes": 5152,
+    "compressed_bytes": 1690,
+    "crc32_hex": "39f6561c",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "assets/licenses/ANGLE/SPIRV-Cross-LICENSE",
+    "bytes": 11358,
+    "compressed_bytes": 3949,
+    "crc32_hex": "86e2b4b4",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "assets/licenses/ANGLE/SPIRV-Headers-LICENSE",
+    "bytes": 1309,
+    "compressed_bytes": 769,
+    "crc32_hex": "5ff66a71",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "assets/licenses/ANGLE/SPIRV-Tools-LICENSE",
+    "bytes": 11358,
+    "compressed_bytes": 3949,
+    "crc32_hex": "86e2b4b4",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "assets/licenses/ANGLE/Vulkan-Headers-LICENSE",
+    "bytes": 11358,
+    "compressed_bytes": 3949,
+    "crc32_hex": "86e2b4b4",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "assets/licenses/ANGLE/xxhash-LICENSE",
+    "bytes": 1314,
+    "compressed_bytes": 689,
+    "crc32_hex": "3df7d0d8",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "assets/licenses/ANGLE/zlib-LICENSE",
+    "bytes": 912,
+    "compressed_bytes": 501,
+    "crc32_hex": "d3ed6883",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "assets/licenses/java-libs-LICENSE",
+    "bytes": 7133,
+    "compressed_bytes": 7133,
+    "crc32_hex": "1aaa9f3a",
+    "method": 0,
+    "encrypted": false
+  },
+  {
+    "path": "assets/licenses/linkernsbypass-LICENSE",
+    "bytes": 1299,
+    "compressed_bytes": 1299,
+    "crc32_hex": "ed98415b",
+    "method": 0,
+    "encrypted": false
+  },
+  {
+    "path": "classes.dex",
+    "bytes": 435940,
+    "compressed_bytes": 188371,
+    "crc32_hex": "f643e0f8",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "lib/arm64-v8a/libc4icd_hal.so",
+    "bytes": 378112,
+    "compressed_bytes": 378112,
+    "crc32_hex": "c9aaab17",
+    "method": 0,
+    "encrypted": false
+  },
+  {
+    "path": "lib/arm64-v8a/libc4vk.so",
+    "bytes": 951544,
+    "compressed_bytes": 951544,
+    "crc32_hex": "fdbc26dc",
+    "method": 0,
+    "encrypted": false
+  },
+  {
+    "path": "lib/arm64-v8a/libcod4first.so",
+    "bytes": 10927256,
+    "compressed_bytes": 10927256,
+    "crc32_hex": "e46510c6",
+    "method": 0,
+    "encrypted": false
+  },
+  {
+    "path": "lib/arm64-v8a/libcod4mp.so",
+    "bytes": 10982264,
+    "compressed_bytes": 10982264,
+    "crc32_hex": "a3d26b3f",
+    "method": 0,
+    "encrypted": false
+  },
+  {
+    "path": "lib/arm64-v8a/libfile_redirect_hook.so",
+    "bytes": 4000,
+    "compressed_bytes": 4000,
+    "crc32_hex": "b83b914b",
+    "method": 0,
+    "encrypted": false
+  },
+  {
+    "path": "lib/arm64-v8a/libgsl_alloc_hook.so",
+    "bytes": 4312,
+    "compressed_bytes": 4312,
+    "crc32_hex": "3acb8809",
+    "method": 0,
+    "encrypted": false
+  },
+  {
+    "path": "lib/arm64-v8a/libhook_impl.so",
+    "bytes": 278520,
+    "compressed_bytes": 278520,
+    "crc32_hex": "cd68f925",
+    "method": 0,
+    "encrypted": false
+  },
+  {
+    "path": "lib/arm64-v8a/libmain_hook.so",
+    "bytes": 4216,
+    "compressed_bytes": 4216,
+    "crc32_hex": "095bc132",
+    "method": 0,
+    "encrypted": false
+  },
+  {
+    "path": "META-INF/CERT.RSA",
+    "bytes": 1714,
+    "compressed_bytes": 1155,
+    "crc32_hex": "40e4cce5",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "META-INF/CERT.SF",
+    "bytes": 3887,
+    "compressed_bytes": 1640,
+    "crc32_hex": "1ab5608e",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "META-INF/MANIFEST.MF",
+    "bytes": 3782,
+    "compressed_bytes": 1507,
+    "crc32_hex": "9739b13e",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "res/drawable/icon.xml",
+    "bytes": 832,
+    "compressed_bytes": 417,
+    "crc32_hex": "2f86a1b2",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "resources.arsc",
+    "bytes": 840,
+    "compressed_bytes": 840,
+    "crc32_hex": "7cdbb63e",
+    "method": 0,
+    "encrypted": false
+  }
+]

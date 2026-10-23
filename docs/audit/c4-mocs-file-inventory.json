@@ -1,0 +1,1722 @@
+[
+  {
+    "path": "Call of Duty 4 Modern Warfare/__iw3sp",
+    "bytes": 4,
+    "compressed_bytes": 4,
+    "crc32_hex": "334ddcfc",
+    "method": 0,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/_Redist/DirectX/dxwebsetup.exe",
+    "bytes": 292184,
+    "compressed_bytes": 253688,
+    "crc32_hex": "ec0a2594",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/binkw32.dll",
+    "bytes": 167936,
+    "compressed_bytes": 91890,
+    "crc32_hex": "9d4099ff",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/call_of_duty_4.ico",
+    "bytes": 370070,
+    "compressed_bytes": 218607,
+    "crc32_hex": "2b8e5f88",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/cod.bmp",
+    "bytes": 1105976,
+    "compressed_bytes": 508865,
+    "crc32_hex": "5166d365",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/cod4.ico",
+    "bytes": 216358,
+    "compressed_bytes": 132429,
+    "crc32_hex": "b69c263f",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/codlogo.bmp",
+    "bytes": 109976,
+    "compressed_bytes": 79401,
+    "crc32_hex": "f9d2109e",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/Docs/help.htm",
+    "bytes": 1126,
+    "compressed_bytes": 527,
+    "crc32_hex": "b71b9bbb",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/Docs/Help/_top.htm",
+    "bytes": 1237,
+    "compressed_bytes": 528,
+    "crc32_hex": "6d97aaaf",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/Docs/Help/credits.htm",
+    "bytes": 54066,
+    "compressed_bytes": 9616,
+    "crc32_hex": "9e506785",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/Docs/Help/customer_support.htm",
+    "bytes": 129427,
+    "compressed_bytes": 15669,
+    "crc32_hex": "5a81851a",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/Docs/Help/legal.htm",
+    "bytes": 127,
+    "compressed_bytes": 110,
+    "crc32_hex": "1a41cbe4",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/Docs/Help/license.htm",
+    "bytes": 26044,
+    "compressed_bytes": 7895,
+    "crc32_hex": "98ce8c27",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/Docs/Help/msr.htm",
+    "bytes": 5077,
+    "compressed_bytes": 1928,
+    "crc32_hex": "4d7be2f0",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/Docs/Help/readme.htm",
+    "bytes": 28324,
+    "compressed_bytes": 7054,
+    "crc32_hex": "048b9a39",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/Docs/html/_main.htm",
+    "bytes": 1282,
+    "compressed_bytes": 521,
+    "crc32_hex": "73724c38",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/Docs/html/_main2.htm",
+    "bytes": 2079,
+    "compressed_bytes": 667,
+    "crc32_hex": "b1f9ae97",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/Docs/html/_toc.htm",
+    "bytes": 3536,
+    "compressed_bytes": 781,
+    "crc32_hex": "b44ba0e8",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/Docs/html/audio_problems.htm",
+    "bytes": 2784,
+    "compressed_bytes": 1051,
+    "crc32_hex": "581a937a",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/Docs/html/autoplay.htm",
+    "bytes": 8759,
+    "compressed_bytes": 1907,
+    "crc32_hex": "c3babd00",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/Docs/html/cd_dvd_problems.htm",
+    "bytes": 15859,
+    "compressed_bytes": 2897,
+    "crc32_hex": "2bcdbf3a",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/Docs/html/compressed_drive.htm",
+    "bytes": 1252,
+    "compressed_bytes": 528,
+    "crc32_hex": "d2e1c997",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/Docs/html/crashes.htm",
+    "bytes": 9582,
+    "compressed_bytes": 1729,
+    "crc32_hex": "ed8c110d",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/Docs/html/directx.htm",
+    "bytes": 4830,
+    "compressed_bytes": 1436,
+    "crc32_hex": "05bcae99",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/Docs/html/patches.htm",
+    "bytes": 1421,
+    "compressed_bytes": 588,
+    "crc32_hex": "23ba74d2",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/Docs/html/sound_conflicts.htm",
+    "bytes": 4681,
+    "compressed_bytes": 1134,
+    "crc32_hex": "cec20d5b",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/Docs/html/tech_help.htm",
+    "bytes": 2174,
+    "compressed_bytes": 674,
+    "crc32_hex": "26cf2733",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/Docs/images/Activision.jpg",
+    "bytes": 2441,
+    "compressed_bytes": 2367,
+    "crc32_hex": "f0d2ec13",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/Docs/images/ap_xp_large.jpg",
+    "bytes": 28699,
+    "compressed_bytes": 21971,
+    "crc32_hex": "ea5377a1",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/Docs/images/ap_xp_small.jpg",
+    "bytes": 7188,
+    "compressed_bytes": 7058,
+    "crc32_hex": "aac519ee",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/Docs/images/DevLogo.jpg",
+    "bytes": 6160,
+    "compressed_bytes": 5817,
+    "crc32_hex": "4d940cdc",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/Docs/images/dma_large.jpg",
+    "bytes": 32340,
+    "compressed_bytes": 23680,
+    "crc32_hex": "eb9fef3d",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/Docs/images/dma_small.jpg",
+    "bytes": 2469,
+    "compressed_bytes": 2127,
+    "crc32_hex": "0023331b",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/Docs/images/GameLogo.jpg",
+    "bytes": 25550,
+    "compressed_bytes": 14021,
+    "crc32_hex": "d5a062bd",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/Docs/images/redstripe.jpg",
+    "bytes": 7653,
+    "compressed_bytes": 2171,
+    "crc32_hex": "6c5e6282",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/Docs/images/spacer.gif",
+    "bytes": 43,
+    "compressed_bytes": 37,
+    "crc32_hex": "0d240bb8",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/Docs/license.txt",
+    "bytes": 14893,
+    "compressed_bytes": 5394,
+    "crc32_hex": "5a59aca5",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/Docs/manual.pdf",
+    "bytes": 270636,
+    "compressed_bytes": 214034,
+    "crc32_hex": "2d7ea575",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/Docs/msr.txt",
+    "bytes": 840,
+    "compressed_bytes": 496,
+    "crc32_hex": "54e16764",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/Docs/PBEULA.txt",
+    "bytes": 5540,
+    "compressed_bytes": 2275,
+    "crc32_hex": "16c54cee",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/elamigos.jpg",
+    "bytes": 34628,
+    "compressed_bytes": 26382,
+    "crc32_hex": "4a793e3c",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/iw3mp.exe",
+    "bytes": 3330048,
+    "compressed_bytes": 1544590,
+    "crc32_hex": "7964470c",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/iw3mp_d3d9.log",
+    "bytes": 152,
+    "compressed_bytes": 110,
+    "crc32_hex": "c5e2e123",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/iw3sp.exe",
+    "bytes": 3015874,
+    "compressed_bytes": 1406321,
+    "crc32_hex": "3e7d78c1",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/iw3sp_d3d9.log",
+    "bytes": 152,
+    "compressed_bytes": 110,
+    "crc32_hex": "c5e2e123",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/localization.txt",
+    "bytes": 2612,
+    "compressed_bytes": 986,
+    "crc32_hex": "431a5a86",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/hunkusage.dat",
+    "bytes": 29,
+    "compressed_bytes": 29,
+    "crc32_hex": "825f171d",
+    "method": 0,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/iw_00.iwd",
+    "bytes": 167780172,
+    "compressed_bytes": 167315803,
+    "crc32_hex": "e88a5704",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/iw_01.iwd",
+    "bytes": 167885112,
+    "compressed_bytes": 167353834,
+    "crc32_hex": "34d0d169",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/iw_02.iwd",
+    "bytes": 166957774,
+    "compressed_bytes": 166338586,
+    "crc32_hex": "daa58542",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/iw_03.iwd",
+    "bytes": 166904484,
+    "compressed_bytes": 166408422,
+    "crc32_hex": "77ecf2ce",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/iw_04.iwd",
+    "bytes": 167682009,
+    "compressed_bytes": 167434125,
+    "crc32_hex": "7866e479",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/iw_05.iwd",
+    "bytes": 167489996,
+    "compressed_bytes": 167276841,
+    "crc32_hex": "dd79c455",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/iw_06.iwd",
+    "bytes": 167754503,
+    "compressed_bytes": 167517960,
+    "crc32_hex": "37b7ef75",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/iw_07.iwd",
+    "bytes": 162987361,
+    "compressed_bytes": 162987361,
+    "crc32_hex": "d6670ccf",
+    "method": 0,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/iw_08.iwd",
+    "bytes": 167544651,
+    "compressed_bytes": 167544651,
+    "crc32_hex": "84b7d7f3",
+    "method": 0,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/iw_09.iwd",
+    "bytes": 167076481,
+    "compressed_bytes": 167047365,
+    "crc32_hex": "b23bd3a4",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/iw_10.iwd",
+    "bytes": 165389824,
+    "compressed_bytes": 165379994,
+    "crc32_hex": "b7591519",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/iw_11.iwd",
+    "bytes": 151420446,
+    "compressed_bytes": 151344135,
+    "crc32_hex": "e9cf411f",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/iw_12.iwd",
+    "bytes": 5559373,
+    "compressed_bytes": 5526761,
+    "crc32_hex": "9bc9f6de",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/iw_13.iwd",
+    "bytes": 28644036,
+    "compressed_bytes": 28539155,
+    "crc32_hex": "918c80e9",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/localized_spanish_iw00.iwd",
+    "bytes": 168238863,
+    "compressed_bytes": 167990142,
+    "crc32_hex": "ac056d26",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/localized_spanish_iw01.iwd",
+    "bytes": 168326412,
+    "compressed_bytes": 168076658,
+    "crc32_hex": "5e2d99a7",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/localized_spanish_iw02.iwd",
+    "bytes": 168263689,
+    "compressed_bytes": 168031667,
+    "crc32_hex": "30f27e21",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/localized_spanish_iw03.iwd",
+    "bytes": 168255430,
+    "compressed_bytes": 168008701,
+    "crc32_hex": "363fdf31",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/localized_spanish_iw04.iwd",
+    "bytes": 168143122,
+    "compressed_bytes": 167939482,
+    "crc32_hex": "7c922c6b",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/localized_spanish_iw05.iwd",
+    "bytes": 168008742,
+    "compressed_bytes": 167901490,
+    "crc32_hex": "e1ce0f92",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/localized_spanish_iw06.iwd",
+    "bytes": 151520102,
+    "compressed_bytes": 151451606,
+    "crc32_hex": "c1b85b91",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/ac130_fade.bik",
+    "bytes": 5001740,
+    "compressed_bytes": 4922993,
+    "crc32_hex": "7ad55368",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/ac130_load.bik",
+    "bytes": 27475828,
+    "compressed_bytes": 27130540,
+    "crc32_hex": "734f989f",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/Aftermath_fade.bik",
+    "bytes": 2646312,
+    "compressed_bytes": 2615336,
+    "crc32_hex": "671c645d",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/Aftermath_load.bik",
+    "bytes": 56484332,
+    "compressed_bytes": 55516583,
+    "crc32_hex": "7b9666a0",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/airlift_fade.bik",
+    "bytes": 2869156,
+    "compressed_bytes": 2789587,
+    "crc32_hex": "ef4d1e5e",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/Airlift_load.bik",
+    "bytes": 44007952,
+    "compressed_bytes": 43553510,
+    "crc32_hex": "383fb37b",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/airplane_load.bik",
+    "bytes": 16572876,
+    "compressed_bytes": 15418152,
+    "crc32_hex": "d1e1b4e8",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/ambush_fade.bik",
+    "bytes": 1612240,
+    "compressed_bytes": 1573938,
+    "crc32_hex": "f14aeb9c",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/Ambush_load.bik",
+    "bytes": 55004012,
+    "compressed_bytes": 54137737,
+    "crc32_hex": "c35c79fb",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/armada_fade.bik",
+    "bytes": 1476712,
+    "compressed_bytes": 1424062,
+    "crc32_hex": "005108b1",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/Armada_load.bik",
+    "bytes": 42753548,
+    "compressed_bytes": 42327078,
+    "crc32_hex": "1a05ba2a",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/asad_speech_180.bik",
+    "bytes": 6104104,
+    "compressed_bytes": 5600253,
+    "crc32_hex": "2cc594da",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/attract.bik",
+    "bytes": 155322180,
+    "compressed_bytes": 152303409,
+    "crc32_hex": "9c6011de",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/atvi.bik",
+    "bytes": 11292236,
+    "compressed_bytes": 9753966,
+    "crc32_hex": "f3d53127",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/black.bik",
+    "bytes": 13072,
+    "compressed_bytes": 506,
+    "crc32_hex": "7692570a",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/blackout_fade.bik",
+    "bytes": 1866580,
+    "compressed_bytes": 1744302,
+    "crc32_hex": "c62e29b0",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/Blackout_load.bik",
+    "bytes": 47122328,
+    "compressed_bytes": 46388148,
+    "crc32_hex": "4b4863b9",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/bog_a_fade.bik",
+    "bytes": 1532188,
+    "compressed_bytes": 1429726,
+    "crc32_hex": "826b69ee",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/bog_a_load.bik",
+    "bytes": 45980520,
+    "compressed_bytes": 45093519,
+    "crc32_hex": "5b2b9906",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/bog_b_fade.bik",
+    "bytes": 3505364,
+    "compressed_bytes": 3416606,
+    "crc32_hex": "9dba7e03",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/bog_b_load.bik",
+    "bytes": 57913332,
+    "compressed_bytes": 56901524,
+    "crc32_hex": "4b412f05",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/cargoship_fade.bik",
+    "bytes": 643216,
+    "compressed_bytes": 587701,
+    "crc32_hex": "1a5878c0",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/cargoship_load.bik",
+    "bytes": 37040180,
+    "compressed_bytes": 36595465,
+    "crc32_hex": "d65cab12",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/cod_intro.bik",
+    "bytes": 128677128,
+    "compressed_bytes": 126546892,
+    "crc32_hex": "d810a30a",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/coup_fade.bik",
+    "bytes": 2010904,
+    "compressed_bytes": 1664668,
+    "crc32_hex": "cf8cdaf8",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/coup_load.bik",
+    "bytes": 50525192,
+    "compressed_bytes": 49261713,
+    "crc32_hex": "0f868949",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/credits_load.bik",
+    "bytes": 592,
+    "compressed_bytes": 206,
+    "crc32_hex": "2d143572",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/default.bik",
+    "bytes": 738168,
+    "compressed_bytes": 517542,
+    "crc32_hex": "50fae4bf",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/dog_vs_player_load.bik",
+    "bytes": 3362652,
+    "compressed_bytes": 3320217,
+    "crc32_hex": "01ba980e",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/hunted_fade.bik",
+    "bytes": 1357548,
+    "compressed_bytes": 1253772,
+    "crc32_hex": "5e7fcd06",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/hunted_load.bik",
+    "bytes": 27716568,
+    "compressed_bytes": 27345784,
+    "crc32_hex": "ae195a27",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/icbm_fade.bik",
+    "bytes": 2923116,
+    "compressed_bytes": 2660166,
+    "crc32_hex": "b42d483e",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/icbm_load.bik",
+    "bytes": 57544372,
+    "compressed_bytes": 56614379,
+    "crc32_hex": "5504afb2",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/IW_logo.bik",
+    "bytes": 10243556,
+    "compressed_bytes": 8591205,
+    "crc32_hex": "0cb711fe",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/jeepride_fade.bik",
+    "bytes": 3286724,
+    "compressed_bytes": 3016822,
+    "crc32_hex": "b752ce49",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/jeepride_load.bik",
+    "bytes": 40054028,
+    "compressed_bytes": 39619822,
+    "crc32_hex": "b9827670",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/killhouse_fade.bik",
+    "bytes": 2255644,
+    "compressed_bytes": 2222720,
+    "crc32_hex": "8d6d861d",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/killhouse_load.bik",
+    "bytes": 38103784,
+    "compressed_bytes": 37636279,
+    "crc32_hex": "19408a96",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/Killhouse_monitor1.bik",
+    "bytes": 3517276,
+    "compressed_bytes": 345982,
+    "crc32_hex": "c2ae2a49",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/launchfacility_a_fade.bik",
+    "bytes": 2776248,
+    "compressed_bytes": 2592808,
+    "crc32_hex": "657ab311",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/launchfacility_a_load.bik",
+    "bytes": 42188568,
+    "compressed_bytes": 41653539,
+    "crc32_hex": "210f0b08",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/launchfacility_b_fade.bik",
+    "bytes": 1788004,
+    "compressed_bytes": 1622668,
+    "crc32_hex": "e90ada00",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/launchfacility_b_load.bik",
+    "bytes": 51750312,
+    "compressed_bytes": 50967242,
+    "crc32_hex": "2216f8e1",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/legal.bik",
+    "bytes": 2263612,
+    "compressed_bytes": 1436008,
+    "crc32_hex": "1380c2f1",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/scoutsniper_fade.bik",
+    "bytes": 4662048,
+    "compressed_bytes": 4640132,
+    "crc32_hex": "39f463ec",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/scoutsniper_load.bik",
+    "bytes": 54782216,
+    "compressed_bytes": 53843963,
+    "crc32_hex": "e6563a1d",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/simplecredits_load.bik",
+    "bytes": 592,
+    "compressed_bytes": 206,
+    "crc32_hex": "2d143572",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/sniperescape_load.bik",
+    "bytes": 30528892,
+    "compressed_bytes": 29493817,
+    "crc32_hex": "a0a56bf0",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/village_assault_fade.bik",
+    "bytes": 1934608,
+    "compressed_bytes": 1758732,
+    "crc32_hex": "375ff8b7",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/village_assault_load.bik",
+    "bytes": 42519984,
+    "compressed_bytes": 41864980,
+    "crc32_hex": "d41b6ac2",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/village_defend_fade.bik",
+    "bytes": 1468184,
+    "compressed_bytes": 1431991,
+    "crc32_hex": "311540e2",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/village_defend_load.bik",
+    "bytes": 40785056,
+    "compressed_bytes": 39400314,
+    "crc32_hex": "c6874fe5",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/main/video/zakhaev_escape.bik",
+    "bytes": 46785176,
+    "compressed_bytes": 46037708,
+    "crc32_hex": "4c3bb633",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/miles/milesEq.flt",
+    "bytes": 86016,
+    "compressed_bytes": 42964,
+    "crc32_hex": "aeec1ecb",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/miles/mssds3d.flt",
+    "bytes": 12288,
+    "compressed_bytes": 5949,
+    "crc32_hex": "da772a12",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/miles/mssdsp.flt",
+    "bytes": 56832,
+    "compressed_bytes": 19414,
+    "crc32_hex": "0d839540",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/miles/msseax.flt",
+    "bytes": 58368,
+    "compressed_bytes": 20121,
+    "crc32_hex": "5fe5a4ff",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/miles/mssmp3.asi",
+    "bytes": 93696,
+    "compressed_bytes": 36853,
+    "crc32_hex": "1a39859d",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/miles/mssvoice.asi",
+    "bytes": 153088,
+    "compressed_bytes": 75038,
+    "crc32_hex": "90162a7d",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/Mods/ModWarfare/7za.exe",
+    "bytes": 476672,
+    "compressed_bytes": 228222,
+    "crc32_hex": "1bae18f7",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/Mods/ModWarfare/default_server.cfg",
+    "bytes": 6886,
+    "compressed_bytes": 1376,
+    "crc32_hex": "48b97af8",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/Mods/ModWarfare/makeMod.bat",
+    "bytes": 329,
+    "compressed_bytes": 193,
+    "crc32_hex": "a520cecd",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/Mods/ModWarfare/mod.csv",
+    "bytes": 158,
+    "compressed_bytes": 64,
+    "crc32_hex": "7ab91156",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/Mods/ModWarfare/mod.ff",
+    "bytes": 34310,
+    "compressed_bytes": 32762,
+    "crc32_hex": "ee40fa16",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/Mods/ModWarfare/z_modwarfare.iwd",
+    "bytes": 178745,
+    "compressed_bytes": 177751,
+    "crc32_hex": "1568deb2",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/mss32.dll",
+    "bytes": 434688,
+    "compressed_bytes": 204391,
+    "crc32_hex": "64136ff0",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/players/profiles/active.txt",
+    "bytes": 6,
+    "compressed_bytes": 6,
+    "crc32_hex": "dc238361",
+    "method": 0,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/players/profiles/fjfjjf/config.cfg",
+    "bytes": 9424,
+    "compressed_bytes": 2871,
+    "crc32_hex": "f855ba22",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/players/profiles/fjfjjf/config_mp.cfg",
+    "bytes": 10556,
+    "compressed_bytes": 3179,
+    "crc32_hex": "bedfd18a",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/players/profiles/fjfjjf/mpdata",
+    "bytes": 8476,
+    "compressed_bytes": 8476,
+    "crc32_hex": "2ff6fcbe",
+    "method": 0,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/players/profiles/fjfjjf/save/killhouse.svg",
+    "bytes": 114618,
+    "compressed_bytes": 113646,
+    "crc32_hex": "5bfdc400",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/servercache.dat",
+    "bytes": 3139984,
+    "compressed_bytes": 3706,
+    "crc32_hex": "f04488a4",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/unins000.dat",
+    "bytes": 21449,
+    "compressed_bytes": 5071,
+    "crc32_hex": "972c000c",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/unins000.exe",
+    "bytes": 1565755,
+    "compressed_bytes": 741166,
+    "crc32_hex": "331546f1",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/version.inf",
+    "bytes": 155,
+    "compressed_bytes": 131,
+    "crc32_hex": "538502a4",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/ac130.ff",
+    "bytes": 47672657,
+    "compressed_bytes": 47477600,
+    "crc32_hex": "fd0b6721",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/aftermath.ff",
+    "bytes": 46429547,
+    "compressed_bytes": 46220819,
+    "crc32_hex": "af978c26",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/airlift.ff",
+    "bytes": 81437254,
+    "compressed_bytes": 81062815,
+    "crc32_hex": "1bc65a0b",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/airplane.ff",
+    "bytes": 46494515,
+    "compressed_bytes": 46421240,
+    "crc32_hex": "98cd9e65",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/ambush.ff",
+    "bytes": 71915942,
+    "compressed_bytes": 71580969,
+    "crc32_hex": "05ad52d9",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/armada.ff",
+    "bytes": 88433135,
+    "compressed_bytes": 88084781,
+    "crc32_hex": "576daee1",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/blackout.ff",
+    "bytes": 76424241,
+    "compressed_bytes": 76124298,
+    "crc32_hex": "d2802d97",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/bog_a.ff",
+    "bytes": 75754075,
+    "compressed_bytes": 75458547,
+    "crc32_hex": "da68d4a9",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/bog_b.ff",
+    "bytes": 74396721,
+    "compressed_bytes": 74079930,
+    "crc32_hex": "1863eba0",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/cargoship.ff",
+    "bytes": 83449777,
+    "compressed_bytes": 83110081,
+    "crc32_hex": "7faf6267",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/code_post_gfx.ff",
+    "bytes": 874448,
+    "compressed_bytes": 874300,
+    "crc32_hex": "1f72f56d",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/code_post_gfx_mp.ff",
+    "bytes": 89196,
+    "compressed_bytes": 88871,
+    "crc32_hex": "b144581c",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/common.ff",
+    "bytes": 75655060,
+    "compressed_bytes": 75649723,
+    "crc32_hex": "b7fd8d6d",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/common_mp.ff",
+    "bytes": 13517381,
+    "compressed_bytes": 13370769,
+    "crc32_hex": "4ef7a074",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/coup.ff",
+    "bytes": 82680662,
+    "compressed_bytes": 82323427,
+    "crc32_hex": "e9c9e180",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/hunted.ff",
+    "bytes": 78316664,
+    "compressed_bytes": 78037363,
+    "crc32_hex": "e7ee9fe2",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/icbm.ff",
+    "bytes": 79781122,
+    "compressed_bytes": 79395417,
+    "crc32_hex": "2c96dc70",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/jeepride.ff",
+    "bytes": 96396745,
+    "compressed_bytes": 96058699,
+    "crc32_hex": "6723d100",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/killhouse.ff",
+    "bytes": 70392024,
+    "compressed_bytes": 69887890,
+    "crc32_hex": "7a9c4def",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/launchfacility_a.ff",
+    "bytes": 73729219,
+    "compressed_bytes": 73401483,
+    "crc32_hex": "d9fec2ed",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/launchfacility_b.ff",
+    "bytes": 68514762,
+    "compressed_bytes": 68186517,
+    "crc32_hex": "86563fef",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/localized_code_post_gfx_mp.ff",
+    "bytes": 834970,
+    "compressed_bytes": 834693,
+    "crc32_hex": "6d7cebd7",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/localized_common_mp.ff",
+    "bytes": 57034525,
+    "compressed_bytes": 57034343,
+    "crc32_hex": "4f5e6919",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_backlot.ff",
+    "bytes": 39998207,
+    "compressed_bytes": 39805704,
+    "crc32_hex": "f4cc856b",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_backlot_load.ff",
+    "bytes": 258,
+    "compressed_bytes": 258,
+    "crc32_hex": "497ab577",
+    "method": 0,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_bloc.ff",
+    "bytes": 36203917,
+    "compressed_bytes": 35980782,
+    "crc32_hex": "73dd4b84",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_bloc_load.ff",
+    "bytes": 256,
+    "compressed_bytes": 256,
+    "crc32_hex": "d4a03726",
+    "method": 0,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_bog.ff",
+    "bytes": 32906520,
+    "compressed_bytes": 32776605,
+    "crc32_hex": "36bcbc42",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_bog_load.ff",
+    "bytes": 255,
+    "compressed_bytes": 255,
+    "crc32_hex": "33a8e894",
+    "method": 0,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_broadcast.ff",
+    "bytes": 46904494,
+    "compressed_bytes": 46753597,
+    "crc32_hex": "d0125c7e",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_broadcast_load.ff",
+    "bytes": 318,
+    "compressed_bytes": 318,
+    "crc32_hex": "46d90e17",
+    "method": 0,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_carentan.ff",
+    "bytes": 54310200,
+    "compressed_bytes": 54070388,
+    "crc32_hex": "ed5ce0b8",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_carentan_load.ff",
+    "bytes": 318,
+    "compressed_bytes": 318,
+    "crc32_hex": "5eaf1309",
+    "method": 0,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_cargoship.ff",
+    "bytes": 36605592,
+    "compressed_bytes": 36469569,
+    "crc32_hex": "473292d1",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_cargoship_load.ff",
+    "bytes": 262,
+    "compressed_bytes": 262,
+    "crc32_hex": "4b7d3b97",
+    "method": 0,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_citystreets.ff",
+    "bytes": 38598897,
+    "compressed_bytes": 38388924,
+    "crc32_hex": "1d1489cb",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_citystreets_load.ff",
+    "bytes": 262,
+    "compressed_bytes": 262,
+    "crc32_hex": "dec06f38",
+    "method": 0,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_convoy.ff",
+    "bytes": 39166328,
+    "compressed_bytes": 38958868,
+    "crc32_hex": "b22c7a8f",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_convoy_load.ff",
+    "bytes": 259,
+    "compressed_bytes": 259,
+    "crc32_hex": "c11306d8",
+    "method": 0,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_countdown.ff",
+    "bytes": 38333299,
+    "compressed_bytes": 38064376,
+    "crc32_hex": "cd13a040",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_countdown_load.ff",
+    "bytes": 262,
+    "compressed_bytes": 262,
+    "crc32_hex": "35dc868d",
+    "method": 0,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_crash.ff",
+    "bytes": 35287381,
+    "compressed_bytes": 35138266,
+    "crc32_hex": "9440e82a",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_crash_load.ff",
+    "bytes": 258,
+    "compressed_bytes": 258,
+    "crc32_hex": "9e8145fc",
+    "method": 0,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_crash_snow.ff",
+    "bytes": 43864387,
+    "compressed_bytes": 43708016,
+    "crc32_hex": "ded19d4d",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_crash_snow_load.ff",
+    "bytes": 263,
+    "compressed_bytes": 263,
+    "crc32_hex": "3ef96ea5",
+    "method": 0,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_creek.ff",
+    "bytes": 53093502,
+    "compressed_bytes": 52955973,
+    "crc32_hex": "58609db2",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_creek_load.ff",
+    "bytes": 255,
+    "compressed_bytes": 255,
+    "crc32_hex": "0032614b",
+    "method": 0,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_crossfire.ff",
+    "bytes": 36726189,
+    "compressed_bytes": 36586547,
+    "crc32_hex": "7ccff4ad",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_crossfire_load.ff",
+    "bytes": 262,
+    "compressed_bytes": 262,
+    "crc32_hex": "37998b3d",
+    "method": 0,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_farm.ff",
+    "bytes": 41585378,
+    "compressed_bytes": 41419052,
+    "crc32_hex": "cb6afeba",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_farm_load.ff",
+    "bytes": 256,
+    "compressed_bytes": 256,
+    "crc32_hex": "b7467349",
+    "method": 0,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_killhouse.ff",
+    "bytes": 39319415,
+    "compressed_bytes": 39010130,
+    "crc32_hex": "74a9a11f",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_killhouse_load.ff",
+    "bytes": 262,
+    "compressed_bytes": 262,
+    "crc32_hex": "c0f2909f",
+    "method": 0,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_overgrown.ff",
+    "bytes": 37695425,
+    "compressed_bytes": 37529816,
+    "crc32_hex": "ed51c47e",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_overgrown_load.ff",
+    "bytes": 262,
+    "compressed_bytes": 262,
+    "crc32_hex": "8b12c10e",
+    "method": 0,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_pipeline.ff",
+    "bytes": 37423736,
+    "compressed_bytes": 37219939,
+    "crc32_hex": "4f6aa992",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_pipeline_load.ff",
+    "bytes": 261,
+    "compressed_bytes": 261,
+    "crc32_hex": "cab5d897",
+    "method": 0,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_shipment.ff",
+    "bytes": 29040480,
+    "compressed_bytes": 28894842,
+    "crc32_hex": "75761e65",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_shipment_load.ff",
+    "bytes": 261,
+    "compressed_bytes": 261,
+    "crc32_hex": "db900c0c",
+    "method": 0,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_showdown.ff",
+    "bytes": 32436801,
+    "compressed_bytes": 32273749,
+    "crc32_hex": "295a3846",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_showdown_load.ff",
+    "bytes": 261,
+    "compressed_bytes": 261,
+    "crc32_hex": "755a2698",
+    "method": 0,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_strike.ff",
+    "bytes": 35859527,
+    "compressed_bytes": 35682047,
+    "crc32_hex": "6edcdb2d",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_strike_load.ff",
+    "bytes": 259,
+    "compressed_bytes": 259,
+    "crc32_hex": "62acf363",
+    "method": 0,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_vacant.ff",
+    "bytes": 33369916,
+    "compressed_bytes": 33202677,
+    "crc32_hex": "7fab0147",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_vacant_load.ff",
+    "bytes": 259,
+    "compressed_bytes": 259,
+    "crc32_hex": "26699dfc",
+    "method": 0,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/scoutsniper.ff",
+    "bytes": 86264052,
+    "compressed_bytes": 85862350,
+    "crc32_hex": "384cc976",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/simplecredits.ff",
+    "bytes": 26205802,
+    "compressed_bytes": 26202598,
+    "crc32_hex": "b813ee06",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/sniperescape.ff",
+    "bytes": 79619731,
+    "compressed_bytes": 79218954,
+    "crc32_hex": "57822868",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/ui.ff",
+    "bytes": 53174,
+    "compressed_bytes": 50461,
+    "crc32_hex": "5cb4d57f",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/ui_mp.ff",
+    "bytes": 420146,
+    "compressed_bytes": 355048,
+    "crc32_hex": "fb8aec05",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/village_assault.ff",
+    "bytes": 78462531,
+    "compressed_bytes": 78206505,
+    "crc32_hex": "8b96d96e",
+    "method": 8,
+    "encrypted": false
+  },
+  {
+    "path": "Call of Duty 4 Modern Warfare/zone/spanish/village_defend.ff",
+    "bytes": 79701021,
+    "compressed_bytes": 79430793,
+    "crc32_hex": "d0d4f12f",
+    "method": 8,
+    "encrypted": false
+  }
+]

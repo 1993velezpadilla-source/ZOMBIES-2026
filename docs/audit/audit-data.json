@@ -1,0 +1,845 @@
+{
+  "validation": {
+    "c4_sha256": "6787f2082b39ee76445db7fca92892256bfb97e62bbdebfe63f6ee11de6a8d99",
+    "c4_expected_sha256": "6787f2082b39ee76445db7fca92892256bfb97e62bbdebfe63f6ee11de6a8d99",
+    "c4_bytes": 7021386357,
+    "c4_expected_bytes": 7021386357,
+    "apk_sha256": "40386503d564b0985423339b5ccd5611dc60ce08ebe1b4ae494d4de22a62473c",
+    "apk_expected_sha256": "40386503d564b0985423339b5ccd5611dc60ce08ebe1b4ae494d4de22a62473c",
+    "apk_bytes": 51760726,
+    "apk_expected_bytes": 51760726
+  },
+  "c4": {
+    "label": "c4-mocs",
+    "entries_total": 234,
+    "files": 215,
+    "directories": 19,
+    "uncompressed_bytes": 7078126218,
+    "compressed_entry_bytes": 7021333827,
+    "extensions": {
+      ".ff": 73,
+      ".bik": 53,
+      ".iwd": 22,
+      ".htm": 20,
+      ".jpg": 9,
+      ".txt": 5,
+      ".exe": 5,
+      ".flt": 4,
+      ".cfg": 3,
+      ".dat": 3,
+      "[none]": 2,
+      ".dll": 2,
+      ".ico": 2,
+      ".bmp": 2,
+      ".log": 2,
+      ".asi": 2,
+      ".gif": 1,
+      ".pdf": 1,
+      ".bat": 1,
+      ".csv": 1,
+      ".svg": 1,
+      ".inf": 1
+    },
+    "asset_categories": {
+      "cod_legacy": 98,
+      "textures": 11,
+      "code_and_config": 3
+    },
+    "top_directories": [
+      {
+        "name": "Call of Duty 4 Modern Warfare",
+        "files": 215,
+        "uncompressed_bytes": 7078126218
+      }
+    ],
+    "largest": [
+      {
+        "path": "Call of Duty 4 Modern Warfare/main/localized_spanish_iw01.iwd",
+        "bytes": 168326412,
+        "compressed_bytes": 168076658,
+        "crc32_hex": "5e2d99a7",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/main/localized_spanish_iw02.iwd",
+        "bytes": 168263689,
+        "compressed_bytes": 168031667,
+        "crc32_hex": "30f27e21",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/main/localized_spanish_iw03.iwd",
+        "bytes": 168255430,
+        "compressed_bytes": 168008701,
+        "crc32_hex": "363fdf31",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/main/localized_spanish_iw00.iwd",
+        "bytes": 168238863,
+        "compressed_bytes": 167990142,
+        "crc32_hex": "ac056d26",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/main/localized_spanish_iw04.iwd",
+        "bytes": 168143122,
+        "compressed_bytes": 167939482,
+        "crc32_hex": "7c922c6b",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/main/localized_spanish_iw05.iwd",
+        "bytes": 168008742,
+        "compressed_bytes": 167901490,
+        "crc32_hex": "e1ce0f92",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/main/iw_01.iwd",
+        "bytes": 167885112,
+        "compressed_bytes": 167353834,
+        "crc32_hex": "34d0d169",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/main/iw_00.iwd",
+        "bytes": 167780172,
+        "compressed_bytes": 167315803,
+        "crc32_hex": "e88a5704",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/main/iw_06.iwd",
+        "bytes": 167754503,
+        "compressed_bytes": 167517960,
+        "crc32_hex": "37b7ef75",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/main/iw_04.iwd",
+        "bytes": 167682009,
+        "compressed_bytes": 167434125,
+        "crc32_hex": "7866e479",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/main/iw_08.iwd",
+        "bytes": 167544651,
+        "compressed_bytes": 167544651,
+        "crc32_hex": "84b7d7f3",
+        "method": 0,
+        "encrypted": false
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/main/iw_05.iwd",
+        "bytes": 167489996,
+        "compressed_bytes": 167276841,
+        "crc32_hex": "dd79c455",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/main/iw_09.iwd",
+        "bytes": 167076481,
+        "compressed_bytes": 167047365,
+        "crc32_hex": "b23bd3a4",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/main/iw_02.iwd",
+        "bytes": 166957774,
+        "compressed_bytes": 166338586,
+        "crc32_hex": "daa58542",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/main/iw_03.iwd",
+        "bytes": 166904484,
+        "compressed_bytes": 166408422,
+        "crc32_hex": "77ecf2ce",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/main/iw_10.iwd",
+        "bytes": 165389824,
+        "compressed_bytes": 165379994,
+        "crc32_hex": "b7591519",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/main/iw_07.iwd",
+        "bytes": 162987361,
+        "compressed_bytes": 162987361,
+        "crc32_hex": "d6670ccf",
+        "method": 0,
+        "encrypted": false
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/main/video/attract.bik",
+        "bytes": 155322180,
+        "compressed_bytes": 152303409,
+        "crc32_hex": "9c6011de",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/main/localized_spanish_iw06.iwd",
+        "bytes": 151520102,
+        "compressed_bytes": 151451606,
+        "crc32_hex": "c1b85b91",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/main/iw_11.iwd",
+        "bytes": 151420446,
+        "compressed_bytes": 151344135,
+        "crc32_hex": "e9cf411f",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/main/video/cod_intro.bik",
+        "bytes": 128677128,
+        "compressed_bytes": 126546892,
+        "crc32_hex": "d810a30a",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/jeepride.ff",
+        "bytes": 96396745,
+        "compressed_bytes": 96058699,
+        "crc32_hex": "6723d100",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/armada.ff",
+        "bytes": 88433135,
+        "compressed_bytes": 88084781,
+        "crc32_hex": "576daee1",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/scoutsniper.ff",
+        "bytes": 86264052,
+        "compressed_bytes": 85862350,
+        "crc32_hex": "384cc976",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/cargoship.ff",
+        "bytes": 83449777,
+        "compressed_bytes": 83110081,
+        "crc32_hex": "7faf6267",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/coup.ff",
+        "bytes": 82680662,
+        "compressed_bytes": 82323427,
+        "crc32_hex": "e9c9e180",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/airlift.ff",
+        "bytes": 81437254,
+        "compressed_bytes": 81062815,
+        "crc32_hex": "1bc65a0b",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/icbm.ff",
+        "bytes": 79781122,
+        "compressed_bytes": 79395417,
+        "crc32_hex": "2c96dc70",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/village_defend.ff",
+        "bytes": 79701021,
+        "compressed_bytes": 79430793,
+        "crc32_hex": "d0d4f12f",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/sniperescape.ff",
+        "bytes": 79619731,
+        "compressed_bytes": 79218954,
+        "crc32_hex": "57822868",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/village_assault.ff",
+        "bytes": 78462531,
+        "compressed_bytes": 78206505,
+        "crc32_hex": "8b96d96e",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/hunted.ff",
+        "bytes": 78316664,
+        "compressed_bytes": 78037363,
+        "crc32_hex": "e7ee9fe2",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/blackout.ff",
+        "bytes": 76424241,
+        "compressed_bytes": 76124298,
+        "crc32_hex": "d2802d97",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/bog_a.ff",
+        "bytes": 75754075,
+        "compressed_bytes": 75458547,
+        "crc32_hex": "da68d4a9",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/common.ff",
+        "bytes": 75655060,
+        "compressed_bytes": 75649723,
+        "crc32_hex": "b7fd8d6d",
+        "method": 8,
+        "encrypted": false
+      }
+    ],
+    "unsafe_path_examples": [],
+    "encrypted_entry_examples": [],
+    "duplicate_entry_examples": [],
+    "interesting_names": [
+      "Call of Duty 4 Modern Warfare/Mods/ModWarfare/mod.ff",
+      "Call of Duty 4 Modern Warfare/Mods/ModWarfare/z_modwarfare.iwd",
+      "Call of Duty 4 Modern Warfare/main/iw_00.iwd",
+      "Call of Duty 4 Modern Warfare/main/iw_01.iwd",
+      "Call of Duty 4 Modern Warfare/main/iw_02.iwd",
+      "Call of Duty 4 Modern Warfare/main/iw_03.iwd",
+      "Call of Duty 4 Modern Warfare/main/iw_04.iwd",
+      "Call of Duty 4 Modern Warfare/main/iw_05.iwd",
+      "Call of Duty 4 Modern Warfare/main/iw_06.iwd",
+      "Call of Duty 4 Modern Warfare/main/iw_07.iwd",
+      "Call of Duty 4 Modern Warfare/main/iw_08.iwd",
+      "Call of Duty 4 Modern Warfare/main/iw_09.iwd",
+      "Call of Duty 4 Modern Warfare/main/iw_10.iwd",
+      "Call of Duty 4 Modern Warfare/main/iw_11.iwd",
+      "Call of Duty 4 Modern Warfare/main/iw_12.iwd",
+      "Call of Duty 4 Modern Warfare/main/iw_13.iwd",
+      "Call of Duty 4 Modern Warfare/main/localized_spanish_iw00.iwd",
+      "Call of Duty 4 Modern Warfare/main/localized_spanish_iw01.iwd",
+      "Call of Duty 4 Modern Warfare/main/localized_spanish_iw02.iwd",
+      "Call of Duty 4 Modern Warfare/main/localized_spanish_iw03.iwd",
+      "Call of Duty 4 Modern Warfare/main/localized_spanish_iw04.iwd",
+      "Call of Duty 4 Modern Warfare/main/localized_spanish_iw05.iwd",
+      "Call of Duty 4 Modern Warfare/main/localized_spanish_iw06.iwd",
+      "Call of Duty 4 Modern Warfare/zone/spanish/ac130.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/aftermath.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/airlift.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/airplane.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/ambush.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/armada.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/blackout.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/bog_a.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/bog_b.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/cargoship.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/code_post_gfx.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/code_post_gfx_mp.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/common.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/common_mp.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/coup.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/hunted.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/icbm.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/jeepride.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/killhouse.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/launchfacility_a.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/launchfacility_b.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/localized_code_post_gfx_mp.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/localized_common_mp.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/mp_backlot.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/mp_backlot_load.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/mp_bloc.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/mp_bloc_load.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/mp_bog.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/mp_bog_load.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/mp_broadcast.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/mp_broadcast_load.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/mp_carentan.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/mp_carentan_load.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/mp_cargoship.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/mp_cargoship_load.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/mp_citystreets.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/mp_citystreets_load.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/mp_convoy.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/mp_convoy_load.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/mp_countdown.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/mp_countdown_load.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/mp_crash.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/mp_crash_load.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/mp_crash_snow.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/mp_crash_snow_load.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/mp_creek.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/mp_creek_load.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/mp_crossfire.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/mp_crossfire_load.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/mp_farm.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/mp_farm_load.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/mp_killhouse.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/mp_killhouse_load.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/mp_overgrown.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/mp_overgrown_load.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/mp_pipeline.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/mp_pipeline_load.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/mp_shipment.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/mp_shipment_load.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/mp_showdown.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/mp_showdown_load.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/mp_strike.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/mp_strike_load.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/mp_vacant.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/mp_vacant_load.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/scoutsniper.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/simplecredits.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/sniperescape.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/ui.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/ui_mp.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/village_assault.ff",
+      "Call of Duty 4 Modern Warfare/zone/spanish/village_defend.ff"
+    ],
+    "file_inventory_path": "docs/audit/c4-mocs-file-inventory.json",
+    "zip_integrity_test": "Central directory parsed; full entry-by-entry CRC not performed",
+    "text_preview_candidates": 0
+  },
+  "apk": {
+    "label": "cod4-apk",
+    "entries_total": 45,
+    "files": 45,
+    "directories": 0,
+    "uncompressed_bytes": 56774836,
+    "compressed_entry_bytes": 51729153,
+    "extensions": {
+      "[none]": 11,
+      ".so": 10,
+      ".zip": 5,
+      ".txt": 3,
+      ".json": 3,
+      ".ff": 3,
+      ".xml": 2,
+      ".arsc": 1,
+      ".dex": 1,
+      ".gz": 1,
+      ".md": 1,
+      ".iwd": 1,
+      ".sf": 1,
+      ".rsa": 1,
+      ".mf": 1
+    },
+    "asset_categories": {
+      "code_and_config": 5,
+      "cod_legacy": 4
+    },
+    "top_directories": [
+      {
+        "name": "assets",
+        "files": 30,
+        "uncompressed_bytes": 32793569
+      },
+      {
+        "name": "lib",
+        "files": 8,
+        "uncompressed_bytes": 23530224
+      },
+      {
+        "name": "META-INF",
+        "files": 3,
+        "uncompressed_bytes": 9383
+      },
+      {
+        "name": "AndroidManifest.xml",
+        "files": 1,
+        "uncompressed_bytes": 4048
+      },
+      {
+        "name": "res",
+        "files": 1,
+        "uncompressed_bytes": 832
+      },
+      {
+        "name": "resources.arsc",
+        "files": 1,
+        "uncompressed_bytes": 840
+      },
+      {
+        "name": "classes.dex",
+        "files": 1,
+        "uncompressed_bytes": 435940
+      }
+    ],
+    "largest": [
+      {
+        "path": "lib/arm64-v8a/libcod4mp.so",
+        "bytes": 10982264,
+        "compressed_bytes": 10982264,
+        "crc32_hex": "a3d26b3f",
+        "method": 0,
+        "encrypted": false
+      },
+      {
+        "path": "lib/arm64-v8a/libcod4first.so",
+        "bytes": 10927256,
+        "compressed_bytes": 10927256,
+        "crc32_hex": "e46510c6",
+        "method": 0,
+        "encrypted": false
+      },
+      {
+        "path": "assets/angle/libGLESv2_angle.so",
+        "bytes": 6119784,
+        "compressed_bytes": 2462296,
+        "crc32_hex": "ff6048f1",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "assets/drivers/packages/PanVK-Kbase-Android-g615-v11-csf-v0.1.0-rc3-5a07217f.adpkg.zip",
+        "bytes": 5851150,
+        "compressed_bytes": 5737697,
+        "crc32_hex": "6c13fc76",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "assets/drivers/packages/PanVK-Kbase-Android-g615-v11-csf-v0.1.0-beta.18-rc1-5a07217f.adpkg.zip",
+        "bytes": 5720955,
+        "compressed_bytes": 5605400,
+        "crc32_hex": "605e0b11",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "assets/drivers/packages/radv-xclipse-26.3.0-devel-313870e.zip",
+        "bytes": 4380303,
+        "compressed_bytes": 4270401,
+        "crc32_hex": "99ba56d3",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "assets/drivers/packages/mesa-turnip-android-26.2.4.zip",
+        "bytes": 3857923,
+        "compressed_bytes": 3743535,
+        "crc32_hex": "926c4e7d",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "assets/drivers/packages/mali-panvk-26.3.0-devel-r4.zip",
+        "bytes": 3423629,
+        "compressed_bytes": 3335789,
+        "crc32_hex": "4f47af07",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "lib/arm64-v8a/libc4vk.so",
+        "bytes": 951544,
+        "compressed_bytes": 951544,
+        "crc32_hex": "fdbc26dc",
+        "method": 0,
+        "encrypted": false
+      },
+      {
+        "path": "assets/cod4x/jcod4x_00.iwd",
+        "bytes": 860805,
+        "compressed_bytes": 854151,
+        "crc32_hex": "d8573195",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "assets/angle/libEGL_angle.so",
+        "bytes": 713088,
+        "compressed_bytes": 207119,
+        "crc32_hex": "1cc66aee",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "assets/licenses/ANGLE/Android16-NOTICE.xml.gz",
+        "bytes": 713013,
+        "compressed_bytes": 698261,
+        "crc32_hex": "66a075c5",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "assets/cod4x/cod4x_patchv2.ff",
+        "bytes": 550611,
+        "compressed_bytes": 536697,
+        "crc32_hex": "3f0998b1",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "assets/cod4x/cod4x_ambfix.ff",
+        "bytes": 496286,
+        "compressed_bytes": 491819,
+        "crc32_hex": "2c70c192",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "classes.dex",
+        "bytes": 435940,
+        "compressed_bytes": 188371,
+        "crc32_hex": "f643e0f8",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "lib/arm64-v8a/libc4icd_hal.so",
+        "bytes": 378112,
+        "compressed_bytes": 378112,
+        "crc32_hex": "c9aaab17",
+        "method": 0,
+        "encrypted": false
+      },
+      {
+        "path": "lib/arm64-v8a/libhook_impl.so",
+        "bytes": 278520,
+        "compressed_bytes": 278520,
+        "crc32_hex": "cd68f925",
+        "method": 0,
+        "encrypted": false
+      },
+      {
+        "path": "assets/cod4x/cod4x_patch.ff",
+        "bytes": 26284,
+        "compressed_bytes": 24625,
+        "crc32_hex": "77309d3c",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "assets/drivers/HAL-ADAPTER-NOTICE.txt",
+        "bytes": 11811,
+        "compressed_bytes": 4157,
+        "crc32_hex": "f3dbbeae",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "assets/licenses/ANGLE/SPIRV-Cross-LICENSE",
+        "bytes": 11358,
+        "compressed_bytes": 3949,
+        "crc32_hex": "86e2b4b4",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "assets/licenses/ANGLE/SPIRV-Tools-LICENSE",
+        "bytes": 11358,
+        "compressed_bytes": 3949,
+        "crc32_hex": "86e2b4b4",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "assets/licenses/ANGLE/Vulkan-Headers-LICENSE",
+        "bytes": 11358,
+        "compressed_bytes": 3949,
+        "crc32_hex": "86e2b4b4",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "assets/licenses/java-libs-LICENSE",
+        "bytes": 7133,
+        "compressed_bytes": 7133,
+        "crc32_hex": "1aaa9f3a",
+        "method": 0,
+        "encrypted": false
+      },
+      {
+        "path": "assets/licenses/ANGLE/glslang-LICENSE",
+        "bytes": 5387,
+        "compressed_bytes": 2143,
+        "crc32_hex": "9f96e160",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "assets/licenses/ANGLE/rapidjson-license.txt",
+        "bytes": 5152,
+        "compressed_bytes": 1690,
+        "crc32_hex": "39f6561c",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "assets/drivers/catalog-v2.json",
+        "bytes": 4680,
+        "compressed_bytes": 1388,
+        "crc32_hex": "09bf113e",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "lib/arm64-v8a/libgsl_alloc_hook.so",
+        "bytes": 4312,
+        "compressed_bytes": 4312,
+        "crc32_hex": "3acb8809",
+        "method": 0,
+        "encrypted": false
+      },
+      {
+        "path": "lib/arm64-v8a/libmain_hook.so",
+        "bytes": 4216,
+        "compressed_bytes": 4216,
+        "crc32_hex": "095bc132",
+        "method": 0,
+        "encrypted": false
+      },
+      {
+        "path": "AndroidManifest.xml",
+        "bytes": 4048,
+        "compressed_bytes": 1330,
+        "crc32_hex": "82313475",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "lib/arm64-v8a/libfile_redirect_hook.so",
+        "bytes": 4000,
+        "compressed_bytes": 4000,
+        "crc32_hex": "b83b914b",
+        "method": 0,
+        "encrypted": false
+      },
+      {
+        "path": "META-INF/CERT.SF",
+        "bytes": 3887,
+        "compressed_bytes": 1640,
+        "crc32_hex": "1ab5608e",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "META-INF/MANIFEST.MF",
+        "bytes": 3782,
+        "compressed_bytes": 1507,
+        "crc32_hex": "9739b13e",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "META-INF/CERT.RSA",
+        "bytes": 1714,
+        "compressed_bytes": 1155,
+        "crc32_hex": "40e4cce5",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "assets/licenses/ANGLE/ANGLE-LICENSE",
+        "bytes": 1643,
+        "compressed_bytes": 843,
+        "crc32_hex": "0bc1be1a",
+        "method": 8,
+        "encrypted": false
+      },
+      {
+        "path": "assets/drivers/UPSTREAM-NOTICES.txt",
+        "bytes": 1385,
+        "compressed_bytes": 656,
+        "crc32_hex": "0e9029d6",
+        "method": 8,
+        "encrypted": false
+      }
+    ],
+    "unsafe_path_examples": [],
+    "encrypted_entry_examples": [],
+    "duplicate_entry_examples": [],
+    "interesting_names": [
+      "AndroidManifest.xml",
+      "classes.dex",
+      "lib/arm64-v8a/libcod4first.so",
+      "lib/arm64-v8a/libcod4mp.so",
+      "lib/arm64-v8a/libc4vk.so",
+      "lib/arm64-v8a/libc4icd_hal.so",
+      "lib/arm64-v8a/libhook_impl.so",
+      "lib/arm64-v8a/libmain_hook.so",
+      "lib/arm64-v8a/libfile_redirect_hook.so",
+      "lib/arm64-v8a/libgsl_alloc_hook.so",
+      "assets/angle/libEGL_angle.so",
+      "assets/angle/libGLESv2_angle.so",
+      "assets/cod4x/cod4x_ambfix.ff",
+      "assets/cod4x/cod4x_patch.ff",
+      "assets/cod4x/cod4x_patchv2.ff",
+      "assets/cod4x/jcod4x_00.iwd"
+    ],
+    "file_inventory_path": "docs/audit/cod4-apk-file-inventory.json",
+    "zip_integrity_test": "Central directory parsed; full entry-by-entry CRC not performed",
+    "android_metadata": {
+      "package": "com.cod4.firstmission",
+      "app_name": "COD4",
+      "version_name": "0.5.9-r6-integrated-alpha",
+      "version_code": "26",
+      "min_sdk": "24",
+      "target_sdk": "36",
+      "permissions": [
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.INTERNET"
+      ],
+      "activities": [
+        "com.cod4.firstmission.CampaignActivity",
+        "com.cod4.firstmission.DriverProbeActivity",
+        "com.cod4.firstmission.MainActivity",
+        "com.cod4.firstmission.MultiplayerActivity"
+      ],
+      "services": [],
+      "receivers": [],
+      "providers": [],
+      "main_activity": "com.cod4.firstmission.MainActivity",
+      "signature": {
+        "v1": "True",
+        "v2": "True",
+        "v3": "False"
+      }
+    },
+    "game_engine_signatures": {
+      "unity": false,
+      "unreal": false,
+      "godot": false,
+      "cocos": false
+    }
+  }
+}
