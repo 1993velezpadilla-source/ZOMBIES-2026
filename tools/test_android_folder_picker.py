@@ -78,7 +78,13 @@ def prepare_fixture():
         target=FIXTURE/name
         target.parent.mkdir(parents=True,exist_ok=True)
         target.write_text(text,encoding="utf-8")
-    adb("push",str(FIXTURE),"/sdcard/Download/",timeout=90)
+    # Explicitly create the subfolder: adb push DIRECTORY into an existing
+    # Download folder can copy only the contents directly to Download.
+    adb("shell","mkdir","-p","/sdcard/Download/COD4-FIXTURE/main",
+        "/sdcard/Download/COD4-FIXTURE/zone/spanish",timeout=30)
+    for relative in files:
+        adb("push",str(FIXTURE/relative),"/sdcard/Download/COD4-FIXTURE/"+relative,timeout=90)
+    print("FIXTURE-LIST",adb("shell","ls","-la","/sdcard/Download/COD4-FIXTURE"),flush=True)
 
 def main():
     prepare_fixture()
@@ -104,6 +110,7 @@ def main():
     steps=[{"name":"import_button","nodes":node_summary()}]
     # SAF folder picker may initially be on Recents, home or Download.
     entered_fixture=False
+    entered_download=False
     permission_granted=False
     for step in range(12):
         nodes=node_summary()
@@ -120,7 +127,8 @@ def main():
             entered_fixture=True
             shot("05-fixture-folder")
             continue
-        if tap_label(["Download","Downloads","下载","下載"],True):
+        if not entered_download and tap_label(["Download","Downloads","下载","下載"],True):
+            entered_download=True
             shot("04-download-folder")
             continue
         if tap_label(["Show roots","Show navigation drawer","Navigate up"],False):
@@ -137,7 +145,7 @@ def main():
     print("IMPORT_COMPLETE_BANNER",import_complete,"INCOMPLETE_MAIN_BANNER",incomplete_main,flush=True)
     # Expected-negative gate: challenge the game's Campaign button with no game assets,
     # observe the outcome, but do not claim full campaign loading.
-    campaign_clicked=tap_label(["原版战役菜单"],False)
+    campaign_clicked=bool(permission_granted and tap_label(["原版战役菜单"],False))
     if campaign_clicked:
         time.sleep(7)
         shot("10-campaign-with-incomplete-fixture")
