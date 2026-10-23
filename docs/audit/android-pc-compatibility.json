@@ -1,0 +1,128 @@
+{
+  "source": "ZOMBIES-2026 release assets and static audit",
+  "test_type": "Static Android ↔ PC asset-path compatibility preflight",
+  "apk_executed": false,
+  "pc_files": 215,
+  "iwd_banks": 14,
+  "pc_ff_count": 72,
+  "localization_folders": [
+    "spanish"
+  ],
+  "localized_iwd_languages": [
+    "spanish"
+  ],
+  "checks": [
+    {
+      "id": "original-zip-structure",
+      "status": "PASS",
+      "evidence": "PC package recognized, 215 files directly in outer ZIP",
+      "impact": "Correct game-data root located",
+      "verification": "static"
+    },
+    {
+      "id": "main-directory",
+      "status": "PASS",
+      "evidence": "14 numbered IW package(s) found",
+      "impact": "Basic content archive present",
+      "verification": "static"
+    },
+    {
+      "id": "campaign-critical-paths",
+      "status": "PASS",
+      "evidence": "main/iw_00.iwd=True, zone/spanish/code_post_gfx.ff=True, zone/spanish/common.ff=True, zone/spanish/ui.ff=True",
+      "impact": "English and Spanish localization are not interchangeable assumptions",
+      "verification": "static"
+    },
+    {
+      "id": "multiplayer-critical-paths",
+      "status": "PASS",
+      "evidence": "main/iw_00.iwd=True, zone/spanish/code_post_gfx_mp.ff=True, zone/spanish/common_mp.ff=True, zone/spanish/ui_mp.ff=True",
+      "impact": "Only static file presence checked",
+      "verification": "static"
+    },
+    {
+      "id": "spanish-zone-coverage",
+      "status": "PASS",
+      "evidence": "Fastfile localization folders: ['spanish']; main language variants: ['spanish']",
+      "impact": "Android engine language selection has NOT been tested",
+      "verification": "static"
+    },
+    {
+      "id": "android-native-abi",
+      "status": "PASS",
+      "evidence": "Native Android libraries: 8 under arm64-v8a",
+      "impact": "Physical device ABI/GPU compatibility remains untested",
+      "verification": "static"
+    },
+    {
+      "id": "apk-import-references",
+      "status": "PASS",
+      "evidence": "Compiled Android app references 'Import the complete campaign files' and 'main/iw_00.iwd'",
+      "impact": "Literal strings support an import workflow, but do not verify that it works",
+      "verification": "static"
+    },
+    {
+      "id": "asset-folders-preserved",
+      "status": "PASS",
+      "evidence": "Source root folder 'Call of Duty 4 Modern Warfare/' contains main/ and zone/spanish/",
+      "impact": "Import must preserve relative main/ and zone/ folder hierarchy",
+      "verification": "static"
+    },
+    {
+      "id": "iwd-catalog",
+      "status": "PASS",
+      "evidence": "22 nested IWDs, 24,104 entries, 0 errors",
+      "impact": "Indexes read, but not full CRC on individual entries",
+      "verification": "static"
+    },
+    {
+      "id": "apk-fastfile-headers-available",
+      "status": "PASS",
+      "evidence": "Inspected 3 APK bundled COD4X .ff headers",
+      "impact": "A matching magic is not sufficient for game build/version compatibility",
+      "verification": "static"
+    }
+  ],
+  "runtime_blockers_or_unknowns": [
+    {
+      "status": "UNVERIFIED",
+      "topic": "Android app imports and loads this Spanish game installation",
+      "detail": "Requires installing APK on authorized ARM64 Android device and testing file import and campaign launch."
+    },
+    {
+      "status": "UNVERIFIED",
+      "topic": "Game rendering, crashes, frame rate, audio, touchscreen and GPU driver",
+      "detail": "No device execution was performed; those properties cannot be confirmed by archive inspection."
+    },
+    {
+      "status": "RISK",
+      "topic": "Spanish localization while APK mentions zone/english",
+      "detail": "Source has zone/spanish/ but no zone/english/. Runtime engine may support Spanish via setting; this was not tested."
+    },
+    {
+      "status": "LEGAL",
+      "topic": "Public redistribution",
+      "detail": "Do not assume rights to publicly distribute proprietary Call of Duty files or third-party APKs."
+    }
+  ],
+  "pc_ff_magic_examples": [
+    "4957666675313030"
+  ],
+  "apk_bundled_ff_headers": {
+    "assets/cod4x/cod4x_ambfix.ff": {
+      "header_hex": "49576666753130300500000078daecbd",
+      "ascii": "b'IWffu100'",
+      "bytes": 496286
+    },
+    "assets/cod4x/cod4x_patch.ff": {
+      "header_hex": "49576666753130300500000078daedbd",
+      "ascii": "b'IWffu100'",
+      "bytes": 26284
+    },
+    "assets/cod4x/cod4x_patchv2.ff": {
+      "header_hex": "49576666753130300500000078daecbd",
+      "ascii": "b'IWffu100'",
+      "bytes": 550611
+    }
+  }
+}
