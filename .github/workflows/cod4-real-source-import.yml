@@ -51,7 +51,7 @@ jobs:
           arch: x86_64
           profile: pixel_5
           ram-size: 3072M
-          disk-size: 8192M
+          disk-size: 16384M
           force-avd-creation: true
           emulator-options: -no-snapshot-load -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
           disable-animations: true
