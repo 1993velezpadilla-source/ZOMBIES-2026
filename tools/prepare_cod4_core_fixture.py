@@ -15,14 +15,13 @@ from audit_releases import PARTS, SplitReader
 PREFIX = "Call of Duty 4 Modern Warfare/"
 REQUIRED = (
     "localization.txt",
-    "main/iw_00.iwd",
-    "main/iw_01.iwd",
-    "main/iw_02.iwd",
-    "main/iw_03.iwd",
+    *("main/iw_%02d.iwd" % i for i in range(14)),
     "main/localized_spanish_iw00.iwd",
     "zone/spanish/code_post_gfx.ff",
     "zone/spanish/common.ff",
     "zone/spanish/ui.ff",
+    "zone/spanish/killhouse.ff",
+    "zone/spanish/cargoship.ff",
 )
 ROOT = Path("_runtime_temp/original-pc-sample")
 RESULT = Path("smoke-out/real-data-test")
