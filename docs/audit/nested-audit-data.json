@@ -1,446 +1,3392 @@
 {
   "c4": {
-    "containers": [],
-    "errors": [
-      {
-        "path": "Call of Duty 4 Modern Warfare/Mods/ModWarfare/7za.exe",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/Mods/ModWarfare/mod.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/Mods/ModWarfare/z_modwarfare.iwd",
-        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/_Redist/DirectX/dxwebsetup.exe",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/binkw32.dll",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/iw3mp.exe",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/iw3sp.exe",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/main/iw_00.iwd",
-        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/main/iw_01.iwd",
-        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/main/iw_02.iwd",
-        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/main/iw_03.iwd",
-        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/main/iw_04.iwd",
-        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/main/iw_05.iwd",
-        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/main/iw_06.iwd",
-        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/main/iw_07.iwd",
-        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/main/iw_08.iwd",
-        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/main/iw_09.iwd",
-        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/main/iw_10.iwd",
-        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/main/iw_11.iwd",
-        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/main/iw_12.iwd",
-        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/main/iw_13.iwd",
-        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/main/localized_spanish_iw00.iwd",
-        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/main/localized_spanish_iw01.iwd",
-        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/main/localized_spanish_iw02.iwd",
-        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/main/localized_spanish_iw03.iwd",
-        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/main/localized_spanish_iw04.iwd",
-        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/main/localized_spanish_iw05.iwd",
-        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/main/localized_spanish_iw06.iwd",
-        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/miles/mssmp3.asi",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/miles/mssvoice.asi",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/mss32.dll",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/unins000.exe",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/ac130.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/aftermath.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/airlift.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/airplane.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/ambush.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/armada.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/blackout.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/bog_a.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/bog_b.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/cargoship.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/code_post_gfx.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/code_post_gfx_mp.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/common.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/common_mp.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/coup.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/hunted.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/icbm.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/jeepride.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/killhouse.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/launchfacility_a.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/launchfacility_b.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/localized_code_post_gfx_mp.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/localized_common_mp.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_backlot.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_backlot_load.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_bloc.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_bloc_load.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_bog.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_bog_load.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_broadcast.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_broadcast_load.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_carentan.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_carentan_load.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_cargoship.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_cargoship_load.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_citystreets.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_citystreets_load.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_convoy.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_convoy_load.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_countdown.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_countdown_load.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_crash.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_crash_load.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_crash_snow.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_crash_snow_load.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_creek.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_creek_load.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_crossfire.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_crossfire_load.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_farm.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_farm_load.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_killhouse.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_killhouse_load.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_overgrown.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_overgrown_load.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_pipeline.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_pipeline_load.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_shipment.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_shipment_load.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_showdown.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_showdown_load.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_strike.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_strike_load.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_vacant.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_vacant_load.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/scoutsniper.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/simplecredits.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/sniperescape.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/ui.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/ui_mp.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/village_assault.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
-      },
-      {
-        "path": "Call of Duty 4 Modern Warfare/zone/spanish/village_defend.ff",
-        "error": "'SplitReader' object has no attribute 'seekable'"
+    "containers": [
+      {
+        "files": 11,
+        "uncompressed_bytes": 456419,
+        "extensions": {
+          ".gsc": 10,
+          ".iwi": 1
+        },
+        "term_counts": {
+          "images/": 1,
+          "maps/": 10,
+          "menu": 1,
+          "weapon": 1
+        },
+        "top_dirs": [
+          [
+            "maps/mp",
+            10
+          ],
+          [
+            "images/logo_cod2.iwi",
+            1
+          ]
+        ],
+        "examples": [
+          {
+            "path": "maps/mp/gametypes/_healthoverlay.gsc",
+            "bytes": 3607
+          },
+          {
+            "path": "maps/mp/gametypes/_menus.gsc",
+            "bytes": 4724
+          },
+          {
+            "path": "maps/mp/gametypes/_missions.gsc",
+            "bytes": 35
+          }
+        ],
+        "largest": [
+          {
+            "path": "images/logo_cod2.iwi",
+            "bytes": 153139
+          },
+          {
+            "path": "maps/mp/gametypes/_globallogic.gsc",
+            "bytes": 146444
+          },
+          {
+            "path": "maps/mp/gametypes/_weapons.gsc",
+            "bytes": 40899
+          },
+          {
+            "path": "maps/mp/gametypes/_hardpoints.gsc",
+            "bytes": 34881
+          },
+          {
+            "path": "maps/mp/gametypes/_modwarfare.gsc",
+            "bytes": 27596
+          },
+          {
+            "path": "maps/mp/gametypes/_teams.gsc",
+            "bytes": 19329
+          },
+          {
+            "path": "maps/mp/gametypes/_class.gsc",
+            "bytes": 15601
+          },
+          {
+            "path": "maps/mp/gametypes/_rank.gsc",
+            "bytes": 10164
+          },
+          {
+            "path": "maps/mp/gametypes/_menus.gsc",
+            "bytes": 4724
+          },
+          {
+            "path": "maps/mp/gametypes/_healthoverlay.gsc",
+            "bytes": 3607
+          },
+          {
+            "path": "maps/mp/gametypes/_missions.gsc",
+            "bytes": 35
+          }
+        ],
+        "name": "Call of Duty 4 Modern Warfare/Mods/ModWarfare/z_modwarfare.iwd"
+      },
+      {
+        "files": 1053,
+        "uncompressed_bytes": 295442529,
+        "extensions": {
+          ".iwi": 926,
+          ".cfg": 125,
+          ".csv": 2
+        },
+        "term_counts": {
+          "images/": 926,
+          "hud": 3
+        },
+        "top_dirs": [
+          [
+            "avatar_dev.cfg",
+            2
+          ],
+          [
+            "chad.cfg",
+            2
+          ],
+          [
+            "createfx.cfg",
+            2
+          ],
+          [
+            "default_mp_gamesettings.cfg",
+            2
+          ],
+          [
+            "jake.cfg",
+            2
+          ],
+          [
+            "jiesang.cfg",
+            2
+          ],
+          [
+            "massey.cfg",
+            2
+          ],
+          [
+            "robotg.cfg",
+            2
+          ],
+          [
+            "roger.cfg",
+            2
+          ],
+          [
+            "test.cfg",
+            2
+          ],
+          [
+            "autoexec_dev.cfg",
+            1
+          ],
+          [
+            "autoexec_dev_mp.cfg",
+            1
+          ],
+          [
+            "avatar.cfg",
+            1
+          ],
+          [
+            "avatar_mp.cfg",
+            1
+          ],
+          [
+            "brent.cfg",
+            1
+          ],
+          [
+            "brent_mp.cfg",
+            1
+          ],
+          [
+            "chad_mp.cfg",
+            1
+          ],
+          [
+            "configure.cfg",
+            1
+          ],
+          [
+            "configure.csv",
+            1
+          ],
+          [
+            "configure_mp.cfg",
+            1
+          ],
+          [
+            "configure_mp.csv",
+            1
+          ],
+          [
+            "createpaths.cfg",
+            1
+          ],
+          [
+            "default_filter.cfg",
+            1
+          ],
+          [
+            "developer.cfg",
+            1
+          ],
+          [
+            "developer_mp.cfg",
+            1
+          ]
+        ],
+        "examples": [
+          {
+            "path": "autoexec_dev.cfg",
+            "bytes": 585
+          },
+          {
+            "path": "autoexec_dev_mp.cfg",
+            "bytes": 590
+          },
+          {
+            "path": "avatar.cfg",
+            "bytes": 1664
+          },
+          {
+            "path": "avatar_dev.cfg",
+            "bytes": 2831
+          },
+          {
+            "path": "avatar_mp.cfg",
+            "bytes": 1522
+          },
+          {
+            "path": "brent.cfg",
+            "bytes": 1391
+          },
+          {
+            "path": "brent_mp.cfg",
+            "bytes": 1230
+          },
+          {
+            "path": "chad.cfg",
+            "bytes": 1650
+          },
+          {
+            "path": "configure.cfg",
+            "bytes": 227
+          },
+          {
+            "path": "configure.csv",
+            "bytes": 4489
+          },
+          {
+            "path": "configure_mp.cfg",
+            "bytes": 227
+          },
+          {
+            "path": "configure_mp.csv",
+            "bytes": 4177
+          },
+          {
+            "path": "createfx.cfg",
+            "bytes": 1247
+          },
+          {
+            "path": "createpaths.cfg",
+            "bytes": 354
+          },
+          {
+            "path": "default_filter.cfg",
+            "bytes": 435
+          },
+          {
+            "path": "default_mp_gamesettings.cfg",
+            "bytes": 4128
+          },
+          {
+            "path": "developer.cfg",
+            "bytes": 2992
+          },
+          {
+            "path": "developer_mp.cfg",
+            "bytes": 1895
+          },
+          {
+            "path": "dvorak.cfg",
+            "bytes": 616
+          },
+          {
+            "path": "earl.cfg",
+            "bytes": 1337
+          },
+          {
+            "path": "fileSysCheck.cfg",
+            "bytes": 77
+          },
+          {
+            "path": "frank.cfg",
+            "bytes": 833
+          },
+          {
+            "path": "geoff.cfg",
+            "bytes": 6460
+          },
+          {
+            "path": "grigsby.cfg",
+            "bytes": 7618
+          },
+          {
+            "path": "hex.cfg",
+            "bytes": 7017
+          },
+          {
+            "path": "jake.cfg",
+            "bytes": 1059
+          }
+        ],
+        "largest": [
+          {
+            "path": "images/ch46e_body_damaged_nml.iwi",
+            "bytes": 5592460
+          },
+          {
+            "path": "images/ch46e_body_interior_nml.iwi",
+            "bytes": 5592460
+          },
+          {
+            "path": "images/ch46e_body_nml.iwi",
+            "bytes": 5592460
+          },
+          {
+            "path": "images/aftermath_ft.iwi",
+            "bytes": 3145756
+          },
+          {
+            "path": "images/chechnya_ft.iwi",
+            "bytes": 3145756
+          },
+          {
+            "path": "images/80s_econdestroy_nml.iwi",
+            "bytes": 2796268
+          },
+          {
+            "path": "images/80s_econ_nml.iwi",
+            "bytes": 2796268
+          },
+          {
+            "path": "images/abrams_desert_dmg_nml.iwi",
+            "bytes": 2796268
+          },
+          {
+            "path": "images/abrams_desert_nml.iwi",
+            "bytes": 2796268
+          },
+          {
+            "path": "images/b21_bed_cover_nrm.iwi",
+            "bytes": 2796268
+          },
+          {
+            "path": "images/blackhawk_body_normal.iwi",
+            "bytes": 2796268
+          },
+          {
+            "path": "images/blackhawk_body_normal_damage.iwi",
+            "bytes": 2796268
+          }
+        ],
+        "name": "Call of Duty 4 Modern Warfare/main/iw_00.iwd"
+      },
+      {
+        "files": 1455,
+        "uncompressed_bytes": 305301652,
+        "extensions": {
+          ".iwi": 1455
+        },
+        "term_counts": {
+          "images/": 1455,
+          "player": 2,
+          "hud": 110,
+          "weapon": 4
+        },
+        "top_dirs": [
+          [
+            "images/ch_ground_snowdecal_3_nml.iwi",
+            1
+          ],
+          [
+            "images/ch_ground_snowdecal_4_col.iwi",
+            1
+          ],
+          [
+            "images/ch_ground_snowdecal_4_nml.iwi",
+            1
+          ],
+          [
+            "images/ch_ground_snowdirty_2_col.iwi",
+            1
+          ],
+          [
+            "images/ch_ground_snowdirty_2_nml.iwi",
+            1
+          ],
+          [
+            "images/ch_hayroll02_col.iwi",
+            1
+          ],
+          [
+            "images/ch_hayroll02_nml.iwi",
+            1
+          ],
+          [
+            "images/ch_hayroll_col.iwi",
+            1
+          ],
+          [
+            "images/ch_hayroll_nml.iwi",
+            1
+          ],
+          [
+            "images/ch_hotspot01.iwi",
+            1
+          ],
+          [
+            "images/ch_housenumbers_black.iwi",
+            1
+          ],
+          [
+            "images/ch_housenumbers_black_bump.iwi",
+            1
+          ],
+          [
+            "images/ch_housenumbers_brass.iwi",
+            1
+          ],
+          [
+            "images/ch_housenumbers_brass_bump.iwi",
+            1
+          ],
+          [
+            "images/ch_housenumbers_white.iwi",
+            1
+          ],
+          [
+            "images/ch_housenumbers_white_bump.iwi",
+            1
+          ],
+          [
+            "images/ch_kitchenstainlessteelpanels_col.iwi",
+            1
+          ],
+          [
+            "images/ch_kitchenstainlessteelpanels_nml.iwi",
+            1
+          ],
+          [
+            "images/ch_leaves.iwi",
+            1
+          ],
+          [
+            "images/ch_leaves_nml.iwi",
+            1
+          ],
+          [
+            "images/ch_letters_big_white01_col.iwi",
+            1
+          ],
+          [
+            "images/ch_lilypad_col.iwi",
+            1
+          ],
+          [
+            "images/ch_lilypad_nml.iwi",
+            1
+          ],
+          [
+            "images/ch_linoleum_bluegreen01_col.iwi",
+            1
+          ],
+          [
+            "images/ch_linoleum_bluegreen01_nml.iwi",
+            1
+          ]
+        ],
+        "examples": [],
+        "largest": [
+          {
+            "path": "images/ferris_wheel_nml.iwi",
+            "bytes": 5592460
+          },
+          {
+            "path": "images/cobra_d_nml.iwi",
+            "bytes": 2796268
+          },
+          {
+            "path": "images/cobra_int_nml.iwi",
+            "bytes": 2796268
+          },
+          {
+            "path": "images/cobra_nml.iwi",
+            "bytes": 2796268
+          },
+          {
+            "path": "images/humvee_nor.iwi",
+            "bytes": 2796268
+          },
+          {
+            "path": "images/luxurysedan_interior_nml.iwi",
+            "bytes": 2796268
+          },
+          {
+            "path": "images/ferris_wheel_col.iwi",
+            "bytes": 2796244
+          },
+          {
+            "path": "images/demoquotes1.iwi",
+            "bytes": 2359324
+          },
+          {
+            "path": "images/demoquotes2.iwi",
+            "bytes": 2359324
+          },
+          {
+            "path": "images/demoquotes3.iwi",
+            "bytes": 2359324
+          },
+          {
+            "path": "images/ch_sandbag_normals.iwi",
+            "bytes": 1398156
+          },
+          {
+            "path": "images/ch_white_wall_nml.iwi",
+            "bytes": 1398156
+          }
+        ],
+        "name": "Call of Duty 4 Modern Warfare/main/iw_01.iwd"
+      },
+      {
+        "files": 1295,
+        "uncompressed_bytes": 307408431,
+        "extensions": {
+          ".iwi": 1295
+        },
+        "term_counts": {
+          "images/": 1295,
+          "menu": 9,
+          "weapon": 7
+        },
+        "top_dirs": [
+          [
+            "images/mackey_sp_head_col_dead.iwi",
+            1
+          ],
+          [
+            "images/mackey_sp_head_nml.iwi",
+            1
+          ],
+          [
+            "images/mac_head_clr.iwi",
+            1
+          ],
+          [
+            "images/mac_head_nml.iwi",
+            1
+          ],
+          [
+            "images/mailboxes_col.iwi",
+            1
+          ],
+          [
+            "images/mailboxes_nml.iwi",
+            1
+          ],
+          [
+            "images/mailbox_col.iwi",
+            1
+          ],
+          [
+            "images/mailbox_nml.iwi",
+            1
+          ],
+          [
+            "images/mainframe.iwi",
+            1
+          ],
+          [
+            "images/mainframe_bump.iwi",
+            1
+          ],
+          [
+            "images/mainframe_decal.iwi",
+            1
+          ],
+          [
+            "images/mainframe_lights_atlas.iwi",
+            1
+          ],
+          [
+            "images/main_back_bottom_mp.iwi",
+            1
+          ],
+          [
+            "images/main_back_top_mp_english.iwi",
+            1
+          ],
+          [
+            "images/mango_green_col.iwi",
+            1
+          ],
+          [
+            "images/mango_redorange_col.iwi",
+            1
+          ],
+          [
+            "images/mango_redorange_nml.iwi",
+            1
+          ],
+          [
+            "images/mannequin_c.iwi",
+            1
+          ],
+          [
+            "images/mannequin_n.iwi",
+            1
+          ],
+          [
+            "images/mantle_on.iwi",
+            1
+          ],
+          [
+            "images/mantle_over.iwi",
+            1
+          ],
+          [
+            "images/mapborder.iwi",
+            1
+          ],
+          [
+            "images/marines_col_desert.iwi",
+            1
+          ],
+          [
+            "images/marines_helmets_col_desert.iwi",
+            1
+          ],
+          [
+            "images/market_stand1.iwi",
+            1
+          ]
+        ],
+        "examples": [],
+        "largest": [
+          {
+            "path": "images/mtl_uaz_van_col.iwi",
+            "bytes": 5592460
+          },
+          {
+            "path": "images/mtl_uaz_van_nml.iwi",
+            "bytes": 5592460
+          },
+          {
+            "path": "images/mp_overgrown_dusk_ft.iwi",
+            "bytes": 4718620
+          },
+          {
+            "path": "images/mp_argun_ft.iwi",
+            "bytes": 3145756
+          },
+          {
+            "path": "images/mp_backlot_ft.iwi",
+            "bytes": 3145756
+          },
+          {
+            "path": "images/mp_canal_ft.iwi",
+            "bytes": 3145756
+          },
+          {
+            "path": "images/mp_convoy_ft.iwi",
+            "bytes": 3145756
+          },
+          {
+            "path": "images/mp_convoy_night_ft.iwi",
+            "bytes": 3145756
+          },
+          {
+            "path": "images/mp_crash_ft.iwi",
+            "bytes": 3145756
+          },
+          {
+            "path": "images/mp_dusk_ft.iwi",
+            "bytes": 3145756
+          },
+          {
+            "path": "images/mp_farm_ft.iwi",
+            "bytes": 3145756
+          },
+          {
+            "path": "images/mp_overgrown_ft.iwi",
+            "bytes": 3145756
+          }
+        ],
+        "name": "Call of Duty 4 Modern Warfare/main/iw_02.iwd"
+      },
+      {
+        "files": 669,
+        "uncompressed_bytes": 300971342,
+        "extensions": {
+          ".iwi": 669
+        },
+        "term_counts": {
+          "images/": 669,
+          "weapon": 4
+        },
+        "top_dirs": [
+          [
+            "images/sa6_col_desert_destroy.iwi",
+            1
+          ],
+          [
+            "images/sa6_col_woodland.iwi",
+            1
+          ],
+          [
+            "images/sa6_col_woodland_destroy.iwi",
+            1
+          ],
+          [
+            "images/sa6_nml.iwi",
+            1
+          ],
+          [
+            "images/sa6_track_col.iwi",
+            1
+          ],
+          [
+            "images/sa6_track_col_desert_destroy.iwi",
+            1
+          ],
+          [
+            "images/sa6_track_col_woodland.iwi",
+            1
+          ],
+          [
+            "images/sa6_track_col_woodland_destroy.iwi",
+            1
+          ],
+          [
+            "images/sa6_track_nml.iwi",
+            1
+          ],
+          [
+            "images/safe_area.iwi",
+            1
+          ],
+          [
+            "images/sand_detail.iwi",
+            1
+          ],
+          [
+            "images/sas_ct_bodies_sp_col.iwi",
+            1
+          ],
+          [
+            "images/sas_ct_bodies_sp_col_ac130.iwi",
+            1
+          ],
+          [
+            "images/sas_ct_bodies_sp_lod_col.iwi",
+            1
+          ],
+          [
+            "images/sas_ct_bodies_sp_lod_nml.iwi",
+            1
+          ],
+          [
+            "images/sas_ct_bodies_sp_nml.iwi",
+            1
+          ],
+          [
+            "images/sas_ct_gaz_col_sp.iwi",
+            1
+          ],
+          [
+            "images/sas_ct_gaz_nml_sp.iwi",
+            1
+          ],
+          [
+            "images/sas_ct_goggles_sp_col.iwi",
+            1
+          ],
+          [
+            "images/sas_ct_goggles_sp_nml.iwi",
+            1
+          ],
+          [
+            "images/sas_ct_head_sp_col.iwi",
+            1
+          ],
+          [
+            "images/sas_ct_head_sp_col_ac130.iwi",
+            1
+          ],
+          [
+            "images/sas_ct_head_sp_nml.iwi",
+            1
+          ],
+          [
+            "images/sas_ct_price_sp_col.iwi",
+            1
+          ],
+          [
+            "images/sas_ct_price_sp_nml.iwi",
+            1
+          ]
+        ],
+        "examples": [],
+        "largest": [
+          {
+            "path": "images/terraintest_bl_n.iwi",
+            "bytes": 5592460
+          },
+          {
+            "path": "images/terraintest_br_n.iwi",
+            "bytes": 5592460
+          },
+          {
+            "path": "images/terraintest_tl_n.iwi",
+            "bytes": 5592460
+          },
+          {
+            "path": "images/terraintest_tr_n.iwi",
+            "bytes": 5592460
+          },
+          {
+            "path": "images/traincar01_nml.iwi",
+            "bytes": 5592460
+          },
+          {
+            "path": "images/usmc_body_mp_nml.iwi",
+            "bytes": 5592460
+          },
+          {
+            "path": "images/usmc_body_woodland_mp_nml.iwi",
+            "bytes": 5592460
+          },
+          {
+            "path": "images/scoutsniper_ft.iwi",
+            "bytes": 3145756
+          },
+          {
+            "path": "images/sky_icbm_a_ft.iwi",
+            "bytes": 3145756
+          },
+          {
+            "path": "images/sp_airlift_ft.iwi",
+            "bytes": 3145756
+          },
+          {
+            "path": "images/sp_ambush_ft.iwi",
+            "bytes": 3145756
+          },
+          {
+            "path": "images/sp_boga_ft.iwi",
+            "bytes": 3145756
+          }
+        ],
+        "name": "Call of Duty 4 Modern Warfare/main/iw_03.iwd"
+      },
+      {
+        "files": 764,
+        "uncompressed_bytes": 259944222,
+        "extensions": {
+          ".iwi": 764
+        },
+        "term_counts": {
+          "images/": 764,
+          "hud": 11,
+          "weapon": 179
+        },
+        "top_dirs": [
+          [
+            "images/vehicle_bmp_nml.iwi",
+            1
+          ],
+          [
+            "images/vehicle_bmp_thermal_col.iwi",
+            1
+          ],
+          [
+            "images/vehicle_bmp_thermal_dsty_col.iwi",
+            1
+          ],
+          [
+            "images/vehicle_bmp_thermal_track_col.iwi",
+            1
+          ],
+          [
+            "images/vehicle_bmp_track_col.iwi",
+            1
+          ],
+          [
+            "images/vehicle_bmp_track_desert_col.iwi",
+            1
+          ],
+          [
+            "images/vehicle_bmp_track_dsty_col.iwi",
+            1
+          ],
+          [
+            "images/vehicle_bmp_track_dsty_low_col.iwi",
+            1
+          ],
+          [
+            "images/vehicle_bmp_track_dsty_low_nml.iwi",
+            1
+          ],
+          [
+            "images/vehicle_bmp_track_dsty_nml.iwi",
+            1
+          ],
+          [
+            "images/vehicle_bmp_track_low_col.iwi",
+            1
+          ],
+          [
+            "images/vehicle_bmp_track_low_nml.iwi",
+            1
+          ],
+          [
+            "images/vehicle_bmp_track_nml.iwi",
+            1
+          ],
+          [
+            "images/vehicle_bmp_track_wood_col.iwi",
+            1
+          ],
+          [
+            "images/vehicle_bmp_track_wood_low_col.iwi",
+            1
+          ],
+          [
+            "images/vehicle_bmp_wood_col.iwi",
+            1
+          ],
+          [
+            "images/vehicle_bmp_wood_dsty_col.iwi",
+            1
+          ],
+          [
+            "images/vehicle_bradley_alpha_col.iwi",
+            1
+          ],
+          [
+            "images/vehicle_bradley_alpha_nrml.iwi",
+            1
+          ],
+          [
+            "images/vehicle_bradley_col.iwi",
+            1
+          ],
+          [
+            "images/vehicle_bradley_nrml.iwi",
+            1
+          ],
+          [
+            "images/vehicle_bradley_track_col.iwi",
+            1
+          ],
+          [
+            "images/vehicle_bradley_track_nrml.iwi",
+            1
+          ],
+          [
+            "images/vehicle_temp_truck_col.iwi",
+            1
+          ],
+          [
+            "images/vehicle_temp_truck_glass_col.iwi",
+            1
+          ]
+        ],
+        "examples": [],
+        "largest": [
+          {
+            "path": "images/~ch46e_body_damaged_spc-rgb&c~b6c39943.iwi",
+            "bytes": 5592460
+          },
+          {
+            "path": "images/~ch46e_body_interior_spc-rgbl-11.iwi",
+            "bytes": 5592460
+          },
+          {
+            "path": "images/~ch46e_body_spc-rgb&ch46e_bod~4612c0e6.iwi",
+            "bytes": 5592460
+          },
+          {
+            "path": "images/vehicle_bmp_nml.iwi",
+            "bytes": 2796268
+          },
+          {
+            "path": "images/vehicle_bradley_nrml.iwi",
+            "bytes": 2796268
+          },
+          {
+            "path": "images/vehicle_zpu4_burn_nml.iwi",
+            "bytes": 2796268
+          },
+          {
+            "path": "images/vehicle_zpu4_nml.iwi",
+            "bytes": 2796268
+          },
+          {
+            "path": "images/viewhands_desert_opfor_nml.iwi",
+            "bytes": 2796268
+          },
+          {
+            "path": "images/viewhands_marine_gloves_nml.iwi",
+            "bytes": 2796268
+          },
+          {
+            "path": "images/viewhands_marine_nml.iwi",
+            "bytes": 2796268
+          },
+          {
+            "path": "images/viewhands_marine_sniper_nml.iwi",
+            "bytes": 2796268
+          },
+          {
+            "path": "images/viewhand_black_kit_nml.iwi",
+            "bytes": 2796268
+          }
+        ],
+        "name": "Call of Duty 4 Modern Warfare/main/iw_04.iwd"
+      },
+      {
+        "files": 715,
+        "uncompressed_bytes": 240010020,
+        "extensions": {
+          ".iwi": 715
+        },
+        "term_counts": {
+          "images/": 715,
+          "weapon": 9
+        },
+        "top_dirs": [
+          [
+            "images/~ch_metal_rusty_01_spc-rgb&ch~fcbdf77d.iwi",
+            1
+          ],
+          [
+            "images/~ch_metal_rusty_02_spc-rgb&ch~ce22ca64.iwi",
+            1
+          ],
+          [
+            "images/~ch_metal_rusty_03_spc-rgb&ch~4a681b91.iwi",
+            1
+          ],
+          [
+            "images/~ch_mud_s-rgb&ch_mud_cp-l-11.iwi",
+            1
+          ],
+          [
+            "images/~ch_mud_track_s-rgbl-11.iwi",
+            1
+          ],
+          [
+            "images/~ch_plaster02_spc-rgb&ch_plas~c28916db.iwi",
+            1
+          ],
+          [
+            "images/~ch_plaster04_spc-rgb&ch_plas~e702db03.iwi",
+            1
+          ],
+          [
+            "images/~ch_plastertrim01_spc-rgb&ch_~f859e7ff.iwi",
+            1
+          ],
+          [
+            "images/~ch_plasterwall_long_spc-r-49~3c124bfe.iwi",
+            1
+          ],
+          [
+            "images/~ch_plywood01_spc-rgb&ch_plyw~506b1735.iwi",
+            1
+          ],
+          [
+            "images/~ch_radiator01_spec-rgb&ch_ra~ff839829.iwi",
+            1
+          ],
+          [
+            "images/~ch_rail_spc-rgbl-11.iwi",
+            1
+          ],
+          [
+            "images/~ch_reactor_1_spc-rgb&$white-l-11.iwi",
+            1
+          ],
+          [
+            "images/~ch_reactor_2_spc-rgb&$white-l-11.iwi",
+            1
+          ],
+          [
+            "images/~ch_reactor_4_spc-rgb&$white-l-11.iwi",
+            1
+          ],
+          [
+            "images/~ch_rooftiles_1_spc-rgb&ch_ro~6767ce00.iwi",
+            1
+          ],
+          [
+            "images/~ch_rooftiles_2_spc-rgb&ch_ro~31160e3d.iwi",
+            1
+          ],
+          [
+            "images/~ch_rooftiles_3_spc-rgb&ch_ro~1f2debd3.iwi",
+            1
+          ],
+          [
+            "images/~ch_rubble02_spc-r-25g-25b-25~b9e0e09c.iwi",
+            1
+          ],
+          [
+            "images/~ch_rubble_clumps01_spc-r-25g~5c99e4b9.iwi",
+            1
+          ],
+          [
+            "images/~ch_rubble_conc01_spc-r-25g-2~203d6ca1.iwi",
+            1
+          ],
+          [
+            "images/~ch_signs_industrial_spc-rgb&~2b46199b.iwi",
+            1
+          ],
+          [
+            "images/~ch_sign_24hour_store_spec-rg~bb1ac844.iwi",
+            1
+          ],
+          [
+            "images/~ch_sign_appliancestore_spec-~d2eac9f8.iwi",
+            1
+          ],
+          [
+            "images/~ch_sign_attackdog_spec-rgbl-11.iwi",
+            1
+          ]
+        ],
+        "examples": [],
+        "largest": [
+          {
+            "path": "images/~ferris_wheel_spc-rgb&ferris_~d684e755.iwi",
+            "bytes": 5592460
+          },
+          {
+            "path": "images/~mtl_uaz_van_spc-rgb&mtl_uaz_~33d7dc5f.iwi",
+            "bytes": 5592460
+          },
+          {
+            "path": "images/~cobra_d_spc-rgb&cobra_d_cos-l-11.iwi",
+            "bytes": 2796268
+          },
+          {
+            "path": "images/~cobra_int_spc-rgb&cobra_int_cos-l-11.iwi",
+            "bytes": 2796268
+          },
+          {
+            "path": "images/~cobra_spc-rgb&cobra_cos-l-11.iwi",
+            "bytes": 2796268
+          },
+          {
+            "path": "images/~humvee_spec-rgb&humvee_cos-l-11.iwi",
+            "bytes": 2796268
+          },
+          {
+            "path": "images/~javelin_spec-rgb&javelin_cos-l-11.iwi",
+            "bytes": 2796268
+          },
+          {
+            "path": "images/~luxurysedan_interior_spc-rgb~135abbc8.iwi",
+            "bytes": 2796268
+          },
+          {
+            "path": "images/~m60_gold_spc-rgbl-11.iwi",
+            "bytes": 2796268
+          },
+          {
+            "path": "images/~m60_spec-rgb&m60_cos-l-11.iwi",
+            "bytes": 2796268
+          },
+          {
+            "path": "images/~mi-28_d_spec-rgb&mi-28_d_cos-l-11.iwi",
+            "bytes": 2796268
+          },
+          {
+            "path": "images/~mi-28_spec-rgb&mi-28_cos-l-11.iwi",
+            "bytes": 2796268
+          }
+        ],
+        "name": "Call of Duty 4 Modern Warfare/main/iw_05.iwd"
+      },
+      {
+        "files": 413,
+        "uncompressed_bytes": 250130228,
+        "extensions": {
+          ".iwi": 412,
+          ".wav": 1
+        },
+        "term_counts": {
+          "images/": 412,
+          "weapon": 63,
+          "sound/": 1
+        },
+        "top_dirs": [
+          [
+            "images/~pickup_spc-rgb&pickup_cos-l-11.iwi",
+            1
+          ],
+          [
+            "images/~pictureframesbrushmetal_spc-~26f94111.iwi",
+            1
+          ],
+          [
+            "images/~pillows_spc-rgb&pillows_cos-l-11.iwi",
+            1
+          ],
+          [
+            "images/~pine02_spec-rgb&pine02_cos-l-11.iwi",
+            1
+          ],
+          [
+            "images/~pipe_plate_s-rgb&pipe_plate_cp-l-11.iwi",
+            1
+          ],
+          [
+            "images/~pipe_trim_s-rgb&pipe_trim_cp-l-11.iwi",
+            1
+          ],
+          [
+            "images/~plaque_spc-rgb&plaque_cos-l-11.iwi",
+            1
+          ],
+          [
+            "images/~plaster01_spc-r-25g-25b-25&p~8596eed9.iwi",
+            1
+          ],
+          [
+            "images/~plasticcrate_spec-r30g30b30&~5ecb3232.iwi",
+            1
+          ],
+          [
+            "images/~plastic_bottles_spc-rgb&plas~dfda3ded.iwi",
+            1
+          ],
+          [
+            "images/~plastic_bucket_dirt_spc-r30g30b30l-11.iwi",
+            1
+          ],
+          [
+            "images/~plastic_bucket_spc-rgb&plast~7c97f814.iwi",
+            1
+          ],
+          [
+            "images/~plastic_case_big_spc-rgbl-11.iwi",
+            1
+          ],
+          [
+            "images/~plastic_case_bomb_spc-rgb&pl~0e93e4ab.iwi",
+            1
+          ],
+          [
+            "images/~plastic_case_bomb_spc-rgb&pl~a1aa1cc9.iwi",
+            1
+          ],
+          [
+            "images/~plastic_case_rifle_black_spc~0de82791.iwi",
+            1
+          ],
+          [
+            "images/~playground_horse_spc-rgb&pla~36fe7414.iwi",
+            1
+          ],
+          [
+            "images/~play_pen_spc-rgb&play_pen_cos-l-11.iwi",
+            1
+          ],
+          [
+            "images/~porter_justice1_spec-rgbl-11.iwi",
+            1
+          ],
+          [
+            "images/~porter_justice8_spec-rgbl-11.iwi",
+            1
+          ],
+          [
+            "images/~potted_plant01_spc-rgb&potte~c7262fc3.iwi",
+            1
+          ],
+          [
+            "images/~potted_plant02_spc-rgb&potte~9e1f1335.iwi",
+            1
+          ],
+          [
+            "images/~potted_plant03_spc-rgb&potte~ff7f4197.iwi",
+            1
+          ],
+          [
+            "images/~powerline_spc-rgb&powerline_cos-l-11.iwi",
+            1
+          ],
+          [
+            "images/~power_pole_spec-rgbl-11.iwi",
+            1
+          ]
+        ],
+        "examples": [],
+        "largest": [
+          {
+            "path": "images/~traincar01_spc-rgb&traincar0~60a80488.iwi",
+            "bytes": 5592460
+          },
+          {
+            "path": "images/~usmc_body_mp_spc-rgb&usmc_bo~047366d7.iwi",
+            "bytes": 5592460
+          },
+          {
+            "path": "images/~usmc_body_woodland_mp_spc-rg~409440aa.iwi",
+            "bytes": 5592460
+          },
+          {
+            "path": "images/~pickup_spc-rgb&pickup_cos-l-11.iwi",
+            "bytes": 2796268
+          },
+          {
+            "path": "images/~russian_loyalist_body_sp_spc~1eb8a96f.iwi",
+            "bytes": 2796268
+          },
+          {
+            "path": "images/~russian_loyalist_body_sp_spc~a9384d9c.iwi",
+            "bytes": 2796268
+          },
+          {
+            "path": "images/~sa6_spc-rgb&sa6_cos-l-11.iwi",
+            "bytes": 2796268
+          },
+          {
+            "path": "images/~sa6_spc_desert_destroy-rgb&s~e256ae20.iwi",
+            "bytes": 2796268
+          },
+          {
+            "path": "images/~sa6_spc_woodland-rgb&sa6_cos~07aed568.iwi",
+            "bytes": 2796268
+          },
+          {
+            "path": "images/~sa6_spc_woodland_destroy-rgb~29cb8e2d.iwi",
+            "bytes": 2796268
+          },
+          {
+            "path": "images/~sas_ct_bodies_sp_spec-rgb&sa~765bd06c.iwi",
+            "bytes": 2796268
+          },
+          {
+            "path": "images/~sas_woodland_body_sp_spc-rgb~607e1a3c.iwi",
+            "bytes": 2796268
+          }
+        ],
+        "name": "Call of Duty 4 Modern Warfare/main/iw_06.iwd"
+      },
+      {
+        "files": 32,
+        "uncompressed_bytes": 181906653,
+        "extensions": {
+          ".mp3": 32
+        },
+        "term_counts": {
+          "sound/": 32
+        },
+        "top_dirs": [
+          [
+            "sound/ambient",
+            32
+          ]
+        ],
+        "examples": [],
+        "largest": [
+          {
+            "path": "sound/ambient/amb_chech_night0v2_lr.mp3",
+            "bytes": 9251958
+          },
+          {
+            "path": "sound/ambient/amb_cargoship_int0v4_lr.mp3",
+            "bytes": 9185243
+          },
+          {
+            "path": "sound/ambient/amb_cargoship_ext0v7_lr.mp3",
+            "bytes": 9108094
+          },
+          {
+            "path": "sound/ambient/amb_chech_nightscream3v3_lr.mp3",
+            "bytes": 8579953
+          },
+          {
+            "path": "sound/ambient/amb_chech_nightscream2v3_lr.mp3",
+            "bytes": 8556086
+          },
+          {
+            "path": "sound/ambient/amb_chech_night3v3_lr.mp3",
+            "bytes": 8496095
+          },
+          {
+            "path": "sound/ambient/amb_farm_rain_day0v3_lr.mp3",
+            "bytes": 8369895
+          },
+          {
+            "path": "sound/ambient/amb_chech_night1v3_lr.mp3",
+            "bytes": 8338878
+          },
+          {
+            "path": "sound/ambient/amb_launchb_int0v2_lr.mp3",
+            "bytes": 8318750
+          },
+          {
+            "path": "sound/ambient/amb_middle_east1v7_lr.mp3",
+            "bytes": 8022094
+          },
+          {
+            "path": "sound/ambient/amb_chech_night5v3_lr.mp3",
+            "bytes": 7375112
+          },
+          {
+            "path": "sound/ambient/amb_middle_east0v7_lr.mp3",
+            "bytes": 7194512
+          }
+        ],
+        "name": "Call of Duty 4 Modern Warfare/main/iw_07.iwd"
+      },
+      {
+        "files": 63,
+        "uncompressed_bytes": 189088286,
+        "extensions": {
+          ".wav": 37,
+          ".mp3": 26
+        },
+        "term_counts": {
+          "sound/": 63
+        },
+        "top_dirs": [
+          [
+            "sound/amb_elements",
+            37
+          ],
+          [
+            "sound/ambient",
+            26
+          ]
+        ],
+        "examples": [],
+        "largest": [
+          {
+            "path": "sound/ambient/amb_mountain_cold_day3v1_lr.mp3",
+            "bytes": 10388757
+          },
+          {
+            "path": "sound/ambient/amb_mountain_cold_day0v1_lr.mp3",
+            "bytes": 9453150
+          },
+          {
+            "path": "sound/ambient/amb_mountain_noanml_day0v1_lr.mp3",
+            "bytes": 8838925
+          },
+          {
+            "path": "sound/ambient/amb_mountain_snow_day0v1_lr.mp3",
+            "bytes": 8577182
+          },
+          {
+            "path": "sound/ambient/amb_mountain_distwar_day4v2_lr.mp3",
+            "bytes": 8283997
+          },
+          {
+            "path": "sound/ambient/amb_mountain_distwar_day3v2_lr.mp3",
+            "bytes": 8213307
+          },
+          {
+            "path": "sound/ambient/amb_mountain_distwar_day5v2_lr.mp3",
+            "bytes": 7818258
+          },
+          {
+            "path": "sound/ambient/amb_middle_east2v7_lr.mp3",
+            "bytes": 7773193
+          },
+          {
+            "path": "sound/ambient/amb_middle_east3v7_lr.mp3",
+            "bytes": 7418541
+          },
+          {
+            "path": "sound/ambient/amb_middle_east3aav1_lr.mp3",
+            "bytes": 7407676
+          },
+          {
+            "path": "sound/ambient/amb_middle_east_heli5v7_lr.mp3",
+            "bytes": 7017751
+          },
+          {
+            "path": "sound/ambient/amb_middle_east5v7_lr.mp3",
+            "bytes": 6936391
+          }
+        ],
+        "name": "Call of Duty 4 Modern Warfare/main/iw_08.iwd"
+      },
+      {
+        "files": 443,
+        "uncompressed_bytes": 210685000,
+        "extensions": {
+          ".wav": 443
+        },
+        "term_counts": {
+          "sound/": 443
+        },
+        "top_dirs": [
+          [
+            "sound/amb_elements",
+            384
+          ],
+          [
+            "sound/amb_walla",
+            35
+          ],
+          [
+            "sound/amb_emitters",
+            24
+          ]
+        ],
+        "examples": [],
+        "largest": [
+          {
+            "path": "sound/amb_emitters/emt_distant_war3.wav",
+            "bytes": 17716184
+          },
+          {
+            "path": "sound/amb_emitters/emt_radio_static1_loop.wav",
+            "bytes": 6526516
+          },
+          {
+            "path": "sound/amb_emitters/emt_distant_traffic1.wav",
+            "bytes": 6292150
+          },
+          {
+            "path": "sound/amb_emitters/amb_seaknight_radio1.wav",
+            "bytes": 6198036
+          },
+          {
+            "path": "sound/amb_emitters/emt_icmb_power_alarm1.wav",
+            "bytes": 4847922
+          },
+          {
+            "path": "sound/amb_emitters/emt_wood_creak_light1.wav",
+            "bytes": 2965162
+          },
+          {
+            "path": "sound/amb_emitters/emt_wood_creak_heavy1.wav",
+            "bytes": 2902782
+          },
+          {
+            "path": "sound/amb_emitters/emt_radiostatic_2.wav",
+            "bytes": 2117854
+          },
+          {
+            "path": "sound/amb_elements/elm_wind_leafy_whistle07.wav",
+            "bytes": 1867824
+          },
+          {
+            "path": "sound/amb_elements/elm_wind_leafy_whistle14.wav",
+            "bytes": 1867824
+          },
+          {
+            "path": "sound/amb_elements/elm_wind_leafy_whistle02.wav",
+            "bytes": 1788632
+          },
+          {
+            "path": "sound/amb_elements/elm_wind_leafy_whistle09.wav",
+            "bytes": 1736748
+          }
+        ],
+        "name": "Call of Duty 4 Modern Warfare/main/iw_09.iwd"
+      },
+      {
+        "files": 222,
+        "uncompressed_bytes": 189527410,
+        "extensions": {
+          ".wav": 222
+        },
+        "term_counts": {
+          "sound/": 222
+        },
+        "top_dirs": [
+          [
+            "sound/Explosions",
+            129
+          ],
+          [
+            "sound/level",
+            47
+          ],
+          [
+            "sound/Doors",
+            16
+          ],
+          [
+            "sound/amb_walla",
+            8
+          ],
+          [
+            "sound/animal",
+            8
+          ],
+          [
+            "sound/fire",
+            8
+          ],
+          [
+            "sound/glass",
+            6
+          ]
+        ],
+        "examples": [],
+        "largest": [
+          {
+            "path": "sound/level/playground_soonbedead.wav",
+            "bytes": 8743436
+          },
+          {
+            "path": "sound/level/scn_coup_walla_post.wav",
+            "bytes": 8662644
+          },
+          {
+            "path": "sound/level/scn_coup_car_move2.wav",
+            "bytes": 7020480
+          },
+          {
+            "path": "sound/level/scn_icbm_launch_stereo1.wav",
+            "bytes": 6698820
+          },
+          {
+            "path": "sound/level/airlift_nuclear_aftmath.wav",
+            "bytes": 5292656
+          },
+          {
+            "path": "sound/level/scn_coup_drag_fromcar.wav",
+            "bytes": 4760208
+          },
+          {
+            "path": "sound/level/chopsaw_cutting_loop.wav",
+            "bytes": 4576468
+          },
+          {
+            "path": "sound/level/scn_launchb_missile_launch_v1.wav",
+            "bytes": 4226304
+          },
+          {
+            "path": "sound/Explosions/fire_house_close01.wav",
+            "bytes": 4081324
+          },
+          {
+            "path": "sound/level/scn_coup_car_move3.wav",
+            "bytes": 3853080
+          },
+          {
+            "path": "sound/level/scn_coup_car_move4.wav",
+            "bytes": 3826160
+          },
+          {
+            "path": "sound/level/scn_launchb_elevator_up_v2.wav",
+            "bytes": 3549872
+          }
+        ],
+        "name": "Call of Duty 4 Modern Warfare/main/iw_10.iwd"
+      },
+      {
+        "files": 433,
+        "uncompressed_bytes": 164627287,
+        "extensions": {
+          "[none]": 271,
+          ".wav": 86,
+          ".mp3": 61,
+          ".accu": 15
+        },
+        "term_counts": {
+          "sound/": 147,
+          "weapon": 274,
+          "player": 10
+        },
+        "top_dirs": [
+          [
+            "weapons/sp",
+            144
+          ],
+          [
+            "weapons/mp",
+            127
+          ],
+          [
+            "sound/music",
+            61
+          ],
+          [
+            "sound/vehicles",
+            28
+          ],
+          [
+            "sound/level",
+            21
+          ],
+          [
+            "sound/misc",
+            18
+          ],
+          [
+            "sound/mp",
+            17
+          ],
+          [
+            "accuracy/aivsplayer",
+            8
+          ],
+          [
+            "accuracy/aivsai",
+            7
+          ],
+          [
+            "sound/user_interface",
+            1
+          ],
+          [
+            "sound/weapons",
+            1
+          ]
+        ],
+        "examples": [],
+        "largest": [
+          {
+            "path": "sound/level/scn_launchb_vaultdoor_open.wav",
+            "bytes": 9746492
+          },
+          {
+            "path": "sound/vehicles/veh_blackhawk_move_v5.wav",
+            "bytes": 4644230
+          },
+          {
+            "path": "sound/music/armada_seanprice_church_cln.mp3",
+            "bytes": 3661639
+          },
+          {
+            "path": "sound/music/mx_griggs_deep_hard.mp3",
+            "bytes": 3586824
+          },
+          {
+            "path": "sound/music/HGW_Coup_Intro_v38.mp3",
+            "bytes": 3384950
+          },
+          {
+            "path": "sound/music/armada_seanprice_church_short_cln.mp3",
+            "bytes": 3363216
+          },
+          {
+            "path": "sound/level/scn_sniperescape_havoc_down1.wav",
+            "bytes": 3337424
+          },
+          {
+            "path": "sound/music/HGW_Launch_B_Count_05.mp3",
+            "bytes": 3152146
+          },
+          {
+            "path": "sound/level/scn_power_tower_crash1v2.wav",
+            "bytes": 2891284
+          },
+          {
+            "path": "sound/level/scn_power_tower_crash2v2.wav",
+            "bytes": 2868256
+          },
+          {
+            "path": "sound/level/scn_village_assault_killings_dist1.wav",
+            "bytes": 2811694
+          },
+          {
+            "path": "sound/vehicles/veh_seaknight_move_v4.wav",
+            "bytes": 2803536
+          }
+        ],
+        "name": "Call of Duty 4 Modern Warfare/main/iw_11.iwd"
+      },
+      {
+        "files": 33,
+        "uncompressed_bytes": 13262228,
+        "extensions": {
+          ".iwi": 33
+        },
+        "term_counts": {
+          "images/": 33
+        },
+        "top_dirs": [
+          [
+            "images/icicles_01_col.iwi",
+            1
+          ],
+          [
+            "images/snowman_col.iwi",
+            1
+          ],
+          [
+            "images/mp_crash_snow_ft.iwi",
+            1
+          ],
+          [
+            "images/~giftbox_2_spc-rgb&giftbox_2_cos-l-11.iwi",
+            1
+          ],
+          [
+            "images/~giftbox_1_col_spc-rgb&giftbo~837e35a9.iwi",
+            1
+          ],
+          [
+            "images/dead_pine_snow_col#0.iwi",
+            1
+          ],
+          [
+            "images/ch_ground_snow_1_nml.iwi",
+            1
+          ],
+          [
+            "images/compass_map_mp_crash_snow.iwi",
+            1
+          ],
+          [
+            "images/candy_cane_col.iwi",
+            1
+          ],
+          [
+            "images/~giftbox_5_spc-rgb&giftbox_5_cos-l-11.iwi",
+            1
+          ],
+          [
+            "images/giftbox_1_col_nml.iwi",
+            1
+          ],
+          [
+            "images/giftbox_2_col.iwi",
+            1
+          ],
+          [
+            "images/holiday_light_snowflake_col#0.iwi",
+            1
+          ],
+          [
+            "images/~giftbox_4_spc-rgb&giftbox_4_cos-l-11.iwi",
+            1
+          ],
+          [
+            "images/holiday_color_lights_col#0.iwi",
+            1
+          ],
+          [
+            "images/giftbox_1_col_col.iwi",
+            1
+          ],
+          [
+            "images/tree_xmas_pine_unlit#0.iwi",
+            1
+          ],
+          [
+            "images/~snowman_spc-rgb&snowman_cos-l-11.iwi",
+            1
+          ],
+          [
+            "images/giftbox_3_col.iwi",
+            1
+          ],
+          [
+            "images/giftbox_4_col.iwi",
+            1
+          ],
+          [
+            "images/ch_ground_snow_1_col.iwi",
+            1
+          ],
+          [
+            "images/snowman_nml.iwi",
+            1
+          ],
+          [
+            "images/tree_xmas_pine_nml.iwi",
+            1
+          ],
+          [
+            "images/~giftbox_3_spc-rgb&giftbox_3_cos-l-11.iwi",
+            1
+          ],
+          [
+            "images/~ch_ground_snow_1_spc-rgb&ch_~a03e0a62.iwi",
+            1
+          ]
+        ],
+        "examples": [],
+        "largest": [
+          {
+            "path": "images/mp_crash_snow_ft.iwi",
+            "bytes": 3145756
+          },
+          {
+            "path": "images/compass_map_mp_crash_snow.iwi",
+            "bytes": 1048604
+          },
+          {
+            "path": "images/dead_pine_snow_col#0.iwi",
+            "bytes": 699116
+          },
+          {
+            "path": "images/tree_xmas_pine_nml.iwi",
+            "bytes": 699116
+          },
+          {
+            "path": "images/dead_pine_snow_col.iwi",
+            "bytes": 699116
+          },
+          {
+            "path": "images/tree_xmas_pine_col.iwi",
+            "bytes": 699116
+          },
+          {
+            "path": "images/loadscreen_mp_crash_snow.iwi",
+            "bytes": 524316
+          },
+          {
+            "path": "images/snowman_col.iwi",
+            "bytes": 349580
+          },
+          {
+            "path": "images/~giftbox_2_spc-rgb&giftbox_2_cos-l-11.iwi",
+            "bytes": 349580
+          },
+          {
+            "path": "images/~giftbox_1_col_spc-rgb&giftbo~837e35a9.iwi",
+            "bytes": 349580
+          },
+          {
+            "path": "images/ch_ground_snow_1_nml.iwi",
+            "bytes": 349580
+          },
+          {
+            "path": "images/~giftbox_5_spc-rgb&giftbox_5_cos-l-11.iwi",
+            "bytes": 349580
+          }
+        ],
+        "name": "Call of Duty 4 Modern Warfare/main/iw_12.iwd"
+      },
+      {
+        "files": 265,
+        "uncompressed_bytes": 46154812,
+        "extensions": {
+          ".iwi": 264,
+          ".cfg": 1
+        },
+        "term_counts": {
+          "images/": 264
+        },
+        "top_dirs": [
+          [
+            "images/ct_sidewalk_tile_red01_col.iwi",
+            1
+          ],
+          [
+            "images/chinese_wallhanging8.iwi",
+            1
+          ],
+          [
+            "images/ct_banners_small_col.iwi",
+            1
+          ],
+          [
+            "images/~statue_chinese_lion_col-rgbl-11.iwi",
+            1
+          ],
+          [
+            "images/falling_water02.iwi",
+            1
+          ],
+          [
+            "images/~chinese_wallscroll_spec-rgb&~9706a770.iwi",
+            1
+          ],
+          [
+            "images/ct_wall_brick_brn_trim01_nml.iwi",
+            1
+          ],
+          [
+            "images/~mi24p_hind_desert_spc-rgb&mi~e848f1f2.iwi",
+            1
+          ],
+          [
+            "images/ct_sign_chum_chum01.iwi",
+            1
+          ],
+          [
+            "images/~chinese_wallhanging1spec-rgb~aedebf0f.iwi",
+            1
+          ],
+          [
+            "images/~parasol_open_blue_spec-rgb&p~3e656610.iwi",
+            1
+          ],
+          [
+            "images/~ct_metal_trim01-rgbl-11.iwi",
+            1
+          ],
+          [
+            "images/~ct_wall_brick_red01_spc-rgb&~2253f9d1.iwi",
+            1
+          ],
+          [
+            "images/~ct_tile_sml_gold_blk01_spc-r~f3faf0ad.iwi",
+            1
+          ],
+          [
+            "images/~ct_sign_side01_col-rgbl-11.iwi",
+            1
+          ],
+          [
+            "images/ct_tsuenami_imports.iwi",
+            1
+          ],
+          [
+            "images/~ct_sign_bank01_col-r-25g-25b-25l-86.iwi",
+            1
+          ],
+          [
+            "images/ct_chens_metal.iwi",
+            1
+          ],
+          [
+            "images/~china_vase_green_spc-rgb&chi~e680f1d4.iwi",
+            1
+          ],
+          [
+            "images/panam_facade_clr.iwi",
+            1
+          ],
+          [
+            "images/~chinese_wallhanging3spec-rgb~aedebf0f.iwi",
+            1
+          ],
+          [
+            "images/ct_banner01_nml.iwi",
+            1
+          ],
+          [
+            "images/~ct_fire_esc_floor01_spc-r-25~2f818bb1.iwi",
+            1
+          ],
+          [
+            "images/~ct_banners_small_spc-rgb&ct_~5fca0312.iwi",
+            1
+          ],
+          [
+            "images/parasol_closed_col_green.iwi",
+            1
+          ]
+        ],
+        "examples": [
+          {
+            "path": "default_filter.cfg",
+            "bytes": 492
+          }
+        ],
+        "largest": [
+          {
+            "path": "images/mp_carentan_ft.iwi",
+            "bytes": 3145756
+          },
+          {
+            "path": "images/mp_broadcast_ft.iwi",
+            "bytes": 3145756
+          },
+          {
+            "path": "images/compass_map_mp_creek.iwi",
+            "bytes": 1398156
+          },
+          {
+            "path": "images/~xpec_delivery_truck_body_spc~4cdbe93d.iwi",
+            "bytes": 1398156
+          },
+          {
+            "path": "images/compass_map_mp_killhouse.iwi",
+            "bytes": 1048604
+          },
+          {
+            "path": "images/compass_map_mp_carentan.iwi",
+            "bytes": 1048604
+          },
+          {
+            "path": "images/compass_map_mp_broadcast.iwi",
+            "bytes": 1048604
+          },
+          {
+            "path": "images/mp_creek_ft.iwi",
+            "bytes": 786460
+          },
+          {
+            "path": "images/~mi24p_hind_desert_spc-rgb&mi~e848f1f2.iwi",
+            "bytes": 699116
+          },
+          {
+            "path": "images/ct_tsuenami_imports.iwi",
+            "bytes": 699116
+          },
+          {
+            "path": "images/tree_river_birch2_col.iwi",
+            "bytes": 699116
+          },
+          {
+            "path": "images/loadscreen_mp_broadcast.iwi",
+            "bytes": 524316
+          }
+        ],
+        "name": "Call of Duty 4 Modern Warfare/main/iw_13.iwd"
+      },
+      {
+        "files": 2895,
+        "uncompressed_bytes": 173354956,
+        "extensions": {
+          ".wav": 2860,
+          ".iwi": 32,
+          ".cfg": 3
+        },
+        "term_counts": {
+          "images/": 32,
+          "hud": 1,
+          "sound/": 2860
+        },
+        "top_dirs": [
+          [
+            "sound/battlechatter",
+            2860
+          ],
+          [
+            "default.cfg",
+            1
+          ],
+          [
+            "default_mp.cfg",
+            1
+          ],
+          [
+            "default_mp_controls.cfg",
+            1
+          ],
+          [
+            "images/gamefonts_pc.iwi",
+            1
+          ],
+          [
+            "images/hud_mpflag_german.iwi",
+            1
+          ],
+          [
+            "images/killcamindicator_spanish.iwi",
+            1
+          ],
+          [
+            "images/specialty_new_nonenglish.iwi",
+            1
+          ],
+          [
+            "images/waypoint_bomb.iwi",
+            1
+          ],
+          [
+            "images/waypoint_bomb_red.iwi",
+            1
+          ],
+          [
+            "images/waypoint_capture.iwi",
+            1
+          ],
+          [
+            "images/waypoint_captureneutral.iwi",
+            1
+          ],
+          [
+            "images/waypoint_captureneutral_a.iwi",
+            1
+          ],
+          [
+            "images/waypoint_captureneutral_b.iwi",
+            1
+          ],
+          [
+            "images/waypoint_captureneutral_c.iwi",
+            1
+          ],
+          [
+            "images/waypoint_captureneutral_d.iwi",
+            1
+          ],
+          [
+            "images/waypoint_captureneutral_e.iwi",
+            1
+          ],
+          [
+            "images/waypoint_capture_a.iwi",
+            1
+          ],
+          [
+            "images/waypoint_capture_b.iwi",
+            1
+          ],
+          [
+            "images/waypoint_capture_c.iwi",
+            1
+          ],
+          [
+            "images/waypoint_capture_d.iwi",
+            1
+          ],
+          [
+            "images/waypoint_capture_e.iwi",
+            1
+          ],
+          [
+            "images/waypoint_defend.iwi",
+            1
+          ],
+          [
+            "images/waypoint_defend_a.iwi",
+            1
+          ],
+          [
+            "images/waypoint_defend_b.iwi",
+            1
+          ]
+        ],
+        "examples": [
+          {
+            "path": "default.cfg",
+            "bytes": 1054
+          },
+          {
+            "path": "default_mp.cfg",
+            "bytes": 359
+          },
+          {
+            "path": "default_mp_controls.cfg",
+            "bytes": 1387
+          }
+        ],
+        "largest": [
+          {
+            "path": "images/gamefonts_pc.iwi",
+            "bytes": 699116
+          },
+          {
+            "path": "sound/battlechatter/ab/3/AB_3_inform_killfirm_infantry_02.wav",
+            "bytes": 265872
+          },
+          {
+            "path": "sound/battlechatter/ab/2/AB_2_inform_killfirm_infantry_10.wav",
+            "bytes": 203986
+          },
+          {
+            "path": "sound/battlechatter/ab/3/AB_3_order_cover_wallstone_01.wav",
+            "bytes": 166444
+          },
+          {
+            "path": "sound/battlechatter/ab/3/AB_3_order_cover_cinderblocks_01.wav",
+            "bytes": 166202
+          },
+          {
+            "path": "sound/battlechatter/ab/3/AB_3_order_cover_tires_01.wav",
+            "bytes": 162380
+          },
+          {
+            "path": "sound/battlechatter/ab/3/AB_3_order_cover_barrels_01.wav",
+            "bytes": 161168
+          },
+          {
+            "path": "sound/battlechatter/ab/2/AB_2_order_attack_infantry_11.wav",
+            "bytes": 161160
+          },
+          {
+            "path": "sound/battlechatter/ab/3/AB_3_order_cover_apc_02.wav",
+            "bytes": 160186
+          },
+          {
+            "path": "sound/battlechatter/ab/4/AB_4_landmark_near_apc_01.wav",
+            "bytes": 157256
+          },
+          {
+            "path": "sound/battlechatter/ab/3/AB_3_order_cover_window_02.wav",
+            "bytes": 156744
+          },
+          {
+            "path": "sound/battlechatter/ab/4/AB_4_inform_reloading_generic_02.wav",
+            "bytes": 156604
+          }
+        ],
+        "name": "Call of Duty 4 Modern Warfare/main/localized_spanish_iw00.iwd"
+      },
+      {
+        "files": 2958,
+        "uncompressed_bytes": 172127066,
+        "extensions": {
+          ".wav": 2958
+        },
+        "term_counts": {
+          "sound/": 2958
+        },
+        "top_dirs": [
+          [
+            "sound/battlechatter",
+            2958
+          ]
+        ],
+        "examples": [],
+        "largest": [
+          {
+            "path": "sound/battlechatter/ab/4/AB_4_order_cover_wallstone_01.wav",
+            "bytes": 207512
+          },
+          {
+            "path": "sound/battlechatter/ru/3/RU_3_inform_killfirm_infantry_02.wav",
+            "bytes": 194714
+          },
+          {
+            "path": "sound/battlechatter/ru/3/RU_3_order_cover_armoredvehicle_02.wav",
+            "bytes": 166818
+          },
+          {
+            "path": "sound/battlechatter/ru/1/RU_1_inform_incoming_grenade_01.wav",
+            "bytes": 156160
+          },
+          {
+            "path": "sound/battlechatter/ab/4/AB_4_order_cover_vanbrown_02.wav",
+            "bytes": 155168
+          },
+          {
+            "path": "sound/battlechatter/ru/2/RU_2_order_cover_cinderblocks_01.wav",
+            "bytes": 154924
+          },
+          {
+            "path": "sound/battlechatter/ab/4/AB_4_order_cover_wallcinderblock_01.wav",
+            "bytes": 153124
+          },
+          {
+            "path": "sound/battlechatter/ru/3/RU_3_order_cover_vanwhite_01.wav",
+            "bytes": 151594
+          },
+          {
+            "path": "sound/battlechatter/ru/3/RU_3_order_cover_vandestroyed_01.wav",
+            "bytes": 151278
+          },
+          {
+            "path": "sound/battlechatter/ru/3/RU_3_order_cover_vangreen_02.wav",
+            "bytes": 150734
+          },
+          {
+            "path": "sound/battlechatter/ru/2/RU_2_order_cover_concretepipe_01.wav",
+            "bytes": 150672
+          },
+          {
+            "path": "sound/battlechatter/ru/3/RU_3_order_cover_wallbroken_01.wav",
+            "bytes": 149386
+          }
+        ],
+        "name": "Call of Duty 4 Modern Warfare/main/localized_spanish_iw01.iwd"
+      },
+      {
+        "files": 2761,
+        "uncompressed_bytes": 175892894,
+        "extensions": {
+          ".wav": 2761
+        },
+        "term_counts": {
+          "sound/": 2761
+        },
+        "top_dirs": [
+          [
+            "sound/battlechatter",
+            2761
+          ]
+        ],
+        "examples": [],
+        "largest": [
+          {
+            "path": "sound/battlechatter/uk/pri/UK_pri_order_action_coverme_02d.wav",
+            "bytes": 227724
+          },
+          {
+            "path": "sound/battlechatter/uk/pri/UK_pri_threat_dog_generic_01.wav",
+            "bytes": 224378
+          },
+          {
+            "path": "sound/battlechatter/uk/pri/UK_pri_order_action_coverme_02c.wav",
+            "bytes": 200942
+          },
+          {
+            "path": "sound/battlechatter/uk/pri/UK_pri_inform_reloading_generic_04b.wav",
+            "bytes": 190094
+          },
+          {
+            "path": "sound/battlechatter/uk/pri/UK_pri_threat_rpg_02.wav",
+            "bytes": 176340
+          },
+          {
+            "path": "sound/battlechatter/uk/pri/UK_pri_inform_reloading_generic_03b.wav",
+            "bytes": 175472
+          },
+          {
+            "path": "sound/battlechatter/uk/grg/UK_grg_threat_infantry_stheast_02_R.wav",
+            "bytes": 163316
+          },
+          {
+            "path": "sound/battlechatter/uk/pri/UK_pri_threat_infantry_stheast_02_R.wav",
+            "bytes": 163140
+          },
+          {
+            "path": "sound/battlechatter/uk/pri/UK_pri_inform_incoming_grenade_04.wav",
+            "bytes": 160756
+          },
+          {
+            "path": "sound/battlechatter/uk/pri/UK_pri_threat_dog_nthwest_01b.wav",
+            "bytes": 159504
+          },
+          {
+            "path": "sound/battlechatter/uk/pri/UK_pri_threat_dog_stheast_01b.wav",
+            "bytes": 155656
+          },
+          {
+            "path": "sound/battlechatter/uk/pri/UK_pri_threat_dog_ntheast_01b.wav",
+            "bytes": 154304
+          }
+        ],
+        "name": "Call of Duty 4 Modern Warfare/main/localized_spanish_iw02.iwd"
+      },
+      {
+        "files": 2931,
+        "uncompressed_bytes": 176936816,
+        "extensions": {
+          ".wav": 2931
+        },
+        "term_counts": {
+          "sound/": 2931
+        },
+        "top_dirs": [
+          [
+            "sound/battlechatter",
+            2931
+          ]
+        ],
+        "examples": [],
+        "largest": [
+          {
+            "path": "sound/battlechatter/us/3/US_3_response_covering_zampella_01.wav",
+            "bytes": 151148
+          },
+          {
+            "path": "sound/battlechatter/us/3/US_3_response_covering_rosemeier_01.wav",
+            "bytes": 147644
+          },
+          {
+            "path": "sound/battlechatter/us/3/US_3_response_covering_shiring_01.wav",
+            "bytes": 146196
+          },
+          {
+            "path": "sound/battlechatter/us/3/US_3_response_covering_lowis_01.wav",
+            "bytes": 146164
+          },
+          {
+            "path": "sound/battlechatter/us/3/US_3_response_covering_davis_01b.wav",
+            "bytes": 145878
+          },
+          {
+            "path": "sound/battlechatter/us/3/US_3_response_covering_massey_01b.wav",
+            "bytes": 145248
+          },
+          {
+            "path": "sound/battlechatter/us/3/US_3_response_covering_roycewicz_01.wav",
+            "bytes": 144962
+          },
+          {
+            "path": "sound/battlechatter/us/3/US_3_response_covering_vinson_01.wav",
+            "bytes": 143754
+          },
+          {
+            "path": "sound/battlechatter/us/3/US_3_response_covering_harmer_01.wav",
+            "bytes": 143078
+          },
+          {
+            "path": "sound/battlechatter/us/3/US_3_response_covering_rubin_01.wav",
+            "bytes": 142394
+          },
+          {
+            "path": "sound/battlechatter/us/3/US_3_response_covering_hawkins_01.wav",
+            "bytes": 141394
+          },
+          {
+            "path": "sound/battlechatter/us/3/US_3_response_covering_oh_01.wav",
+            "bytes": 140512
+          }
+        ],
+        "name": "Call of Duty 4 Modern Warfare/main/localized_spanish_iw03.iwd"
+      },
+      {
+        "files": 2213,
+        "uncompressed_bytes": 178441316,
+        "extensions": {
+          ".wav": 2213
+        },
+        "term_counts": {
+          "sound/": 2213
+        },
+        "top_dirs": [
+          [
+            "sound/battlechatter",
+            1240
+          ],
+          [
+            "sound/voiceovers",
+            973
+          ]
+        ],
+        "examples": [],
+        "largest": [
+          {
+            "path": "sound/voiceovers/UK/Blackout/blackout_bbc_2_3_R.wav",
+            "bytes": 678464
+          },
+          {
+            "path": "sound/voiceovers/UK/Blackout/blackout_ru4_6_3.8.wav",
+            "bytes": 602866
+          },
+          {
+            "path": "sound/voiceovers/UK/Blackout/blackout_bbc_2_1_R.wav",
+            "bytes": 553910
+          },
+          {
+            "path": "sound/voiceovers/UK/Blackout/blackout_kmr_5_1.4.wav",
+            "bytes": 511374
+          },
+          {
+            "path": "sound/voiceovers/RU/Blackout/blackout_kmr_5_2_R.wav",
+            "bytes": 466056
+          },
+          {
+            "path": "sound/voiceovers/UK/Blackout/blackout_bbc_2_2_R.wav",
+            "bytes": 455468
+          },
+          {
+            "path": "sound/voiceovers/UK/Blackout/blackout_kmr_4_12.1.wav",
+            "bytes": 387450
+          },
+          {
+            "path": "sound/voiceovers/UK/Blackout/blackout_kmr_4_6.42_R.wav",
+            "bytes": 357000
+          },
+          {
+            "path": "sound/voiceovers/UK/Ambush/ambush_pri_1_10.wav",
+            "bytes": 333632
+          },
+          {
+            "path": "sound/voiceovers/UK/Blackout/blackout_kmr_5_1.2_R.wav",
+            "bytes": 330908
+          },
+          {
+            "path": "sound/voiceovers/UK/airplane/airplane_ru4_9_6.wav",
+            "bytes": 323908
+          },
+          {
+            "path": "sound/voiceovers/RU/Blackout/blackout_kmr_3_3.1.wav",
+            "bytes": 322760
+          }
+        ],
+        "name": "Call of Duty 4 Modern Warfare/main/localized_spanish_iw04.iwd"
+      },
+      {
+        "files": 1448,
+        "uncompressed_bytes": 177618734,
+        "extensions": {
+          ".wav": 1448
+        },
+        "term_counts": {
+          "sound/": 1448
+        },
+        "top_dirs": [
+          [
+            "sound/voiceovers",
+            1448
+          ]
+        ],
+        "examples": [],
+        "largest": [
+          {
+            "path": "sound/voiceovers/UK/Scoutsniper/scoutsniper_ru_snore.wav",
+            "bytes": 1714310
+          },
+          {
+            "path": "sound/voiceovers/UK/Vassault/vassault_ru1_1_2.wav",
+            "bytes": 995542
+          },
+          {
+            "path": "sound/voiceovers/UK/Scoutsniper/scoutsniper_ru1_12_5.wav",
+            "bytes": 707652
+          },
+          {
+            "path": "sound/voiceovers/UK/Scoutsniper/scoutsniper_ru1_12_7.wav",
+            "bytes": 589236
+          },
+          {
+            "path": "sound/voiceovers/UK/Sniperescape/sniperescape_mcm_7_3_R.wav",
+            "bytes": 549602
+          },
+          {
+            "path": "sound/voiceovers/UK/Sniperescape/sniperescape_rl1_5_8_R.wav",
+            "bytes": 469216
+          },
+          {
+            "path": "sound/voiceovers/UK/Sniperescape/sniperescape_rl1_5_3_R.wav",
+            "bytes": 469212
+          },
+          {
+            "path": "sound/voiceovers/US/AC130/ac130_fco_6_2_R.wav",
+            "bytes": 467056
+          },
+          {
+            "path": "sound/voiceovers/UK/Launchb/launch_b_gaz_9_4_R.wav",
+            "bytes": 465968
+          },
+          {
+            "path": "sound/voiceovers/US/AC130/ac130_fco_2_6_R.wav",
+            "bytes": 456332
+          },
+          {
+            "path": "sound/voiceovers/UK/Sniperescape/sniperescape_mcm_1_3_R.wav",
+            "bytes": 440482
+          },
+          {
+            "path": "sound/voiceovers/UK/Jeepride/jeepride_bbc_18_2_R.wav",
+            "bytes": 438250
+          }
+        ],
+        "name": "Call of Duty 4 Modern Warfare/main/localized_spanish_iw05.iwd"
+      },
+      {
+        "files": 1032,
+        "uncompressed_bytes": 161699998,
+        "extensions": {
+          ".wav": 1032
+        },
+        "term_counts": {
+          "sound/": 1032
+        },
+        "top_dirs": [
+          [
+            "sound/voiceovers",
+            1032
+          ]
+        ],
+        "examples": [],
+        "largest": [
+          {
+            "path": "sound/voiceovers/US/Coup/coup_kaa_1_3_STD.wav",
+            "bytes": 3826296
+          },
+          {
+            "path": "sound/voiceovers/US/Coup/coup_kaa_1_1_STD.wav",
+            "bytes": 3558248
+          },
+          {
+            "path": "sound/voiceovers/US/Coup/coup_kaa_1_5_STD.wav",
+            "bytes": 3222532
+          },
+          {
+            "path": "sound/voiceovers/US/Coup/coup_kaa_1_4_STD.wav",
+            "bytes": 3050288
+          },
+          {
+            "path": "sound/voiceovers/US/Coup/coup_kaa_1_6_STD.wav",
+            "bytes": 2673172
+          },
+          {
+            "path": "sound/voiceovers/US/Coup/coup_kaa_1_8_STD.wav",
+            "bytes": 2650936
+          },
+          {
+            "path": "sound/voiceovers/US/Coup/coup_kaa_1_2_STD.wav",
+            "bytes": 2533588
+          },
+          {
+            "path": "sound/voiceovers/US/Coup/coup_kaa_1_9_STD.wav",
+            "bytes": 1698896
+          },
+          {
+            "path": "sound/voiceovers/US/Coup/coup_kaa_1_7_STD.wav",
+            "bytes": 1672416
+          },
+          {
+            "path": "sound/voiceovers/US/Coup/coup_ab4_3_4_R.wav",
+            "bytes": 1110386
+          },
+          {
+            "path": "sound/voiceovers/US/Coup/coup_ab4_3_3_R.wav",
+            "bytes": 768278
+          },
+          {
+            "path": "sound/voiceovers/US/Aftermath/aftermath_hqr_1_1_R.wav",
+            "bytes": 747252
+          }
+        ],
+        "name": "Call of Duty 4 Modern Warfare/main/localized_spanish_iw06.iwd"
       }
     ],
-    "total_nested_files": 0,
-    "extensions": {},
+    "errors": [],
+    "total_nested_files": 24104,
+    "extensions": {
+      ".wav": 16992,
+      ".iwi": 6566,
+      "[none]": 271,
+      ".cfg": 129,
+      ".mp3": 119,
+      ".accu": 15,
+      ".gsc": 10,
+      ".csv": 2
+    },
     "matches": {
       "zombie": [],
       "nacht": [],
       "mp40": [],
-      "weapon": [],
+      "weapon": [
+        "Call of Duty 4 Modern Warfare/Mods/ModWarfare/z_modwarfare.iwd :: maps/mp/gametypes/_weapons.gsc",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_weaponmode_full.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_weaponmode_semi.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/icbm_decal_usweaponposter.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/icbm_decal_usweaponposter_bump.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_02.iwd :: images/mtl_weapon_colt1911_col.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_02.iwd :: images/mtl_weapon_m40a3_camo_col.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_02.iwd :: images/mtl_weapon_m40a3_col.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_02.iwd :: images/mtl_weapon_m40a3_scope_camo_col.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_02.iwd :: images/mtl_weapon_m40a3_scope_col.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_02.iwd :: images/mtl_weapon_remington700_col.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_02.iwd :: images/mtl_weapon_white_colt1911_col.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_03.iwd :: images/specialty_weapon_at4.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_03.iwd :: images/specialty_weapon_c4.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_03.iwd :: images/specialty_weapon_claymore.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_03.iwd :: images/specialty_weapon_rpg.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_04.iwd :: images/weaponnameback.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_04.iwd :: images/weapon_acog_alpha_col.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_04.iwd :: images/weapon_acog_col.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_04.iwd :: images/weapon_acog_lens_col.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_04.iwd :: images/weapon_acog_reticle_col.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_04.iwd :: images/weapon_ak47.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_04.iwd :: images/weapon_ak47_acog.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_04.iwd :: images/weapon_ak47_c.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_04.iwd :: images/weapon_ak47_gold_col.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_04.iwd :: images/weapon_ak47_gp25.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_04.iwd :: images/weapon_ak47_grenadier_col.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_04.iwd :: images/weapon_ak47_reflex.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_04.iwd :: images/weapon_ak47_suppressor.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_04.iwd :: images/weapon_ak74u_col.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_04.iwd :: images/weapon_aks74u.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_04.iwd :: images/weapon_aks74u_acog.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_04.iwd :: images/weapon_aks74u_gp25.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_04.iwd :: images/weapon_aks74u_reflex.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_04.iwd :: images/weapon_aks74u_suppressor.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_04.iwd :: images/weapon_at4.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_04.iwd :: images/weapon_at4_col.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_04.iwd :: images/weapon_attachment_acog.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_04.iwd :: images/weapon_attachment_gp25.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_04.iwd :: images/weapon_attachment_grip.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_04.iwd :: images/weapon_attachment_m203.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_04.iwd :: images/weapon_attachment_reflex.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_04.iwd :: images/weapon_attachment_suppressor.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_04.iwd :: images/weapon_aw50.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_04.iwd :: images/weapon_aw50_acog.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_04.iwd :: images/weapon_barrett50cal.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_04.iwd :: images/weapon_barrett50cal_acog.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_04.iwd :: images/weapon_benelli_m4.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_04.iwd :: images/weapon_benelli_m4_grip.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_04.iwd :: images/weapon_benelli_m4_reflex.iwi"
+      ],
       "animation": [],
       "perk": [],
       "scripts/": [],
-      "sound/": [],
-      "images/": [],
+      "sound/": [
+        "Call of Duty 4 Modern Warfare/main/iw_06.iwd :: sound/airplane/fuselage_stress.wav",
+        "Call of Duty 4 Modern Warfare/main/iw_07.iwd :: sound/ambient/amb_ac130_int0v2_lr.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_07.iwd :: sound/ambient/amb_ac130_int0v2_lsrs.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_07.iwd :: sound/ambient/amb_aftermath0v2_lr.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_07.iwd :: sound/ambient/amb_aftermath0v2_lsrs.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_07.iwd :: sound/ambient/amb_airplane0v1_lr.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_07.iwd :: sound/ambient/amb_airplane0v1_lsrs.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_07.iwd :: sound/ambient/amb_airplane5v1_lr.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_07.iwd :: sound/ambient/amb_airplane5v1_lsrs.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_07.iwd :: sound/ambient/amb_cargoship_ext0v7_lr.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_07.iwd :: sound/ambient/amb_cargoship_ext0v7_lsrs.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_07.iwd :: sound/ambient/amb_cargoship_int0v4_lr.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_07.iwd :: sound/ambient/amb_cargoship_int0v4_lsrs.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_07.iwd :: sound/ambient/amb_chech_night0v2_lr.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_07.iwd :: sound/ambient/amb_chech_night0v2_lsrs.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_07.iwd :: sound/ambient/amb_chech_night1v3_lr.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_07.iwd :: sound/ambient/amb_chech_night1v3_lsrs.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_07.iwd :: sound/ambient/amb_chech_night3v3_lr.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_07.iwd :: sound/ambient/amb_chech_night3v3_lsrs.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_07.iwd :: sound/ambient/amb_chech_night5v3_lr.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_07.iwd :: sound/ambient/amb_chech_night5v3_lsrs.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_07.iwd :: sound/ambient/amb_chech_nightscream2v3_lr.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_07.iwd :: sound/ambient/amb_chech_nightscream2v3_lsrs.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_07.iwd :: sound/ambient/amb_chech_nightscream3v3_lr.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_07.iwd :: sound/ambient/amb_chech_nightscream3v3_lsrs.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_07.iwd :: sound/ambient/amb_farm_rain_day0v3_lr.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_07.iwd :: sound/ambient/amb_farm_rain_day0v3_lsrs.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_07.iwd :: sound/ambient/amb_launchb_int0v2_lr.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_07.iwd :: sound/ambient/amb_launchb_int0v2_lsrs.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_07.iwd :: sound/ambient/amb_middle_east0v7_lr.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_07.iwd :: sound/ambient/amb_middle_east0v7_lsrs.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_07.iwd :: sound/ambient/amb_middle_east1v7_lr.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_07.iwd :: sound/ambient/amb_middle_east1v7_lsrs.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_08.iwd :: sound/ambient/amb_middle_east2v7_lr.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_08.iwd :: sound/ambient/amb_middle_east2v7_lsrs.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_08.iwd :: sound/ambient/amb_middle_east3aav1_lr.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_08.iwd :: sound/ambient/amb_middle_east3aav1_lsrs.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_08.iwd :: sound/ambient/amb_middle_east3v7_lr.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_08.iwd :: sound/ambient/amb_middle_east3v7_lsrs.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_08.iwd :: sound/ambient/amb_middle_east4v7_lr.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_08.iwd :: sound/ambient/amb_middle_east4v7_lsrs.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_08.iwd :: sound/ambient/amb_middle_east5v7_lr.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_08.iwd :: sound/ambient/amb_middle_east5v7_lsrs.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_08.iwd :: sound/ambient/amb_middle_east_heli5v7_lr.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_08.iwd :: sound/ambient/amb_middle_east_heli5v7_lsrs.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_08.iwd :: sound/ambient/amb_mountain_cold_day0v1_lr.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_08.iwd :: sound/ambient/amb_mountain_cold_day0v1_lsrs.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_08.iwd :: sound/ambient/amb_mountain_cold_day3v1_lr.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_08.iwd :: sound/ambient/amb_mountain_cold_day3v1_lsrs.mp3",
+        "Call of Duty 4 Modern Warfare/main/iw_08.iwd :: sound/ambient/amb_mountain_distwar_day3v2_lr.mp3"
+      ],
+      "images/": [
+        "Call of Duty 4 Modern Warfare/Mods/ModWarfare/z_modwarfare.iwd :: images/logo_cod2.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/$black.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/$identitynormalmap.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/$white.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/1story_house_01.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/2story_house.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/2story_house_01.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/2story_motel.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/3_cursor3.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/55_gallon_drum.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/55_gallon_drum_black.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/55_gallon_drum_black_dirt.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/55_gallon_drum_black_rust.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/55_gallon_drum_blue.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/55_gallon_drum_blue_dirt.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/55_gallon_drum_blue_rust.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/55_gallon_drum_bump.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/55_gallon_drum_dirt_bump.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/55_gallon_drum_green.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/55_gallon_drum_green_dirt.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/55_gallon_drum_green_rust.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/55_gallon_drum_red.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/55_gallon_drum_red_dirt.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/55_gallon_drum_red_rust.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/55_gallon_drum_tan.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/55_gallon_drum_tan_dirt.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/55_gallon_drum_tan_rust.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/55_gallon_drum_white.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/55_gallon_drum_white_dirt.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/55_gallon_drum_white_rust.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/80s_destglass_col.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/80s_econdestroy_brn_col.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/80s_econdestroy_glass_thermal.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/80s_econdestroy_green_col.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/80s_econdestroy_nml.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/80s_econdestroy_red_col.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/80s_econdestroy_silv_col.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/80s_econdestroy_tan_col.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/80s_econdestroy_thermal.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/80s_econdestroy_yel_col.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/80s_econ_brn_col.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/80s_econ_destroy_test_glass_col.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/80s_econ_glass_col.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/80s_econ_glass_low_col.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/80s_econ_green_col.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/80s_econ_low_nml.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/80s_econ_nml.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/80s_econ_red_col.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/80s_econ_red_low_col.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/80s_econ_silv_col.iwi"
+      ],
       "xmodel": [],
       "materials/": [],
-      "maps/": [],
-      "menu": [],
+      "maps/": [
+        "Call of Duty 4 Modern Warfare/Mods/ModWarfare/z_modwarfare.iwd :: maps/mp/gametypes/_class.gsc",
+        "Call of Duty 4 Modern Warfare/Mods/ModWarfare/z_modwarfare.iwd :: maps/mp/gametypes/_globallogic.gsc",
+        "Call of Duty 4 Modern Warfare/Mods/ModWarfare/z_modwarfare.iwd :: maps/mp/gametypes/_hardpoints.gsc",
+        "Call of Duty 4 Modern Warfare/Mods/ModWarfare/z_modwarfare.iwd :: maps/mp/gametypes/_healthoverlay.gsc",
+        "Call of Duty 4 Modern Warfare/Mods/ModWarfare/z_modwarfare.iwd :: maps/mp/gametypes/_menus.gsc",
+        "Call of Duty 4 Modern Warfare/Mods/ModWarfare/z_modwarfare.iwd :: maps/mp/gametypes/_missions.gsc",
+        "Call of Duty 4 Modern Warfare/Mods/ModWarfare/z_modwarfare.iwd :: maps/mp/gametypes/_modwarfare.gsc",
+        "Call of Duty 4 Modern Warfare/Mods/ModWarfare/z_modwarfare.iwd :: maps/mp/gametypes/_rank.gsc",
+        "Call of Duty 4 Modern Warfare/Mods/ModWarfare/z_modwarfare.iwd :: maps/mp/gametypes/_teams.gsc",
+        "Call of Duty 4 Modern Warfare/Mods/ModWarfare/z_modwarfare.iwd :: maps/mp/gametypes/_weapons.gsc"
+      ],
+      "menu": [
+        "Call of Duty 4 Modern Warfare/Mods/ModWarfare/z_modwarfare.iwd :: maps/mp/gametypes/_menus.gsc",
+        "Call of Duty 4 Modern Warfare/main/iw_02.iwd :: images/menu_button.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_02.iwd :: images/menu_button_fade.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_02.iwd :: images/menu_button_faderight.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_02.iwd :: images/menu_button_faderight_selected.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_02.iwd :: images/menu_button_fade_selected.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_02.iwd :: images/menu_button_selected.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_02.iwd :: images/menu_caret_closed.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_02.iwd :: images/menu_caret_open.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_02.iwd :: images/menu_screenbg.iwi"
+      ],
       "ui/": [],
-      "hud": [],
-      "player": []
+      "hud": [
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/ac130_hud_target.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/ac130_hud_target_flash.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_00.iwd :: images/ac130_hud_target_offscreen.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hudcolorbar.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hudicon_american.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hudicon_neutral.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hudicon_opfor.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_40mmgrenade.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_40mmgrenade_32x32.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_ak47.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_ak47_gp25.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_akd74u.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_arrow_down.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_arrow_left.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_arrow_right.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_arrow_up.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_artillery.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_at4.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_barrett50cal.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_benelli_m4.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_bullets_pistol.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_bullets_rifle.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_bullets_sniper.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_bullets_spread.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_bullets_support_back.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_bullets_support_front.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_c4.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_claymore.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_cobra.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_cobra_controls_a.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_cobra_controls_b.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_cobra_controls_x.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_cobra_controls_y.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_cobra_health.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_cobra_hellfire.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_cobra_missile_arrow_back.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_cobra_missile_arrow_forward.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_cobra_missile_arrow_left.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_cobra_missile_arrow_right.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_cobra_sidewinder.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_colt45.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_desert_eagle.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_dragunovsvd.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_enfield_scoped.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_g3.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_g36c.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_g36c_mp.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_javelin.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_javelin_bg.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/hud_javelin_clu_on.iwi"
+      ],
+      "player": [
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/clipplayer.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_01.iwd :: images/compassping_player.iwi",
+        "Call of Duty 4 Modern Warfare/main/iw_11.iwd :: accuracy/aivsplayer/assault_rifle.accu",
+        "Call of Duty 4 Modern Warfare/main/iw_11.iwd :: accuracy/aivsplayer/default.accu",
+        "Call of Duty 4 Modern Warfare/main/iw_11.iwd :: accuracy/aivsplayer/mg.accu",
+        "Call of Duty 4 Modern Warfare/main/iw_11.iwd :: accuracy/aivsplayer/noweapon.accu",
+        "Call of Duty 4 Modern Warfare/main/iw_11.iwd :: accuracy/aivsplayer/pistol.accu",
+        "Call of Duty 4 Modern Warfare/main/iw_11.iwd :: accuracy/aivsplayer/rpg.accu",
+        "Call of Duty 4 Modern Warfare/main/iw_11.iwd :: accuracy/aivsplayer/smg.accu",
+        "Call of Duty 4 Modern Warfare/main/iw_11.iwd :: accuracy/aivsplayer/sniper_rifle.accu",
+        "Call of Duty 4 Modern Warfare/main/iw_11.iwd :: weapons/sp/minigun_player_turret",
+        "Call of Duty 4 Modern Warfare/main/iw_11.iwd :: weapons/sp/rpg_player"
+      ]
     },
-    "fastfile_headers": [],
-    "windows_binary_headers": []
+    "fastfile_headers": [
+      {
+        "path": "Call of Duty 4 Modern Warfare/Mods/ModWarfare/mod.ff",
+        "bytes": 34310,
+        "header_hex": "49576666753130300500000078daecbd"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/ac130.ff",
+        "bytes": 47672657,
+        "header_hex": "49576666753130300500000078daecbd"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/aftermath.ff",
+        "bytes": 46429547,
+        "header_hex": "49576666753130300500000078daecbd"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/airlift.ff",
+        "bytes": 81437254,
+        "header_hex": "49576666753130300500000078daec7d"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/airplane.ff",
+        "bytes": 46494515,
+        "header_hex": "49576666753130300500000078daec7d"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/ambush.ff",
+        "bytes": 71915942,
+        "header_hex": "49576666753130300500000078daec7d"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/armada.ff",
+        "bytes": 88433135,
+        "header_hex": "49576666753130300500000078daecbd"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/blackout.ff",
+        "bytes": 76424241,
+        "header_hex": "49576666753130300500000078daec7d"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/bog_a.ff",
+        "bytes": 75754075,
+        "header_hex": "49576666753130300500000078daecbd"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/bog_b.ff",
+        "bytes": 74396721,
+        "header_hex": "49576666753130300500000078daecbd"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/cargoship.ff",
+        "bytes": 83449777,
+        "header_hex": "49576666753130300500000078daec7d"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/code_post_gfx.ff",
+        "bytes": 874448,
+        "header_hex": "49576666753130300500000078daecbd"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/code_post_gfx_mp.ff",
+        "bytes": 89196,
+        "header_hex": "49576666753130300500000078daecbd"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/common.ff",
+        "bytes": 75655060,
+        "header_hex": "49576666753130300500000078daecbd"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/common_mp.ff",
+        "bytes": 13517381,
+        "header_hex": "49576666753130300500000078daecbd"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/coup.ff",
+        "bytes": 82680662,
+        "header_hex": "49576666753130300500000078daec7d"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/hunted.ff",
+        "bytes": 78316664,
+        "header_hex": "49576666753130300500000078daec7d"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/icbm.ff",
+        "bytes": 79781122,
+        "header_hex": "49576666753130300500000078daec5d"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/jeepride.ff",
+        "bytes": 96396745,
+        "header_hex": "49576666753130300500000078daec7d"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/killhouse.ff",
+        "bytes": 70392024,
+        "header_hex": "49576666753130300500000078daec7d"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/launchfacility_a.ff",
+        "bytes": 73729219,
+        "header_hex": "49576666753130300500000078daec7d"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/launchfacility_b.ff",
+        "bytes": 68514762,
+        "header_hex": "49576666753130300500000078daec7d"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/localized_code_post_gfx_mp.ff",
+        "bytes": 834970,
+        "header_hex": "49576666753130300500000078daec7d"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/localized_common_mp.ff",
+        "bytes": 57034525,
+        "header_hex": "49576666753130300500000078daecbd"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_backlot.ff",
+        "bytes": 39998207,
+        "header_hex": "49576666753130300500000078daec5d"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_backlot_load.ff",
+        "bytes": 258,
+        "header_hex": "49576666753130300500000078da2b64"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_bloc.ff",
+        "bytes": 36203917,
+        "header_hex": "49576666753130300500000078daec7d"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_bloc_load.ff",
+        "bytes": 256,
+        "header_hex": "49576666753130300500000078dacb66"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_bog.ff",
+        "bytes": 32906520,
+        "header_hex": "49576666753130300500000078daec7d"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_bog_load.ff",
+        "bytes": 255,
+        "header_hex": "49576666753130300500000078dacb64"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_broadcast.ff",
+        "bytes": 46904494,
+        "header_hex": "49576666753130300500000078daec5d"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_broadcast_load.ff",
+        "bytes": 318,
+        "header_hex": "49576666753130300500000078dadbca"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_carentan.ff",
+        "bytes": 54310200,
+        "header_hex": "49576666753130300500000078daec7d"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_carentan_load.ff",
+        "bytes": 318,
+        "header_hex": "49576666753130300500000078dadbcc"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_cargoship.ff",
+        "bytes": 36605592,
+        "header_hex": "49576666753130300500000078daecbd"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_cargoship_load.ff",
+        "bytes": 262,
+        "header_hex": "49576666753130300500000078da2b65"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_citystreets.ff",
+        "bytes": 38598897,
+        "header_hex": "49576666753130300500000078daecbd"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_citystreets_load.ff",
+        "bytes": 262,
+        "header_hex": "49576666753130300500000078daab64"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_convoy.ff",
+        "bytes": 39166328,
+        "header_hex": "49576666753130300500000078daec7d"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_convoy_load.ff",
+        "bytes": 259,
+        "header_hex": "49576666753130300500000078dacb67"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_countdown.ff",
+        "bytes": 38333299,
+        "header_hex": "49576666753130300500000078daec5d"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_countdown_load.ff",
+        "bytes": 262,
+        "header_hex": "49576666753130300500000078da2b65"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_crash.ff",
+        "bytes": 35287381,
+        "header_hex": "49576666753130300500000078daecbd"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_crash_load.ff",
+        "bytes": 258,
+        "header_hex": "49576666753130300500000078dacb65"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_crash_snow.ff",
+        "bytes": 43864387,
+        "header_hex": "49576666753130300500000078daecbb"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_crash_snow_load.ff",
+        "bytes": 263,
+        "header_hex": "49576666753130300500000078da2b67"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_creek.ff",
+        "bytes": 53093502,
+        "header_hex": "49576666753130300500000078daec5d"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_creek_load.ff",
+        "bytes": 255,
+        "header_hex": "49576666753130300500000078dacb65"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_crossfire.ff",
+        "bytes": 36726189,
+        "header_hex": "49576666753130300500000078daec7d"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_crossfire_load.ff",
+        "bytes": 262,
+        "header_hex": "49576666753130300500000078da2b65"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_farm.ff",
+        "bytes": 41585378,
+        "header_hex": "49576666753130300500000078daec5d"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_farm_load.ff",
+        "bytes": 256,
+        "header_hex": "49576666753130300500000078dacb66"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_killhouse.ff",
+        "bytes": 39319415,
+        "header_hex": "49576666753130300500000078daec9d"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_killhouse_load.ff",
+        "bytes": 262,
+        "header_hex": "49576666753130300500000078da2b65"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_overgrown.ff",
+        "bytes": 37695425,
+        "header_hex": "49576666753130300500000078daec5d"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_overgrown_load.ff",
+        "bytes": 262,
+        "header_hex": "49576666753130300500000078da2b65"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_pipeline.ff",
+        "bytes": 37423736,
+        "header_hex": "49576666753130300500000078daec7d"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_pipeline_load.ff",
+        "bytes": 261,
+        "header_hex": "49576666753130300500000078da2b66"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_shipment.ff",
+        "bytes": 29040480,
+        "header_hex": "49576666753130300500000078daecbd"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_shipment_load.ff",
+        "bytes": 261,
+        "header_hex": "49576666753130300500000078da2b66"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_showdown.ff",
+        "bytes": 32436801,
+        "header_hex": "49576666753130300500000078daecbd"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_showdown_load.ff",
+        "bytes": 261,
+        "header_hex": "49576666753130300500000078da2b66"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_strike.ff",
+        "bytes": 35859527,
+        "header_hex": "49576666753130300500000078daec5d"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_strike_load.ff",
+        "bytes": 259,
+        "header_hex": "49576666753130300500000078dacb67"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_vacant.ff",
+        "bytes": 33369916,
+        "header_hex": "49576666753130300500000078daecbd"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_vacant_load.ff",
+        "bytes": 259,
+        "header_hex": "49576666753130300500000078dacb67"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/scoutsniper.ff",
+        "bytes": 86264052,
+        "header_hex": "49576666753130300500000078daec3d"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/simplecredits.ff",
+        "bytes": 26205802,
+        "header_hex": "49576666753130300500000078daecbd"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/sniperescape.ff",
+        "bytes": 79619731,
+        "header_hex": "49576666753130300500000078daecbd"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/ui.ff",
+        "bytes": 53174,
+        "header_hex": "49576666753130300500000078daecbd"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/ui_mp.ff",
+        "bytes": 420146,
+        "header_hex": "49576666753130300500000078daecbd"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/village_assault.ff",
+        "bytes": 78462531,
+        "header_hex": "49576666753130300500000078daecbd"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/village_defend.ff",
+        "bytes": 79701021,
+        "header_hex": "49576666753130300500000078daec7d"
+      }
+    ],
+    "windows_binary_headers": [
+      {
+        "path": "Call of Duty 4 Modern Warfare/Mods/ModWarfare/7za.exe",
+        "bytes": 476672,
+        "header_hex": "4d5a90000300000004000000ffff0000"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/_Redist/DirectX/dxwebsetup.exe",
+        "bytes": 292184,
+        "header_hex": "4d5a90000300000004000000ffff0000"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/binkw32.dll",
+        "bytes": 167936,
+        "header_hex": "4d5a90000300000004000000ffff0000"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/iw3mp.exe",
+        "bytes": 3330048,
+        "header_hex": "4d5a90000300000004000000ffff0000"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/iw3sp.exe",
+        "bytes": 3015874,
+        "header_hex": "4d5a90000300000004000000ffff0000"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/miles/mssmp3.asi",
+        "bytes": 93696,
+        "header_hex": "4d5a90000300000004000000ffff0000"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/miles/mssvoice.asi",
+        "bytes": 153088,
+        "header_hex": "4d5a90000300000004000000ffff0000"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/mss32.dll",
+        "bytes": 434688,
+        "header_hex": "4d5a90000300000004000000ffff0000"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/unins000.exe",
+        "bytes": 1565755,
+        "header_hex": "4d5a50000200000004000f00ffff0000"
+      }
+    ]
   },
   "apk": {
     "nested_packages": [
