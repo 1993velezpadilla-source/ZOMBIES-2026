@@ -1,0 +1,1042 @@
+{
+  "c4": {
+    "containers": [],
+    "errors": [
+      {
+        "path": "Call of Duty 4 Modern Warfare/Mods/ModWarfare/7za.exe",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/Mods/ModWarfare/mod.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/Mods/ModWarfare/z_modwarfare.iwd",
+        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/_Redist/DirectX/dxwebsetup.exe",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/binkw32.dll",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/iw3mp.exe",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/iw3sp.exe",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/main/iw_00.iwd",
+        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/main/iw_01.iwd",
+        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/main/iw_02.iwd",
+        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/main/iw_03.iwd",
+        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/main/iw_04.iwd",
+        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/main/iw_05.iwd",
+        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/main/iw_06.iwd",
+        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/main/iw_07.iwd",
+        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/main/iw_08.iwd",
+        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/main/iw_09.iwd",
+        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/main/iw_10.iwd",
+        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/main/iw_11.iwd",
+        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/main/iw_12.iwd",
+        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/main/iw_13.iwd",
+        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/main/localized_spanish_iw00.iwd",
+        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/main/localized_spanish_iw01.iwd",
+        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/main/localized_spanish_iw02.iwd",
+        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/main/localized_spanish_iw03.iwd",
+        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/main/localized_spanish_iw04.iwd",
+        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/main/localized_spanish_iw05.iwd",
+        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/main/localized_spanish_iw06.iwd",
+        "error": "AttributeError: 'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/miles/mssmp3.asi",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/miles/mssvoice.asi",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/mss32.dll",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/unins000.exe",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/ac130.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/aftermath.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/airlift.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/airplane.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/ambush.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/armada.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/blackout.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/bog_a.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/bog_b.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/cargoship.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/code_post_gfx.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/code_post_gfx_mp.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/common.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/common_mp.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/coup.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/hunted.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/icbm.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/jeepride.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/killhouse.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/launchfacility_a.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/launchfacility_b.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/localized_code_post_gfx_mp.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/localized_common_mp.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_backlot.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_backlot_load.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_bloc.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_bloc_load.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_bog.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_bog_load.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_broadcast.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_broadcast_load.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_carentan.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_carentan_load.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_cargoship.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_cargoship_load.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_citystreets.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_citystreets_load.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_convoy.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_convoy_load.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_countdown.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_countdown_load.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_crash.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_crash_load.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_crash_snow.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_crash_snow_load.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_creek.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_creek_load.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_crossfire.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_crossfire_load.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_farm.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_farm_load.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_killhouse.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_killhouse_load.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_overgrown.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_overgrown_load.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_pipeline.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_pipeline_load.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_shipment.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_shipment_load.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_showdown.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_showdown_load.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_strike.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_strike_load.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_vacant.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/mp_vacant_load.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/scoutsniper.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/simplecredits.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/sniperescape.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/ui.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/ui_mp.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/village_assault.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      },
+      {
+        "path": "Call of Duty 4 Modern Warfare/zone/spanish/village_defend.ff",
+        "error": "'SplitReader' object has no attribute 'seekable'"
+      }
+    ],
+    "total_nested_files": 0,
+    "extensions": {},
+    "matches": {
+      "zombie": [],
+      "nacht": [],
+      "mp40": [],
+      "weapon": [],
+      "animation": [],
+      "perk": [],
+      "scripts/": [],
+      "sound/": [],
+      "images/": [],
+      "xmodel": [],
+      "materials/": [],
+      "maps/": [],
+      "menu": [],
+      "ui/": [],
+      "hud": [],
+      "player": []
+    },
+    "fastfile_headers": [],
+    "windows_binary_headers": []
+  },
+  "apk": {
+    "nested_packages": [
+      {
+        "files": 8,
+        "uncompressed_bytes": 23457111,
+        "extensions": {
+          ".json": 6,
+          ".so": 1,
+          ".txt": 1
+        },
+        "term_counts": {},
+        "top_dirs": [
+          [
+            "libvulkan_panfrost.so",
+            1
+          ],
+          [
+            "meta.json",
+            1
+          ],
+          [
+            "MANIFEST.json",
+            1
+          ],
+          [
+            "SHA256SUMS.txt",
+            1
+          ],
+          [
+            "SOURCE.json",
+            1
+          ],
+          [
+            "VALIDATION.json",
+            1
+          ],
+          [
+            "runtime-feature-matrix.json",
+            1
+          ],
+          [
+            "extension-gap.json",
+            1
+          ]
+        ],
+        "examples": [
+          {
+            "path": "meta.json",
+            "bytes": 918
+          },
+          {
+            "path": "MANIFEST.json",
+            "bytes": 652
+          },
+          {
+            "path": "SHA256SUMS.txt",
+            "bytes": 88
+          },
+          {
+            "path": "SOURCE.json",
+            "bytes": 2075
+          },
+          {
+            "path": "VALIDATION.json",
+            "bytes": 5879
+          }
+        ],
+        "largest": [
+          {
+            "path": "libvulkan_panfrost.so",
+            "bytes": 23253984
+          },
+          {
+            "path": "extension-gap.json",
+            "bytes": 140735
+          },
+          {
+            "path": "runtime-feature-matrix.json",
+            "bytes": 52780
+          },
+          {
+            "path": "VALIDATION.json",
+            "bytes": 5879
+          },
+          {
+            "path": "SOURCE.json",
+            "bytes": 2075
+          },
+          {
+            "path": "meta.json",
+            "bytes": 918
+          },
+          {
+            "path": "MANIFEST.json",
+            "bytes": 652
+          },
+          {
+            "path": "SHA256SUMS.txt",
+            "bytes": 88
+          }
+        ],
+        "name": "assets/drivers/packages/PanVK-Kbase-Android-g615-v11-csf-v0.1.0-beta.18-rc1-5a07217f.adpkg.zip"
+      },
+      {
+        "files": 8,
+        "uncompressed_bytes": 23885631,
+        "extensions": {
+          ".json": 6,
+          ".so": 1,
+          ".txt": 1
+        },
+        "term_counts": {},
+        "top_dirs": [
+          [
+            "libvulkan_panfrost.so",
+            1
+          ],
+          [
+            "meta.json",
+            1
+          ],
+          [
+            "MANIFEST.json",
+            1
+          ],
+          [
+            "SHA256SUMS.txt",
+            1
+          ],
+          [
+            "SOURCE.json",
+            1
+          ],
+          [
+            "VALIDATION.json",
+            1
+          ],
+          [
+            "runtime-feature-matrix.json",
+            1
+          ],
+          [
+            "extension-gap.json",
+            1
+          ]
+        ],
+        "examples": [
+          {
+            "path": "meta.json",
+            "bytes": 910
+          },
+          {
+            "path": "MANIFEST.json",
+            "bytes": 652
+          },
+          {
+            "path": "SHA256SUMS.txt",
+            "bytes": 88
+          },
+          {
+            "path": "SOURCE.json",
+            "bytes": 2075
+          },
+          {
+            "path": "VALIDATION.json",
+            "bytes": 5879
+          }
+        ],
+        "largest": [
+          {
+            "path": "libvulkan_panfrost.so",
+            "bytes": 23682512
+          },
+          {
+            "path": "extension-gap.json",
+            "bytes": 140735
+          },
+          {
+            "path": "runtime-feature-matrix.json",
+            "bytes": 52780
+          },
+          {
+            "path": "VALIDATION.json",
+            "bytes": 5879
+          },
+          {
+            "path": "SOURCE.json",
+            "bytes": 2075
+          },
+          {
+            "path": "meta.json",
+            "bytes": 910
+          },
+          {
+            "path": "MANIFEST.json",
+            "bytes": 652
+          },
+          {
+            "path": "SHA256SUMS.txt",
+            "bytes": 88
+          }
+        ],
+        "name": "assets/drivers/packages/PanVK-Kbase-Android-g615-v11-csf-v0.1.0-rc3-5a07217f.adpkg.zip"
+      },
+      {
+        "files": 3,
+        "uncompressed_bytes": 16222557,
+        "extensions": {
+          ".json": 1,
+          ".so": 1,
+          ".txt": 1
+        },
+        "term_counts": {},
+        "top_dirs": [
+          [
+            "meta.json",
+            1
+          ],
+          [
+            "libvulkan_panfrost.so",
+            1
+          ],
+          [
+            "NOTICE.txt",
+            1
+          ]
+        ],
+        "examples": [
+          {
+            "path": "meta.json",
+            "bytes": 367
+          }
+        ],
+        "largest": [
+          {
+            "path": "libvulkan_panfrost.so",
+            "bytes": 16203512
+          },
+          {
+            "path": "NOTICE.txt",
+            "bytes": 18678
+          },
+          {
+            "path": "meta.json",
+            "bytes": 367
+          }
+        ],
+        "name": "assets/drivers/packages/mali-panvk-26.3.0-devel-r4.zip"
+      },
+      {
+        "files": 1,
+        "uncompressed_bytes": 19473960,
+        "extensions": {
+          ".so": 1
+        },
+        "term_counts": {},
+        "top_dirs": [
+          [
+            "libvulkan_freedreno.so",
+            1
+          ]
+        ],
+        "examples": [],
+        "largest": [
+          {
+            "path": "libvulkan_freedreno.so",
+            "bytes": 19473960
+          }
+        ],
+        "name": "assets/drivers/packages/mesa-turnip-android-26.2.4.zip"
+      },
+      {
+        "files": 3,
+        "uncompressed_bytes": 18904275,
+        "extensions": {
+          ".json": 1,
+          ".so": 1,
+          ".txt": 1
+        },
+        "term_counts": {},
+        "top_dirs": [
+          [
+            "meta.json",
+            1
+          ],
+          [
+            "vulkan.radeon.so",
+            1
+          ],
+          [
+            "NOTICE.txt",
+            1
+          ]
+        ],
+        "examples": [
+          {
+            "path": "meta.json",
+            "bytes": 319
+          }
+        ],
+        "largest": [
+          {
+            "path": "vulkan.radeon.so",
+            "bytes": 18885256
+          },
+          {
+            "path": "NOTICE.txt",
+            "bytes": 18700
+          },
+          {
+            "path": "meta.json",
+            "bytes": 319
+          }
+        ],
+        "name": "assets/drivers/packages/radv-xclipse-26.3.0-devel-313870e.zip"
+      },
+      {
+        "files": 55,
+        "uncompressed_bytes": 1245234,
+        "extensions": {
+          ".iwi": 29,
+          ".mp3": 25,
+          "[none]": 1
+        },
+        "term_counts": {
+          "images/": 29,
+          "hud": 2,
+          "sound/": 25,
+          "weapon": 1
+        },
+        "top_dirs": [
+          [
+            "sound/ac130",
+            7
+          ],
+          [
+            "sound/agm",
+            4
+          ],
+          [
+            "sound/choppergunner",
+            3
+          ],
+          [
+            "sound/nuke",
+            3
+          ],
+          [
+            "sound/arty",
+            2
+          ],
+          [
+            "sound/care_package",
+            2
+          ],
+          [
+            "sound/cuav",
+            2
+          ],
+          [
+            "sound/reaper",
+            2
+          ],
+          [
+            "images/ac130_mp.iwi",
+            1
+          ],
+          [
+            "images/agm_mp.iwi",
+            1
+          ],
+          [
+            "images/airstrike_mp.iwi",
+            1
+          ],
+          [
+            "images/artillery_mp.iwi",
+            1
+          ],
+          [
+            "images/asf_mp.iwi",
+            1
+          ],
+          [
+            "images/carepackage_mp.iwi",
+            1
+          ],
+          [
+            "images/compass_waypoint_extraction_zone.iwi",
+            1
+          ],
+          [
+            "images/cp_mark.iwi",
+            1
+          ],
+          [
+            "images/cuav_mp.iwi",
+            1
+          ],
+          [
+            "images/fxt_exp_fire.iwi",
+            1
+          ],
+          [
+            "images/fxt_smk_flamethrower_arc.iwi",
+            1
+          ],
+          [
+            "images/helicopter_mp.iwi",
+            1
+          ],
+          [
+            "images/hud_status_flag.iwi",
+            1
+          ],
+          [
+            "images/hud_status_snowflake.iwi",
+            1
+          ],
+          [
+            "images/iceberg_inner.iwi",
+            1
+          ],
+          [
+            "images/iceberg_inred.iwi",
+            1
+          ],
+          [
+            "images/iceberg_normal.iwi",
+            1
+          ]
+        ],
+        "examples": [],
+        "largest": [
+          {
+            "path": "images/fxt_smk_flamethrower_arc.iwi",
+            "bytes": 349580
+          },
+          {
+            "path": "images/fxt_exp_fire.iwi",
+            "bytes": 174804
+          },
+          {
+            "path": "sound/ac130/ac130_105mm_fire.mp3",
+            "bytes": 62319
+          },
+          {
+            "path": "sound/ac130/exp_105mm_boom5.mp3",
+            "bytes": 46855
+          },
+          {
+            "path": "sound/agm/burst.mp3",
+            "bytes": 40733
+          },
+          {
+            "path": "sound/ac130/40mm_exp.mp3",
+            "bytes": 38078
+          },
+          {
+            "path": "sound/nuke/nuke_incoming.mp3",
+            "bytes": 33480
+          },
+          {
+            "path": "sound/agm/axis_agm_ready.mp3",
+            "bytes": 32226
+          },
+          {
+            "path": "sound/choppergunner/axis_chopper_ready.mp3",
+            "bytes": 26189
+          },
+          {
+            "path": "sound/agm/allies_agm_ready.mp3",
+            "bytes": 23867
+          },
+          {
+            "path": "sound/agm/exp_predator.mp3",
+            "bytes": 22822
+          },
+          {
+            "path": "images/cp_mark.iwi",
+            "bytes": 21900
+          }
+        ],
+        "name": "assets/cod4x/jcod4x_00.iwd"
+      }
+    ],
+    "asset_metadata": {
+      "assets/drivers/bootstrap-v1.json": {
+        "path": "assets/drivers/bootstrap-v1.json",
+        "bytes": 652,
+        "top_level_keys": [
+          "autoActivate",
+          "autoDownload",
+          "families",
+          "panvk",
+          "schema",
+          "signedCatalog",
+          "source"
+        ]
+      },
+      "assets/drivers/catalog-v2.json": {
+        "path": "assets/drivers/catalog-v2.json",
+        "bytes": 4680,
+        "top_level_keys": [
+          "autoActivate",
+          "autoDownload",
+          "builtAt",
+          "candidateFamilies",
+          "entries",
+          "schema",
+          "signaturePolicy",
+          "source"
+        ]
+      },
+      "assets/cod4x/LICENSE.md": {
+        "path": "assets/cod4x/LICENSE.md",
+        "bytes": 884,
+        "text_headings": []
+      },
+      "assets/licenses/ANGLE/prebuilt-source.json": {
+        "path": "assets/licenses/ANGLE/prebuilt-source.json",
+        "bytes": 804,
+        "top_level_keys": [
+          "archive_sha1",
+          "binaries",
+          "files_origin",
+          "package",
+          "reference_source_tree",
+          "revision",
+          "source_component",
+          "source_url"
+        ]
+      }
+    },
+    "native_libraries": [
+      {
+        "path": "lib/arm64-v8a/libcod4first.so",
+        "bytes": 10927256,
+        "elf_magic": "7f454c46",
+        "architecture": "aarch64"
+      },
+      {
+        "path": "lib/arm64-v8a/libcod4mp.so",
+        "bytes": 10982264,
+        "elf_magic": "7f454c46",
+        "architecture": "aarch64"
+      },
+      {
+        "path": "lib/arm64-v8a/libc4vk.so",
+        "bytes": 951544,
+        "elf_magic": "7f454c46",
+        "architecture": "aarch64"
+      },
+      {
+        "path": "lib/arm64-v8a/libc4icd_hal.so",
+        "bytes": 378112,
+        "elf_magic": "7f454c46",
+        "architecture": "aarch64"
+      },
+      {
+        "path": "lib/arm64-v8a/libhook_impl.so",
+        "bytes": 278520,
+        "elf_magic": "7f454c46",
+        "architecture": "aarch64"
+      },
+      {
+        "path": "lib/arm64-v8a/libmain_hook.so",
+        "bytes": 4216,
+        "elf_magic": "7f454c46",
+        "architecture": "aarch64"
+      },
+      {
+        "path": "lib/arm64-v8a/libfile_redirect_hook.so",
+        "bytes": 4000,
+        "elf_magic": "7f454c46",
+        "architecture": "aarch64"
+      },
+      {
+        "path": "lib/arm64-v8a/libgsl_alloc_hook.so",
+        "bytes": 4312,
+        "elf_magic": "7f454c46",
+        "architecture": "aarch64"
+      },
+      {
+        "path": "assets/angle/libEGL_angle.so",
+        "bytes": 713088,
+        "elf_magic": "7f454c46",
+        "architecture": "aarch64"
+      },
+      {
+        "path": "assets/angle/libGLESv2_angle.so",
+        "bytes": 6119784,
+        "elf_magic": "7f454c46",
+        "architecture": "aarch64"
+      }
+    ]
+  }
+}
