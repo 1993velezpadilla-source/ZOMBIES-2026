@@ -1,4 +1,4 @@
-name: Nested assets audit — COD4 IWD and Android packages
+name: Nested assets audit — COD4 IWD and Android packages (seekable fix)
 on:
   push:
     paths:
