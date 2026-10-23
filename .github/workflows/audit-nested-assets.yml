@@ -1,0 +1,53 @@
+name: Nested assets audit — COD4 IWD and Android packages
+on:
+  push:
+    paths:
+      - '.github/workflows/audit-nested-assets.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: zombies-2026-nested-static-audit
+  cancel-in-progress: false
+jobs:
+  nested-archives:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout audit source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Download original release archives
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p _release_assets/c4 _release_assets/cod4
+          gh release download gofile-p2DdQHsz --repo "$GITHUB_REPOSITORY" --pattern 'C4-Mocs.zip.part-*' --dir _release_assets/c4
+          gh release download mediafire-COD4-apk --repo "$GITHUB_REPOSITORY" --pattern 'COD4.apk' --dir _release_assets/cod4
+      - name: Enumerate all archives embedded in ZIP and APK
+        run: |
+          set -euo pipefail
+          python3 tools/audit_nested_content.py
+          sed -n '1,120p' docs/audit/NESTED_AUDIT.md
+      - name: Archive complete machine-readable results
+        uses: actions/upload-artifact@v4
+        with:
+          name: zombies-2026-nested-audit
+          path: |
+            docs/audit/NESTED_AUDIT.md
+            docs/audit/nested-audit-data.json
+            docs/audit/c4-iwd-file-inventory.json
+          retention-days: 30
+      - name: Commit nested audit
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/audit/NESTED_AUDIT.md docs/audit/nested-audit-data.json docs/audit/c4-iwd-file-inventory.json
+          git commit -m 'Document every nested IWD asset and Android package' || exit 0
+          auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)
+          git -c http.extraheader="AUTHORIZATION: basic $auth" push origin HEAD:main
