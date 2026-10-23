@@ -1,4 +1,4 @@
-name: Android emulator COD4 startup smoke test
+name: Android emulator COD4 startup and UI smoke test
 on:
   push:
     paths:
@@ -56,5 +56,6 @@ jobs:
             smoke-out/launch-result.txt
             smoke-out/android-logcat-filtered.txt
             smoke-out/screenshot.png
+            smoke-out/first-screen.png
           retention-days: 14
           if-no-files-found: warn
