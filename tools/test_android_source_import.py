@@ -73,7 +73,7 @@ def main():
         raise RuntimeError("SAF permission grant missing")
     last=[]
     imported=False
-    for attempt in range(20):
+    for attempt in range(48):
         time.sleep(5)
         current=labels()
         last=current
@@ -81,7 +81,7 @@ def main():
         if match:
             imported=True
             break
-        if attempt in (1,5,11):
+        if attempt in (1,5,11,20,35):
             print("IMPORT_POLL",attempt,current[:20],flush=True)
     capture("04-post-import")
     print("IMPORT_UI_LABELS",last,flush=True)
