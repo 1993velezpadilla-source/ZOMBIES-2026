@@ -1,0 +1,51 @@
+name: COD4 APK runtime references audit
+on:
+  push:
+    paths:
+      - '.github/workflows/audit-apk-runtime.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  audit-apk-runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Fetch APK Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p _release_assets/cod4
+          gh release download mediafire-COD4-apk --repo "$GITHUB_REPOSITORY" --pattern COD4.apk --dir _release_assets/cod4
+          echo "40386503d564b0985423339b5ccd5611dc60ce08ebe1b4ae494d4de22a62473c  _release_assets/cod4/COD4.apk" | sha256sum --check
+      - name: Inspect storage paths in compiled Android libraries
+        run: |
+          set -euo pipefail
+          python3 tools/audit_apk_runtime_refs.py
+          sed -n '1,170p' docs/audit/APK_RUNTIME_AUDIT.md
+      - name: Upload reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: cod4-apk-runtime-path-audit
+          path: |
+            docs/audit/APK_RUNTIME_AUDIT.md
+            docs/audit/apk-runtime-strings.json
+          retention-days: 30
+      - name: Commit reports
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/audit/APK_RUNTIME_AUDIT.md docs/audit/apk-runtime-strings.json
+          git commit -m "Record compiled APK path and runtime feature references"
+          auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)
+          git -c http.extraheader="AUTHORIZATION: basic $auth" push origin HEAD:main
