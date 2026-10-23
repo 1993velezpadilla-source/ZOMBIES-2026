@@ -2,6 +2,8 @@
 
 ## Auditoría de todo el repositorio y archivos internos (23 octubre 2026)
 
+**Prueba real Android 15: lanzamiento de COD4.apk GREEN** (campaña y recursos externos aún no probados). [Evidencia y capturas del emulador](docs/audit/ANDROID_EMULATOR_SMOKE.md) · [Compatibilidad estática C4/Android](docs/audit/ANDROID_PC_COMPATIBILITY.md).
+
 - **Resumen y conclusiones:** [docs/audit/EXECUTIVE_AUDIT.md](docs/audit/EXECUTIVE_AUDIT.md)
 - **Inventario del ZIP y APK:** [docs/audit/README.md](docs/audit/README.md)
 - **Análisis de 22 archivos IWD y bibliotecas Android:** [docs/audit/NESTED_AUDIT.md](docs/audit/NESTED_AUDIT.md)
