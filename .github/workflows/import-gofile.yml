@@ -1,0 +1,108 @@
+name: Import shared ZIP from Gofile
+on:
+  push:
+    paths:
+      - '.github/workflows/import-gofile.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gofile-import
+  cancel-in-progress: false
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout ZOMBIES-2026
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Install Node.js for Gofile downloader
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Download shared Gofile folder
+        run: |
+          set -euo pipefail
+          mkdir -p _gofile_import
+          npx --yes gofile-dl -o _gofile_import "https://gofile.io/d/p2DdQHsz"
+          echo "Files received:"
+          find _gofile_import -type f -printf '%P (%s bytes)\n'
+
+      - name: Verify archive and record checksums
+        run: |
+          python3 - <<'PY'
+          import pathlib, zipfile, hashlib, json
+          root=pathlib.Path("_gofile_import")
+          files=list(root.rglob("*"))
+          zips=[p for p in files if p.is_file() and p.suffix.lower()==".zip"]
+          if not zips:
+              raise SystemExit("No ZIP found at Gofile link. Stopping without uploading.")
+          result=[]
+          for path in zips:
+              if not zipfile.is_zipfile(path):
+                  raise SystemExit(f"Not a valid ZIP: {path}")
+              d=hashlib.sha256()
+              with path.open("rb") as f:
+                  for block in iter(lambda:f.read(4*1024*1024), b""):
+                      d.update(block)
+              row={"name":path.name,"relative_path":str(path.relative_to(root)),
+                  "bytes":path.stat().st_size,"sha256":d.hexdigest()}
+              result.append(row)
+              print(json.dumps(row))
+          pathlib.Path("gofile-archive-manifest.json").write_text(
+              json.dumps({"source":"https://gofile.io/d/p2DdQHsz","archives":result},indent=2)+"\n")
+          PY
+
+      - name: Store ZIPs in Git repo (under 90 MiB) or GitHub Release (larger)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s globstar nullglob nocaseglob
+          tag="gofile-p2DdQHsz"
+          mkdir -p incoming/gofile
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          has_commit=false
+          release_count=0
+          for file in _gofile_import/**/*.zip; do
+            bytes=$(stat -c '%s' "$file")
+            name=$(basename "$file")
+            if [[ "$bytes" -lt $((90*1024*1024)) ]]; then
+              echo "Adding $name ($bytes bytes) to Git"
+              cp -- "$file" "incoming/gofile/$name"
+              has_commit=true
+            else
+              echo "Saving $name ($bytes bytes) as GitHub Release asset"
+              if ! gh release view "$tag" >/dev/null 2>&1; then
+                gh release create "$tag" --title "Gofile ZIP import — p2DdQHsz" --notes "Original archive(s) from https://gofile.io/d/p2DdQHsz. Stored unmodified. See gofile-archive-manifest.json."
+              fi
+              if [[ "$bytes" -le 2000000000 ]]; then
+                gh release upload "$tag" "$file" --clobber
+              else
+                # Individual GitHub Release assets cannot exceed 2 GiB.
+                mkdir -p _zip_parts
+                split -b 1800m -d -a 3 -- "$file" "_zip_parts/${name}.part-"
+                for part in _zip_parts/*; do
+                  gh release upload "$tag" "$part" --clobber
+                done
+                rm -f _zip_parts/*
+              fi
+              release_count=$((release_count+1))
+            fi
+          done
+          cp gofile-archive-manifest.json incoming/gofile/manifest.json
+          git add incoming/gofile/
+          git commit -m "Import Gofile ZIP or archive manifest (p2DdQHsz)"
+          auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)
+          git -c http.extraheader="AUTHORIZATION: basic $auth" push origin HEAD:main
+          echo "Uploaded release archives: $release_count"
