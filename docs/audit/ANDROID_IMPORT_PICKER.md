@@ -23,3 +23,21 @@
 - Before further redistribution: public release assets contain files from a third-party commercial game, and permissions must be reviewed.
 
 **Evidence:** [real run 40034361248](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40034361248) — GitHub Actions artifact `cod4-import-picker-synthetic-ui`.
+
+
+## Follow-up verified — importer vs. campaign gate (run 40035357316)
+
+**This is a newer test than run 40034361248.** The first follow-up accidentally pushed the synthetic files into the Download root, which Android's SAF blocks as a directly selectable folder. The script was fixed to create `Download/COD4-FIXTURE/` explicitly and to avoid repeated Download breadcrumbs.
+
+[Successful latest emulator test](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40035357316), artifact `cod4-import-picker-synthetic-ui`:
+
+- Import button opened Android's native directory picker: **PASS**.
+- `COD4-FIXTURE` selected: **PASS**.
+- Android storage access granted: **PASS**.
+- COD4 launcher reports `导入完成，共 3 个文件。` (3 files imported): **PASS**.
+- Launcher explicitly reports `尚未导入完整 main 文件夹。` (complete `main` not imported): **PASS**, expected with synthetic data.
+- Pressing the campaign button displays an alert `尚未导入完整 main 文件夹。`: **PASS**, expected graceful rejection.
+- Actual COD4 campaign level launch or Spanish PC ZIP import: **NOT TESTED**.
+- No PC game files were copied into this test. GitHub reports/fixtures are not proof of any commercial content's compatibility.
+
+Screenshots in artifact: `09-final.png` (import status), `10-campaign-with-incomplete-fixture.png` (expected campaign refusal).
