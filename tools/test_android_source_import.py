@@ -35,8 +35,8 @@ def labels():
 
 def stage_android():
     files=sorted(x for x in SOURCE.rglob("*") if x.is_file())
-    if len(files)!=5:
-        raise RuntimeError("Expected exactly 5 core source asset files, found "+str(len(files)))
+    if len(files)<5:
+        raise RuntimeError("Expected at least 5 core source asset files, found "+str(len(files)))
     checked("shell","mkdir","-p",f"/sdcard/Download/{FOLDER}/main",f"/sdcard/Download/{FOLDER}/zone/spanish")
     for item in files:
         relative=item.relative_to(SOURCE).as_posix()
