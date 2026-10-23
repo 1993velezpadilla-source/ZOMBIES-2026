@@ -22,10 +22,22 @@ if [[ "$install_rc" -eq 0 ]]; then
   adb shell am start -W -n com.cod4.firstmission/.MainActivity > smoke-out/launch-result.txt 2>&1
   start_rc=$?
   cat smoke-out/launch-result.txt
-  sleep 18
+  sleep 7
+  adb exec-out screencap -p > smoke-out/first-screen.png
+  # Fresh Android emulators show a system full-screen onboarding dialog.
+  # Dismiss by tapping its "Got it" button relative to current display size.
+  python3 - <<'PY'
+import struct,subprocess
+b=open("smoke-out/first-screen.png","rb").read(24)
+if b[:8]==bytes([137,80,78,71,13,10,26,10]) and len(b)>=24:
+    width,height=struct.unpack(">II",b[16:24])
+    x,y=int(width*0.725),int(height*0.48)
+    print("Dismissing Android full-screen hint",width,height,x,y,flush=True)
+    subprocess.run(["adb","shell","input","tap",str(x),str(y)],check=False)
+PY
+  sleep 10
   adb shell dumpsys activity activities > smoke-out/activity-dumpsys.txt 2>&1
-  adb shell screencap -p /sdcard/cod4-smoke.png
-  adb pull /sdcard/cod4-smoke.png smoke-out/screenshot.png >/dev/null 2>&1 || true
+  adb exec-out screencap -p > smoke-out/screenshot.png
 else
   start_rc=90
   echo "Skipping launch because APK installation failed." > smoke-out/launch-result.txt
