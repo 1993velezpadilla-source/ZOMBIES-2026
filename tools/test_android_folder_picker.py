@@ -113,12 +113,12 @@ def main():
             shot("08-permission")
             permission_granted=True
             break
-        if tap_label(["COD4-FIXTURE"],True):
+        if entered_fixture and tap_label(["Use this folder","USE THIS FOLDER","使用此文件夹","使用這個資料夾"],True):
+            shot("07-folder-confirm")
+            continue
+        if not entered_fixture and tap_label(["COD4-FIXTURE"],True):
             entered_fixture=True
             shot("05-fixture-folder")
-            continue
-        if entered_fixture and tap_label(["Use this folder","USE THIS FOLDER","使用此文件夹","使用這個資料夾","Select","选择"],True):
-            shot("07-folder-confirm")
             continue
         if tap_label(["Download","Downloads","下载","下載"],True):
             shot("04-download-folder")
