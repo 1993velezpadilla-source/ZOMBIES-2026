@@ -92,6 +92,17 @@ def main():
         time.sleep(8)
     after_campaign=labels()
     capture("05-campaign-probe")
+    # This is a native rendered menu, not an Android accessibility hierarchy.
+    # Probe the visible Spanish 'Nueva partida' position through ordinary
+    # Android touch input; then test ENTER as gamepad/keyboard fallback.
+    if campaign_clicked:
+        adb("shell","input","tap","475","345")
+        time.sleep(8)
+        capture("06-new-game-tap")
+        adb("shell","input","keyevent","66")
+        time.sleep(8)
+        capture("07-new-game-enter")
+    activity_dump=adb("shell","dumpsys","activity","activities",timeout=45)
     log=adb("logcat","-d","-t","2200",timeout=50)
     relevant=[x for x in log.splitlines() if any(t in x.lower() for t in
         ["cod4","fatal exception","androidruntime","avc: denied","permission denied","outofmemory","SIGSEGV".lower()])]
@@ -107,6 +118,8 @@ def main():
         "campaign_button_clicked":campaign_clicked,
         "campaign_ui_labels_after_click":after_campaign[:60],
         "gameplay_confirmed":False,
+        "native_menu_navigation_probed":bool(campaign_clicked),
+        "app_activity_still_visible":"com.cod4.firstmission" in activity_dump,
         "emulator_session_only":True,
         "source_files_uploaded_as_ci_artifacts":False,
         "screenshots":sorted(x.name for x in OUT.glob("*.png"))
