@@ -31,3 +31,18 @@ En Windows PowerShell, para unir archivos binarios use `cmd /c copy /b C4-Mocs.z
 El registro verificable también está en [incoming/gofile/manifest.json](incoming/gofile/manifest.json).
 
 El flujo `.github/workflows/import-gofile.yml` efectúa la descarga y guarda los ZIP pequeños en Git o los grandes como assets de Release.
+
+## COD4.apk — MediaFire import (2026-10-23)
+
+Source: https://www.mediafire.com/file/q0vww6sknvvfqqh/COD4.apk/file?dkey=8z4vx6zhdqb&r=369
+
+- Status: **GREEN** — downloaded and saved as GitHub Release asset (not executed).
+- Original filename: `COD4.apk`.
+- Size: **51,760,726 bytes**.
+- APK archive validation: valid ZIP containing `AndroidManifest.xml` (45 ZIP entries).
+- SHA-256: `40386503d564b0985423339b5ccd5611dc60ce08ebe1b4ae494d4de22a62473c`.
+- Release: https://github.com/1993velezpadilla-source/ZOMBIES-2026/releases/tag/mediafire-COD4-apk
+- Verification manifest: [incoming/mediafire/manifest.json](incoming/mediafire/manifest.json).
+- Import workflow: [.github/workflows/import-mediafire-cod4.yml](.github/workflows/import-mediafire-cod4.yml).
+
+This basic archive validation does **not** establish that the APK is safe to install, legitimate, or compatible with Android.
