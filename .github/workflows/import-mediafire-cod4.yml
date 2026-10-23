@@ -1,0 +1,69 @@
+name: Import COD4 APK from MediaFire
+on:
+  push:
+    paths:
+      - '.github/workflows/import-mediafire-cod4.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mediafire-cod4-import
+  cancel-in-progress: false
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout ZOMBIES-2026
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Install downloader dependencies
+        run: |
+          set -euo pipefail
+          python3 -m venv /tmp/mediafire-venv
+          /tmp/mediafire-venv/bin/pip install --quiet requests beautifulsoup4 playwright
+          /tmp/mediafire-venv/bin/python -m playwright install --with-deps chromium
+
+      - name: Download APK from MediaFire
+        run: |
+          set -euo pipefail
+          /tmp/mediafire-venv/bin/python tools/mediafire_import.py 'https://www.mediafire.com/file/q0vww6sknvvfqqh/COD4.apk/file?dkey=8z4vx6zhdqb&r=369'
+
+      - name: Store original APK on GitHub and commit verification manifest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="mediafire-COD4-apk"
+          archive="_mediafire_import/COD4.apk"
+          bytes=$(stat -c '%s' "$archive")
+          echo "Verified APK: $bytes bytes"
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            gh release create "$tag" --target main \
+              --title "COD4.apk — original MediaFire import" \
+              --notes "User-supplied APK imported as raw bytes from MediaFire. Not executed. Validation and SHA-256: incoming/mediafire/manifest.json."
+          fi
+          if [[ "$bytes" -le 2000000000 ]]; then
+            gh release upload "$tag" "$archive" --clobber
+          else
+            mkdir -p _apk_parts
+            split -b 1800m -d -a 3 -- "$archive" "_apk_parts/COD4.apk.part-"
+            for part in _apk_parts/*; do
+              gh release upload "$tag" "$part" --clobber
+            done
+          fi
+          mkdir -p incoming/mediafire
+          cp _mediafire_import/manifest.json incoming/mediafire/manifest.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add incoming/mediafire/manifest.json
+          git commit -m "Record verified COD4.apk import from MediaFire"
+          auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)
+          git -c http.extraheader="AUTHORIZATION: basic $auth" push origin HEAD:main
