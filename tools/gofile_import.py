@@ -129,9 +129,20 @@ def traverse(session: requests.Session, folder_id: str, token: str,
     if depth > 12:
         raise RuntimeError("Folder nesting exceeds safety limit")
     data = listing(session, folder_id, token)
+    print("Gofile metadata:",
+          {"id": folder_id, "type": data.get("type"),
+           "name": data.get("name"), "keys": sorted(data.keys())},
+          flush=True)
+    if data.get("type") == "file":
+        if str(data.get("name", "")).lower().endswith(".zip"):
+            download(session, data, directory, token)
+            return 1
+        return 0
     children = data.get("children") or data.get("contents") or {}
     if isinstance(children, list):
         children = {item["id"]: item for item in children}
+    print("Gofile entries:", [(v.get("name"), v.get("type"))
+          for v in children.values()], flush=True)
     downloaded = 0
     for child in children.values():
         name = safe_name(child.get("name", "unnamed"))
