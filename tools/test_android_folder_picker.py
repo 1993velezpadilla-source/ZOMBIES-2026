@@ -48,8 +48,11 @@ def tap_label(words, prefer_exact=True):
     for word in words:
         matches=[]
         for n in nodes:
-            value=(n.get("text","")+" "+n.get("content-desc","")).strip()
-            if (value.lower()==word.lower() if prefer_exact else word.lower() in value.lower()):
+            text=(n.get("text") or "").strip()
+            description=(n.get("content-desc") or "").strip()
+            values=[text.lower(),description.lower()]
+            needle=word.lower().strip()
+            if (needle in values if prefer_exact else any(needle in v for v in values)):
                 matches.append(n)
         for n in matches:
             bounds=n.get("bounds")
@@ -92,23 +95,30 @@ def main():
     if not m:
         raise RuntimeError("Missing wm size "+size)
     w,h=map(int,m[-1])
-    adb("shell","input","tap",str(int(w*0.50)),str(int(h*0.59)))
+    # Chinese native Android launcher import button is the first wide row,
+    # independently observed at about 61% screen height.
+    if not tap_label(["导入游戏资源文件夹","导入游戏资料文件夹"],False):
+        adb("shell","input","tap",str(int(w*0.50)),str(int(h*0.615)))
     time.sleep(6)
     shot("01-after-import-tap")
     steps=[{"name":"import_button","nodes":node_summary()}]
     # SAF folder picker may initially be on Recents, home or Download.
+    entered_fixture=False
+    permission_granted=False
     for step in range(12):
         nodes=node_summary()
         values="\n".join((x["text"] or "")+" "+(x["desc"] or "") for x in nodes)
         steps.append({"name":"picker_step_"+str(step),"nodes":nodes})
-        if tap_label(["Use this folder","USE THIS FOLDER","使用此文件夹","使用這個資料夾","Select","选择"],True):
-            shot("07-folder-confirm")
-            continue
         if tap_label(["Allow","ALLOW","允许","允許"],True):
             shot("08-permission")
+            permission_granted=True
             break
         if tap_label(["COD4-FIXTURE"],True):
+            entered_fixture=True
             shot("05-fixture-folder")
+            continue
+        if entered_fixture and tap_label(["Use this folder","USE THIS FOLDER","使用此文件夹","使用這個資料夾","Select","选择"],True):
+            shot("07-folder-confirm")
             continue
         if tap_label(["Download","Downloads","下载","下載"],True):
             shot("04-download-folder")
@@ -131,6 +141,8 @@ def main():
       "fixture_is_synthetic":True,
       "game_assets_imported":False,
       "campaign_tested":False,
+      "fixture_selected_in_picker":entered_fixture,
+      "saf_permission_granted":permission_granted,
       "apk_launcher_result":result[-500:],
       "screenshots":[str(x) for x in OUT.glob("*.png")],
       "last_ui_nodes":node_summary(),
