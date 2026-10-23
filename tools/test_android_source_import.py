@@ -124,6 +124,12 @@ def main():
         adb("shell","input","keyevent","66")
         time.sleep(8)
         capture("07-new-game-enter")
+        # Original killhouse map may load slowly on translated ARM64 emulator.
+        # Take multiple real captures; a progress bar isn't gameplay proof.
+        for seconds in (20, 40, 60, 80, 100):
+            time.sleep(20)
+            capture("08-loading-observe-%03d" % seconds)
+            print("MAP_LOAD_OBSERVE",seconds,"s",flush=True)
     activity_dump=adb("shell","dumpsys","activity","activities",timeout=45)
     log=adb("logcat","-d","-t","2200",timeout=50)
     relevant=[x for x in log.splitlines() if any(t in x.lower() for t in
