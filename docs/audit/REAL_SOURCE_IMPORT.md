@@ -38,3 +38,14 @@ A search of the verified 24,104-entry nested IWD catalog located **`images/devfo
 ## Security and licensing
 
 The repo already contains publicly available third-party commercial binaries in Releases. This test does not establish a redistribution license. Avoid publishing additional copies or including original game files in screenshots/artifact ZIPs. The APK remains untrusted beyond tests in disposable offline emulator; nothing was installed on the user's personal device.
+
+## Extended 21-file import test — successful original game menu
+
+Run: https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40039223813
+
+- A temporary set of 21 files (2,419,742,180 bytes) from the archive was imported into an offline Android emulator.
+- The Android application confirmed basic resource checks and started its native campaign process.
+- **Screenshot evidence:** the authentic Spanish COD4 menu rendered with `Nueva partida`, `Selección de misión`, `Controles`, `Opciones` and `Multijugador`.
+- Graphics and sound initialized. Earlier missing texture startup errors were not observed in this expanded test.
+- A playable mission is **not yet verified**. This is a confirmed *menu rendering* result only.
+- Test artifact contains screenshots and logs, not extracted game assets.
