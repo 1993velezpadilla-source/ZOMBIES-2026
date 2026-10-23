@@ -23,16 +23,13 @@ jobs:
           persist-credentials: false
           fetch-depth: 1
 
-      - name: Install Node.js for Gofile downloader
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
       - name: Download shared Gofile folder
         run: |
           set -euo pipefail
           mkdir -p _gofile_import
-          npx --yes gofile-dl -o _gofile_import "https://gofile.io/d/p2DdQHsz"
+          python3 -m venv /tmp/gofile-venv
+          /tmp/gofile-venv/bin/pip install --quiet requests
+          /tmp/gofile-venv/bin/python tools/gofile_import.py p2DdQHsz
           echo "Files received:"
           find _gofile_import -type f -printf '%P (%s bytes)\n'
 
