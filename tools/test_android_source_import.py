@@ -50,12 +50,34 @@ def main():
     checked("shell","am","force-stop",APK)
     out=checked("shell","am","start","-W","-n",APK+"/.MainActivity")
     print("APP_LAUNCH",out,flush=True)
-    time.sleep(5)
+    time.sleep(7)
     capture("00-start")
-    tap_label(["Got it","Entendido"],True)
-    time.sleep(2)
-    if not tap_label(["导入游戏资源文件夹"],False):
-        raise RuntimeError("App import button not visible in accessibility view")
+    # Android 15 emulator sometimes stacks an ANR "Wait" dialog under the
+    # first-run full-screen hint. Use a known location for Got it if uiautomator
+    # returns only the obscured activity tree.
+    if not tap_label(["Got it","Entendido"],True):
+        adb("shell","input","tap","1693","521")
+        time.sleep(3)
+    for retry in range(5):
+        if tap_label(["Wait"],True):
+            print("Android application-not-responding dialog: chose WAIT",flush=True)
+            time.sleep(7)
+        else:
+            break
+    time.sleep(3)
+    capture("00-onboarding-cleared")
+    found=False
+    for retry in range(7):
+        if tap_label(["导入游戏资源文件夹"],False):
+            found=True
+            break
+        print("IMPORT_BUTTON_RETRY",retry,flush=True)
+        if tap_label(["Wait"],True):
+            print("Dismissed wait dialog",flush=True)
+        time.sleep(6)
+    if not found:
+        capture("00-import-button-unavailable")
+        raise RuntimeError("App import button not visible after recovery attempts")
     time.sleep(3)
     capture("01-android-picker")
     if not tap_label(["Download"],True):
