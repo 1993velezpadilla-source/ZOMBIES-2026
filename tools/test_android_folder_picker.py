@@ -131,6 +131,17 @@ def main():
         break
     time.sleep(4)
     shot("09-final")
+    final_nodes=node_summary()
+    import_complete=any("导入完成" in (n["text"] or "") for n in final_nodes)
+    incomplete_main=any("尚未导入完整 main" in (n["text"] or "") for n in final_nodes)
+    print("IMPORT_COMPLETE_BANNER",import_complete,"INCOMPLETE_MAIN_BANNER",incomplete_main,flush=True)
+    # Expected-negative gate: challenge the game's Campaign button with no game assets,
+    # observe the outcome, but do not claim full campaign loading.
+    campaign_clicked=tap_label(["原版战役菜单"],False)
+    if campaign_clicked:
+        time.sleep(7)
+        shot("10-campaign-with-incomplete-fixture")
+    campaign_nodes=node_summary()
     adb("shell","dumpsys","activity","activities")
     log=adb("logcat","-d","-t","1800",timeout=45)
     safe_logs=[line for line in log.splitlines() if any(t in line.lower() for t in
@@ -143,6 +154,10 @@ def main():
       "campaign_tested":False,
       "fixture_selected_in_picker":entered_fixture,
       "saf_permission_granted":permission_granted,
+      "import_complete_banner":import_complete,
+      "incomplete_main_banner":incomplete_main,
+      "campaign_button_clicked_with_incomplete_data":campaign_clicked,
+      "campaign_ui_labels_after_click":[n["text"] for n in campaign_nodes if n["text"]][:65],
       "apk_launcher_result":result[-500:],
       "screenshots":[str(x) for x in OUT.glob("*.png")],
       "last_ui_nodes":node_summary(),
