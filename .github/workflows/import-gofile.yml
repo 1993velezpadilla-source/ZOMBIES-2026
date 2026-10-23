@@ -1,4 +1,4 @@
-name: Import shared ZIP from Gofile
+name: Import shared ZIP from Gofile (2026 API)
 on:
   push:
     paths:
