@@ -40,3 +40,18 @@ El flujo de CI publica `staging-manifest.json` y `server-runtime-report.json` ex
 - `.github/workflows/iw3-windows-runtime-probe.yml` — CI reproducible en Windows 2022 con compilación + ejecución local.
 
 **No reclamar GREEN de gameplay:** el último `Actions conclusion=success` indica que la auditoría procesó y registró el problema; **el mapa y Zombies NO están funcionando**.
+
+
+## Diagnóstico exacto del breakpoint (nueva evidencia)
+
+La prueba instrumentada [run 40117413584](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40117413584) consiguió **resolver el símbolo y la línea del breakpoint** gracias al PDB compilado desde KisakCOD:
+
+- `BREAKPOINT code=80000003`
+- `SYMBOL DB_Thread +0x26`
+- `SOURCE src/database/db_registry.cpp:2390`
+
+El código original tiene explícitamente `__debugbreak()` en el camino `if (setjmp(*Value))` de `DB_Thread`, después de `Profile_Recover(1)` y antes de `Com_ErrorAbort()`. Por tanto el servidor **no se está cerrando por un breakpoint arbitrario del sistema operativo**: está llegando al manejador de errores de carga de base de datos del propio motor. **Esto no identifica todavía el error original.**
+
+La rama de pruebas añade una modificación **solo a una copia temporal** del código para registrar `com_errorMessage` justo antes de ese breakpoint, sin eliminarlo ni modificar el snapshot GPL vendorizado. El siguiente gate es leer el error real y determinar si falta una fastfile, una carpeta de localización o hay otro defecto. Un `Actions success` de diagnóstico no equivale a mapa cargado.
+
+**Precaución:** en la prueba anterior el proceso terminaba a los pocos segundos (código 0x80000003), sin cargar `mp_crash`, sin `mod.ff` ni zombi. Sigue siendo runtime **RED**.
