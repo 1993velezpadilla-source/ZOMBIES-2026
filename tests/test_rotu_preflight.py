@@ -1,5 +1,6 @@
 import importlib.util
 from pathlib import Path
+import shutil
 import tempfile
 import unittest
 
@@ -66,7 +67,7 @@ class RotuPreflightTest(unittest.TestCase):
         self.assertEqual(len(result['rotu']['invalid_manifest_entries']), 1)
 
     def test_missing_engine_source_fails(self):
-        (self.kisak / 'src').rmdir()
+        shutil.rmtree(self.kisak / 'src')
         self.assertFalse(preflight.preflight(self.kisak, self.rotu)['source_preflight_pass'])
 
     def test_native_bot_registration_missing_fails(self):
