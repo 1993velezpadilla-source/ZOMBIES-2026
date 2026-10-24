@@ -20,10 +20,15 @@ class RotuPreflightTest(unittest.TestCase):
         for p in preflight.ENGINE:
             self.put(self.kisak, p, 'set(KISAK_PLATFORM win32)')
         (self.kisak / 'src').mkdir()
+        self.put(self.kisak, 'src/game_mp/g_scr_main_mp.cpp',
+                 '{"addtestclient", &GScr_AddTestClient}; {"tablelookup", &Scr_TableLookup};')
+        self.put(self.kisak, 'src/server_mp/sv_client_mp.cpp',
+                 'SV_AddTestClient() { SV_DirectConnect(x); SV_ClientEnterWorld(x); return SV_GentityNum(0); }')
         for p in preflight.CORE:
             self.put(self.rotu, p, '')
-        self.put(self.rotu, 'scripts/bots/_bots.gsc', 'loadWaypoints(); scripts\\bots\\_types::initZomTypes();')
+        self.put(self.rotu, 'scripts/bots/_bots.gsc', 'loadWaypoints(); addTestClient(); scripts\\bots\\_types::initZomTypes();')
         self.put(self.rotu, 'scripts/gamemodes/_waves.gsc', 'startRegularWave() {}')
+        self.put(self.rotu, 'scripts/include/waypoints.gsc', 'loadWaypoints() { tableLookup(0, 0, 0, 0); }')
         self.put(self.rotu, 'mod_scripts.csv', '\n'.join(['rawfile,scripts/bots/_bots.gsc', 'rawfile,scripts/bots/_types.gsc', 'rawfile,scripts/gamemodes/_gamemodes.gsc', 'rawfile,scripts/gamemodes/_survival.gsc', 'rawfile,scripts/gamemodes/_waves.gsc', 'rawfile,scripts/players/_players.gsc']) + '\n')
 
     def tearDown(self):
@@ -63,6 +68,20 @@ class RotuPreflightTest(unittest.TestCase):
     def test_missing_engine_source_fails(self):
         (self.kisak / 'src').rmdir()
         self.assertFalse(preflight.preflight(self.kisak, self.rotu)['source_preflight_pass'])
+
+    def test_native_bot_registration_missing_fails(self):
+        self.put(self.kisak, 'src/game_mp/g_scr_main_mp.cpp',
+                 '{"tablelookup", &Scr_TableLookup};')
+        result = preflight.preflight(self.kisak, self.rotu)
+        self.assertFalse(result['source_preflight_pass'])
+        self.assertFalse(result['engine']['mp_addtestclient_registered'])
+
+    def test_native_bot_stub_fails(self):
+        self.put(self.kisak, 'src/server_mp/sv_client_mp.cpp',
+                 'SV_AddTestClient() { return 0; }')
+        result = preflight.preflight(self.kisak, self.rotu)
+        self.assertFalse(result['source_preflight_pass'])
+        self.assertFalse(result['engine']['mp_addtestclient_engine_implementation'])
 
     def test_game_data_only_checks_local_presence(self):
         data = self.root / 'owned-install'
