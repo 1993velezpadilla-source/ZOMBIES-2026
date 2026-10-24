@@ -11,6 +11,7 @@ $ErrorActionPreference='Stop'
 New-Item -ItemType Directory -Path $ReportDir -Force | Out-Null
 $root=(Resolve-Path $GameRoot).Path
 $trace=Join-Path $root 'z2026-sp-level-trace.txt'
+$combatTrace=Join-Path $root 'z2026-sp-combat-trace.txt'
 $reportPath=Join-Path $ReportDir 'offline-sp-runtime.json'
 $report=[ordered]@{
   test='Windows source-built offline KisakCOD-sp level simulation smoke'
@@ -24,6 +25,17 @@ $report=[ordered]@{
   game_init_entered=$false
   spawn_entities_returned=$false
   game_frame_started=$false
+  second_game_frame_started=$false
+  player_entity_active=$false
+  player_weapon_equipped=$false
+  sp_actor_present=$false
+  actual_weapon_fire_callback=$false
+  bullet_fire_dispatched=$false
+  actor_ai_think_executed=$false
+  actor_damage_callback=$false
+  actor_pain_callback=$false
+  actor_death_callback=$false
+  g_damage_callback=$false
   offline_sp_level_loop_verified=$false
   actual_graphics_verified=$false
   weapon_fired_verified=$false
@@ -32,6 +44,8 @@ $report=[ordered]@{
   steam_login_attempted_by_test=$false
   raw_game_assets_in_report=$false
   stage_trace=@()
+  combat_trace=@()
+  attack_command_requested=$false
   runtime_error=$null
 }
 $proc=$null
@@ -64,11 +78,12 @@ try {
   $profiles=Join-Path $root 'players/profiles'
   New-Item -ItemType Directory -Force -Path (Join-Path $profiles 'Z2026OfflineTest') | Out-Null
   Set-Content -Path (Join-Path $profiles 'active.txt') -Value 'Z2026OfflineTest' -Encoding ascii -NoNewline
-  Remove-Item -ErrorAction SilentlyContinue $trace
+  Remove-Item -ErrorAction SilentlyContinue $trace,$combatTrace
 
   # The only game process launched is source-built *single player*.
   # No network address, connect, dedicated, Steam session or user credential.
-  $argsLine='+set fs_basepath "'+$root+'" +set fs_homepath "'+$root+'" +set r_fullscreen 0 +set r_mode 4 +set com_introPlayed 1 +map killhouse'
+  $argsLine='+set fs_basepath "'+$root+'" +set fs_homepath "'+$root+'" +set r_fullscreen 0 +set r_mode 4 +set com_introPlayed 1 +map killhouse +attack'
+  $report.attack_command_requested=$true
   Write-Host 'Launching KisakCOD-sp, direct offline map killhouse; no multiplayer.'
   $stdout=Join-Path $ReportDir 'sp-stdout.txt'
   $stderr=Join-Path $ReportDir 'sp-stderr.txt'
@@ -90,11 +105,25 @@ finally {
   }
   if(Test-Path $trace) {
     $stages=@(Get-Content $trace -TotalCount 40 -ErrorAction SilentlyContinue)
-    $report.stage_trace=@($stages | Where-Object { $_ -in @('G_INIT_ENTER', 'G_SPAWN_ENTITIES_RETURN', 'G_FRAME_ENTER') })
+    $report.stage_trace=@($stages | Where-Object { $_ -in @('G_INIT_ENTER', 'G_SPAWN_ENTITIES_RETURN', 'G_FRAME_ENTER', 'G_SECOND_FRAME', 'PLAYER_ENTITY_ACTIVE', 'PLAYER_WEAPON_EQUIPPED', 'SP_ACTOR_PRESENT') })
     $report.game_init_entered=('G_INIT_ENTER' -in $report.stage_trace)
     $report.spawn_entities_returned=('G_SPAWN_ENTITIES_RETURN' -in $report.stage_trace)
     $report.game_frame_started=('G_FRAME_ENTER' -in $report.stage_trace)
+    $report.second_game_frame_started=('G_SECOND_FRAME' -in $report.stage_trace)
+    $report.player_entity_active=('PLAYER_ENTITY_ACTIVE' -in $report.stage_trace)
+    $report.player_weapon_equipped=('PLAYER_WEAPON_EQUIPPED' -in $report.stage_trace)
+    $report.sp_actor_present=('SP_ACTOR_PRESENT' -in $report.stage_trace)
     $report.offline_sp_level_loop_verified=$report.spawn_entities_returned -and $report.game_frame_started
+  }
+  if(Test-Path $combatTrace) {
+    $report.combat_trace=@(Get-Content $combatTrace -TotalCount 40 -ErrorAction SilentlyContinue)
+    $report.actual_weapon_fire_callback=('FIRE_WEAPON_ENTER' -in $report.combat_trace)
+    $report.bullet_fire_dispatched=('BULLET_FIRE_DISPATCH' -in $report.combat_trace)
+    $report.actor_ai_think_executed=('ACTOR_THINK_ENTER' -in $report.combat_trace)
+    $report.actor_damage_callback=('G_DAMAGE_ACTOR' -in $report.combat_trace)
+    $report.actor_pain_callback=('ACTOR_PAIN_ENTER' -in $report.combat_trace)
+    $report.actor_death_callback=('ACTOR_DIE_ENTER' -in $report.combat_trace)
+    $report.g_damage_callback=('G_DAMAGE_ENTER' -in $report.combat_trace)
   }
   $report | ConvertTo-Json -Depth 4 | Set-Content $reportPath -Encoding utf8
   Write-Host 'Z2026_OFFLINE_SP_RUNTIME_BEGIN'
