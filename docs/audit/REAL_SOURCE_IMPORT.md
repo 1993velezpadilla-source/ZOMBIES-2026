@@ -49,3 +49,15 @@ Run: https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/400392
 - Graphics and sound initialized. Earlier missing texture startup errors were not observed in this expanded test.
 - A playable mission is **not yet verified**. This is a confirmed *menu rendering* result only.
 - Test artifact contains screenshots and logs, not extracted game assets.
+
+## Nueva prueba de ejecución: escena 3D visible (run 40041071926)
+
+El 23-oct-2026 se repitió la importación temporal de **21 archivos originales (2,419,742,180 bytes)** al emulador Android 15 sin acceso de red. [GitHub Actions, ejecución 40041071926](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40041071926) terminó con **conclusión de infraestructura success**.
+
+**Evidencia visual verificada:** después de entrar al menú de campaña, la automatización tocó **Nueva partida** y observó capturas durante 100 segundos. En las capturas de 80 s y 100 s aparece **geometría 3D del juego**, HUD con controles táctiles y métricas del renderizador OpenGL ES. En la de 100 s aparece una perspectiva próxima a primera persona con arma parcial y escena de interior; a los 80 s se ve una toma elevada. No son fotogramas inventados, sino capturas del emulador guardadas como artefacto de Actions.
+
+**Rendimiento observado, NO aprobado:** indicador de aproximadamente **2.4 FPS a los 80 s** y **4.0 FPS a los 100 s**, con pantalla intensamente roja. Son cifras puntuales de un **emulador x86_64 con traducción ARM64 y renderizador software**, no una prueba del rendimiento en un dispositivo Android físico. El software está lejos de mostrar una experiencia estable en este entorno.
+
+**Límites:** se verificó que llegó a renderizar una escena 3D, pero **todavía no** se comprobó movimiento por joystick, disparos, ADS, recarga, colisiones, completitud del nivel, estabilidad prolongada o Zombies. El indicador `gameplay_confirmed` en el JSON de la prueba permanece `false`, correctamente. Se usaron 21 archivos, no los 7.02 GB completos.
+
+El artefacto `cod4-real-source-import-evidence` contiene `08-loading-observe-080.png`, `08-loading-observe-100.png` y logs. No se adjuntaron recursos originales del juego; los datos temporales se limpiaron al terminar.
