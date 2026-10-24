@@ -6,12 +6,14 @@ on:
     paths:
       - 'tools/iw3_rotu/**'
       - 'tests/test_rotu_preflight.py'
+      - 'tests/test_rotu_package_gate.py'
       - 'third_party/KisakCOD/**'
       - '.github/workflows/iw3-rotu-source-preflight.yml'
   push:
     paths:
       - 'tools/iw3_rotu/**'
       - 'tests/test_rotu_preflight.py'
+      - 'tests/test_rotu_package_gate.py'
       - 'third_party/KisakCOD/**'
       - '.github/workflows/iw3-rotu-source-preflight.yml'
 
@@ -30,6 +32,8 @@ jobs:
           python-version: '3.11'
       - name: Unit-test static gate against synthetic fixtures
         run: python -m unittest discover -s tests -p 'test_rotu_preflight.py' -v
+      - name: Test package manifest logic with synthetic fixtures
+        run: python -m unittest discover -s tests -p 'test_rotu_package_gate.py' -v
       - name: Fetch pinned public RotU source only (no released mod binaries)
         env:
           ROTU_REV: b76fca23dbd6e803fcfc66c01411dda37e39e232
@@ -49,11 +53,28 @@ jobs:
             --kisak third_party/KisakCOD \
             --rotu "$RUNNER_TEMP/rotu-src" \
             --output rotu-preflight.json
-      - name: Publish metadata report only (never upstream binaries/game data)
+      - name: Audit real fastfile input manifests and generate temporary source-only overlay
+        run: |
+          python tools/iw3_rotu/package_gate.py \
+            --rotu "$RUNNER_TEMP/rotu-src" \
+            --stage "$RUNNER_TEMP/rotu-manifest-overlay" \
+            --output rotu-package-report.json
+          python - <<'PY'
+          import json
+          report = json.load(open('rotu-package-report.json', encoding='utf-8'))
+          if not report['staging_source_ready']:
+              print('::warning::RotU mod fastfile source staging BLOCKED: consult rotu-package-report.json')
+          if not report['mod_scripts_include_originally_active']:
+              print('::notice::RotU original mod.csv does not activate include,mod_scripts: ephemeral overlay prepared.')
+          print('No compiled mod.ff / game data; source inventory metadata only.')
+          PY
+      - name: Publish metadata reports only (never upstream binaries/game data)
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: iw3-rotu-source-preflight
-          path: rotu-preflight.json
+          path: |
+            rotu-preflight.json
+            rotu-package-report.json
           if-no-files-found: ignore
           retention-days: 7
