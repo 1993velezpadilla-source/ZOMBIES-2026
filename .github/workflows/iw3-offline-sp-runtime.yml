@@ -11,11 +11,13 @@ on:
       - 'tools/zombies_offline/instrument_sp_level.py'
       - 'tools/zombies_offline/instrument_sp_combat.py'
       - 'tools/zombies_offline/instrument_sp_loadout.py'
+      - 'tools/zombies_offline/instrument_sp_input.py'
       - 'tools/zombies_offline/probe_sp_runtime.ps1'
       - 'tests/test_zombies_offline_sp_stage.py'
       - 'tests/test_zombies_offline_instrument.py'
       - 'tests/test_zombies_offline_combat.py'
       - 'tests/test_zombies_offline_loadout.py'
+      - 'tests/test_zombies_offline_input.py'
 
 permissions:
   contents: read
@@ -45,6 +47,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'SP native combat tracer tests failed' }
           python -m unittest discover -s tests -p 'test_zombies_offline_loadout.py' -v
           if ($LASTEXITCODE -ne 0) { throw 'SP test loadout bootstrap tests failed' }
+          python -m unittest discover -s tests -p 'test_zombies_offline_input.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'SP input usercmd test failed' }
           python -m unittest discover -s tests -p 'test_zombies_offline_sp.py' -v
           if ($LASTEXITCODE -ne 0) { throw 'SP source-only tests failed' }
 
@@ -86,6 +90,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'SP passive combat instrumentation failed' }
           python tools/zombies_offline/instrument_sp_loadout.py --source-copy "$clone"
           if ($LASTEXITCODE -ne 0) { throw 'SP temporary loadout bootstrap failed' }
+          python tools/zombies_offline/instrument_sp_input.py --source-copy "$clone"
+          if ($LASTEXITCODE -ne 0) { throw 'SP temporary client input preparation failed' }
           "Z2026_SP_CLONE=$clone" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Install DirectX9 x86 dependencies for offline SP
