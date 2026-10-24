@@ -152,3 +152,41 @@ para obtener ejecución del engine SP en el CI. El siguiente gate es
 **player/weapon state + disparo medible**, después un actor original y
 nuestra sala. Mantener la prueba con el contenido original solo como
 verificación efímera de compatibilidad.
+
+### Gate 2 — player, loadout y combate nativos (24 octubre 2026)
+
+**Medición confirmada de la fase anterior:** [run 40140113173](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40140113173)
+completó el diagnóstico y demostró `PLAYER_ENTITY_ACTIVE=true`,
+`SP_ACTOR_PRESENT=true` y `actor_ai_think_executed=true` en
+single-player. Pero mostró `player_weapon_equipped=false`,
+`actual_weapon_fire_callback=false`, `bullet_fire_dispatched=false`,
+`actor_damage_callback=false` y `actor_death_callback=false`.
+El comando `+attack` inicial no era suficiente para generar un disparo.
+
+**Acciones implementadas para aislar ese bloqueo:**
+
+1. `instrument_sp_loadout.py` espera varios frames y que finalice la
+   inicialización. En un **clon temporal solo de pruebas**, busca una
+   definición de arma de bala con modelo válido **ya registrada** por el
+   motor en esa partida, y utiliza las funciones SP originales
+   `G_GivePlayerWeapon`, `InitializeAmmo` y `G_SelectWeaponIndex`.
+   Los marcadores `TEST_*` no se confunden con equipamiento natural:
+   `PLAYER_WEAPON_EQUIPPED` sigue siendo el criterio real.
+2. `instrument_sp_input.py` usa `CL_CreateCmd` para emitir un máximo
+   de doce comandos de cliente con `BUTTON_ATTACK`, únicamente cuando
+   el snapshot de cliente declara un arma. No llama directamente a
+   `FireWeapon`, `Bullet_Fire` o `G_Damage`. El marcador
+   `TEST_ATTACK_BUTTON_INJECTED` significa solo input de prueba;
+   `FIRE_WEAPON_ENTER` y `BULLET_FIRE_DISPATCH` son necesarios
+   para declarar disparo real procesado.
+3. `probe_sp_runtime.ps1` distingue en JSON descubrimiento, concesión,
+   selección, equipamiento, generación de comandos, disparo y daño.
+   No atribuye ningún zombi al proyecto hasta tener uno propio.
+4. Tests sintéticos específicos y CI repiten una escena SP original
+   **solo como input de compatibilidad**. El engine vendorizado, las
+   verificaciones de red y la autenticación MP permanecen intactos.
+
+**Estado al preparar Gate 2:** el nuevo workflow
+[run 40141908316](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40141908316)
+estaba ejecutándose. No declarar carga de arma o disparo GREEN hasta
+revisar su JSON de resultados.
