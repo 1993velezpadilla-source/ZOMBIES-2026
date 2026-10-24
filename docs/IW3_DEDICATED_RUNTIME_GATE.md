@@ -55,3 +55,17 @@ El código original tiene explícitamente `__debugbreak()` en el camino `if (set
 La rama de pruebas añade una modificación **solo a una copia temporal** del código para registrar `com_errorMessage` justo antes de ese breakpoint, sin eliminarlo ni modificar el snapshot GPL vendorizado. El siguiente gate es leer el error real y determinar si falta una fastfile, una carpeta de localización o hay otro defecto. Un `Actions success` de diagnóstico no equivale a mapa cargado.
 
 **Precaución:** en la prueba anterior el proceso terminaba a los pocos segundos (código 0x80000003), sin cargar `mp_crash`, sin `mod.ff` ni zombi. Sigue siendo runtime **RED**.
+
+
+## 🟢 ACTUALIZACIÓN: Servidor MP `mp_crash` vivo y verificable (24 oct 2026)
+
+**GREEN runtime real verificado:** [run 40119304501](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40119304501), commit `6dcbf150`.
+
+- Servidor `KisakCOD-dedi.exe` construido de fuente Windows x86, ejecutado de forma efímera en el runner Windows 2022.
+- Datos originales del usuario importados de forma temporal: **13 archivos, 944,952,874 bytes**; incorpora fastfiles multijugador localizados en español para corregir el camino de error anterior.
+- **Servidor permaneció activo los 45 segundos observados** (`server_alive_at_45_seconds=true`, `exited_early=false`).
+- Un cliente de **consulta UDP localhost `127.0.0.1:28960` obtuvo un `statusResponse` genuino** con `gamename=KisakCoD4`, `g_gametype=war`, `mapname=mp_crash`, `protocol=1`. El puerto UDP estaba enlazado; esta respuesta valida el servidor multijugador para ese mapa por protocolo, no solo que existe un proceso.
+- El proceso fue detenido al terminar el test y se eliminaron los archivos del juego. Los artifacts de GitHub contienen **exclusivamente informe y diagnóstico**, sin recursos comerciales, ejecutables o DLL.
+- **Todavía NO** se conectó un cliente jugable ni se probó colisión/disparos; `client_connected=false`, `mod_ff_present=false`, `zombies_spawned=false`. La prueba verde equivale a **server + map protocol boot**, no a un juego Zombies completo.
+
+**Próximo gate:** construir un cliente Windows MP legal y conectar a servidor local; luego preparar `fs_game`, scripts/recursos de RotU, iniciar modo Survival y verificar un zombi que se mueve, ataca y puede recibir daño. Antes de distribuir, revisar licencias de datos originales y activos de RotU. La línea antigua anterior con `map_boot_verified=RED` corresponde a una prueba obsoleta y está supersedida por la ejecución 40119304501.
