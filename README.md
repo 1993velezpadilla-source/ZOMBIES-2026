@@ -1,5 +1,9 @@
 # ZOMBIES-2026
 
+## Progreso visual real (emulador Android)
+
+**Lavapipe: escena 3D original de COD4 con texturas y colores normales confirmada.** La captura procede de la prueba [40055353083](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40055353083). El HUD sigue mostrando ~4 FPS en el emulador de CPU, así que **no equivale a juego estable ni a APK corregido**. [Auditoría y evidencia](docs/audit/LAVAPIPE_REAL_3D.md).
+
 ## Pruebas Android del motor original
 
 - [GPU A/B: shader rojo vs SwANGLE y bloqueo de nivel](docs/audit/GPU_BACKEND_AB.md) — SwANGLE elimina el tintado rojo del menú, pero **no** ha demostrado renderizar correctamente el nivel; aparecen miles de errores OpenGL.\n- [Prueba de controles táctiles y comparación visual real](docs/audit/ANDROID_TOUCH_CONTROLS.md) — los siete gestos se inyectaron correctamente y el proceso siguió activo; **las funciones de disparo, movimiento, ADS y recarga aún no están verificadas**.
