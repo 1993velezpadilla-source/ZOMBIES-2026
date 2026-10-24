@@ -43,7 +43,7 @@ jobs:
           git -C "$RUNNER_TEMP/rotu-src" init -q
           git -C "$RUNNER_TEMP/rotu-src" remote add origin https://github.com/doctorluk/rotu-revolution.git
           git -C "$RUNNER_TEMP/rotu-src" sparse-checkout init --cone
-          git -C "$RUNNER_TEMP/rotu-src" sparse-checkout set scripts cfgs
+          git -C "$RUNNER_TEMP/rotu-src" sparse-checkout set scripts cfgs maps common_scripts
           git -C "$RUNNER_TEMP/rotu-src" -c protocol.version=2 fetch --filter=blob:none --depth=1 origin "$ROTU_REV"
           git -C "$RUNNER_TEMP/rotu-src" checkout --detach FETCH_HEAD
           test "$(git -C "$RUNNER_TEMP/rotu-src" rev-parse HEAD)" = "$ROTU_REV"
@@ -53,20 +53,19 @@ jobs:
             --kisak third_party/KisakCOD \
             --rotu "$RUNNER_TEMP/rotu-src" \
             --output rotu-preflight.json
-      - name: Audit real fastfile input manifests and generate temporary source-only overlay
+      - name: Build verified temporary RotU script ZIP/IWD (never upload archive)
         run: |
           python tools/iw3_rotu/package_gate.py \
             --rotu "$RUNNER_TEMP/rotu-src" \
-            --stage "$RUNNER_TEMP/rotu-manifest-overlay" \
-            --output rotu-package-report.json
+            --iwd-temp "$RUNNER_TEMP/rotu-script-build/z_svr_scripts.iwd" \
+            --output rotu-package-report.json \
+            --strict
           python - <<'PY'
           import json
           report = json.load(open('rotu-package-report.json', encoding='utf-8'))
-          if not report['staging_source_ready']:
-              print('::warning::RotU mod fastfile source staging BLOCKED: consult rotu-package-report.json')
-          if not report['mod_scripts_include_originally_active']:
-              print('::notice::RotU original mod.csv does not activate include,mod_scripts: ephemeral overlay prepared.')
-          print('No compiled mod.ff / game data; source inventory metadata only.')
+          assert report['iwd_archive']['crc_verified']
+          assert report['iwd_archive']['member_count'] >= 4
+          print('RotU canonical script IWD built and CRC checked; mod.ff and full game still not built.')
           PY
       - name: Publish metadata reports only (never upstream binaries/game data)
         if: always()
