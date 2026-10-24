@@ -61,6 +61,27 @@ def patch(root: Path) -> Path:
         raise ValueError("Already instrumented")
     s=HEADER+"\n"+s.replace(MARKER,MARKER+"\n    AddVectoredExceptionHandler(1, Z2026_LogFirstBreakpoint);",1)
     target.write_text(s,encoding="utf-8")
+    # The original DB_Thread uses a deliberate __debugbreak() after its
+    # setjmp error recovery path. Log the underlying Com_Error message BEFORE
+    # that breakpoint, without suppressing or consuming it.
+    db_file = root / "src/database/db_registry.cpp"
+    db_source = db_file.read_text(encoding="utf-8")
+    db_needle = "        Profile_Recover(1);\\n#ifdef __llvm__"
+    if db_source.count(db_needle) != 1:
+        raise ValueError("Cannot locate unique database setjmp recovery path")
+    db_payload = (
+        "        Profile_Recover(1);\\n"
+        "        {\\n"
+        "            FILE *diagnostic = nullptr;\\n"
+        "            if (fopen_s(&diagnostic, \\"kisak-database-diagnostic.txt\\", \\"a\\") == 0 && diagnostic) {\\n"
+        "                fprintf(diagnostic, \\"DB_THREAD_RECOVERY error=%s\\\\n\\", com_errorMessage);\\n"
+        "                fclose(diagnostic);\\n"
+        "            }\\n"
+        "        }\\n"
+        "#ifdef __llvm__"
+    )
+    db_source = "#include <cstdio>\\nextern char com_errorMessage[4096];\\n" + db_source.replace(db_needle, db_payload, 1)
+    db_file.write_text(db_source, encoding="utf-8")
     return target
 
 if __name__=="__main__":
