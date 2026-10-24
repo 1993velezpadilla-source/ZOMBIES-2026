@@ -190,3 +190,24 @@ El comando `+attack` inicial no era suficiente para generar un disparo.
 [run 40141908316](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40141908316)
 estaba ejecutándose. No declarar carga de arma o disparo GREEN hasta
 revisar su JSON de resultados.
+
+### 🟢 Gate 2 — disparo original de SP confirmado (2026-10-24)
+
+**EVIDENCIA REAL, no inferencia:** [GitHub Actions run 40141908316](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40141908316) compiló y ejecutó el motor nativo KisakCOD-sp en una prueba local durante **40 segundos**, sin servidor multiplayer y sin iniciar sesión en Steam.
+
+La prueba solo modificó temporalmente su copia efímera del código, no `third_party/KisakCOD`:
+
+- `test_loadout_bootstrap_attempted=true`: inició test-only bootstrap.
+- `test_valid_registered_bullet_weapon_found=true`: localizó una definición de arma válida **ya registrada** en la escena original.
+- `test_weapon_granted=true`, `test_ammo_initialized=true`, `test_weapon_switch_requested=true`: llamadas originales del motor completadas.
+- **`player_weapon_equipped=true`**: el estado real del jugador cambió y registra el arma equipada; no se confunde con solo solicitar equiparla.
+- `test_client_attack_button_injected=true`: se generaron comandos de cliente originales limitados usando `BUTTON_ATTACK`, no llamadas directas a armas o daño.
+- **`actual_weapon_fire_callback=true` y `bullet_fire_dispatched=true`**: el motor ejecutó `FireWeapon` y llegó a `Bullet_Fire` a través del procesamiento normal de controles. **`weapon_fired_verified=true`.**
+- También continuaron **`sp_actor_present=true`**, **`actor_ai_think_executed=true`**, y **`offline_sp_level_loop_verified=true`**.
+- `runtime_error=null`.
+
+**Aún pendiente:** `g_damage_callback=false`, `actor_damage_callback=false`, `actor_pain_callback=false`, `actor_death_callback=false`, `zombie_spawned_verified=false`, `actual_graphics_verified=false`. La prueba demuestra el procesamiento del disparo pero no un impacto sobre un objetivo, un enemigo muerto ni nuestra sala.
+
+**Limitaciones de empaquetado:** se usaron archivos del juego previamente aportados solo dentro del runner para validar compatibilidad SP; ni datos, ni modelos ni EXE comerciales se exportaron desde este gate. Una distribución de ZOMBIES-2026 exige assets propios o derechos de uso adecuados.
+
+**Siguiente gate:** colocar un objetivo original verificable y medir en runtime la trayectoria/impacto, daño y muerte. Luego integrar una entidad zombi original y el control de rondas. No cambiar de ruta hacia Steam/MP.
