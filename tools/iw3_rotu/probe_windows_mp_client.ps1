@@ -13,6 +13,7 @@ $report=[ordered]@{
   test='Windows KisakCOD source-built client -> source-built dedicated localhost'
   server_endpoint='127.0.0.1:28960'
   source_built_client_detected=$false
+  synthetic_local_profile_prepared=$false
   client_process_started=$false
   client_alive_after_25s=$false
   connection_requested_in_launch_args=$false
@@ -35,6 +36,15 @@ try {
   $pdb=[IO.Path]::ChangeExtension($ClientExecutable,'.pdb')
   if(Test-Path $pdb){Copy-Item $pdb -Destination (Join-Path $GameRoot 'KisakCOD-mp.pdb') -Force}
   $report.source_built_client_detected=$true
+  # A new ephemeral staging directory has no selected player profile.
+  # KisakCOD's Com_SetInitialPlayerProfile reads players/profiles/active.txt
+  # and requires its directory to exist; create a synthetic CI-only profile.
+  # No authentication, Steam files, or account credentials are modified.
+  $profilesRoot=Join-Path $GameRoot 'players/profiles'
+  $profileName='Z2026LocalProbe'
+  New-Item -ItemType Directory -Force -Path (Join-Path $profilesRoot $profileName) | Out-Null
+  Set-Content -Path (Join-Path $profilesRoot 'active.txt') -Value $profileName -NoNewline -Encoding ascii
+  $report.synthetic_local_profile_prepared=$true
   # Only local connection is requested. This is a disposable CI process,
   # never a remote server or networked public session.
   $argsLine='+set fs_basepath "'+$GameRoot+'" +set fs_homepath "'+$GameRoot+'" +set r_fullscreen 0 +set r_mode 4 +set net_ip 127.0.0.1 +connect 127.0.0.1:'+([string]$ServerPort)
