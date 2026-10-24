@@ -56,3 +56,16 @@ Fuentes: [KisakCOD](https://github.com/SwagSoftware/KisakCOD), [RotU fuente](htt
 **Próximo bloqueo real:** construir u obtener con autorización un mod.ff de RotU con assets y GSC válidos; confirmar dependencias del mod para la versión de servidor; usar un mapa MP con waypoints CSV válidos. RotU también referencia modelos, armas y FX que no aparecen automáticamente al compilar el motor. El siguiente gate es **arranque MP + dedicated + RotU con datos autorizados y verificación del primer zombi que se mueve/recibe daño**.
 
 **Fallo resuelto:** el primer intento windows-latest falló por el cambio a VS2026; se fijó windows-2022. El siguiente compiló dedicated y el posterior compiló MP + dedicated.
+
+
+## Fase 2 — reconstrucción del paquete de scripts RotU (24 octubre 2026)
+
+**Corrección de arquitectura importante:** inspeccionamos el archivo ORIGINAL [compile_mod.bat de RotU](https://github.com/doctorluk/rotu-revolution/blob/b76fca23dbd6e803fcfc66c01411dda37e39e232/compile_mod.bat). Este empaqueta maps/mp, scripts y common_scripts en **z_svr_scripts.iwd** mediante 7z (un IWD es un archivo ZIP). Posteriormente genera **mod.ff** con **linker_pc.exe** y los CoD4 mod tools. Por eso en el mod.csv upstream está comentada la línea include,mod_scripts: NO es un bug ni se debe activar indiscriminadamente; la distribución normal coloca scripts en IWD y assets en mod.ff.
+
+El archivo tools/iw3_rotu/package_gate.py sigue esa construcción: inspecciona el Git tree completo del commit público fijado, compara rutas requeridas por mod_scripts.csv y mod.csv, y puede construir **solo temporalmente**, en el runner de GitHub, un z_svr_scripts.iwd con CRC y SHA-256, sin distribuir ese ZIP. Cuenta también referencias a FX, materiales, modelos y animaciones para no confundir un ZIP con un mod ejecutable completo. tests/test_rotu_package_gate.py cubre el flujo con archivos sintéticos.
+
+El workflow publica **únicamente resultados JSON**, NO los archivos GSC, IWD ni los assets. Si el gate de IWD está GREEN, solo confirma que la parte de scripts fue empaquetada. NO significa que mod.ff esté compilado o que un zombi aparezca. El siguiente bloqueo es la fase de mod.ff, cuya compilación original requiere linker_pc.exe y la estructura de raw/, zone_source/ y assets, que no se obtienen simplemente compilando KisakCOD.
+
+Punto de arranque del modo Survival verificado en el upstream: maps/mp/gametypes/surv.gsc llama desde Callback_StartGameType() a scripts/server/_server::init, scripts/clients/_clients::init, scripts/players/_players::init, scripts/gamemodes/_gamemodes::init y scripts/bots/_bots::init. Esto define un smoke test funcional preciso para cuando existan datos autorizados, mod.ff y un mapa compatible.
+
+**Licencias:** los propios autores de RotU documentan que numerosos modelos y audios están extraídos de títulos comerciales (ver docs/README.txt upstream); estos recursos **no pueden declararse libres** ni publicarse junto con el APK simplemente porque los scripts estén visibles.
