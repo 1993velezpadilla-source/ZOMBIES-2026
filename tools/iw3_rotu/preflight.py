@@ -49,7 +49,16 @@ def scan_engine(root: Path) -> dict:
     missing = [p for p in ENGINE if not (root / p).is_file()]
     cmake = (root / 'CMakeLists.txt')
     content = cmake.read_text('utf-8', errors='replace') if cmake.is_file() else ''
+    mp_gsc_path = root / 'src/game_mp/g_scr_main_mp.cpp'
+    server_path = root / 'src/server_mp/sv_client_mp.cpp'
+    mp_gsc = mp_gsc_path.read_text('utf-8', errors='replace') if mp_gsc_path.is_file() else ''
+    server_src = server_path.read_text('utf-8', errors='replace') if server_path.is_file() else ''
     return {
+        'mp_addtestclient_registered': bool(re.search(r'"addtestclient"\s*,\s*&GScr_AddTestClient', mp_gsc, re.I)),
+        'mp_addtestclient_engine_implementation': all(token in server_src for token in (
+            'SV_AddTestClient()', 'SV_DirectConnect(', 'SV_ClientEnterWorld(', 'SV_GentityNum('
+        )),
+        'mp_tablelookup_registered': bool(re.search(r'"tablelookup"\s*,\s*&Scr_TableLookup', mp_gsc, re.I)),
         'source_snapshot_present': not missing and (root / 'src').is_dir(),
         'missing': missing + ([] if (root / 'src').is_dir() else ['src/']),
         'windows_platform_selected': bool(re.search(r'set\s*\(\s*KISAK_PLATFORM\s+win32\s*\)', content)),
@@ -79,6 +88,8 @@ def scan_rotu(root: Path) -> dict:
     waves = root / 'scripts/gamemodes/_waves.gsc'
     bot_src = bot.read_text('utf-8', errors='replace') if bot.is_file() else ''
     waves_src = waves.read_text('utf-8', errors='replace') if waves.is_file() else ''
+    waypoint = root / 'scripts/include/waypoints.gsc'
+    waypoint_src = waypoint.read_text('utf-8', errors='replace') if waypoint.is_file() else ''
     return {
         'core_scripts_present': not missing,
         'missing_core': missing,
@@ -87,6 +98,8 @@ def scan_rotu(root: Path) -> dict:
         'invalid_manifest_entries': invalid,
         'zombie_bot_entrypoint_detected': 'loadWaypoints()' in bot_src and 'initZomTypes()' in bot_src,
         'wave_entrypoint_detected': 'startRegularWave()' in waves_src,
+        'zombie_calls_addtestclient': bool(re.search(r'\baddTestClient\s*\(', bot_src, re.I)),
+        'waypoints_call_tablelookup': bool(re.search(r'\btableLookup\s*\(', waypoint_src, re.I)),
         'packaged_mod_ff_verified': False,
     }
 
@@ -114,6 +127,11 @@ def preflight(kisak: Path, rotu: Path, game_data: Path | None = None) -> dict:
         and not scripts['missing_rawfiles']
         and scripts['zombie_bot_entrypoint_detected']
         and scripts['wave_entrypoint_detected']
+        and engine['mp_addtestclient_registered']
+        and engine['mp_addtestclient_engine_implementation']
+        and engine['mp_tablelookup_registered']
+        and scripts['zombie_calls_addtestclient']
+        and scripts['waypoints_call_tablelookup']
     )
     return {
         'schema_version': 1,
