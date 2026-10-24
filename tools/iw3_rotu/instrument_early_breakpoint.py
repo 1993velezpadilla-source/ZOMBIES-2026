@@ -109,6 +109,15 @@ static bool Z2026_TraceProfile(bool hasProfile)
     }
     return hasProfile; // Preserve upstream behavior exactly.
 }
+static void Z2026_TraceStage(const char* stage, int detail)
+{
+    FILE* out = nullptr;
+    if (fopen_s(&out, "kisak-client-connect-diagnostic.txt", "a") == 0 && out)
+    {
+        fprintf(out, "CL_CONNECT_STAGE %s detail=%d\n", stage, detail);
+        fclose(out);
+    }
+}
 """
     start = client.index(entry)
     profile_marker = "if (Com_HasPlayerProfile())"
@@ -122,6 +131,47 @@ static bool Z2026_TraceProfile(bool hasProfile)
     profile_pos = client.index(profile_marker, client.index(entry))
     client = client[:profile_pos] + client[profile_pos:].replace(
         profile_marker, "if (Z2026_TraceProfile(Com_HasPlayerProfile()))", 1)
+    # Fine-grained trace: previous run proved CL_Connect_f was called, but
+    # never reached the profile check. Record progress before/after the map
+    # tick, name resolver, and the *unchanged* local/Steam authentication gate.
+    # These probes report state; they neither short-circuit Steam nor weaken
+    # connection validation.
+    segment_start = client.index(entry)
+    segment_end = client.index("// This is called by the Client", segment_start)
+    segment = client[segment_start:segment_end]
+    checkpoints = (
+        ("            SV_Frame(0);",
+         '            Z2026_TraceStage("SV_FRAME_ENTER", 0);\\n            SV_Frame(0);\\n            Z2026_TraceStage("SV_FRAME_RETURN", 0);'),
+        ("            if (NET_StringToAdr(cls.servername, &clc->serverAddress))",
+         '            Z2026_TraceStage("NET_RESOLVE_ENTER", 0);\\n            if (NET_StringToAdr(cls.servername, &clc->serverAddress))'),
+        ("                if (NET_IsLocalAddress(clc->serverAddress) || CL_CDKeyValidate(clc->serverAddress))",
+         '                Z2026_TraceStage("AUTH_GATE_ENTER", (int)clc->serverAddress.type);\\n                Z2026_TraceStage("LOCAL_CLASSIFICATION", NET_IsLocalAddress(clc->serverAddress) ? 1 : 0);\\n                if (NET_IsLocalAddress(clc->serverAddress) || CL_CDKeyValidate(clc->serverAddress))'),
+    )
+    for needle, replacement in checkpoints:
+        if segment.count(needle) != 1:
+            raise ValueError("Unable to locate unique connect stage: " + needle)
+        segment = segment.replace(needle, replacement.replace("\\\\n", "\\n"), 1)
+    client = client[:segment_start] + segment + client[segment_end:]
+
+    # The address '127.0.0.1' is NA_IP, whereas NET_IsLocalAddress
+    # recognizes only NA_LOOPBACK / NA_BOT in this upstream source.
+    # Detect whether the subsequent Steam ticket call returns, without
+    # pretending that an IPv4 loopback address has passed authentication.
+    auth_start = client.index("bool __cdecl CL_CDKeyValidate(netadr_t addr)")
+    auth_end = client.index("//bool __cdecl CL_CDKeyValidate(const char *key", auth_start)
+    auth_segment = client[auth_start:auth_end]
+    auth_return = "    return Steam_UpdateClientAuthTicket(addr);"
+    if auth_segment.count(auth_return) != 1:
+        raise ValueError("Unable to locate unique Windows Steam ticket return")
+    auth_segment = auth_segment.replace(
+        auth_return,
+        '    Z2026_TraceStage("STEAM_TICKET_ENTER", 0);\\n'
+        '    const bool ticketOk = Steam_UpdateClientAuthTicket(addr);\\n'
+        '    Z2026_TraceStage("STEAM_TICKET_RETURN", ticketOk ? 1 : 0);\\n'
+        '    return ticketOk;'.replace("\\\\n", "\\n"),
+        1
+    )
+    client = client[:auth_start] + auth_segment + client[auth_end:]
     cl_file.write_text(client, encoding="utf-8")
     return target
 
