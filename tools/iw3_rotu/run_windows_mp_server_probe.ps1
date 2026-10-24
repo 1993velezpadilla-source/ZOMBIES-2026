@@ -23,6 +23,7 @@ $report=[ordered]@{
   exit_code=$null
   map_boot_verified=$false
   client_connected=$false
+  client_probe_attempted=$false
   mod_ff_present=$false
   zombies_spawned=$false
   runtime_exception=$null
@@ -116,6 +117,23 @@ try {
         [pscustomobject]@{attempt=$attempt;received=$false;map_verified=$false}
       } finally {
         if ($null -ne $client) {$client.Dispose()}
+      }
+    }
+  }
+  # Optional second gate: launch actual MP client while dedicated server is
+  # still alive. Client join is verified independently via server getstatus.
+  if($env:KISAK_DIAGNOSTIC_MP_CLIENT){
+    Start-Sleep -Seconds 8
+    $clientScript=Join-Path $PSScriptRoot 'probe_windows_mp_client.ps1'
+    if(Test-Path $clientScript){
+      & $clientScript -GameRoot $root -ClientExecutable $env:KISAK_DIAGNOSTIC_MP_CLIENT -ReportDir $ReportDir -ServerPort 28960
+      $clientReport=Join-Path $ReportDir 'mp-client-loopback-report.json'
+      if(Test-Path $clientReport){
+        $clientData=Get-Content $clientReport -Raw | ConvertFrom-Json
+        $report.client_probe_attempted=$true
+        $report.client_process_started=[bool]$clientData.client_process_started
+        $report.client_connected=[bool]$clientData.server_reports_connected_player
+        $report.client_connected_evidence='getstatus player row only'
       }
     }
   }
