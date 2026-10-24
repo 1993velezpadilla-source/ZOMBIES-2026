@@ -9,9 +9,11 @@ on:
       - '.github/workflows/iw3-offline-sp-runtime.yml'
       - 'tools/zombies_offline/stage_sp_data.py'
       - 'tools/zombies_offline/instrument_sp_level.py'
+      - 'tools/zombies_offline/instrument_sp_combat.py'
       - 'tools/zombies_offline/probe_sp_runtime.ps1'
       - 'tests/test_zombies_offline_sp_stage.py'
       - 'tests/test_zombies_offline_instrument.py'
+      - 'tests/test_zombies_offline_combat.py'
 
 permissions:
   contents: read
@@ -37,6 +39,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'SP data-staging tests failed' }
           python -m unittest discover -s tests -p 'test_zombies_offline_instrument.py' -v
           if ($LASTEXITCODE -ne 0) { throw 'SP native instrumentation tests failed' }
+          python -m unittest discover -s tests -p 'test_zombies_offline_combat.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'SP native combat tracer tests failed' }
           python -m unittest discover -s tests -p 'test_zombies_offline_sp.py' -v
           if ($LASTEXITCODE -ne 0) { throw 'SP source-only tests failed' }
 
@@ -74,6 +78,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'SP-only preparation failed' }
           python tools/zombies_offline/instrument_sp_level.py --source-copy "$clone"
           if ($LASTEXITCODE -ne 0) { throw 'SP-only instrumentation failed' }
+          python tools/zombies_offline/instrument_sp_combat.py --source-copy "$clone"
+          if ($LASTEXITCODE -ne 0) { throw 'SP passive combat instrumentation failed' }
           "Z2026_SP_CLONE=$clone" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Install DirectX9 x86 dependencies for offline SP
@@ -100,7 +106,7 @@ jobs:
           if (!(Test-Path $exe)) { throw 'Missing source-built KisakCOD-sp.exe' }
           "Z2026_SP_EXECUTABLE=$exe" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
 
-      - name: Launch SP level killhouse directly, audit actual game stages
+      - name: Launch SP killhouse with diagnostic attack command; observe real weapon/actor callbacks
         shell: pwsh
         run: |
           pwsh -NoProfile -File tools/zombies_offline/probe_sp_runtime.ps1 -GameRoot "$env:Z2026_SP_DATA" -Executable "$env:Z2026_SP_EXECUTABLE" -ReportDir "$env:Z2026_SP_EVIDENCE" -DXNative "$env:DXSDK_NATIVE"
