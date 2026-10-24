@@ -4,6 +4,9 @@ on:
   push:
     paths:
       - '.github/workflows/iw3-windows-client-connect.yml'
+      - 'tools/iw3_rotu/windows_mp_data_stage.py'
+      - 'tools/iw3_rotu/probe_windows_mp_client.ps1'
+      - 'tools/iw3_rotu/run_windows_mp_server_probe.ps1'
 
 permissions:
   contents: read
