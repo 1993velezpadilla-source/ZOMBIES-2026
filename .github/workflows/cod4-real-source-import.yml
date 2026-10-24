@@ -4,6 +4,7 @@ on:
     paths:
       - '.github/workflows/cod4-real-source-import.yml'
       - 'tools/test_android_source_import.py'
+      - 'tools/probe_cod4_touch_controls.py'
       - 'tools/prepare_cod4_core_fixture.py'
   workflow_dispatch:
 
@@ -38,6 +39,11 @@ jobs:
           set -euo pipefail
           python3 tools/prepare_cod4_core_fixture.py
           df -h .
+      - name: Create isolated image-analysis environment
+        run: |
+          python3 -m venv /tmp/cod4-image-tools
+          /tmp/cod4-image-tools/bin/pip --disable-pip-version-check install --quiet 'Pillow>=10,<13'
+          /tmp/cod4-image-tools/bin/python -m py_compile tools/test_android_source_import.py tools/probe_cod4_touch_controls.py
       - name: Enable emulator KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -60,7 +66,7 @@ jobs:
             adb shell svc wifi disable || true
             adb shell svc data disable || true
             adb install -r _release_assets/cod4/COD4.apk
-            python3 tools/test_android_source_import.py
+            /tmp/cod4-image-tools/bin/python tools/test_android_source_import.py
       - name: Store only test evidence, not game contents
         if: always()
         uses: actions/upload-artifact@v4
@@ -69,6 +75,7 @@ jobs:
           path: |
             smoke-out/real-data-test/*.png
             smoke-out/real-data-test/result.json
+            smoke-out/real-data-test/touch-control-report.json
             smoke-out/real-data-test/runtime-filtered-logcat.txt
             smoke-out/real-data-test/source-files-manifest.json
           retention-days: 14
