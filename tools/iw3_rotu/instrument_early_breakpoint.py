@@ -13,6 +13,8 @@ import sys
 MARKER = "int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {"
 HEADER = r'''
 // ZOMBIES-2026 temporary diagnostic: NOT part of upstream KisakCOD.
+#include <Windows.h>
+#include <cstdio>
 #include <DbgHelp.h>
 #pragma comment(lib, "Dbghelp.lib")
 static LONG WINAPI Z2026_LogFirstBreakpoint(PEXCEPTION_POINTERS exception)
