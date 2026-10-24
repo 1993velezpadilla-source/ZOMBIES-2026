@@ -15,7 +15,7 @@ import zipfile
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from audit_releases import SplitReader, SOURCE_ZIP_BYTES
 
-NEEDLES=("voice_off", "voice_on", "voice_chat", "voice_", "~white-rgbl-11", "white-rgbl", "rgbl-11")
+NEEDLES=("loadscreen_mp_crash_snow", "loadscreen_mp_crash", "mp_crash_snow")
 def locate(parts: list[Path], needles: tuple[str,...]=NEEDLES) -> dict:
     if not parts: raise ValueError("No split ZIP parts provided")
     matches=[]
