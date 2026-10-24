@@ -1,0 +1,4 @@
+// Minimal IW3 test fastfile. Original text only, no COD4 data.
+>game,IW3
+>name,zombies_iw3_probe
+rawfile,zombies2026/probe.txt

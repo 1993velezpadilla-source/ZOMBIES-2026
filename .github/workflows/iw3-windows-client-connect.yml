@@ -1,0 +1,130 @@
+name: IW3 native MP client localhost connection gate
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/iw3-windows-client-connect.yml'
+      - 'tools/iw3_rotu/windows_mp_data_stage.py'
+      - 'tools/iw3_rotu/instrument_early_breakpoint.py'
+      - 'tests/test_iw3_temporary_connect_instrument.py'
+      - 'tools/iw3_rotu/probe_windows_mp_client.ps1'
+      - 'tools/iw3_rotu/run_windows_mp_server_probe.ps1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: iw3-windows-client-runtime-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  offline-mp-runtime:
+    runs-on: windows-2022
+    timeout-minutes: 50
+    steps:
+      - name: Checkout (no persistent token)
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Validate safe MP staging with synthetic tiny ZIP fixtures
+        shell: pwsh
+        run: |
+          python -m unittest discover -s tests -p 'test_windows_mp_data_stage.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'MP staging safety unit tests failed' }
+          python -m unittest discover -s tests -p 'test_iw3_temporary_connect_instrument.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'Temporary connect instrumentation tests failed' }
+
+      - name: Download archive from existing repository release (temporary only)
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root=Join-Path $env:RUNNER_TEMP 'c4-archive-parts'
+          New-Item -ItemType Directory -Path $root -Force | Out-Null
+          gh release download gofile-p2DdQHsz --repo $env:GITHUB_REPOSITORY --pattern 'C4-Mocs.zip.part-*' --dir $root
+          if ($LASTEXITCODE -ne 0) { throw 'Existing source archive download failed' }
+          "MP_ARCHIVE_PARTS=$root" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Create only minimal MP smoke data in isolated ephemeral directory
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $data=Join-Path $env:RUNNER_TEMP 'kisak-mp-test'
+          $report=Join-Path $env:RUNNER_TEMP 'kisak-evidence'
+          New-Item -ItemType Directory -Path $report -Force | Out-Null
+          python tools/iw3_rotu/windows_mp_data_stage.py --parts-dir "$env:MP_ARCHIVE_PARTS" --dest "$data" --report (Join-Path $report 'staging-manifest.json') --all-main-iwd
+          if ($LASTEXITCODE -ne 0) { throw 'MP data subset staging failed' }
+          "MP_TEST_DATA=$data" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          "MP_TEST_REPORT=$report" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          Get-PSDrive -PSProvider FileSystem | Select-Object Name,Free,Used | Format-Table
+
+      - name: Install pinned legacy DirectX 9 headers/libraries through NuGet
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $pkg=Join-Path $env:RUNNER_TEMP 'dxpkg'
+          nuget install Microsoft.DXSDK.D3DX -Version 9.29.952.8 -OutputDirectory $pkg -NonInteractive
+          if ($LASTEXITCODE -ne 0) { throw 'DirectX 9 NuGet install failed' }
+          $native=Join-Path $pkg 'Microsoft.DXSDK.D3DX.9.29.952.8\build\native'
+          if (!(Test-Path (Join-Path $native 'include'))) { throw 'Missing D3DX headers' }
+          if (!(Test-Path (Join-Path $native 'Release/lib/x86/d3dx9.lib'))) { throw 'Missing Release d3dx9.lib import library' }
+          "DXSDK_NATIVE=$native" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Instrument disposable engine clone to symbolicate early breakpoint
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $copy=Join-Path $env:RUNNER_TEMP 'kisak-diagnostic-source'
+          Copy-Item -Path 'third_party/KisakCOD' -Destination $copy -Recurse -Force
+          python tools/iw3_rotu/instrument_early_breakpoint.py --source-copy $copy
+          if ($LASTEXITCODE -ne 0) { throw 'Temporary diagnostic source patch failed' }
+          "KISAK_DIAG_SRC=$copy" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host 'Original vendored source remains unchanged.'
+
+      - name: Build KisakCOD-dedi Windows 32 bit from checked-in engine source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $out=Join-Path $env:RUNNER_TEMP 'kisak-build'
+          cmake -S $env:KISAK_DIAG_SRC -B $out -G 'Visual Studio 17 2022' -A Win32 -DCMAKE_BUILD_TYPE=Release -DCICD=ON "-DDXSDK_DIR=$env:DXSDK_NATIVE"
+          if ($LASTEXITCODE -ne 0) { throw 'KisakCOD-dedi configure failed' }
+          cmake --build $out --target KisakCOD-dedi --config Release --parallel 4
+          if ($LASTEXITCODE -ne 0) { throw 'KisakCOD-dedi compilation failed' }
+          cmake --build $out --target KisakCOD-mp --config Release --parallel 4
+          if ($LASTEXITCODE -ne 0) { throw 'KisakCOD-mp compilation failed' }
+          "KISAK_BUILD_DIR=$out" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          $exe=Join-Path $env:KISAK_DIAG_SRC 'bin/Release/KisakCOD-dedi.exe'
+          $pdb=Join-Path $env:KISAK_DIAG_SRC 'bin/Release/KisakCOD-dedi.pdb'
+          if (!(Test-Path $exe)) { throw "Missing diagnostic dedicated executable at $exe" }
+          "KISAK_DIAGNOSTIC_EXE=$exe" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          $mp=Join-Path $env:KISAK_DIAG_SRC 'bin/Release/KisakCOD-mp.exe'
+          if (!(Test-Path $mp)) { throw "Missing source-built MP client $mp" }
+          "KISAK_DIAGNOSTIC_MP_CLIENT=$mp" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          if (Test-Path $pdb) { "KISAK_DIAGNOSTIC_PDB=$pdb" | Out-File $env:GITHUB_ENV -Append -Encoding utf8 }
+
+      - name: Launch source-built client against real localhost dedicated server; audit join
+        shell: pwsh
+        run: |
+          pwsh -NoProfile -File tools/iw3_rotu/run_windows_mp_server_probe.ps1 -GameRoot "$env:MP_TEST_DATA" -BuildDir "$env:KISAK_BUILD_DIR" -ReportDir "$env:MP_TEST_REPORT"
+          if ($LASTEXITCODE -ne 0) { throw 'Runtime diagnostic script failed' }
+
+      - name: Upload only structured evidence and process logs (never game files or exe)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kisak-iw3-client-loopback-runtime-diagnostic
+          path: |
+            ${{ runner.temp }}/kisak-evidence/*.json
+            ${{ runner.temp }}/kisak-evidence/*.txt
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Remove entire source data staging and built game process
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -Recurse -Force -ErrorAction SilentlyContinue (Join-Path $env:RUNNER_TEMP 'kisak-mp-test')
+          Remove-Item -Recurse -Force -ErrorAction SilentlyContinue (Join-Path $env:RUNNER_TEMP 'c4-archive-parts')
+          Write-Host 'All game data and proprietary game inputs remain outside repo and uploaded artifacts.'
