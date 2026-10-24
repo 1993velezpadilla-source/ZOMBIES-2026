@@ -84,7 +84,7 @@ def patch(root: Path) -> Path:
     # player profile checks, or packet behavior. This is a disposable copy.
     cl_file = root / "src/client_mp/cl_main_pc_mp.cpp"
     client = cl_file.read_text(encoding="utf-8")
-    entry = "void __cdecl CL_Connect_f()\\n{"
+    entry = "void __cdecl CL_Connect_f()\n{"
     if client.count(entry) != 1:
         raise ValueError("Cannot locate unique MP client connect function")
     trace_helper = r"""
@@ -95,7 +95,7 @@ static void Z2026_TraceConnect(int argc, int state)
     FILE* out = nullptr;
     if (fopen_s(&out, "kisak-client-connect-diagnostic.txt", "a") == 0 && out)
     {
-        fprintf(out, "CL_CONNECT_ENTER argc=%d state=%d\\n", argc, state);
+        fprintf(out, "CL_CONNECT_ENTER argc=%d state=%d\n", argc, state);
         fclose(out);
     }
 }
@@ -104,7 +104,7 @@ static bool Z2026_TraceProfile(bool hasProfile)
     FILE* out = nullptr;
     if (fopen_s(&out, "kisak-client-connect-diagnostic.txt", "a") == 0 && out)
     {
-        fprintf(out, "CL_CONNECT_PROFILE_CHECK has_profile=%d\\n", int(hasProfile));
+        fprintf(out, "CL_CONNECT_PROFILE_CHECK has_profile=%d\n", int(hasProfile));
         fclose(out);
     }
     return hasProfile; // Preserve upstream behavior exactly.
@@ -115,10 +115,10 @@ static bool Z2026_TraceProfile(bool hasProfile)
     following = client.find(profile_marker, start)
     if following < 0 or following - start > 2800:
         raise ValueError("Unable to locate connect profile gate")
-    client = (trace_helper + "\\n" +
+    client = (trace_helper + "\n" +
         client[:start].replace(entry, entry, 1) +
         client[start:].replace(entry, entry +
-            "\\n    Z2026_TraceConnect(Cmd_Argc(), (int)clientUIActives[0].connectionState);", 1))
+            "\n    Z2026_TraceConnect(Cmd_Argc(), (int)clientUIActives[0].connectionState);", 1))
     profile_pos = client.index(profile_marker, client.index(entry))
     client = client[:profile_pos] + client[profile_pos:].replace(
         profile_marker, "if (Z2026_TraceProfile(Com_HasPlayerProfile()))", 1)
