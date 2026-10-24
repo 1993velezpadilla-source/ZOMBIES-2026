@@ -32,9 +32,12 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Source probe guard failed' }
       - name: Download OpenAssetTools pinned release v0.34.0 from official GitHub
         shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $ErrorActionPreference = 'Stop'
-          $headers = @{ 'User-Agent'='ZOMBIES-2026-IW3-smoke'; 'Accept'='application/vnd.github+json' }
+          if (-not $env:GH_TOKEN) { throw 'Missing GitHub Actions read token' }
+          $headers = @{ 'User-Agent'='ZOMBIES-2026-IW3-smoke'; 'Accept'='application/vnd.github+json'; 'Authorization'="Bearer $env:GH_TOKEN" }
           $release = Invoke-RestMethod -Headers $headers -Uri 'https://api.github.com/repos/Laupetin/OpenAssetTools/releases/tags/v0.34.0'
           if ($release.tag_name -ne 'v0.34.0') { throw 'Release tag mismatch' }
           $packages = @($release.assets | Where-Object { $_.name -eq 'oat-windows.zip' })
