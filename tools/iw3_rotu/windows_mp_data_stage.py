@@ -25,6 +25,8 @@ REQUIRED = (
     "main/iw_03.iwd",
     "main/localized_spanish_iw00.iwd",
     "zone/spanish/code_post_gfx_mp.ff",
+    "zone/spanish/localized_code_post_gfx_mp.ff",
+    "zone/spanish/localized_common_mp.ff",
     "zone/spanish/common_mp.ff",
     "zone/spanish/ui_mp.ff",
     "zone/spanish/mp_crash.ff",
