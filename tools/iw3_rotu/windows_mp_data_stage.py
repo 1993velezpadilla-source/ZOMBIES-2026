@@ -94,13 +94,20 @@ def main() -> None:
     parser.add_argument("--parts-dir", type=Path, required=True)
     parser.add_argument("--dest", type=Path, required=True)
     parser.add_argument("--report", type=Path, required=True)
+    parser.add_argument("--all-main-iwd", action="store_true", help="Stage all 14 core content IWD banks instead of loading one missing texture at a time")
     args = parser.parse_args()
     parts = sorted(args.parts_dir.glob("C4-Mocs.zip.part-*"))
     if len(parts) != 4 or [x.name for x in parts] != [f"C4-Mocs.zip.part-{i:03d}" for i in range(4)]:
         raise SystemExit("Expected exactly four canonical archive parts")
     if sum(x.stat().st_size for x in parts) != SOURCE_ZIP_BYTES:
         raise SystemExit("Archive length mismatch")
-    report = stage_from_zip(parts, args.dest)
+    required = REQUIRED
+    if args.all_main_iwd:
+        additional = tuple("main/iw_%02d.iwd" % i for i in range(14))
+        required = tuple(dict.fromkeys((*REQUIRED, *additional)))
+    report = stage_from_zip(parts, args.dest, required=required)
+    report["all_main_iwd"] = bool(args.all_main_iwd)
+    report["main_iwd_banks_staged"] = sum(row["path"].startswith("main/iw_") for row in report["selected_files"])
     args.report.parent.mkdir(parents=True, exist_ok=True)
     args.report.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print("STAGING_RESULT",json.dumps({"count":len(report["selected_files"]),"bytes":report["selected_total_bytes"]}),flush=True)
