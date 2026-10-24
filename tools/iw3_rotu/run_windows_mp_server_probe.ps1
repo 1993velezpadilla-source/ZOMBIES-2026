@@ -33,7 +33,10 @@ try {
   $root=(Resolve-Path $GameRoot).Path
   $exeCandidates=@(Get-ChildItem -Path (Join-Path $BuildDir 'bin') -Recurse -Filter 'KisakCOD-dedi.exe' -File -ErrorAction SilentlyContinue)
   if ($exeCandidates.Count -eq 0) {
-    $exeCandidates=@(Get-ChildItem -Path $BuildDir -Recurse -Filter 'KisakCOD-dedi.exe' -File)
+    $exeCandidates=@(Get-ChildItem -Path 'third_party/KisakCOD/bin' -Recurse -Filter 'KisakCOD-dedi.exe' -File -ErrorAction SilentlyContinue)
+  }
+  if ($exeCandidates.Count -eq 0) {
+    $exeCandidates=@(Get-ChildItem -Path $BuildDir -Recurse -Filter 'KisakCOD-dedi.exe' -File -ErrorAction SilentlyContinue)
   }
   if ($exeCandidates.Count -ne 1) { throw "Expected one KisakCOD-dedi.exe, found $($exeCandidates.Count)" }
   $exe=$exeCandidates[0]
@@ -57,10 +60,10 @@ try {
 
   # Windows user-mode server executable was produced from KisakCOD C++ source.
   # Input remains in this ephemeral runner; loopback-only networking.
-  $args='+set net_ip 127.0.0.1 +set net_port 28960 +set sv_lanOnly 1 +set sv_punkbuster 0 +set dedicated 2 +set fs_basepath "'+$root+'" +set fs_homepath "'+$root+'" +set sv_pure 0 +set sv_maxclients 4 +set g_gametype war +map mp_crash'
+  $launchArgs='+set net_ip 127.0.0.1 +set net_port 28960 +set sv_lanOnly 1 +set sv_punkbuster 0 +set dedicated 2 +set fs_basepath "'+$root+'" +set fs_homepath "'+$root+'" +set sv_pure 0 +set sv_maxclients 4 +set g_gametype war +map mp_crash'
   $report.arguments_redacted='+set net_ip 127.0.0.1 +set dedicated 2 +set g_gametype war +map mp_crash'
   Write-Host 'Starting KisakCOD source-built dedicated server in local-only diagnostic sandbox.'
-  $process=Start-Process -FilePath (Join-Path $root 'KisakCOD-dedi.exe') -WorkingDirectory $root -ArgumentList $args -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath -PassThru -ErrorAction Stop
+  $process=Start-Process -FilePath (Join-Path $root 'KisakCOD-dedi.exe') -WorkingDirectory $root -ArgumentList $launchArgs -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath -PassThru -ErrorAction Stop
   $report.server_process_started=$true
   $exited=$process.WaitForExit(45000)
   $report.exited_early=$exited
