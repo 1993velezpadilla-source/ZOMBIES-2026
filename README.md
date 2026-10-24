@@ -1,5 +1,10 @@
 # ZOMBIES-2026
 
+## Pruebas Android del motor original
+
+- [Prueba de controles táctiles y comparación visual real](docs/audit/ANDROID_TOUCH_CONTROLS.md) — los siete gestos se inyectaron correctamente y el proceso siguió activo; **las funciones de disparo, movimiento, ADS y recarga aún no están verificadas**.
+- [Importación de datos originales y render 3D](docs/audit/REAL_SOURCE_IMPORT.md) — escena 3D visible; tintado rojo y rendimiento emulado inadecuado.
+
 ## Auditoría de todo el repositorio y archivos internos (23 octubre 2026)
 
 **Prueba real Android 15: lanzamiento de COD4.apk GREEN** (campaña y recursos externos aún no probados). [Evidencia y capturas del emulador](docs/audit/ANDROID_EMULATOR_SMOKE.md) · [Compatibilidad estática C4/Android](docs/audit/ANDROID_PC_COMPATIBILITY.md).
