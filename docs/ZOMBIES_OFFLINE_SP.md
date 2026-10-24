@@ -51,7 +51,12 @@ connecting to Steam MP or emulating other peoples' online servers.
    source audit JSON. Refuses to edit the vendored original.
 2. `tests/test_zombies_offline_sp.py` proves exactly what the script changes,
    checks SP actors and weapon source contracts and tests failure cases.
-3. `.github/workflows/iw3-offline-sp-weapons.yml` runs the tests and builds
+3. `tools/zombies_offline/weapon_schema_export.py` reads all **502**
+   upstream WeaponDef parser declarations (501 unique names; duplicate
+   `guidedMissileType` exists in upstream) and exports only field names,
+   byte offsets and type labels, never weapon data or proprietary assets.
+   `tests/test_zombies_weapon_schema.py` validates exact completeness.
+4. `.github/workflows/iw3-offline-sp-weapons.yml` runs the tests and builds
    **only SP** in a disposable Windows 2022 runner, with no Steam login,
    original game ZIP download, localhost server or COD4 data unpacking.
    It publishes only JSON evidence, not the EXE or commercial data.
