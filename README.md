@@ -2,7 +2,7 @@
 
 ## Pruebas Android del motor original
 
-- [Prueba de controles táctiles y comparación visual real](docs/audit/ANDROID_TOUCH_CONTROLS.md) — los siete gestos se inyectaron correctamente y el proceso siguió activo; **las funciones de disparo, movimiento, ADS y recarga aún no están verificadas**.
+- [GPU A/B: shader rojo vs SwANGLE y bloqueo de nivel](docs/audit/GPU_BACKEND_AB.md) — SwANGLE elimina el tintado rojo del menú, pero **no** ha demostrado renderizar correctamente el nivel; aparecen miles de errores OpenGL.\n- [Prueba de controles táctiles y comparación visual real](docs/audit/ANDROID_TOUCH_CONTROLS.md) — los siete gestos se inyectaron correctamente y el proceso siguió activo; **las funciones de disparo, movimiento, ADS y recarga aún no están verificadas**.
 - [Importación de datos originales y render 3D](docs/audit/REAL_SOURCE_IMPORT.md) — escena 3D visible; tintado rojo y rendimiento emulado inadecuado.
 
 ## Auditoría de todo el repositorio y archivos internos (23 octubre 2026)
