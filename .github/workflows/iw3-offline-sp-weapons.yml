@@ -1,0 +1,97 @@
+name: ZOMBIES-2026 offline single-player weapons engine (source only)
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/iw3-offline-sp-weapons.yml'
+      - 'tools/zombies_offline/**'
+      - 'tests/test_zombies_offline_sp.py'
+  push:
+    branches:
+      - 'feature/zombies-offline-sp-weapons-20261024'
+    paths:
+      - '.github/workflows/iw3-offline-sp-weapons.yml'
+      - 'tools/zombies_offline/**'
+      - 'tests/test_zombies_offline_sp.py'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zombies-offline-sp-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  offline-sp-windows:
+    runs-on: windows-2022
+    timeout-minutes: 50
+    steps:
+      - name: Checkout without writing account credentials
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Audit SP engine and weapons with synthetic source-only tests
+        shell: pwsh
+        run: |
+          python -m unittest discover -s tests -p 'test_zombies_offline_sp.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'SP-only source gate tests failed' }
+
+      - name: Prepare disposable single-player engine source (not multiplayer)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $source=Join-Path $env:RUNNER_TEMP 'z2026-kisak-sp-source'
+          $report=Join-Path $env:RUNNER_TEMP 'z2026-offline-sp-report.json'
+          Copy-Item -Path 'third_party/KisakCOD' -Destination $source -Recurse -Force
+          python tools/zombies_offline/sp_source_gate.py --source-copy "$source" --report "$report"
+          if ($LASTEXITCODE -ne 0) { throw 'Source gate failed' }
+          "Z2026_SP_SOURCE=$source" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          "Z2026_SP_REPORT=$report" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Install pinned DirectX9 Win32 build dependencies
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $pkg=Join-Path $env:RUNNER_TEMP 'z2026-dxpkg'
+          nuget install Microsoft.DXSDK.D3DX -Version 9.29.952.8 -OutputDirectory $pkg -NonInteractive
+          if ($LASTEXITCODE -ne 0) { throw 'DirectX9 NuGet installation failed' }
+          $native=Join-Path $pkg 'Microsoft.DXSDK.D3DX.9.29.952.8\build\native'
+          if (!(Test-Path (Join-Path $native 'Release/lib/x86/d3dx9.lib'))) { throw 'No x86 D3DX9 import library' }
+          "DXSDK_NATIVE=$native" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Compile only native KisakCOD-sp (no MP, no server)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $out=Join-Path $env:RUNNER_TEMP 'z2026-build-sp'
+          cmake -S "$env:Z2026_SP_SOURCE" -B "$out" -G 'Visual Studio 17 2022' -A Win32 -DCMAKE_BUILD_TYPE=Release -DCICD=ON "-DDXSDK_DIR=$env:DXSDK_NATIVE"
+          if ($LASTEXITCODE -ne 0) { throw 'KisakCOD-sp configuration failed' }
+          cmake --build "$out" --target KisakCOD-sp --config Release --parallel 4
+          if ($LASTEXITCODE -ne 0) { throw 'KisakCOD-sp compilation failed' }
+          $exe=Join-Path $env:Z2026_SP_SOURCE 'bin/Release/KisakCOD-sp.exe'
+          if (!(Test-Path $exe)) { throw 'KisakCOD-sp.exe missing after compilation' }
+          # The JSON and CI checks record exactly what passed; no game, DLL,
+          # commercial weapon model, sound, or EXE is published.
+          $report=Get-Content "$env:Z2026_SP_REPORT" -Raw | ConvertFrom-Json
+          $report.sp_executable_compiled=$true
+          $report | ConvertTo-Json -Depth 6 | Set-Content "$env:Z2026_SP_REPORT" -Encoding utf8
+          Write-Host 'OFFLINE_SP_BUILD_GREEN: KisakCOD-sp.exe built locally (NOT executed; no gameplay validation).'
+
+      - name: Upload evidence only, never game files or executable
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zombies-2026-offline-sp-source-build-report
+          path: ${{ runner.temp }}/z2026-offline-sp-report.json
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Delete disposable SP engine build
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -Recurse -Force -ErrorAction SilentlyContinue (Join-Path $env:RUNNER_TEMP 'z2026-kisak-sp-source')
+          Remove-Item -Recurse -Force -ErrorAction SilentlyContinue (Join-Path $env:RUNNER_TEMP 'z2026-build-sp')
+          Write-Host 'No commercial content, SP executable, or DLL published.'
