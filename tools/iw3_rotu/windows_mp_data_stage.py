@@ -23,6 +23,7 @@ REQUIRED = (
     "main/iw_01.iwd",
     "main/iw_02.iwd",
     "main/iw_03.iwd",
+    "main/iw_04.iwd",
     "main/localized_spanish_iw00.iwd",
     "zone/spanish/code_post_gfx_mp.ff",
     "zone/spanish/localized_code_post_gfx_mp.ff",
