@@ -39,3 +39,20 @@ Se puede añadir --game-data /ruta/de/instalacion/propia/cod4 para verificar exi
 KisakCOD declara GPL-3.0, que **no** concede derechos sobre mapas, armas, sonidos o binarios comerciales de Call of Duty. El RotU upstream tiene avisos y créditos propios, y la página oficial de descargas prohíbe redistribuir sus ZIP. No incluirlos en una distribución pública sin los derechos necesarios; cambiar solo el skin no soluciona derechos sobre modelos o datos subyacentes.
 
 Fuentes: [KisakCOD](https://github.com/SwagSoftware/KisakCOD), [RotU fuente](https://github.com/doctorluk/rotu-revolution), [RotU instalación](https://rotu-revolution.com/install.php), [RotU licencias de descarga](https://rotu-revolution.com/download.php).
+
+
+## Compilación real de Windows — gate de compilación (24 octubre 2026)
+
+**GREEN verificado en GitHub Actions:** [run 40074797697](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40074797697).
+
+- Visual Studio 2022 + CMake (Windows Server 2022, arquitectura **Win32/x86**) configuraron correctamente la copia importada de KisakCOD.
+- Dependencia DirectX 9 Microsoft.DXSDK.D3DX versión 9.29.952.8 instalada con NuGet.
+- Compilación de KisakCOD-dedi **GREEN**, ejecutable generado en runner efímero.
+- Compilación de KisakCOD-mp **GREEN**, ejecutable generado en runner efímero.
+- **No** se corrieron ejecutables sobre un mapa ni se cargó RotU mod.ff; no hay Zombies jugable ni prueba Android. Binarios/DLLs del runner **no** se publicaron como artifacts ni Release.
+
+**API específica RotU → KisakCOD:** El script scripts/bots/_bots.gsc llama addTestClient(); KisakCOD src/game_mp/g_scr_main_mp.cpp registra addtestclient, y src/server_mp/sv_client_mp.cpp define SV_AddTestClient() que crea clientes NA_BOT, realiza SV_DirectConnect y SV_ClientEnterWorld. Para navegación, scripts/include/waypoints.gsc usa tableLookup(...) y KisakCOD registra tablelookup en el catálogo GSC. Estos contratos están incorporados al source_preflight_pass y tienen tests negativos (registro ausente e implementación vacía). **Esto no demuestra ejecución runtime del mod.**
+
+**Próximo bloqueo real:** construir u obtener con autorización un mod.ff de RotU con assets y GSC válidos; confirmar dependencias del mod para la versión de servidor; usar un mapa MP con waypoints CSV válidos. RotU también referencia modelos, armas y FX que no aparecen automáticamente al compilar el motor. El siguiente gate es **arranque MP + dedicated + RotU con datos autorizados y verificación del primer zombi que se mueve/recibe daño**.
+
+**Fallo resuelto:** el primer intento windows-latest falló por el cambio a VS2026; se fijó windows-2022. El siguiente compiló dedicated y el posterior compiló MP + dedicated.
