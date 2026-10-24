@@ -78,3 +78,19 @@ Punto de arranque del modo Survival verificado en el upstream: maps/mp/gametypes
 **Límite técnico (versión v0.34.0, verificada en el código fuente):** según la [matriz de assets de v0.34.0](https://github.com/Laupetin/OpenAssetTools/blob/v0.34.0/docs/SupportedAssetTypes.md), OAT **sí** puede cargar desde disco RawFile, XModel, XAnim, Material, Localize, StringTable, WeaponDef y MenuList de IW3. Es una mejora importante frente a las versiones anteriores. Pero todavía NO puede cargar desde disco FxEffectDef, snd_alias_list_t, LoadedSound y otros assets importantes para RotU. Por tanto, OAT puede servir para una **prueba mínima legal de fastfile con rawfiles originales**; **no** prueba que se pueda reconstruir el mod.ff completo de RotU sin resolver esas dependencias. En la primera prueba OAT solo se usarían assets originales creados para el proyecto; no reutilizar modelos ni sonidos extraídos de otros COD.
 
 **Gate posterior propuesto:** compilar/verificar OAT Linker en CI, generar desde cero un tiny IW3 .ff de diagnóstico sin recursos comerciales, verificar que lo puede leer OAT Unlinker y finalmente usar el resultado en KisakCOD cuando haya archivos de juego autorizados. Este gate aún no se ejecutó. NO confundir con un zombi funcional.
+
+
+## Fase 3 — prueba real de fastfile IW3 con contenido propio
+
+Se añadió un proyecto de diagnóstico **original**, separado completamente de RotU y del contenido comercial COD4:
+
+- Definición OAT: tools/iw3_rotu/oat_probe/zone_source/zombies_iw3_probe.zone
+- Rawfile propio: tools/iw3_rotu/oat_probe/zone_raw/zombies_iw3_probe/zombies2026/probe.txt
+- CI: .github/workflows/iw3-oat-fastfile-smoke.yml
+- Pruebas: tests/test_iw3_oat_probe.py
+
+El workflow está diseñado para usar **OAT v0.34.0**, su release oficial **oat-windows.zip**, con hash SHA256 comprobado **fd2aafd5a6a99d520f67c16ab6e12873da87e8de0b81312d239a1ee2db59d515** (ver metadata release GitHub). En Windows 2025 verifica los textos, invoca **Linker** para generar zombies_iw3_probe.ff, y pide al **Unlinker** que lo abra y enumere el rawfile. Solo si todas las verificaciones pasan se publica como artifact el fastfile que contiene **exclusivamente el texto de prueba original**.
+
+**Estado del gate: PENDIENTE de ejecución de GitHub Actions.** Un código subido no es una compilación verificada. Los workflows de source preflight e IWD estaban en estado **queued** durante esta sesión, sin que el runner entregara resultados. No podemos declarar GREEN una prueba que aún no se ejecutó. Tampoco este FF de diagnóstico representa un mod jugable: no tiene zombie, mapas, materiales ni armas.
+
+**Separación de fases estricta:** (1) IW3 MP/dedicated compiled GREEN; (2) RotU source/IWD gate pendiente de CI nueva; (3) FF original de diagnóstico pendiente de CI; (4) RotU asset and script bootstrapping + zombi real pendiente; (5) Android ARM64 pendiente. El primer FF construido localmente (si pasa CI) no se debe distribuir como un FF de RotU.
