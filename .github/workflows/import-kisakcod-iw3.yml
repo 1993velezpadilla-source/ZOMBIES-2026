@@ -1,0 +1,97 @@
+name: Import KisakCOD IW3 source
+
+on:
+  push:
+    paths:
+      - ".github/workflows/import-kisakcod-iw3.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: vendor-kisakcod-source
+  cancel-in-progress: false
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout ZOMBIES-2026
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Clone complete KisakCOD source snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          upstream="https://github.com/SwagSoftware/KisakCOD.git"
+          dest="third_party/KisakCOD"
+          if [ -e "$dest" ]; then
+            echo "::error::Destination already exists — refusing to overwrite engine copy"
+            exit 1
+          fi
+
+          git clone --depth 1 --branch master "$upstream" "$RUNNER_TEMP/KisakCOD-upstream"
+          sha="$(git -C "$RUNNER_TEMP/KisakCOD-upstream" rev-parse HEAD)"
+          files="$(git -C "$RUNNER_TEMP/KisakCOD-upstream" ls-files | wc -l | tr -d ' ')"
+          test "$files" -gt 500
+          test -f "$RUNNER_TEMP/KisakCOD-upstream/LICENSE"
+          test -f "$RUNNER_TEMP/KisakCOD-upstream/CMakeLists.txt"
+          test -d "$RUNNER_TEMP/KisakCOD-upstream/src"
+          grep -q 'GNU GENERAL PUBLIC LICENSE' "$RUNNER_TEMP/KisakCOD-upstream/LICENSE"
+
+          mkdir -p "$dest"
+          cp -a "$RUNNER_TEMP/KisakCOD-upstream/." "$dest/"
+          rm -rf "$dest/.git"
+
+          cat > "$dest/ZOMBIES_2026_IMPORT.md" <<DOC
+          # KisakCOD / IW3 (Call of Duty 4) — source snapshot
+
+          - Upstream: https://github.com/SwagSoftware/KisakCOD
+          - Imported git commit: \`$sha\`
+          - Upstream branch: master
+          - Import date UTC: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+          - Upstream tracked paths: $files
+          - License: GPL-3.0; original license and README included in this directory.
+          - Scope: source code, CMake configuration, scripts and upstream dependencies present in repository.
+          - No original COD4 maps/textures/game data were downloaded as part of this snapshot.
+          - This is an upstream Windows-focused reimplementation, NOT an Android port or working APK.
+          - Do not merge into the existing Android/Godot project without architecture and license review.
+          DOC
+
+          # Validate the actual snapshot, not just an external URL or a submodule pointer.
+          src_count="$(find "$dest/src" -type f | wc -l | tr -d ' ')"
+          test "$src_count" -gt 500
+          echo "UPSTREAM_SHA=$sha" >> "$GITHUB_ENV"
+          echo "UPSTREAM_TRACKED_PATHS=$files" >> "$GITHUB_ENV"
+          echo "SOURCE_FILE_COUNT=$src_count" >> "$GITHUB_ENV"
+          echo "Copied $files tracked files; $src_count files in src/"
+          du -sh "$dest"
+          find "$dest" -maxdepth 1 -mindepth 1 -printf '%f\n' | sort
+
+      - name: Commit imported engine to ZOMBIES-2026
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f -A third_party/KisakCOD
+          staged="$(git diff --cached --name-only -- third_party/KisakCOD | wc -l | tr -d ' ')"
+          test "$staged" -gt 500
+          echo "STAGED_SOURCE_PATHS=$staged"
+          git diff --cached --check
+          git commit -m "Vendor KisakCOD IW3 source from upstream $UPSTREAM_SHA"
+          git push origin HEAD:main
+
+      - name: Verify imported engine exists in GitHub tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git ls-tree -r --name-only origin/main -- third_party/KisakCOD | grep -q '^third_party/KisakCOD/src/'
+          git show origin/main:third_party/KisakCOD/LICENSE | grep -q 'GNU GENERAL PUBLIC LICENSE'
+          git show origin/main:third_party/KisakCOD/ZOMBIES_2026_IMPORT.md | grep -q "$UPSTREAM_SHA"
+          echo "SOURCE_IMPORT_GREEN upstream=$UPSTREAM_SHA src_count=$SOURCE_FILE_COUNT"
