@@ -50,7 +50,7 @@ jobs:
           $data=Join-Path $env:RUNNER_TEMP 'kisak-mp-test'
           $report=Join-Path $env:RUNNER_TEMP 'kisak-evidence'
           New-Item -ItemType Directory -Path $report -Force | Out-Null
-          python tools/iw3_rotu/windows_mp_data_stage.py --parts-dir "$env:MP_ARCHIVE_PARTS" --dest "$data" --report (Join-Path $report 'staging-manifest.json')
+          python tools/iw3_rotu/windows_mp_data_stage.py --parts-dir "$env:MP_ARCHIVE_PARTS" --dest "$data" --report (Join-Path $report 'staging-manifest.json') --all-main-iwd
           if ($LASTEXITCODE -ne 0) { throw 'MP data subset staging failed' }
           "MP_TEST_DATA=$data" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
           "MP_TEST_REPORT=$report" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
