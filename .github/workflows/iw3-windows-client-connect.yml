@@ -5,6 +5,8 @@ on:
     paths:
       - '.github/workflows/iw3-windows-client-connect.yml'
       - 'tools/iw3_rotu/windows_mp_data_stage.py'
+      - 'tools/iw3_rotu/instrument_early_breakpoint.py'
+      - 'tests/test_iw3_temporary_connect_instrument.py'
       - 'tools/iw3_rotu/probe_windows_mp_client.ps1'
       - 'tools/iw3_rotu/run_windows_mp_server_probe.ps1'
 
@@ -30,6 +32,8 @@ jobs:
         run: |
           python -m unittest discover -s tests -p 'test_windows_mp_data_stage.py' -v
           if ($LASTEXITCODE -ne 0) { throw 'MP staging safety unit tests failed' }
+          python -m unittest discover -s tests -p 'test_iw3_temporary_connect_instrument.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'Temporary connect instrumentation tests failed' }
 
       - name: Download archive from existing repository release (temporary only)
         shell: pwsh
