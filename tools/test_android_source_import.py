@@ -6,6 +6,7 @@ game: only selected original archive entries are present. Do not persist or
 upload original game bytes in CI artifacts.
 """
 import json
+import os
 from pathlib import Path
 import subprocess
 import time
@@ -131,9 +132,14 @@ def main():
             capture("08-loading-observe-%03d" % seconds)
             print("MAP_LOAD_OBSERVE",seconds,"s",flush=True)
     control_probe=None
+    render_probe=None
     if campaign_clicked:
-        from probe_cod4_touch_controls import main as run_native_touch_probe
-        control_probe=run_native_touch_probe()
+        from probe_android_renderer import main as run_render_probe
+        run_render_probe()
+        render_probe="smoke-out/real-data-test/renderer-diagnostic.json"
+        if os.getenv("COD4_RENDER_DIAG_ONLY") != "1":
+            from probe_cod4_touch_controls import main as run_native_touch_probe
+            control_probe=run_native_touch_probe()
     activity_dump=adb("shell","dumpsys","activity","activities",timeout=45)
     log=adb("logcat","-d","-t","2200",timeout=50)
     relevant=[x for x in log.splitlines() if any(t in x.lower() for t in
@@ -151,6 +157,7 @@ def main():
         "campaign_ui_labels_after_click":after_campaign[:60],
         "gameplay_confirmed":False,
         "native_menu_navigation_probed":bool(campaign_clicked),
+        "renderer_diagnostic_path":render_probe,
         "native_control_probe_performed":control_probe is not None,
         "native_control_probe_path":"smoke-out/real-data-test/touch-control-report.json" if control_probe else None,
         "app_activity_still_visible":"com.cod4.firstmission" in activity_dump,
