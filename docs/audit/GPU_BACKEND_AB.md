@@ -39,3 +39,18 @@ SwANGLE used an ANGLE-on-Vulkan SwiftShader path. The existing original setup us
 - `cod4-gpu-swangle` — real `05-campaign-probe.png` (normal colors), logs, `renderer-diagnostic.json`.
 
 Next gate: observe whether the SwANGLE renderer can finish a 3D level after a longer wait, then test frame latency and reliable player input in a physical ARM64 device.
+
+## Follow-up: extended SwANGLE level loading
+
+[Workflow run 40053989682](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40053989682) repeated the same Android 15 test with SwANGLE and waited another three minutes after the earlier ~100-second baseline observation.
+
+- Authentic COD4 menu remains **normally colored**, unlike the red SwiftShader menu.
+- At +60 and +120 seconds the app showed a dark loading screen. At **+180 seconds additional**, it displayed **a mobile control HUD on dark gray**, but **no verified 3D world geometry**. This is **not** a successful level rendering/gameplay result for SwANGLE.
+- The campaign process stayed alive (PID 4868); no Android fatal exception or SIGSEGV appeared in the collected workflow log.
+- During the prolonged render, GitHub Actions recorded **4,535** emulator log occurrences matching `glUniform4fv:3993 error 0x502` (OpenGL `GL_INVALID_OPERATION`). There were also two instances each of `Failed to find ColorBuffer` and `Failed to bind to texture: invalid color buffer`. These are serious renderer-compatibility clues, **but do not prove a particular cause in the unavailable native game source code**.
+- Process total PSS single-timepoint series: **1,382,573 KB → 1,526,528 KB → 1,483,977 KB** over the extended observations; swap PSS rose to **436,533 KB**. This does not establish a steady memory leak, but the memory pressure is notable.
+- Full engine performance and 3D view correctness remain **RED/UNVERIFIED**, even though the menu color issue was ameliorated by switching the emulator GPU backend.
+
+The run uploaded no original game assets, only screenshots, meminfo and a JSON report in `cod4-swangle-extended-evidence`. The newest test's `swangle-extended-180.png` is visual confirmation of HUD-on-gray, not a rendered level.
+
+**Decision:** Keep SwANGLE as a diagnostic reference for emulator menu-color correctness, **not** as a proven fix for the whole APK. Native physical-device Adreno/Mali testing and access to engine renderer source/build options are necessary to pursue a real shader fix; do not mislabel the emulated menu improvement as a solved game.
