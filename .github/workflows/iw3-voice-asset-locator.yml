@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - '.github/workflows/iw3-voice-asset-locator.yml'
+      - 'tools/iw3_rotu/locate_mp_voice_assets.py'
 
 permissions:
   contents: read
