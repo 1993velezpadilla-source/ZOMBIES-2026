@@ -1,8 +1,9 @@
-"""Synthetic source-only manifest tests; no game files are used."""
+"""Verify canonical RotU script IWD packager with only synthetic sources."""
 import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
+import zipfile
 
 SOURCE = Path(__file__).resolve().parents[1] / 'tools' / 'iw3_rotu' / 'package_gate.py'
 spec = importlib.util.spec_from_file_location('package_gate', SOURCE)
@@ -15,73 +16,83 @@ class PackageGateTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
-        (self.root / 'mod.csv').write_text(
-            '// include,mod_scripts\n'
-            'rawfile,maps/mp/gametypes/surv.gsc\n'
-            'xmodel,fictional_zombie\n'
-            'fx,fictional_attack\n', encoding='utf-8')
-        (self.root / 'mod_scripts.csv').write_text(
-            'rawfile,scripts/bots/_bots.gsc\n'
-            'rawfile,scripts/include/waypoints.gsc\n',
-            encoding='utf-8')
+        self.put('mod.csv',
+                 '// include,mod_scripts\n'
+                 'rawfile,maps/mp/gametypes/surv.gsc\n'
+                 'xmodel,fictional_zombie\n'
+                 'fx,fictional_attack\n')
+        self.put('mod_scripts.csv',
+                 'rawfile,scripts/bots/_bots.gsc\n'
+                 'rawfile,scripts/include/waypoints.gsc\n'
+                 'rawfile,scripts/gamemodes/_waves.gsc\n')
+        self.put('compile_mod.bat',
+                 r'7z a -r -tzip z_svr_scripts.iwd maps\mp\*.*' + '\n' +
+                 r'7z a -r -tzip z_svr_scripts.iwd scripts\*.*' + '\n' +
+                 r'7z a -r -tzip z_svr_scripts.iwd common_scripts\*.*')
+        self.put('maps/mp/gametypes/surv.gsc', 'main() {}')
+        self.put('scripts/bots/_bots.gsc', 'init() {}')
+        self.put('scripts/include/waypoints.gsc', 'loadWaypoints() {}')
+        self.put('scripts/gamemodes/_waves.gsc', 'startRegularWave() {}')
         self.files = {
-            'mod.csv', 'mod_scripts.csv',
-            'maps/mp/gametypes/surv.gsc',
-            'scripts/bots/_bots.gsc', 'scripts/include/waypoints.gsc',
+            'compile_mod.bat', 'mod.csv', 'mod_scripts.csv',
+            'maps/mp/gametypes/surv.gsc', 'scripts/bots/_bots.gsc',
+            'scripts/include/waypoints.gsc', 'scripts/gamemodes/_waves.gsc',
         }
 
-    def test_staging_enables_commented_script_include(self):
-        stage = self.root / 'temporary-overlay'
-        result = pkg.audit(self.root, self.files, stage)
-        self.assertTrue(result['staging_source_ready'])
-        self.assertFalse(result['mod_scripts_include_originally_active'])
-        self.assertEqual(result['staging_overlay_status'], 'activated_in_overlay')
-        self.assertIn('include,mod_scripts\n', (stage / 'mod.csv').read_text())
-        self.assertNotIn('// include,mod_scripts', (stage / 'mod.csv').read_text())
-        self.assertEqual((stage / 'mod_scripts.csv').read_text(),
-                         (self.root / 'mod_scripts.csv').read_text())
-        self.assertFalse(result['mod_fastfile_compiled'])
-        self.assertFalse(result['asset_dependencies_verified'])
-        self.assertFalse(result['live_zombie_verified'])
+    def put(self, name, content):
+        p = self.root / name
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(content, encoding='utf-8')
 
-    def test_unresolved_gametype_stops_staging_pass(self):
+    def test_canonical_builder_not_include_mod_scripts(self):
+        report = pkg.audit(self.root, self.files)
+        self.assertTrue(report['script_iwd_source_gate'])
+        self.assertTrue(report['canonical_builder_uses_script_iwd'])
+        self.assertFalse(report['mod_csv_script_include_enabled'])
+        self.assertFalse(report['mod_ff_built'])
+        self.assertFalse(report['live_zombie_verified'])
+
+    def test_iwd_archive_is_valid_zip_with_real_script_paths(self):
+        path = self.root / 'temp-output' / 'z_svr_scripts.iwd'
+        report = pkg.audit(self.root, self.files, path)
+        self.assertTrue(report['iwd_archive']['crc_verified'])
+        self.assertEqual(report['iwd_archive']['member_count'], 4)
+        with zipfile.ZipFile(path) as archive:
+            self.assertEqual(set(archive.namelist()), set(pkg.REQUIRED))
+            self.assertEqual(archive.read('scripts/bots/_bots.gsc'), b'init() {}')
+        self.assertFalse(report['mod_ff_built'])
+
+    def test_missing_critical_gametype_reports_blocker(self):
         self.files.remove('maps/mp/gametypes/surv.gsc')
         report = pkg.audit(self.root, self.files)
-        self.assertFalse(report['staging_source_ready'])
-        self.assertEqual(report['unresolved_gametype_script_paths'],
+        self.assertFalse(report['script_iwd_source_gate'])
+        self.assertEqual(report['missing_critical_script_paths'],
                          ['maps/mp/gametypes/surv.gsc'])
 
-    def test_missing_bot_script_stops_staging_pass(self):
+    def test_missing_manifest_script_reports_blocker(self):
         self.files.remove('scripts/bots/_bots.gsc')
-        self.assertFalse(pkg.audit(self.root, self.files)['staging_source_ready'])
-
-    def test_double_active_include_rejected(self):
-        (self.root / 'mod.csv').write_text('include,mod_scripts\ninclude,mod_scripts\n', encoding='utf-8')
-        report = pkg.audit(self.root, self.files, self.root / 'stage')
-        self.assertIsNotNone(report['staging_error'])
-        self.assertFalse(report['staging_source_ready'])
-        self.assertFalse((self.root / 'stage' / 'mod.csv').exists())
-
-    def test_already_active_is_idempotent(self):
-        (self.root / 'mod.csv').write_text(
-            'include,mod_scripts\nrawfile,maps/mp/gametypes/surv.gsc\n', encoding='utf-8')
         report = pkg.audit(self.root, self.files)
-        self.assertTrue(report['staging_source_ready'])
-        self.assertTrue(report['mod_scripts_include_originally_active'])
-        self.assertEqual(report['staging_overlay_status'], 'already_active')
+        self.assertFalse(report['script_iwd_source_gate'])
+        self.assertEqual(report['missing_mod_scripts_manifest_paths'], ['scripts/bots/_bots.gsc'])
 
-    def test_no_include_is_not_invented(self):
-        (self.root / 'mod.csv').write_text(
-            'rawfile,maps/mp/gametypes/surv.gsc\n', encoding='utf-8')
+    def test_wrong_builder_is_detected(self):
+        self.put('compile_mod.bat', 'REM no build instructions')
         report = pkg.audit(self.root, self.files)
-        self.assertFalse(report['staging_source_ready'])
-        self.assertIn('Expected exactly one', report['staging_error'])
+        self.assertFalse(report['script_iwd_source_gate'])
+        self.assertFalse(report['canonical_builder_uses_script_iwd'])
 
-    def test_script_and_asset_types_are_reported_separately(self):
-        result = pkg.audit(self.root, self.files)
-        self.assertEqual(result['asset_references_by_type']['xmodel'], 1)
-        self.assertEqual(result['asset_references_by_type']['fx'], 1)
-        self.assertEqual(result['unresolved_gametype_script_paths'], [])
+    def test_zip_rejects_non_checked_out_source(self):
+        (self.root / 'scripts/bots/_bots.gsc').unlink()
+        with self.assertRaises(ValueError):
+            pkg.make_iwd(self.root, self.root / 'temp-output' / 'z_svr_scripts.iwd', self.files)
+
+    def test_assets_are_not_packaged_or_claimed_verified(self):
+        report = pkg.audit(self.root, self.files, self.root / 'z_svr_scripts.iwd')
+        self.assertEqual(report['referenced_asset_types']['xmodel'], 1)
+        self.assertEqual(report['referenced_asset_types']['fx'], 1)
+        self.assertFalse(report['mod_ff_asset_dependencies_verified'])
+        with zipfile.ZipFile(self.root / 'z_svr_scripts.iwd') as archive:
+            self.assertNotIn('xmodel/fictional_zombie', archive.namelist())
 
 
 if __name__ == '__main__':
