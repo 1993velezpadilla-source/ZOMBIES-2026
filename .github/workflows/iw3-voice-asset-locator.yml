@@ -1,4 +1,4 @@
-name: IW3 find missing MP voice UI assets in licensed source ZIP
+name: IW3 locate exact missing MP image IWD bank
 on:
   workflow_dispatch:
   push:
