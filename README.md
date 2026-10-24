@@ -6,6 +6,9 @@
 
 ## Pruebas Android del motor original
 
+**HITO verificado:** [escena 3D de COD4 con colores normales usando Lavapipe en emulador Android](docs/audit/LAVAPIPE_3D_RENDER_GATE.md) — el entorno y arma son visibles, pero el rendimiento sigue cerca de **4.2 FPS**. No es un juego completo ni una corrección del APK.
+
+
 - [GPU A/B: shader rojo vs SwANGLE y bloqueo de nivel](docs/audit/GPU_BACKEND_AB.md) — SwANGLE elimina el tintado rojo del menú, pero **no** ha demostrado renderizar correctamente el nivel; aparecen miles de errores OpenGL.\n- [Prueba de controles táctiles y comparación visual real](docs/audit/ANDROID_TOUCH_CONTROLS.md) — los siete gestos se inyectaron correctamente y el proceso siguió activo; **las funciones de disparo, movimiento, ADS y recarga aún no están verificadas**.
 - [Importación de datos originales y render 3D](docs/audit/REAL_SOURCE_IMPORT.md) — escena 3D visible; tintado rojo y rendimiento emulado inadecuado.
 
