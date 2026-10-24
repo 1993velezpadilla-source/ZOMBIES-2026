@@ -66,21 +66,19 @@ def patch(root: Path) -> Path:
     # that breakpoint, without suppressing or consuming it.
     db_file = root / "src/database/db_registry.cpp"
     db_source = db_file.read_text(encoding="utf-8")
-    db_needle = "        Profile_Recover(1);\\n#ifdef __llvm__"
+    db_needle = "        Profile_Recover(1);\n#ifdef __llvm__"
     if db_source.count(db_needle) != 1:
         raise ValueError("Cannot locate unique database setjmp recovery path")
-    db_payload = (
-        "        Profile_Recover(1);\\n"
-        "        {\\n"
-        "            FILE *diagnostic = nullptr;\\n"
-        "            if (fopen_s(&diagnostic, \\"kisak-database-diagnostic.txt\\", \\"a\\") == 0 && diagnostic) {\\n"
-        "                fprintf(diagnostic, \\"DB_THREAD_RECOVERY error=%s\\\\n\\", com_errorMessage);\\n"
-        "                fclose(diagnostic);\\n"
-        "            }\\n"
-        "        }\\n"
-        "#ifdef __llvm__"
-    )
-    db_source = "#include <cstdio>\\nextern char com_errorMessage[4096];\\n" + db_source.replace(db_needle, db_payload, 1)
+    db_payload = """        Profile_Recover(1);
+        {
+            FILE *diagnostic = nullptr;
+            if (fopen_s(&diagnostic, "kisak-database-diagnostic.txt", "a") == 0 && diagnostic) {
+                fprintf(diagnostic, "DB_THREAD_RECOVERY error=%s\\n", com_errorMessage);
+                fclose(diagnostic);
+            }
+        }
+#ifdef __llvm__"""
+    db_source = "#include <cstdio>\nextern char com_errorMessage[4096];\n" + db_source.replace(db_needle, db_payload, 1)
     db_file.write_text(db_source, encoding="utf-8")
     return target
 
