@@ -7,6 +7,7 @@ on:
       - '.github/workflows/iw3-offline-sp-weapons.yml'
       - 'tools/zombies_offline/**'
       - 'tests/test_zombies_offline_sp.py'
+      - 'tests/test_zombies_weapon_schema.py'
   push:
     branches:
       - 'feature/zombies-offline-sp-weapons-20261024'
@@ -14,6 +15,7 @@ on:
       - '.github/workflows/iw3-offline-sp-weapons.yml'
       - 'tools/zombies_offline/**'
       - 'tests/test_zombies_offline_sp.py'
+      - 'tests/test_zombies_weapon_schema.py'
 
 permissions:
   contents: read
@@ -37,6 +39,10 @@ jobs:
         run: |
           python -m unittest discover -s tests -p 'test_zombies_offline_sp.py' -v
           if ($LASTEXITCODE -ne 0) { throw 'SP-only source gate tests failed' }
+          python -m unittest discover -s tests -p 'test_zombies_weapon_schema.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'IW3 weapon schema tests failed' }
+          python tools/zombies_offline/weapon_schema_export.py --source third_party/KisakCOD/src/bgame/bg_weapons_load_obj.cpp --output (Join-Path $env:RUNNER_TEMP 'z2026-offline-weapon-schema.json')
+          if ($LASTEXITCODE -ne 0) { throw 'IW3 weapon schema export failed' }
 
       - name: Prepare disposable single-player engine source (not multiplayer)
         shell: pwsh
@@ -84,7 +90,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: zombies-2026-offline-sp-source-build-report
-          path: ${{ runner.temp }}/z2026-offline-sp-report.json
+          path: |
+            ${{ runner.temp }}/z2026-offline-sp-report.json
+            ${{ runner.temp }}/z2026-offline-weapon-schema.json
           if-no-files-found: warn
           retention-days: 7
 
