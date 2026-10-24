@@ -71,6 +71,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'DirectX 9 NuGet install failed' }
           $native=Join-Path $pkg 'Microsoft.DXSDK.D3DX.9.29.952.8\build\native'
           if (!(Test-Path (Join-Path $native 'include'))) { throw 'Missing D3DX headers' }
+          if (!(Test-Path (Join-Path $native 'Release/lib/x86/d3dx9.lib'))) { throw 'Missing Release d3dx9.lib import library' }
           "DXSDK_NATIVE=$native" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Build KisakCOD-dedi Windows 32 bit from checked-in engine source
@@ -78,7 +79,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $out=Join-Path $env:RUNNER_TEMP 'kisak-build'
-          cmake -S third_party/KisakCOD -B $out -G 'Visual Studio 17 2022' -A Win32 -DCICD=ON "-DDXSDK_DIR=$env:DXSDK_NATIVE"
+          cmake -S third_party/KisakCOD -B $out -G 'Visual Studio 17 2022' -A Win32 -DCMAKE_BUILD_TYPE=Release -DCICD=ON "-DDXSDK_DIR=$env:DXSDK_NATIVE"
           if ($LASTEXITCODE -ne 0) { throw 'KisakCOD-dedi configure failed' }
           cmake --build $out --target KisakCOD-dedi --config Release --parallel 4
           if ($LASTEXITCODE -ne 0) { throw 'KisakCOD-dedi compilation failed' }
