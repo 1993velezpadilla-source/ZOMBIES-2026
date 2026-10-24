@@ -12,6 +12,7 @@ New-Item -ItemType Directory -Path $ReportDir -Force | Out-Null
 $root=(Resolve-Path $GameRoot).Path
 $trace=Join-Path $root 'z2026-sp-level-trace.txt'
 $combatTrace=Join-Path $root 'z2026-sp-combat-trace.txt'
+$inputTrace=Join-Path $root 'z2026-sp-input-trace.txt'
 $reportPath=Join-Path $ReportDir 'offline-sp-runtime.json'
 $report=[ordered]@{
   test='Windows source-built offline KisakCOD-sp level simulation smoke'
@@ -34,6 +35,7 @@ $report=[ordered]@{
   test_ammo_initialized=$false
   test_weapon_switch_requested=$false
   test_no_compatible_registered_weapon=$false
+  test_client_attack_button_injected=$false
   sp_actor_present=$false
   actual_weapon_fire_callback=$false
   bullet_fire_dispatched=$false
@@ -51,6 +53,7 @@ $report=[ordered]@{
   raw_game_assets_in_report=$false
   stage_trace=@()
   combat_trace=@()
+  input_trace=@()
   attack_command_requested=$false
   runtime_error=$null
 }
@@ -84,7 +87,7 @@ try {
   $profiles=Join-Path $root 'players/profiles'
   New-Item -ItemType Directory -Force -Path (Join-Path $profiles 'Z2026OfflineTest') | Out-Null
   Set-Content -Path (Join-Path $profiles 'active.txt') -Value 'Z2026OfflineTest' -Encoding ascii -NoNewline
-  Remove-Item -ErrorAction SilentlyContinue $trace,$combatTrace
+  Remove-Item -ErrorAction SilentlyContinue $trace,$combatTrace,$inputTrace
 
   # The only game process launched is source-built *single player*.
   # No network address, connect, dedicated, Steam session or user credential.
@@ -137,6 +140,13 @@ finally {
     $report.actor_death_callback=('ACTOR_DIE_ENTER' -in $report.combat_trace)
     $report.g_damage_callback=('G_DAMAGE_ENTER' -in $report.combat_trace)
   }
+  if(Test-Path $inputTrace) {
+    $report.input_trace=@(Get-Content $inputTrace -TotalCount 10 -ErrorAction SilentlyContinue)
+    $report.test_client_attack_button_injected=('TEST_ATTACK_BUTTON_INJECTED' -in $report.input_trace)
+  }
+  # True weapon fire requires original FireWeapon/Bullet_Fire callbacks.
+  # A test-issued button or fake kill command NEVER counts as a shot.
+  $report.weapon_fired_verified=$report.actual_weapon_fire_callback -and $report.bullet_fire_dispatched
   $report | ConvertTo-Json -Depth 4 | Set-Content $reportPath -Encoding utf8
   Write-Host 'Z2026_OFFLINE_SP_RUNTIME_BEGIN'
   Get-Content $reportPath
