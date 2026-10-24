@@ -88,3 +88,36 @@ but create/license the commercial content needed for release.
 **Explicitly paused:** MP `127.0.0.1:28960` connection testing, public
 multiplayer, Steam authentication debugging, and RotU dedicated gameplay
 claims. These are not prerequisites for our current offline Zombies milestone.
+
+## Gate 1B — ejecución real de mapa SP sin red (2026-10-24)
+
+Se añadió un **smoke test experimental** que comprueba que el ejecutable SP
+no solamente se construye, sino que intenta cargar y simular un nivel en
+Windows con los datos previamente aportados por el propietario.
+
+- `tools/zombies_offline/stage_sp_data.py`: lee el archivo original
+  fragmentado, extrae solamente la selección explícita de archivos
+  `main/*.iwd`, `zone/spanish/{code_post_gfx,common,ui,killhouse}.ff`
+  y `localization.txt`, y rechaza binarios comerciales, DLL y rutas
+  no seguras. Los datos viven **únicamente en el runner temporal**.
+- `tools/zombies_offline/instrument_sp_level.py`: instrumenta
+  exclusivamente un clon efímero del C++ single-player y registra tres
+  etapas distintas: `G_INIT_ENTER`, `G_SPAWN_ENTITIES_RETURN` y
+  `G_FRAME_ENTER`. Se exige evidencia de creación de entidades y de
+  al menos un frame SP; el PID o pantalla abierta no bastan.
+- `tools/zombies_offline/probe_sp_runtime.ps1`: lanza **solo**
+  `KisakCOD-sp.exe`, sin cliente MP ni servidor, con
+  `+map killhouse`, captura marcadores y detiene el proceso de prueba
+  a los 40 segundos. No intenta entrar en Steam.
+- `.github/workflows/iw3-offline-sp-runtime.yml`: descarga datos
+  temporalmente desde el Release ya creado, valida tests con ZIP falsos,
+  compila SP y publica **solo JSON de diagnóstico**, sin IWD, FF,
+  ejecutable o DLL; luego elimina la copia temporal.
+
+**Interpretación estricta:** `killhouse` es un nivel del juego original
+usado **solo para verificar compatibilidad del motor**. No es nuestra
+habitación Zombies. Una evidencia de `G_FRAME_ENTER` tampoco demuestra
+que se vea el mundo, que un arma funcione ni que un zombi exista.
+
+**Estado al añadir la prueba:** pendiente de resultados del runner.
+No declarar GREEN hasta revisar los logs y la salida JSON.
