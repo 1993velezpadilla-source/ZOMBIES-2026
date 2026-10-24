@@ -140,17 +140,21 @@ static void Z2026_TraceStage(const char* stage, int detail)
     segment_end = client.index("// This is called by the Client", segment_start)
     segment = client[segment_start:segment_end]
     checkpoints = (
-        ("            SV_Frame(0);",
-         '            Z2026_TraceStage("SV_FRAME_ENTER", 0);\\n            SV_Frame(0);\\n            Z2026_TraceStage("SV_FRAME_RETURN", 0);'),
+        ("            SV_Frame(0);", """            Z2026_TraceStage("SV_FRAME_ENTER", 0);
+            SV_Frame(0);
+            Z2026_TraceStage("SV_FRAME_RETURN", 0);"""),
         ("            if (NET_StringToAdr(cls.servername, &clc->serverAddress))",
-         '            Z2026_TraceStage("NET_RESOLVE_ENTER", 0);\\n            if (NET_StringToAdr(cls.servername, &clc->serverAddress))'),
+         """            Z2026_TraceStage("NET_RESOLVE_ENTER", 0);
+            if (NET_StringToAdr(cls.servername, &clc->serverAddress))"""),
         ("                if (NET_IsLocalAddress(clc->serverAddress) || CL_CDKeyValidate(clc->serverAddress))",
-         '                Z2026_TraceStage("AUTH_GATE_ENTER", (int)clc->serverAddress.type);\\n                Z2026_TraceStage("LOCAL_CLASSIFICATION", NET_IsLocalAddress(clc->serverAddress) ? 1 : 0);\\n                if (NET_IsLocalAddress(clc->serverAddress) || CL_CDKeyValidate(clc->serverAddress))'),
+         """                Z2026_TraceStage("AUTH_GATE_ENTER", (int)clc->serverAddress.type);
+                Z2026_TraceStage("LOCAL_CLASSIFICATION", NET_IsLocalAddress(clc->serverAddress) ? 1 : 0);
+                if (NET_IsLocalAddress(clc->serverAddress) || CL_CDKeyValidate(clc->serverAddress))"""),
     )
     for needle, replacement in checkpoints:
         if segment.count(needle) != 1:
             raise ValueError("Unable to locate unique connect stage: " + needle)
-        segment = segment.replace(needle, replacement.replace("\\\\n", "\\n"), 1)
+        segment = segment.replace(needle, replacement, 1)
     client = client[:segment_start] + segment + client[segment_end:]
 
     # The address '127.0.0.1' is NA_IP, whereas NET_IsLocalAddress
@@ -165,10 +169,10 @@ static void Z2026_TraceStage(const char* stage, int detail)
         raise ValueError("Unable to locate unique Windows Steam ticket return")
     auth_segment = auth_segment.replace(
         auth_return,
-        '    Z2026_TraceStage("STEAM_TICKET_ENTER", 0);\\n'
-        '    const bool ticketOk = Steam_UpdateClientAuthTicket(addr);\\n'
-        '    Z2026_TraceStage("STEAM_TICKET_RETURN", ticketOk ? 1 : 0);\\n'
-        '    return ticketOk;'.replace("\\\\n", "\\n"),
+        """    Z2026_TraceStage("STEAM_TICKET_ENTER", 0);
+    const bool ticketOk = Steam_UpdateClientAuthTicket(addr);
+    Z2026_TraceStage("STEAM_TICKET_RETURN", ticketOk ? 1 : 0);
+    return ticketOk;""",
         1
     )
     client = client[:auth_start] + auth_segment + client[auth_end:]
