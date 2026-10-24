@@ -1,6 +1,5 @@
 """Small static contracts for an original, license-safe IW3 fastfile probe."""
 from pathlib import Path
-import re
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1] / 'tools' / 'iw3_rotu' / 'oat_probe'
@@ -18,7 +17,7 @@ class Iw3OatProbeTest(unittest.TestCase):
         data = raw.read_bytes()
         self.assertLess(len(data), 1024)
         self.assertTrue(data.startswith(b'ZOMBIES-2026 IW3 original fastfile smoke test.'))
-        self.assertNotIn(b'\\x00', data)
+        self.assertNotIn(bytes([0]), data)
 
     def test_no_asset_models_or_other_game_data_in_probe(self):
         forbidden = {'.ff', '.iwd', '.dll', '.exe', '.apk', '.iwi', '.xmodel_export', '.wav', '.ogg'}
