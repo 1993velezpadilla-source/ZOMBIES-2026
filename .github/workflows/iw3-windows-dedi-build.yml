@@ -44,7 +44,12 @@ jobs:
         run: |
           cmake --build $env:IW3_BUILD_DIR --target KisakCOD-dedi --config Release --parallel 4
           if ($LASTEXITCODE -ne 0) { throw "KisakCOD-dedi compilation failed" }
+      - name: Compile multiplayer client (no COD4 game data)
+        shell: pwsh
+        run: |
+          cmake --build $env:IW3_BUILD_DIR --target KisakCOD-mp --config Release --parallel 4
+          if ($LASTEXITCODE -ne 0) { throw "KisakCOD-mp compilation failed" }
       - name: Declare gate (build success != playable Zombies)
         shell: pwsh
         run: |
-          Write-Host 'Windows x86 dedicated executable built; still requires licensed COD4 data and separately built RotU assets and scripts.'
+          Write-Host 'Windows x86 dedicated and MP client executables built; still requires licensed COD4 data and separately built RotU assets and scripts.'
