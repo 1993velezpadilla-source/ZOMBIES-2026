@@ -37,9 +37,7 @@ jobs:
           $headers = @{ 'User-Agent'='ZOMBIES-2026-IW3-smoke'; 'Accept'='application/vnd.github+json' }
           $release = Invoke-RestMethod -Headers $headers -Uri 'https://api.github.com/repos/Laupetin/OpenAssetTools/releases/tags/v0.34.0'
           if ($release.tag_name -ne 'v0.34.0') { throw 'Release tag mismatch' }
-          $packages = @($release.assets | Where-Object {
-            $_.name -match '(?i)\.(zip|7z)$' -and $_.name -match '(?i)(win|windows)'
-          })
+          $packages = @($release.assets | Where-Object { $_.name -eq 'oat-windows.zip' })
           Write-Host ('OAT release archives: ' + (($release.assets | ForEach-Object {$_.name}) -join ', '))
           if ($packages.Count -ne 1) {
             throw "Expected one official Windows archive, found $($packages.Count); inspect release assets."
@@ -48,6 +46,9 @@ jobs:
           $dest = Join-Path $env:RUNNER_TEMP ('oat.' + $asset.name.Split('.')[-1])
           Invoke-WebRequest -Headers $headers -Uri $asset.browser_download_url -OutFile $dest
           if (!(Test-Path $dest) -or (Get-Item $dest).Length -lt 100000) { throw 'Empty OAT package' }
+          $actualHash = (Get-FileHash -Path $dest -Algorithm SHA256).Hash.ToLowerInvariant()
+          $expectedHash = 'fd2aafd5a6a99d520f67c16ab6e12873da87e8de0b81312d239a1ee2db59d515'
+          if ($actualHash -ne $expectedHash) { throw 'Pinned OAT v0.34.0 Windows ZIP SHA256 mismatch' }
           $dir = Join-Path $env:RUNNER_TEMP 'oat'
           New-Item -Type Directory -Path $dir -Force | Out-Null
           if ($dest -match '\.7z$') {
