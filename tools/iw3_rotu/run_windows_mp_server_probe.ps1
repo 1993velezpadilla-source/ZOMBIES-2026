@@ -87,8 +87,51 @@ try {
   Write-Host 'Starting KisakCOD source-built dedicated server in local-only diagnostic sandbox.'
   $process=Start-Process -FilePath (Join-Path $root 'KisakCOD-dedi.exe') -WorkingDirectory $root -ArgumentList $launchArgs -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath -PassThru -ErrorAction Stop
   $report.server_process_started=$true
+  # A live Windows PID alone could be an error dialog. Probe actual COD4
+  # connectionless UDP getstatus on loopback; only a reply naming mp_crash
+  # may validate the map boot. No packets leave the CI runner.
+  $statusJob=Start-Job -ArgumentList 28960 -ScriptBlock {
+    param([int]$port)
+    for ($attempt=0; $attempt -lt 8; $attempt++) {
+      Start-Sleep -Seconds 5
+      $client=$null
+      try {
+        $client=[System.Net.Sockets.UdpClient]::new()
+        $client.Client.ReceiveTimeout=1700
+        $client.Connect('127.0.0.1',$port)
+        [byte[]]$query=@(255,255,255,255)+[System.Text.Encoding]::ASCII.GetBytes('getstatus'+[char]10)
+        [void]$client.Send($query,$query.Length)
+        $remote=[System.Net.IPEndPoint]::new([System.Net.IPAddress]::Any,0)
+        $bytes=$client.Receive([ref]$remote)
+        $reply=[System.Text.Encoding]::ASCII.GetString($bytes)
+        [pscustomobject]@{
+          attempt=$attempt
+          received=$true
+          status_response=($reply -match 'statusResponse')
+          map_verified=($reply -match '\\mapname\\mp_crash')
+          response_prefix=$reply.Substring(0,[Math]::Min(150,$reply.Length))
+        }
+        if($reply -match '\\mapname\\mp_crash'){break}
+      } catch {
+        [pscustomobject]@{attempt=$attempt;received=$false;map_verified=$false}
+      } finally {
+        if ($null -ne $client) {$client.Dispose()}
+      }
+    }
+  }
   $exited=$process.WaitForExit(45000)
   $report.exited_early=$exited
+  try {
+    $observed=@(Receive-Job $statusJob -Keep -ErrorAction SilentlyContinue)
+    $report.udp_status_observations=@($observed | Select-Object -First 9)
+    $report.udp_getstatus_replied=(@($observed | Where-Object {$_.received}).Count -gt 0)
+    $report.map_boot_verified=(@($observed | Where-Object {$_.map_verified}).Count -gt 0)
+    $udpSocket=@(Get-NetUDPEndpoint -LocalPort 28960 -ErrorAction SilentlyContinue)
+    $report.udp_28960_bound=($udpSocket.Count -gt 0)
+  } finally {
+    Stop-Job $statusJob -ErrorAction SilentlyContinue
+    Remove-Job $statusJob -Force -ErrorAction SilentlyContinue
+  }
   if ($exited) {
     $report.exit_code=$process.ExitCode
     if($process.ExitCode -eq -1073741515){$report.runtime_exception='STATUS_DLL_NOT_FOUND (0xC0000135) before game initialization'}
