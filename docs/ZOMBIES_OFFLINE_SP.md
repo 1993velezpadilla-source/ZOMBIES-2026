@@ -121,3 +121,34 @@ que se vea el mundo, que un arma funcione ni que un zombi exista.
 
 **Estado al añadir la prueba:** pendiente de resultados del runner.
 No declarar GREEN hasta revisar los logs y la salida JSON.
+
+### Resultado confirmado del gate 1B (Windows CI)
+
+**GREEN: comprobada ejecución del loop nativo SP sin autenticar en Steam ni
+arrancar servidor multiplayer.**
+
+- [GitHub Actions run 40135712001](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40135712001)
+  — workflow completado `success`, 2026-10-24 21:53 UTC.
+- Entradas SP disponibles en el runner efímero: **20 archivos**,
+  **2,336,292,403 bytes** (ningún EXE del juego comercial).
+- Compiló `KisakCOD-sp.exe` (código fuente) y lo arrancó mediante
+  `+map killhouse`; proceso **vivo a los 40 segundos**.
+- Prueba del juego real en el C++ original modificado temporalmente:
+  `G_INIT_ENTER` = **true**,
+  `G_SPAWN_ENTITIES_RETURN` = **true**,
+  `G_FRAME_ENTER` = **true**.
+- `offline_sp_level_loop_verified` = **true**;
+  `runtime_error` = **null**.
+- En este gate `multiplayer_connection_attempted=false` y
+  `steam_login_attempted_by_test=false`.
+- Se verificó solo el ciclo de inicialización, entidades y ejecución del
+  motor; **no** se verificó la imagen 3D ni FPS, los controles, disparos,
+  recarga, IA, muerte, rondas Zombies, assets propios o APK.
+  `actual_graphics_verified=false`,
+  `weapon_fired_verified=false`, `zombie_spawned_verified=false`.
+
+Esta evidencia demuestra que ya no dependemos de lograr una conexión MP
+para obtener ejecución del engine SP en el CI. El siguiente gate es
+**player/weapon state + disparo medible**, después un actor original y
+nuestra sala. Mantener la prueba con el contenido original solo como
+verificación efímera de compatibilidad.
