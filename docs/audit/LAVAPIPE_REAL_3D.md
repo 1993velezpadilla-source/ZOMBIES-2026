@@ -39,3 +39,19 @@ The Android 15 Google APIs x86_64 emulator supported `-gpu lavapipe`, a Mesa sof
 Android's official emulator documentation lists `lavapipe`, `swiftshader` and `swangle` as supported emulator GPU modes: https://developer.android.com/studio/run/emulator-acceleration
 
 This is a **test-environment breakthrough**, not a finished or redistributed game.
+
+
+## Follow-up: real-color scene plus seven Android touch inputs
+
+**Run [40056652935](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40056652935) is fully GREEN as an *execution test*.** The previous run 40055971407 collected valid visual/input evidence but its workflow failed on an incorrectly split shell heredoc during report validation. The report validator was moved to a standalone script and the rerun passed.
+
+- The original APK imported the same 21-file subset, started the 3D mission scene in **natural colors**, and remained active after the touch sequence.
+- Native on-screen inputs **delivered successfully** through ADB: look right, virtual joystick move right, fire, aim/ADS, reload, jump, and crouch (7/7 input-injection commands returned exit code 0).
+- The rendered-world center changed **98.70%** after a rightward look swipe, and **14.76%** after the joystick drag, supporting a visual camera/movement response. Some of the difference can be caused by animation or delayed scene changes; no internal player-coordinate telemetry exists.
+- After fire, aim, reload, jump and crouch **no large central world-crop visual changes** were measured. That is neither proof they work nor proof they fail, particularly with single short presses and software rendering at extremely low FPS.
+- The campaign process was still alive after all seven touch events; real screenshots of each state are in artifact `cod4-lavapipe-real3d-touch` on run 40056652935.
+- Android emulator host logs on that run included **189,739 occurrences of `glUniform4fv:3993 error 0x502`**; the source of these OpenGL invalid-operation errors remains unidentified. That many log errors indicate serious rendering trouble but do not prove precisely which native shader or which FPS cost.
+- The screenshot HUD showed around **2–4 FPS**; the result is **NOT** a usable framerate in the current x86_64 software-GPU test. This test does not benchmark ARM64 physical hardware.
+- We have still **not** verified correct shot emission, ammo decrement, reload animation, ADS transition, jump/crouch physics, map completion, multiplayer or a Zombies game.
+
+**Result labels:** 3D world colors ✅; scene onscreen ✅; seven ADB gestures delivered ✅; game process alive ✅; functional weapon/locomotion behavior ❔; smooth FPS ❌; physical ARM64 result ❔.
