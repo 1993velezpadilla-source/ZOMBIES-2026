@@ -1,0 +1,83 @@
+name: COD4 Android GPU backend A/B renderer diagnosis
+on:
+  push:
+    paths:
+      - '.github/workflows/cod4-gpu-compare.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compare-software-renderers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        graphics_backend: [swiftshader_indirect, swangle]
+    steps:
+      - name: Checkout (no persisted credentials)
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Download existing source and verify original Android package
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p _release_assets/c4 _release_assets/cod4
+          gh release download gofile-p2DdQHsz --repo "$GITHUB_REPOSITORY" --pattern 'C4-Mocs.zip.part-*' --dir _release_assets/c4
+          gh release download mediafire-COD4-apk --repo "$GITHUB_REPOSITORY" --pattern COD4.apk --dir _release_assets/cod4
+          echo '40386503d564b0985423339b5ccd5611dc60ce08ebe1b4ae494d4de22a62473c  _release_assets/cod4/COD4.apk' | sha256sum --check
+          python3 tools/prepare_cod4_core_fixture.py
+      - name: Prepare Python diagnostics
+        run: |
+          python3 -m venv /tmp/cod4-diagnostics
+          /tmp/cod4-diagnostics/bin/pip --disable-pip-version-check install --quiet 'Pillow>=10,<13'
+          /tmp/cod4-diagnostics/bin/python -m py_compile tools/test_android_source_import.py tools/probe_android_renderer.py
+      - name: Enable emulator KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Compare emulated renderer (offline)
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          COD4_RENDER_DIAG_ONLY: '1'
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_5
+          ram-size: 3072M
+          disk-size: 16384M
+          force-avd-creation: true
+          emulator-options: -no-snapshot-load -no-snapshot-save -no-window -gpu ${{ matrix.graphics_backend }} -noaudio -no-boot-anim -camera-back none -camera-front none
+          disable-animations: true
+          script: |
+            set -e
+            adb shell svc wifi disable || true
+            adb shell svc data disable || true
+            adb install -r _release_assets/cod4/COD4.apk
+            /tmp/cod4-diagnostics/bin/python tools/test_android_source_import.py
+      - name: Save GPU comparison evidence (no original game assets)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cod4-gpu-${{ matrix.graphics_backend }}
+          path: |
+            smoke-out/real-data-test/*.png
+            smoke-out/real-data-test/result.json
+            smoke-out/real-data-test/renderer-diagnostic.json
+            smoke-out/real-data-test/renderer-mem-last.txt
+            smoke-out/real-data-test/renderer-gfxinfo-last.txt
+            smoke-out/real-data-test/runtime-filtered-logcat.txt
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Destroy temporary copyrighted input data
+        if: always()
+        run: |
+          rm -rf _runtime_temp _release_assets
+          echo 'Only measurements and runtime screenshots were uploaded; original input files deleted.'
