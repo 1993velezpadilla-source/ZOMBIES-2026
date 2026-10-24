@@ -28,6 +28,12 @@ $report=[ordered]@{
   second_game_frame_started=$false
   player_entity_active=$false
   player_weapon_equipped=$false
+  test_loadout_bootstrap_attempted=$false
+  test_valid_registered_bullet_weapon_found=$false
+  test_weapon_granted=$false
+  test_ammo_initialized=$false
+  test_weapon_switch_requested=$false
+  test_no_compatible_registered_weapon=$false
   sp_actor_present=$false
   actual_weapon_fire_callback=$false
   bullet_fire_dispatched=$false
@@ -105,13 +111,19 @@ finally {
   }
   if(Test-Path $trace) {
     $stages=@(Get-Content $trace -TotalCount 40 -ErrorAction SilentlyContinue)
-    $report.stage_trace=@($stages | Where-Object { $_ -in @('G_INIT_ENTER', 'G_SPAWN_ENTITIES_RETURN', 'G_FRAME_ENTER', 'G_SECOND_FRAME', 'PLAYER_ENTITY_ACTIVE', 'PLAYER_WEAPON_EQUIPPED', 'SP_ACTOR_PRESENT') })
+    $report.stage_trace=@($stages | Where-Object { $_ -in @('G_INIT_ENTER', 'G_SPAWN_ENTITIES_RETURN', 'G_FRAME_ENTER', 'G_SECOND_FRAME', 'PLAYER_ENTITY_ACTIVE', 'PLAYER_WEAPON_EQUIPPED', 'SP_ACTOR_PRESENT', 'TEST_LOADOUT_BOOTSTRAP_BEGIN', 'TEST_REGISTERED_BULLET_WEAPON_FOUND', 'TEST_WEAPON_GRANTED', 'TEST_AMMO_INITIALIZED', 'TEST_WEAPON_SWITCH_REQUESTED', 'TEST_NO_VALID_REGISTERED_BULLET_WEAPON', 'TEST_WEAPON_GRANT_REJECTED') })
     $report.game_init_entered=('G_INIT_ENTER' -in $report.stage_trace)
     $report.spawn_entities_returned=('G_SPAWN_ENTITIES_RETURN' -in $report.stage_trace)
     $report.game_frame_started=('G_FRAME_ENTER' -in $report.stage_trace)
     $report.second_game_frame_started=('G_SECOND_FRAME' -in $report.stage_trace)
     $report.player_entity_active=('PLAYER_ENTITY_ACTIVE' -in $report.stage_trace)
     $report.player_weapon_equipped=('PLAYER_WEAPON_EQUIPPED' -in $report.stage_trace)
+    $report.test_loadout_bootstrap_attempted=('TEST_LOADOUT_BOOTSTRAP_BEGIN' -in $report.stage_trace)
+    $report.test_valid_registered_bullet_weapon_found=('TEST_REGISTERED_BULLET_WEAPON_FOUND' -in $report.stage_trace)
+    $report.test_weapon_granted=('TEST_WEAPON_GRANTED' -in $report.stage_trace)
+    $report.test_ammo_initialized=('TEST_AMMO_INITIALIZED' -in $report.stage_trace)
+    $report.test_weapon_switch_requested=('TEST_WEAPON_SWITCH_REQUESTED' -in $report.stage_trace)
+    $report.test_no_compatible_registered_weapon=('TEST_NO_VALID_REGISTERED_BULLET_WEAPON' -in $report.stage_trace)
     $report.sp_actor_present=('SP_ACTOR_PRESENT' -in $report.stage_trace)
     $report.offline_sp_level_loop_verified=$report.spawn_entities_returned -and $report.game_frame_started
   }
