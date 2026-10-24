@@ -1,5 +1,12 @@
 # ZOMBIES-2026
 
+## Código fuente COD4 / IW3 — KisakCOD (importado)
+
+✅ **Copia real del motor reconstruido de Call of Duty 4** en [third_party/KisakCOD](third_party/KisakCOD/README.md). Se importaron los **1,111 archivos** del repositorio original y se verificaron **935 archivos en `src/`**. Referencia upstream: `SwagSoftware/KisakCOD`, commit `8aadf94cc82795d6829ca06052996a5ec79001c3`. El archivo [ZOMBIES_2026_IMPORT.md](third_party/KisakCOD/ZOMBIES_2026_IMPORT.md) registra procedencia y licencia GPL-3.0.
+
+**Importante:** este código Windows/C++ se almacena separado del proyecto Android; todavía no está portado ni integrado en el APK, y no trae los datos originales de COD4.
+
+
 ## Progreso visual real (emulador Android)
 
 **Lavapipe: escena 3D original de COD4 con texturas y colores normales confirmada.** La captura procede de la prueba [40055353083](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40055353083). El HUD sigue mostrando ~4 FPS en el emulador de CPU, así que **no equivale a juego estable ni a APK corregido**. [Auditoría y evidencia](docs/audit/LAVAPIPE_REAL_3D.md).
