@@ -69,3 +69,12 @@ El workflow publica **únicamente resultados JSON**, NO los archivos GSC, IWD ni
 Punto de arranque del modo Survival verificado en el upstream: maps/mp/gametypes/surv.gsc llama desde Callback_StartGameType() a scripts/server/_server::init, scripts/clients/_clients::init, scripts/players/_players::init, scripts/gamemodes/_gamemodes::init y scripts/bots/_bots::init. Esto define un smoke test funcional preciso para cuando existan datos autorizados, mod.ff y un mapa compatible.
 
 **Licencias:** los propios autores de RotU documentan que numerosos modelos y audios están extraídos de títulos comerciales (ver docs/README.txt upstream); estos recursos **no pueden declararse libres** ni publicarse junto con el APK simplemente porque los scripts estén visibles.
+
+
+## Camino GPL para construir fastfiles: OpenAssetTools (auditoría)
+
+**Se identificó una alternativa pública a linker_pc.exe:** [Laupetin/OpenAssetTools](https://github.com/Laupetin/OpenAssetTools) (GPL-3.0). Su [documentación de .zone](https://openassettools.dev/reference/zone-file.html) declara compatibilidad de proyectos IW3 (COD4), y [sus componentes](https://openassettools.dev/guide/components.html) incluyen Linker para generar fastfiles. La sintaxis de proyecto requiere, como mínimo, metadatos **>game,IW3** y **>name,<nombre>**, más entradas **rawfile,<ruta>**. [Carpetas de trabajo](https://openassettools.dev/guide/folder-structure.html): zone_source, zone_raw y zone_out.
+
+**Límite técnico:** según la [matriz de assets](https://git.alterware.dev/zone/OpenAssetTools/src/commit/44d6710991675427b9bac5e8694ebd15bbc0bf16/docs/SupportedAssetTypes.md), OAT soporta cargar en IW3 RawFile, XModel, XAnim, Material, Localize y StringTable, pero **no** soporta cargar desde disco varios tipos que usa RotU completo: WeaponDef, FxEffectDef, MenuList y snd_alias_list_t (entre otros). Por tanto, OAT puede servir para una **prueba mínima legal de fastfile con rawfiles originales**; **no** prueba que se pueda reconstruir el mod.ff completo de RotU sin resolver esas dependencias. En la primera prueba OAT solo se usarían assets originales creados para el proyecto; no reutilizar modelos ni sonidos extraídos de otros COD.
+
+**Gate posterior propuesto:** compilar/verificar OAT Linker en CI, generar desde cero un tiny IW3 .ff de diagnóstico sin recursos comerciales, verificar que lo puede leer OAT Unlinker y finalmente usar el resultado en KisakCOD cuando haya archivos de juego autorizados. Este gate aún no se ejecutó. NO confundir con un zombi funcional.
