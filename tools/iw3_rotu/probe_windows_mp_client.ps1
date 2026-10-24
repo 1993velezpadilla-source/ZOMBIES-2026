@@ -14,7 +14,10 @@ $report=[ordered]@{
   server_endpoint='127.0.0.1:28960'
   source_built_client_detected=$false
   client_process_started=$false
-  client_alive_after_16s=$false
+  client_alive_after_25s=$false
+  connection_requested_in_launch_args=$false
+  connect_command_invoked=$false
+  client_connect_trace=@()
   client_exit_code=$null
   connection_attempt_sent=$false
   udp_server_status_replied_after_client_attempt=$false
@@ -38,9 +41,10 @@ try {
   Write-Host 'Launching native Windows MP client and attempting localhost game connection.'
   $proc=Start-Process -FilePath $exe -WorkingDirectory $GameRoot -ArgumentList $argsLine -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr -ErrorAction Stop
   $report.client_process_started=$true
-  $report.connection_attempt_sent=$true
-  $hasExited=$proc.WaitForExit(16000)
-  if($hasExited){$report.client_exit_code=$proc.ExitCode}else{$report.client_alive_after_16s=$true}
+  # Launch arguments request a connection; they do not prove a packet was sent.
+  $report.connection_requested_in_launch_args=$true
+  $hasExited=$proc.WaitForExit(25000)
+  if($hasExited){$report.client_exit_code=$proc.ExitCode}else{$report.client_alive_after_25s=$true}
   # Actual server UDP response and explicit player records, not a process PID,
   # are the only valid evidence for a completed client-server join.
   $query=[byte[]](@(255,255,255,255)+[Text.Encoding]::ASCII.GetBytes("getstatus"+[char]10))
@@ -68,6 +72,12 @@ try {
       $proc.Refresh()
       if(-not $proc.HasExited){Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue}
     }catch{}
+  }
+  $tracePath=Join-Path $GameRoot 'kisak-client-connect-diagnostic.txt'
+  if (Test-Path $tracePath) {
+    $trace=@(Get-Content -Path $tracePath -TotalCount 50 -ErrorAction SilentlyContinue)
+    $report.client_connect_trace=$trace
+    $report.connect_command_invoked=(@($trace | Where-Object {$_ -match 'CL_CONNECT_ENTER'}).Count -gt 0)
   }
   $report | ConvertTo-Json -Depth 5 | Set-Content -Path $reportPath -Encoding utf8
   Write-Host "CLIENT_LOOPBACK_DIAGNOSTIC_BEGIN"
