@@ -1,0 +1,92 @@
+name: IW3 original fastfile linker smoke (OAT)
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/iw3-oat-fastfile-smoke.yml'
+      - 'tools/iw3_rotu/oat_probe/**'
+      - 'tests/test_iw3_oat_probe.py'
+  push:
+    paths:
+      - '.github/workflows/iw3-oat-fastfile-smoke.yml'
+      - 'tools/iw3_rotu/oat_probe/**'
+      - 'tests/test_iw3_oat_probe.py'
+
+permissions:
+  contents: read
+
+jobs:
+  original-fastfile:
+    runs-on: windows-2025
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate entirely original source assets (no proprietary files)
+        shell: pwsh
+        run: |
+          python -m unittest discover -s tests -p 'test_iw3_oat_probe.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'Source probe guard failed' }
+      - name: Download OpenAssetTools pinned release v0.34.0 from official GitHub
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $headers = @{ 'User-Agent'='ZOMBIES-2026-IW3-smoke'; 'Accept'='application/vnd.github+json' }
+          $release = Invoke-RestMethod -Headers $headers -Uri 'https://api.github.com/repos/Laupetin/OpenAssetTools/releases/tags/v0.34.0'
+          if ($release.tag_name -ne 'v0.34.0') { throw 'Release tag mismatch' }
+          $packages = @($release.assets | Where-Object {
+            $_.name -match '(?i)\.(zip|7z)$' -and $_.name -match '(?i)(win|windows)'
+          })
+          Write-Host ('OAT release archives: ' + (($release.assets | ForEach-Object {$_.name}) -join ', '))
+          if ($packages.Count -ne 1) {
+            throw "Expected one official Windows archive, found $($packages.Count); inspect release assets."
+          }
+          $asset = $packages[0]
+          $dest = Join-Path $env:RUNNER_TEMP ('oat.' + $asset.name.Split('.')[-1])
+          Invoke-WebRequest -Headers $headers -Uri $asset.browser_download_url -OutFile $dest
+          if (!(Test-Path $dest) -or (Get-Item $dest).Length -lt 100000) { throw 'Empty OAT package' }
+          $dir = Join-Path $env:RUNNER_TEMP 'oat'
+          New-Item -Type Directory -Path $dir -Force | Out-Null
+          if ($dest -match '\.7z$') {
+            7z x $dest "-o$dir" -y | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw 'Failed extracting OAT 7z' }
+          } else { Expand-Archive -Path $dest -DestinationPath $dir -Force }
+          $linker = @(Get-ChildItem $dir -Filter 'Linker.exe' -File -Recurse)
+          $unlinker = @(Get-ChildItem $dir -Filter 'Unlinker.exe' -File -Recurse)
+          if ($linker.Count -ne 1 -or $unlinker.Count -ne 1) { throw 'Cannot identify Linker and Unlinker' }
+          "OAT_LINKER=$($linker[0].FullName)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "OAT_UNLINKER=$($unlinker[0].FullName)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          & $linker[0].FullName --version
+          if ($LASTEXITCODE -ne 0) { throw 'Linker --version failed' }
+      - name: Actually link a synthetic IW3 .ff (no game assets)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $probe = (Resolve-Path 'tools/iw3_rotu/oat_probe').Path
+          & $env:OAT_LINKER --no-color --base-folder $probe zombies_iw3_probe
+          if ($LASTEXITCODE -ne 0) { throw 'OAT IW3 fastfile linking FAILED' }
+          $ff = @(Get-ChildItem (Join-Path $probe 'zone_out') -Filter 'zombies_iw3_probe.ff' -File -Recurse)
+          if ($ff.Count -ne 1 -or $ff[0].Length -lt 32) { throw 'Missing output fastfile' }
+          "OAT_FF=$($ff[0].FullName)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "IW3 fastfile built: $($ff[0].Name) bytes=$($ff[0].Length)"
+      - name: Parse generated .ff with independent Unlinker check
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $output = & $env:OAT_UNLINKER --no-color --list $env:OAT_FF 2>&1
+          $output | ForEach-Object { Write-Host $_ }
+          if ($LASTEXITCODE -ne 0) { throw 'Unlinker failed opening freshly built IW3 zone' }
+          $joined = $output -join [Environment]::NewLine
+          if ($joined -notmatch 'zombies2026[\\/]probe\.txt') { throw 'Rawfile not listed by Unlinker' }
+          Write-Host 'GREEN: Generated + parsed IW3 fastfile using only original diagnostic text.'
+      - name: Publish ONLY original text-derived .ff (never third-party game content)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: iw3-synthetic-fastfile-v0-34
+          path: tools/iw3_rotu/oat_probe/zone_out/**/*.ff
+          if-no-files-found: error
+          retention-days: 7
