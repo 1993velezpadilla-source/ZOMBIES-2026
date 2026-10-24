@@ -1,0 +1,143 @@
+name: ZOMBIES-2026 offline SP killhouse native runtime diagnostic
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'feature/zombies-offline-sp-weapons-20261024'
+    paths:
+      - '.github/workflows/iw3-offline-sp-runtime.yml'
+      - 'tools/zombies_offline/stage_sp_data.py'
+      - 'tools/zombies_offline/instrument_sp_level.py'
+      - 'tools/zombies_offline/instrument_sp_combat.py'
+      - 'tools/zombies_offline/instrument_sp_loadout.py'
+      - 'tools/zombies_offline/instrument_sp_input.py'
+      - 'tools/zombies_offline/probe_sp_runtime.ps1'
+      - 'tests/test_zombies_offline_sp_stage.py'
+      - 'tests/test_zombies_offline_instrument.py'
+      - 'tests/test_zombies_offline_combat.py'
+      - 'tests/test_zombies_offline_loadout.py'
+      - 'tests/test_zombies_offline_input.py'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: z2026-offline-sp-runtime-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sp-level-smoke:
+    runs-on: windows-2022
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Validate restricted stage and temporary SP instrumentation
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          python -m unittest discover -s tests -p 'test_zombies_offline_sp_stage.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'SP data-staging tests failed' }
+          python -m unittest discover -s tests -p 'test_zombies_offline_instrument.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'SP native instrumentation tests failed' }
+          python -m unittest discover -s tests -p 'test_zombies_offline_combat.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'SP native combat tracer tests failed' }
+          python -m unittest discover -s tests -p 'test_zombies_offline_loadout.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'SP test loadout bootstrap tests failed' }
+          python -m unittest discover -s tests -p 'test_zombies_offline_input.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'SP input usercmd test failed' }
+          python -m unittest discover -s tests -p 'test_zombies_offline_sp.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'SP source-only tests failed' }
+
+      - name: Acquire existing owner-provided archive for temporary SP input only
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $parts=Join-Path $env:RUNNER_TEMP 'z2026-sp-archive-parts'
+          New-Item -ItemType Directory -Force -Path $parts | Out-Null
+          gh release download gofile-p2DdQHsz --repo $env:GITHUB_REPOSITORY --pattern 'C4-Mocs.zip.part-*' --dir $parts
+          if ($LASTEXITCODE -ne 0) { throw 'Owner-provided archive unavailable' }
+          "Z2026_SP_PARTS=$parts" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Stage only SP IWD and killhouse fastfiles in temp folder
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $data=Join-Path $env:RUNNER_TEMP 'z2026-sp-input'
+          $evidence=Join-Path $env:RUNNER_TEMP 'z2026-sp-evidence'
+          New-Item -ItemType Directory -Force -Path $evidence | Out-Null
+          python tools/zombies_offline/stage_sp_data.py --parts-dir "$env:Z2026_SP_PARTS" --dest "$data" --report (Join-Path $evidence 'sp-stage.json')
+          if ($LASTEXITCODE -ne 0) { throw 'SP original-data stage failed' }
+          "Z2026_SP_DATA=$data" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          "Z2026_SP_EVIDENCE=$evidence" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Prepare disposable offline SP engine clone with runtime stage markers
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $clone=Join-Path $env:RUNNER_TEMP 'z2026-sp-runtime-source'
+          Copy-Item -Path 'third_party/KisakCOD' -Destination $clone -Recurse -Force
+          python tools/zombies_offline/sp_source_gate.py --source-copy "$clone" --report (Join-Path $env:Z2026_SP_EVIDENCE 'sp-source.json')
+          if ($LASTEXITCODE -ne 0) { throw 'SP-only preparation failed' }
+          python tools/zombies_offline/instrument_sp_level.py --source-copy "$clone"
+          if ($LASTEXITCODE -ne 0) { throw 'SP-only instrumentation failed' }
+          python tools/zombies_offline/instrument_sp_combat.py --source-copy "$clone"
+          if ($LASTEXITCODE -ne 0) { throw 'SP passive combat instrumentation failed' }
+          python tools/zombies_offline/instrument_sp_loadout.py --source-copy "$clone"
+          if ($LASTEXITCODE -ne 0) { throw 'SP temporary loadout bootstrap failed' }
+          python tools/zombies_offline/instrument_sp_input.py --source-copy "$clone"
+          if ($LASTEXITCODE -ne 0) { throw 'SP temporary client input preparation failed' }
+          "Z2026_SP_CLONE=$clone" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Install DirectX9 x86 dependencies for offline SP
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $pkg=Join-Path $env:RUNNER_TEMP 'z2026-sp-dx'
+          nuget install Microsoft.DXSDK.D3DX -Version 9.29.952.8 -OutputDirectory $pkg -NonInteractive
+          if ($LASTEXITCODE -ne 0) { throw 'DirectX9 NuGet package failed' }
+          $native=Join-Path $pkg 'Microsoft.DXSDK.D3DX.9.29.952.8\build\native'
+          if (!(Test-Path (Join-Path $native 'Release/lib/x86/d3dx9.lib'))) { throw 'Missing D3DX9 x86 import lib' }
+          "DXSDK_NATIVE=$native" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Build only SP executable, no MP client or dedicated server
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $out=Join-Path $env:RUNNER_TEMP 'z2026-sp-runtime-build'
+          cmake -S "$env:Z2026_SP_CLONE" -B "$out" -G 'Visual Studio 17 2022' -A Win32 -DCMAKE_BUILD_TYPE=Release -DCICD=ON "-DDXSDK_DIR=$env:DXSDK_NATIVE"
+          if ($LASTEXITCODE -ne 0) { throw 'SP CMake configuration failed' }
+          cmake --build "$out" --target KisakCOD-sp --config Release --parallel 4
+          if ($LASTEXITCODE -ne 0) { throw 'SP native compilation failed' }
+          $exe=Join-Path $env:Z2026_SP_CLONE 'bin/Release/KisakCOD-sp.exe'
+          if (!(Test-Path $exe)) { throw 'Missing source-built KisakCOD-sp.exe' }
+          "Z2026_SP_EXECUTABLE=$exe" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Launch SP killhouse; request genuine source-registered weapon and inspect actor/weapon callbacks
+        shell: pwsh
+        run: |
+          pwsh -NoProfile -File tools/zombies_offline/probe_sp_runtime.ps1 -GameRoot "$env:Z2026_SP_DATA" -Executable "$env:Z2026_SP_EXECUTABLE" -ReportDir "$env:Z2026_SP_EVIDENCE" -DXNative "$env:DXSDK_NATIVE"
+          if ($LASTEXITCODE -ne 0) { throw 'SP runtime diagnostic script failed' }
+
+      - name: Publish metadata evidence only (no game, EXE or resources)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zombies-2026-offline-sp-map-runtime-evidence
+          path: ${{ runner.temp }}/z2026-sp-evidence/*.json
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Erase owner-provided archive, temporary SP runtime and build
+        if: always()
+        shell: pwsh
+        run: |
+          foreach($name in @('z2026-sp-archive-parts','z2026-sp-input','z2026-sp-runtime-source','z2026-sp-runtime-build')){
+            Remove-Item -Recurse -Force -ErrorAction SilentlyContinue (Join-Path $env:RUNNER_TEMP $name)
+          }
+          Write-Host 'Ephemeral proprietary input deleted; only metadata-only evidence retained.'
