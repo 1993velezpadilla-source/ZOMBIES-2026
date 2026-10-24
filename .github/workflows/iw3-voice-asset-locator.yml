@@ -1,0 +1,40 @@
+name: IW3 find missing MP voice UI assets in licensed source ZIP
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/iw3-voice-asset-locator.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  locate-voice-image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Download existing game files into disposable CI runner only
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p _release_assets/c4
+          gh release download gofile-p2DdQHsz --repo "$GITHUB_REPOSITORY" --pattern 'C4-Mocs.zip.part-*' --dir _release_assets/c4
+      - name: Enumerate missing voice_on voice_off assets by IWD metadata only
+        run: |
+          set -euo pipefail
+          python3 tools/iw3_rotu/locate_mp_voice_assets.py --parts-dir _release_assets/c4 --output smoke-out/iw3-voice-resource-locations.json
+      - name: Upload metadata only, not game files
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: iw3-voice-resource-locations
+          path: smoke-out/iw3-voice-resource-locations.json
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Delete temporary game files
+        if: always()
+        run: rm -rf _release_assets
