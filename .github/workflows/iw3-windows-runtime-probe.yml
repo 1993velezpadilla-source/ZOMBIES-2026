@@ -7,6 +7,7 @@ on:
       - 'tools/iw3_rotu/windows_mp_data_stage.py'
       - 'tools/iw3_rotu/run_windows_mp_server_probe.ps1'
       - 'tests/test_windows_mp_data_stage.py'
+      - 'tools/iw3_rotu/instrument_early_breakpoint.py'
   push:
     paths:
       - '.github/workflows/iw3-windows-runtime-probe.yml'
@@ -74,16 +75,32 @@ jobs:
           if (!(Test-Path (Join-Path $native 'Release/lib/x86/d3dx9.lib'))) { throw 'Missing Release d3dx9.lib import library' }
           "DXSDK_NATIVE=$native" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
 
+      - name: Instrument disposable engine clone to symbolicate early breakpoint
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $copy=Join-Path $env:RUNNER_TEMP 'kisak-diagnostic-source'
+          Copy-Item -Path 'third_party/KisakCOD' -Destination $copy -Recurse -Force
+          python tools/iw3_rotu/instrument_early_breakpoint.py --source-copy $copy
+          if ($LASTEXITCODE -ne 0) { throw 'Temporary diagnostic source patch failed' }
+          "KISAK_DIAG_SRC=$copy" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host 'Original vendored source remains unchanged.'
+
       - name: Build KisakCOD-dedi Windows 32 bit from checked-in engine source
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $out=Join-Path $env:RUNNER_TEMP 'kisak-build'
-          cmake -S third_party/KisakCOD -B $out -G 'Visual Studio 17 2022' -A Win32 -DCMAKE_BUILD_TYPE=Release -DCICD=ON "-DDXSDK_DIR=$env:DXSDK_NATIVE"
+          cmake -S $env:KISAK_DIAG_SRC -B $out -G 'Visual Studio 17 2022' -A Win32 -DCMAKE_BUILD_TYPE=Release -DCICD=ON "-DDXSDK_DIR=$env:DXSDK_NATIVE"
           if ($LASTEXITCODE -ne 0) { throw 'KisakCOD-dedi configure failed' }
           cmake --build $out --target KisakCOD-dedi --config Release --parallel 4
           if ($LASTEXITCODE -ne 0) { throw 'KisakCOD-dedi compilation failed' }
           "KISAK_BUILD_DIR=$out" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          $exe=Join-Path $env:KISAK_DIAG_SRC 'bin/Release/KisakCOD-dedi.exe'
+          $pdb=Join-Path $env:KISAK_DIAG_SRC 'bin/Release/KisakCOD-dedi.pdb'
+          if (!(Test-Path $exe)) { throw "Missing diagnostic dedicated executable at $exe" }
+          "KISAK_DIAGNOSTIC_EXE=$exe" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          if (Test-Path $pdb) { "KISAK_DIAGNOSTIC_PDB=$pdb" | Out-File $env:GITHUB_ENV -Append -Encoding utf8 }
 
       - name: Probe localhost-only dedicated MP map startup and preserve truthful errors
         shell: pwsh
