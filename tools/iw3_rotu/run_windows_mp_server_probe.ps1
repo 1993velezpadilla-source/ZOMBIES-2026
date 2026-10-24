@@ -32,7 +32,11 @@ $report=[ordered]@{
 $process=$null
 try {
   $root=(Resolve-Path $GameRoot).Path
-  $exeCandidates=@(Get-ChildItem -Path (Join-Path $BuildDir 'bin') -Recurse -Filter 'KisakCOD-dedi.exe' -File -ErrorAction SilentlyContinue)
+  if ($env:KISAK_DIAGNOSTIC_EXE -and (Test-Path $env:KISAK_DIAGNOSTIC_EXE)) {
+    $exeCandidates=@(Get-Item $env:KISAK_DIAGNOSTIC_EXE)
+  } else {
+    $exeCandidates=@(Get-ChildItem -Path (Join-Path $BuildDir 'bin') -Recurse -Filter 'KisakCOD-dedi.exe' -File -ErrorAction SilentlyContinue)
+  }
   if ($exeCandidates.Count -eq 0) {
     $exeCandidates=@(Get-ChildItem -Path 'third_party/KisakCOD/bin' -Recurse -Filter 'KisakCOD-dedi.exe' -File -ErrorAction SilentlyContinue)
   }
@@ -43,6 +47,9 @@ try {
   $exe=$exeCandidates[0]
   $report.executable_detected=$true
   Copy-Item -Path $exe.FullName -Destination (Join-Path $root 'KisakCOD-dedi.exe') -Force
+  if ($env:KISAK_DIAGNOSTIC_PDB -and (Test-Path $env:KISAK_DIAGNOSTIC_PDB)) {
+    Copy-Item $env:KISAK_DIAGNOSTIC_PDB -Destination (Join-Path $root 'KisakCOD-dedi.pdb') -Force
+  }
   $deps='third_party/KisakCOD/deps'
   $dlls=@(
     "$deps/binklib/binkw32.dll",
@@ -113,6 +120,13 @@ try {
     }
   }
   $report.runtime_console_tail=@($lines | Select-Object -Last 110)
+  $exceptionPath=Join-Path $root 'kisak-breakpoint-diagnostic.txt'
+  if (Test-Path $exceptionPath) {
+    $report.exception_diagnostics=@(Get-Content $exceptionPath -ErrorAction SilentlyContinue -TotalCount 60)
+  } else {
+    $report.exception_diagnostics=@()
+    $report.early_breakpoint_before_winmain_not_excluded=$true
+  }
   $report | ConvertTo-Json -Depth 6 | Set-Content -Path $reportPath -Encoding utf8
   Write-Host 'SERVER_BOOT_DIAGNOSTIC_BEGIN'
   Get-Content $reportPath
