@@ -7,6 +7,7 @@ on:
       - 'tools/iw3_rotu/**'
       - 'tests/test_rotu_preflight.py'
       - 'tests/test_rotu_package_gate.py'
+      - 'tests/test_iw3_oat_probe.py'
       - 'third_party/KisakCOD/**'
       - '.github/workflows/iw3-rotu-source-preflight.yml'
   push:
@@ -14,6 +15,7 @@ on:
       - 'tools/iw3_rotu/**'
       - 'tests/test_rotu_preflight.py'
       - 'tests/test_rotu_package_gate.py'
+      - 'tests/test_iw3_oat_probe.py'
       - 'third_party/KisakCOD/**'
       - '.github/workflows/iw3-rotu-source-preflight.yml'
 
@@ -34,6 +36,8 @@ jobs:
         run: python -m unittest discover -s tests -p 'test_rotu_preflight.py' -v
       - name: Test package manifest logic with synthetic fixtures
         run: python -m unittest discover -s tests -p 'test_rotu_package_gate.py' -v
+      - name: Guard original-only IW3 fastfile diagnostic source
+        run: python -m unittest discover -s tests -p 'test_iw3_oat_probe.py' -v
       - name: Fetch pinned public RotU source only (no released mod binaries)
         env:
           ROTU_REV: b76fca23dbd6e803fcfc66c01411dda37e39e232
