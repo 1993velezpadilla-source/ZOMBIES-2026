@@ -26,6 +26,7 @@ $report=[ordered]@{
   mod_ff_present=$false
   zombies_spawned=$false
   runtime_exception=$null
+  runtime_dll_inventory=@()
   runtime_log_keyword_hits=@()
 }
 $process=$null
@@ -53,6 +54,20 @@ try {
       Copy-Item $src -Destination $root -Force
     }
   }
+  # The Microsoft.DXSDK.D3DX NuGet package stores the x86 runtime DLLs in
+  # Release/bin/x86, separate from the headers and import libs used at build.
+  # Windows exit status 0xC0000135 identifies a missing load-time DLL.
+  $d3dxBin=Join-Path $env:DXSDK_NATIVE 'Release/bin/x86'
+  if (!(Test-Path (Join-Path $d3dxBin 'D3DX9_43.dll'))) {
+    throw "Missing official x86 D3DX9_43.dll at $d3dxBin"
+  }
+  foreach($name in @('D3DX9_43.dll','D3DCompiler_43.dll','d3dx10_43.dll','d3dx11_43.dll')){
+    $path=Join-Path $d3dxBin $name
+    if(Test-Path $path){
+      Copy-Item $path -Destination $root -Force
+    }
+  }
+  $report.runtime_dll_inventory=@((Get-ChildItem $root -Filter '*.dll' -File).Name | Sort-Object)
   $miles=Join-Path $root 'miles'
   New-Item -ItemType Directory -Force -Path $miles | Out-Null
   Get-ChildItem "$deps/msslib/dlls/miles" -File -ErrorAction SilentlyContinue |
@@ -69,6 +84,7 @@ try {
   $report.exited_early=$exited
   if ($exited) {
     $report.exit_code=$process.ExitCode
+    if($process.ExitCode -eq -1073741515){$report.runtime_exception='STATUS_DLL_NOT_FOUND (0xC0000135) before game initialization'}
   } else {
     $report.server_alive_at_45_seconds=$true
   }
