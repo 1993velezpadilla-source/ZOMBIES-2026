@@ -31,7 +31,7 @@ jobs:
         run: |
           python3 -m venv /tmp/cod4-lavapipe
           /tmp/cod4-lavapipe/bin/pip --disable-pip-version-check install --quiet 'Pillow>=10,<13'
-          /tmp/cod4-lavapipe/bin/python -m py_compile tools/test_android_source_import.py tools/probe_android_renderer.py tools/probe_cod4_touch_controls.py
+          /tmp/cod4-lavapipe/bin/python -m py_compile tools/test_android_source_import.py tools/probe_android_renderer.py tools/probe_cod4_touch_controls.py tools/validate_lavapipe_touch.py
       - name: Enable KVM on GitHub Linux runner
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -55,26 +55,7 @@ jobs:
             adb shell svc data disable || true
             adb install -r _release_assets/cod4/COD4.apk
             /tmp/cod4-lavapipe/bin/python tools/test_android_source_import.py
-            /tmp/cod4-lavapipe/bin/python - <<'PY'
-            import json
-            from pathlib import Path
-            root=Path("smoke-out/real-data-test")
-            result=json.loads((root/"result.json").read_text())
-            render=json.loads((root/"renderer-diagnostic.json").read_text())
-            touch=json.loads((root/"touch-control-report.json").read_text())
-            latest=render["snapshots"][-1]["regions"]["center_scene"]
-            findings={"backend":"lavapipe","imported":result["import_banner_observed"],
-                      "menu_launched":result["campaign_button_clicked"],
-                      "native_process_alive":touch["campaign_process_alive_after_input"],
-                      "controls_injected":len(touch["tests"]),
-                      "latest_scene_color":latest,
-                      "gameplay_controls_verified":False,
-                      "fps_acceptable":False}
-            print("LAVAPIPE_TOUCH_GATE",json.dumps(findings))
-            (root/"lavapipe-touch-gate.json").write_text(json.dumps(findings,indent=2)+"\n")
-            if not findings["imported"] or not findings["native_process_alive"] or findings["controls_injected"]!=7:
-                raise SystemExit("Android touch smoke execution failed")
-            PY
+            /tmp/cod4-lavapipe/bin/python tools/validate_lavapipe_touch.py
       - name: Preserve only emulator screenshots and measurements
         if: always()
         uses: actions/upload-artifact@v4
