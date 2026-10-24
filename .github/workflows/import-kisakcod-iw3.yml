@@ -35,7 +35,7 @@ jobs:
             test -f "$dest/LICENSE"
             test -f "$dest/CMakeLists.txt"
             test -f "$dest/ZOMBIES_2026_IMPORT.md"
-            sha="$(sed -n 's/^- Imported git commit: `\\([0-9a-f]*\\)`.*/\\1/p' "$dest/ZOMBIES_2026_IMPORT.md")"
+            sha="$(grep -F 'Imported git commit:' "$dest/ZOMBIES_2026_IMPORT.md" | cut -d'`' -f2)"
             [[ "$sha" =~ ^[0-9a-f]{40}$ ]]
             src_count="$(find "$dest/src" -type f | wc -l | tr -d ' ')"
             test "$src_count" -gt 500
