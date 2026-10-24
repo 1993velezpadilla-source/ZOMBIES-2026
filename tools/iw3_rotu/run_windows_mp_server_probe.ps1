@@ -120,6 +120,12 @@ try {
     }
   }
   $report.runtime_console_tail=@($lines | Select-Object -Last 110)
+  $dbPath=Join-Path $root 'kisak-database-diagnostic.txt'
+  if (Test-Path $dbPath) {
+    $report.database_loader_error=@(Get-Content $dbPath -ErrorAction SilentlyContinue -TotalCount 30)
+  } else {
+    $report.database_loader_error=@()
+  }
   $exceptionPath=Join-Path $root 'kisak-breakpoint-diagnostic.txt'
   if (Test-Path $exceptionPath) {
     $report.exception_diagnostics=@(Get-Content $exceptionPath -ErrorAction SilentlyContinue -TotalCount 60)
