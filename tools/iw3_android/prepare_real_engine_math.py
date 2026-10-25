@@ -18,6 +18,16 @@ ORIGINAL_PROLOGUE = (
     '#include "com_math.h"\n'
 )
 ORIGINAL_THIRD_HEADER = '#include "q_shared.h"'
+SURFACE_FILE = Path("src/universal/surfaceflags.cpp")
+SURFACE_PROLOGUE = (
+    '#include <universal/q_shared.h>\\n'
+    '#include "surfaceflags.h"\\n'
+)
+SURFACE_FUNCTIONS = (
+    "int __cdecl Com_SurfaceTypeFromName(",
+    "const char *__cdecl Com_SurfaceTypeToName(",
+)
+
 REQUIRED_FUNCTIONS = (
     "void __cdecl AngleVectors(",
     "void __cdecl AnglesToAxis(",
@@ -69,13 +79,45 @@ def prepare(source_root: Path, output: Path) -> dict:
         "godot_used": False,
     }
 
+def prepare_surface(source_root: Path, output: Path) -> dict:
+    root = source_root.resolve()
+    source = root / SURFACE_FILE
+    dest = output.resolve()
+    if not source.is_file():
+        raise ValueError(f"Missing original IW3 surface data: {source}")
+    if dest == source:
+        raise ValueError("Refusing to overwrite engine surfaces")
+    raw = source.read_bytes()
+    original = raw.decode("utf-8")
+    if not original.startswith(SURFACE_PROLOGUE):
+        raise ValueError("IW3 surface source header mismatch")
+    for name in SURFACE_FUNCTIONS:
+        if original.count(name) != 1:
+            raise ValueError("Unexpected IW3 native surface function " + name)
+    header = '#include "iw3_android_surface_compat.h"\\n#include "surfaceflags.h"\\n'
+    patched = header + original[len(SURFACE_PROLOGUE):]
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_text(patched, encoding="utf-8")
+    if source.read_bytes() != raw:
+        raise RuntimeError("Original IW3 surface table modified")
+    return {
+        "engine_origin": str(SURFACE_FILE),
+        "source_sha256": hashlib.sha256(raw).hexdigest(),
+        "function_bodies_preserved": True,
+        "data_table_entries_preserved": original.count('{ "') - 0,
+        "portable_headers_only": True,
+    }
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--engine", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--report", type=Path, required=True)
+    parser.add_argument("--surface-output", type=Path)
     options = parser.parse_args()
     evidence = prepare(options.engine, options.output)
+    if options.surface_output:
+        evidence["surface"] = prepare_surface(options.engine, options.surface_output)
     options.report.parent.mkdir(parents=True, exist_ok=True)
     options.report.write_text(json.dumps(evidence, indent=2, sort_keys=True)+"\n", encoding="utf-8")
     print("IW3_ANDROID_NATIVE_REAL_SOURCE_PREPARED", json.dumps(evidence, sort_keys=True))
