@@ -257,6 +257,8 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
         add_dir = function_source(source, "void __cdecl FS_AddGameDirectory(")
         self.assertIn("Z_Malloc(sizeof(searchpath_s),", add_iwd)
         self.assertIn("Z_Malloc(sizeof(searchpath_s),", add_dir)
+        self.assertIn("qsort(s0, numfiles, sizeof(s0[0]),", add_iwd)
+        self.assertNotIn("qsort(s0, numfiles, 4u,", add_iwd)
         self.assertNotIn('Z_Malloc(28, "FS_AddIwdFilesForGameDirectory"', source)
         self.assertNotIn('Z_Malloc(28, "FS_AddGameDirectory"', source)
 
