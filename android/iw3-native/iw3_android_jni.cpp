@@ -9,6 +9,7 @@
 #include <cstdio>
 #include <atomic>
 #include <cstdint>
+#include <cstring>
 #include "iw3_android_platform.h"
 
 extern "C" int z2026_iw3_math_smoke();
@@ -25,6 +26,21 @@ std::atomic<int> g_lifecycle_state{0};
 
 #define IW3_JNI_EXPORT extern "C" JNIEXPORT
 
+IW3_JNI_EXPORT jint JNICALL
+Java_org_z2026_iw3nativeprobe_EngineBridge_nativeSetDataRoot(
+        JNIEnv *env, jclass, jstring absolutePath) {
+    if (!absolutePath) return -1;
+    const char *path = env->GetStringUTFChars(absolutePath, nullptr);
+    if (!path) return -1;
+    const int rc = z2026_platform_set_data_root(path);
+    env->ReleaseStringUTFChars(absolutePath, path);
+    __android_log_print(rc == 0 ? ANDROID_LOG_INFO : ANDROID_LOG_ERROR,
+                        "IW3NativeGate", "IW3_JNI_DATA_ROOT_%s",
+                        rc == 0 ? "READY" : "FAIL");
+    return rc;
+}
+
+
 IW3_JNI_EXPORT jstring JNICALL
 Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(JNIEnv *env, jclass) {
     // These calls resolve to the original engine's math, material and
@@ -34,9 +50,25 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(JNIEnv *env, jclass) {
     const int config_ok = z2026_iw3_configstrings_smoke();
     const int frame_copy_ok = z2026_iw3_frame_memcpy_smoke();
     const int pool_ok = z2026_iw3_real_pool_smoke();
+    // Real app-private Android filesystem I/O through the native POSIX
+    // platform bridge. Sentinel only; this is NOT a game map/fastfile.
+    constexpr char kProbe[] = "IW3_NATIVE_IO_2026";
+    char fileProbe[64]{};
+    const int fileLen = z2026_platform_read_file(
+        "iw3-native-io-probe.bin", fileProbe, sizeof(fileProbe));
+    const int file_ok =
+        fileLen == static_cast<int>(sizeof(kProbe) - 1) &&
+        std::memcmp(fileProbe, kProbe, sizeof(kProbe) - 1) == 0 &&
+        z2026_platform_read_file("../iw3-native-io-probe.bin",
+                                 fileProbe, sizeof(fileProbe)) == -1 &&
+        z2026_platform_read_file("iw3-native-io-probe.bin",
+                                 fileProbe, 4) == -1;
+    __android_log_print(file_ok ? ANDROID_LOG_INFO : ANDROID_LOG_ERROR,
+                        "IW3NativeGate", "IW3_JNI_SANDBOX_IO_%s",
+                        file_ok ? "PASS" : "FAIL");
     const int perk_index = z2026_iw3_configstring_num("specialty_rof");
     const std::uint64_t monotonic_time = z2026_platform_monotonic_ns();
-    const int success = math_ok && surface_ok && config_ok && frame_copy_ok && pool_ok &&
+    const int success = math_ok && surface_ok && config_ok && frame_copy_ok && pool_ok && file_ok &&
                         perk_index == 2034 && monotonic_time > 0;
     char report[640];
     std::snprintf(report, sizeof(report),
@@ -47,6 +79,7 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(JNIEnv *env, jclass) {
                   "Configstring registry: %s\n"
                   "Original G_RunFrame Com_Memcpy: %s\n"
                   "Real IW3 64-bit Pool_Alloc/Free: %s\n"
+                  "Android app-private data-root I/O: %s\n"
                   "Original specialty_rof ID: %d\n"
                   "Monotonic Android clock: %s\n"
                   "Native ABI version: %d\n\n"
@@ -58,6 +91,7 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(JNIEnv *env, jclass) {
                   config_ok ? "PASS" : "FAIL",
                   frame_copy_ok ? "PASS" : "FAIL",
                   pool_ok ? "PASS" : "FAIL",
+                  file_ok ? "PASS" : "FAIL",
                   perk_index, monotonic_time ? "PASS" : "FAIL",
                   z2026_iw3_math_source_abi_version());
     __android_log_print(success ? ANDROID_LOG_INFO : ANDROID_LOG_ERROR,
