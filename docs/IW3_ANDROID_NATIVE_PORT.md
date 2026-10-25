@@ -114,3 +114,25 @@ The compiled `libiw3_sp_math.so` now contains three **real KisakCOD engine sourc
 **Android runtime experiment:** The additional workflow `.github/workflows/iw3-original-android-emulator-jni.yml` targets Android emulator x86_64 to execute the **same original KisakCOD C++ code** in an Android process, record the native JNI result and touch events. Its x86_64 emulator path is strictly marked as diagnostic and is **not evidence of ARM64 runtime**, although the separate ARM64 native package is compiled and signed. The runtime gate is not GREEN until those logcat markers are observed.
 
 **Still not proven:** native `G_RunFrame`, IW3 SP actor AI or `FireWeapon` on Android, true IW3 renderer or mobile GPU output, data/map loading, and a playable IW3 Android APK. Their gates are unchanged.
+
+## Android process executes actual IW3 source — JNI Runtime Gate GREEN
+
+**Verified 25 Oct 2026:** [Android emulator run **40160464233**](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40160464233) completed **SUCCESS**.
+
+The runner created a genuine Android 35 **x86_64** emulator (booted in 30s), installed the APK that was compiled with actual KisakCOD `com_math_anglevectors.cpp`, `surfaceflags.cpp`, and `com_constantconfigstrings.cpp`, and started `org.z2026.iw3nativeprobe/.MainActivity`. The Activity directly invoked C++ via JNI, rather than displaying an invented status. Its logcat output was:
+
+```text
+IW3_JNI_LIFECYCLE_1
+JNI_NATIVE_ENGINE_PROBE_PASS
+IW3_JNI_ACTIVITY_STARTED PASS
+IW3_JNI_LIFECYCLE_2
+IW3_JNI_TOUCH id=0 pressed=1 coords=0.18421052,0.2962963
+IW3_JNI_TOUCH id=0 pressed=0 coords=0.18421052,0.2962963
+IW3_ORIGINAL_CPP_EXECUTED_INSIDE_ANDROID_EMULATOR_GREEN
+```
+
+The `JNI_NATIVE_ENGINE_PROBE_PASS` marker originates from the C++ JNI bridge *after* all four conditions actually return passing values: original IW3 `AngleVectors` calculations, original material/surface table, original IW3 configstring initialization and lookups (including `specialty_rof` ID 2034), and Android monotonic clock. Java `IW3_JNI_ACTIVITY_STARTED PASS` is logged only after the bridge returns its real validation report. Both touch down and touch up are observed in Java/Android logcat after actual ADB screen input.
+
+**Physical Android ARM64 build separately GREEN:** [Actions **40160241820**](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40160241820) — signed ARM64 APK containing real C++ and exported JNI functions. The x86_64 emulator pass cannot be used as proof that the ARM64 app executes correctly on a phone.
+
+This diagnostic Android APK is **NOT the requested playable IW3 game** and cannot yet execute `G_RunFrame`, `FireWeapon`, zombies, level/map loading or IW3's renderer. User's earlier Godot APK remains rejected. Never call this phase the finished port; next priority is to link real IW3 SP `G_RunFrame` and its dependent C++ runtime into Android, then implement render backend and data loading.
