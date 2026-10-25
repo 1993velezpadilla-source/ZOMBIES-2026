@@ -1366,18 +1366,26 @@ iwd_t *__cdecl FS_LoadZipFile(char *zipfile, char *basename)
         unzClose(uf);
         return 0;
     }
-    if (gi.number_entry && unzGoToFirstFile(uf) != UNZ_OK)
+    // Empty archives cannot produce a usable IWD searchpath and would make
+    // the original zero-byte allocation/name-table pointer undefined.
+    if (!gi.number_entry || unzGoToFirstFile(uf) != UNZ_OK)
     {
         unzClose(uf);
         return 0;
     }
     len = 0;
-    if (gi.number_entry)
-        unzGoToFirstFile(uf);
-    for (i = 0; i < gi.number_entry && !unzGetCurrentFileInfo(uf, &file_info, filename_inzip, 0x100u, 0, 0, 0, 0); ++i)
+    for (i = 0; i < gi.number_entry; ++i)
     {
+        if (unzGetCurrentFileInfo(uf, &file_info, filename_inzip, sizeof(filename_inzip), 0, 0, 0, 0) != UNZ_OK)
+            break;
         len += &filename_inzip[strlen(filename_inzip) + 1] - &filename_inzip[1] + 1;
-        unzGoToNextFile(uf);
+        if (i + 1 < gi.number_entry && unzGoToNextFile(uf) != UNZ_OK)
+            break;
+    }
+    if (i != gi.number_entry)
+    {
+        unzClose(uf);
+        return 0;
     }
     //buildBuffer = (fileInIwd_s*)Z_Malloc(len + 12 * gi.number_entry, "FS_LoadZipFile1", 3);
     buildBuffer = (fileInIwd_s*)Z_Malloc(gi.number_entry * sizeof(fileInIwd_s) + len, "FS_LoadZipFile1", 3);
@@ -1400,9 +1408,18 @@ iwd_t *__cdecl FS_LoadZipFile(char *zipfile, char *basename)
     iwd->handle = uf;
     iwd->numfiles = gi.number_entry;
     iwd->hasOpenFile = 0;
-    unzGoToFirstFile(uf);
-    for (i = 0; i < gi.number_entry && !unzGetCurrentFileInfo(uf, &file_info, filename_inzip, 0x100u, 0, 0, 0, 0); ++i)
+    if (unzGoToFirstFile(uf) != UNZ_OK)
     {
+        Z_Free(fs_headerLongs, 3);
+        Z_Free(iwd, 3);
+        Z_Free(buildBuffer, 3);
+        unzClose(uf);
+        return 0;
+    }
+    for (i = 0; i < gi.number_entry; ++i)
+    {
+        if (unzGetCurrentFileInfo(uf, &file_info, filename_inzip, sizeof(filename_inzip), 0, 0, 0, 0) != UNZ_OK)
+            break;
         if (file_info.uncompressed_size)
             fs_headerLongs[fs_numHeaderLongs++] = file_info.crc;
         I_strlwr(filename_inzip);
@@ -1416,10 +1433,12 @@ iwd_t *__cdecl FS_LoadZipFile(char *zipfile, char *basename)
             *name++ = *v5++;
         } while (v3);
         namePtr += &filename_inzip[strlen(filename_inzip) + 1] - &filename_inzip[1] + 1;
-        unzGetCurrentFileInfoPosition(uf, &buildBuffer[i].pos);
+        if (unzGetCurrentFileInfoPosition(uf, &buildBuffer[i].pos) != UNZ_OK)
+            break;
         buildBuffer[i].next = iwd->hashTable[hash];
         iwd->hashTable[hash] = &buildBuffer[i];
-        unzGoToNextFile(uf);
+        if (i + 1 < gi.number_entry && unzGoToNextFile(uf) != UNZ_OK)
+            break;
     }
     // A corrupt/truncated central directory must not publish an index whose
     // numfiles claims entries that were never initialized.
