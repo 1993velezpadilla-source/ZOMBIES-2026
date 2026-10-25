@@ -169,3 +169,9 @@ The native-port script `tools/iw3_android/prepare_real_engine_pool.py` stages a 
 
 Strict limits remain: no full `G_RunFrame` linked or executed on Android, no genuine IW3 graphics/game scene, and no playable IW3 Android APK. Diagnostic APKs must never be relabeled as working zombies games.
 
+
+## Phase C — Android app-private file-root JNI gate (October 25, 2026)
+
+The Android `MainActivity` now initializes the **native C++ platform file root** with `getFilesDir()` before calling the real-engine JNI smoke. The `nativeSetDataRoot` JNI method uses the existing `z2026_platform_set_data_root` descriptor-based POSIX adapter; `nativeReport` verifies actual file contents through `z2026_platform_read_file`. This is a necessary bridge for eventual IW3 map and fastfile access. A tiny explicitly diagnostic sentinel (`iw3-native-io-probe.bin`) is used **only for I/O verification**, not a fake map or game asset. Negative probes reject `../` traversal and too-small output buffers. The emulator CI now fails unless `IW3_JNI_SANDBOX_IO_PASS` is logged. Host CI additionally verifies `main/native-test.iwd` nested path access and rejects directory symlinks; the host test uses synthetic bytes strictly for sandbox behavior, not IW3 asset parsing.
+
+**Not yet implemented:** mounting/loading actual IW3 IWD/FF archives through `FS_*`, building a 3D renderer, running the real single-player `G_RunFrame`, mapping touch into authentic `usercmd`, or an Android ARM64 playable zombies APK. The Activity remains explicitly diagnostic; it is not a game or a substitute engine. Do not treat CI passing these gates as proof of gameplay.
