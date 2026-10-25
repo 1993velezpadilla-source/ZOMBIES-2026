@@ -369,12 +369,14 @@ The final code fix for the POSIX `close()` declaration is in commit `f2486fb00bf
 ## Follow-up — original FS_BuildOSPath and IWD discovery boundary (2026-10-25)
 
 The rooted Android file bridge now supports the path forms the original desktop
-filesystem emits. `z2026_platform_open_engine_path_fd` accepts relative paths
-or absolute paths strictly beneath the canonical app-owned data root; sibling
-prefixes, outside absolute paths, traversal components, and symlinks remain
-rejected. It normalizes the original Windows-style backslash separators before
-component validation, so `FS_BuildOSPath` paths can be consumed without
-weakening root confinement. The original ZIP/IWD adapter
+filesystem emits. `z2026_platform_open_engine_path_fd` accepts relative paths or absolute
+paths beneath the configured app-owned root spelling. The retained descriptor
+is opened on the canonicalized directory; absolute-prefix matching only
+produces a relative suffix that is then resolved with `openat` beneath that
+descriptor. Sibling prefixes, outside absolute paths, traversal components,
+and symlinks remain rejected. It normalizes the original Windows-style
+backslash separators before component validation, so `FS_BuildOSPath` paths
+can be consumed without weakening root confinement. The original ZIP/IWD adapter
 `FS_FileOpenReadBinary` now uses this engine-path entry point instead of the
 relative-only descriptor function.
 
