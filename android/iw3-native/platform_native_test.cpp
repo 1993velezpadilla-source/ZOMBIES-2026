@@ -109,6 +109,31 @@ int main() {
     assert(z2026_platform_usercmd_snapshot(4323, cmd, 10) == 0);
     assert(cmd[1] == 0 && cmd[2] == 0 && cmd[3] == 0);
     assert(cmd[5] == 0 && cmd[6] == 0);
+
+    // Prove the bridge mutates an actual original usercmd_s exactly where
+    // CL_CreateCmd will call it, rather than merely returning a side snapshot.
+    z2026_platform_touch_reset();
+    usercmd_s actual_command{};
+    float actual_viewangles[3] = {10.0f, 20.0f, 0.0f};
+    assert(z2026_platform_touch_event(0, .20f, .70f, 1) == 0); // movement
+    assert(z2026_platform_touch_event(0, .38f, .55f, 1) == 0);
+    assert(z2026_platform_touch_event(1, .90f, .85f, 1) == 0); // attack
+    assert(z2026_platform_touch_event(2, .55f, .50f, 1) == 0); // look
+    assert(z2026_platform_touch_event(2, .65f, .45f, 1) == 0);
+    z2026_platform_apply_touch_to_usercmd(&actual_command, actual_viewangles);
+    assert((actual_command.buttons & BUTTON_ATTACK) != 0);
+    assert(actual_command.forwardmove > 0 && actual_command.rightmove > 0);
+    assert(std::fabs(actual_viewangles[0] - 1.0f) < .01f);
+    assert(std::fabs(actual_viewangles[1] - 44.0f) < .01f);
+    const float applied_pitch = actual_viewangles[0];
+    const float applied_yaw = actual_viewangles[1];
+    z2026_platform_apply_touch_to_usercmd(&actual_command, actual_viewangles);
+    assert(actual_viewangles[0] == applied_pitch && actual_viewangles[1] == applied_yaw);
+    assert((actual_command.buttons & BUTTON_ATTACK) != 0);
+    assert(z2026_platform_touch_event(1, .90f, .85f, 0) == 0);
+    z2026_platform_apply_touch_to_usercmd(&actual_command, actual_viewangles);
+    assert((actual_command.buttons & BUTTON_ATTACK) == 0);
+    z2026_platform_touch_reset();
     std::puts("IW3_ANDROID_TOUCH_TO_ORIGINAL_USERCMD_HOST_GREEN");
 
     unlink(symlink_path.c_str());
