@@ -19,7 +19,7 @@ were confirmed by that test.
 | Gate | Status | Proof required |
 | --- | --- | --- |
 | 0. Real Windows IW3 SP runs and fires | PASS | Native executable traces from 40141908316 |
-| A. Genuine IW3 SP C++ on Android ABI | **CI pending initially** | NDK builds ELF64 AArch64 .so directly from vendored `com_math_anglevectors.cpp` (only include shim); same source executes mathematically correct host smoke |
+| A. Genuine IW3 SP C++ on Android ABI | **PASS — [run 40154663973](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40154663973)** | NDK builds ELF64 AArch64 .so directly from vendored `com_math_anglevectors.cpp` (only include shim); same source executes mathematically correct host smoke |
 | B. Android entry point / lifecycle | OPEN | JNI/NativeActivity loads engine subsystem and handles native Android input; instrumentation proves actual source callbacks, not mocked |
 | C. IW3-SP systems in Android process | OPEN | Serverless original SP actor, weapon, frame update functions execute on ARM64, no Steam |
 | D. Portable renderer | OPEN | Direct3D9-specific `gfx_d3d` dependencies replaced by original-engine-adapted GLES/Vulkan backend; draws a correct frame |
@@ -48,17 +48,22 @@ Changing Steam startup behavior on Windows is **not** a platform port.
 `tools/iw3_android/prepare_real_engine_math.py` takes the **unchanged**
 original `src/universal/com_math_anglevectors.cpp` and swaps *only*
 its Win32-heavy include headers in a temporary build copy. All original
-function bodies (AngleVectors, AnglesToAxis, Vec4Normalize, AnglesToQuat)
-stay exactly as-is. `android/iw3-native/native_math_abi.cpp` provides
+function bodies (AngleVectors, AnglesToAxis, Vec4Normalize, AnglesToQuat,
+Com_SurfaceTypeFromName and Com_SurfaceTypeToName) and the original
+60-entry IW3 surface/material table stay exactly as-is. `android/iw3-native/native_math_abi.cpp` provides
 a tiny exported C ABI that calls the original `AngleVectors()` and
-checks original angles/basis conventions. Unused `AnglesToQuat`
+checks original angles/basis conventions and real IW3 surface class names
+(including the engine's original foliage/foilage alias). Unused `AnglesToQuat`
 and its `AxisToQuat` dependency are discarded at link time; no stub of
 the engine function is used.
 
-The CI runs a real binary host smoke **and** a NDK cross-compile,
+The CI **passed** real binary host smoke **and** a NDK cross-compile
+in [run 40154663973](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40154663973),
 validates AArch64 ELF64 with `llvm-readelf` and publishes only
 `libiw3_sp_math.so` with source hashes and symbol evidence.
-A shared math component is **NOT an APK**.
+The binary is `libiw3_sp_math.so` (with math and surface C++ logic).
+A shared engine-component library is **NOT an APK**, nor proof of an
+entire Android gameplay runtime.
 
 No game archive, assets, data files, proprietary maps or models are
 required or redistributed for Gate A. Godot and the earlier misleading
