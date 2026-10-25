@@ -9,6 +9,9 @@
 #ifndef __cdecl
 #define __cdecl
 #endif
+#ifndef QDECL
+#define QDECL
+#endif
 #include <zlib/zlib.h>
 #include "com_fileaccess.h"
 
