@@ -22,6 +22,7 @@ MAIN = Path("src/game/g_runframe.cpp")
 # src/game/g_client_script_cmd.cpp. All are in the SP target.
 DECLARES = """
 // Z2026 test-only offline source clone; declarations of original SP APIs.
+#include <xanim/xanim.h> // actual WeaponDef fields used by this test bootstrap
 extern int __cdecl G_GivePlayerWeapon(playerState_s *pPS, int index, uint8_t model);
 extern void __cdecl G_SelectWeaponIndex(int clientNum, int weaponIndex);
 """
