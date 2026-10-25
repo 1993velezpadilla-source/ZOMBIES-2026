@@ -13,8 +13,9 @@ config/description="First installable offline 3D zombies Android vertical slice 
 [display]
 window/size/viewport_width=1280
 window/size/viewport_height=720
-window/handheld/orientation=1
+window/handheld/orientation=4
 window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
 
 [rendering]
 renderer/rendering_method="gl_compatibility"
