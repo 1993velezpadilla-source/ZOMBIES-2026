@@ -12,7 +12,7 @@ from tools.iw3_android.prepare_real_engine_math import (
 
 from tools.iw3_android.prepare_g_runframe_prereqs import (
     COM_SHARED, G_MAIN, MEMCPY_SIGNATURE, FRAME_SIGNATURE,
-    FRAME_LEGACY_ASSUMPTIONS, IMPORTANT_CALLS,
+    FRAME_LEGACY_ASSUMPTIONS, FRAME_TYPED_PORTABILITY_MARKERS, IMPORTANT_CALLS,
     function_source, prepare as prepare_frame_prereq,
 )
 
@@ -80,6 +80,8 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
         frame = function_source(sp_original.decode("utf-8"), FRAME_SIGNATURE)
         self.assertGreater(frame.count("\n"), 200)
         for marker in FRAME_LEGACY_ASSUMPTIONS:
+            self.assertNotIn(marker, frame)
+        for marker in FRAME_TYPED_PORTABILITY_MARKERS:
             self.assertIn(marker, frame)
         for call in IMPORTANT_CALLS:
             self.assertIn(call, frame)
@@ -90,6 +92,9 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
             self.assertFalse(report["g_runframe_compiled_on_android"])
             self.assertFalse(report["iw3_game_apk_available"])
             self.assertTrue(report["original_memcpy_function_preserved_exactly"])
+            self.assertTrue(report["frame_animation_loop_uses_typed_entity_fields"])
+            self.assertTrue(report["other_sp_engine_abi_assumptions_unverified"])
+            self.assertTrue(all(n == 0 for n in report["known_32bit_entity_pointer_hazards_remaining"].values()))
             body = function_source(com_original.decode("utf-8"), MEMCPY_SIGNATURE)
             self.assertEqual(out.read_text(encoding="utf-8"),
                              '#include "iw3_android_frame_compat.h"\n' + body + "\n")
