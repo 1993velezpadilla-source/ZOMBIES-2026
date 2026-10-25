@@ -175,3 +175,16 @@ Strict limits remain: no full `G_RunFrame` linked or executed on Android, no gen
 The Android `MainActivity` now initializes the **native C++ platform file root** with `getFilesDir()` before calling the real-engine JNI smoke. The `nativeSetDataRoot` JNI method uses the existing `z2026_platform_set_data_root` descriptor-based POSIX adapter; `nativeReport` verifies actual file contents through `z2026_platform_read_file`. This is a necessary bridge for eventual IW3 map and fastfile access. A tiny explicitly diagnostic sentinel (`iw3-native-io-probe.bin`) is used **only for I/O verification**, not a fake map or game asset. Negative probes reject `../` traversal and too-small output buffers. The emulator CI now fails unless `IW3_JNI_SANDBOX_IO_PASS` is logged. Host CI additionally verifies `main/native-test.iwd` nested path access and rejects directory symlinks; the host test uses synthetic bytes strictly for sandbox behavior, not IW3 asset parsing.
 
 **Not yet implemented:** mounting/loading actual IW3 IWD/FF archives through `FS_*`, building a 3D renderer, running the real single-player `G_RunFrame`, mapping touch into authentic `usercmd`, or an Android ARM64 playable zombies APK. The Activity remains explicitly diagnostic; it is not a game or a substitute engine. Do not treat CI passing these gates as proof of gameplay.
+
+## Phase D — authentic IW3 SP combat hit-location pointer fix: verified
+
+`src/game/g_combat.cpp::G_HitLocStrcpy` previously computed a destination-minus-source pointer delta and **stored it in a 32-bit `int`**, then indexed from the source address. This is unsafe on 64-bit Android and is undefined behavior for unrelated pointers even on 32-bit systems. The actual vendored KisakCOD function now performs the **same forward NUL-terminated byte copy** with incremented `unsigned char*` / `const char*` pointers, without a truncated integer address. No weapon damage behavior was invented or replaced.
+
+The native source staging script extracts the exact corrected original SP function into a disposable translation unit, preserving its body; Python tests reject the old pointer arithmetic. The native library compiles the function on ARM64 and the ABI wrapper calls it in host/Android diagnostics; the host test exercises a real 64-bit buffer with canaries and empty strings.
+
+**October 25 verification:**
+- [ARM64 original-source gauntlet 40210356905](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40210356905): **5/5 CTest GREEN**, ELF64 AArch64 linked, native `z2026_iw3_hitloc_copy_smoke` exported.
+- [ARM64 JNI diagnostic build 40210356891](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40210356891): **GREEN**, signed diagnostic APK contains real IW3 native modules and JNI data-root entrypoint.
+- [Android x86_64 emulator 40210343051](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40210343051): **GREEN**, original engine JNI probe, app-private native file-root I/O, traversal rejection and touchscreen event logged PASS.
+
+**All three are component/infrastructure proofs, not a working game.** The next high-priority blockers remain linking and executing full `G_RunFrame`, authentic archive/map load, native IW3 rendering and usercmd gameplay input.
