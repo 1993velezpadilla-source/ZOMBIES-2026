@@ -3,6 +3,7 @@
 #include <cerrno>
 #include <climits>
 #include <sys/types.h>
+#include <unistd.h>
 
 // Original FS_File* interface semantics used by KisakCOD's unzip.cpp:
 // 0=current, 1=end, 2=absolute beginning (not stdio's SEEK_* constants).
