@@ -1,0 +1,51 @@
+plugins {
+    id 'com.android.application'
+}
+
+// The Android application is only an instrumentation entry point into
+// ORIGINAL KisakCOD IW3 native C++. NO Godot, fake engine or game assets.
+def sourceDir = new File(rootProject.projectDir, 'build/generated/iw3-source')
+def originalHeaders = new File(rootProject.projectDir, '../../../third_party/KisakCOD/src/universal')
+android {
+    namespace 'org.z2026.iw3nativeprobe'
+    compileSdk 35
+    ndkVersion '27.2.12479018'
+
+    defaultConfig {
+        applicationId 'org.z2026.iw3nativeprobe'
+        minSdk 26
+        targetSdk 35
+        versionCode 1
+        versionName '0.1.0-native-jni-diagnostics'
+        ndk {
+            abiFilters 'arm64-v8a'
+        }
+        externalNativeBuild {
+            cmake {
+                arguments "-DIW3_EXTRACTED_MATH=${new File(sourceDir, 'com_math_anglevectors.cpp').absolutePath}",
+                          "-DIW3_EXTRACTED_SURFACE=${new File(sourceDir, 'surfaceflags.cpp').absolutePath}",
+                          "-DIW3_EXTRACTED_CONSTANTS=${new File(sourceDir, 'com_constantconfigstrings.cpp').absolutePath}",
+                          "-DIW3_REAL_HEADER_ROOT=${originalHeaders.absolutePath}"
+            }
+        }
+    }
+    buildTypes {
+        debug {
+            debuggable true
+            minifyEnabled false
+        }
+        release {
+            minifyEnabled false
+        }
+    }
+    externalNativeBuild {
+        cmake {
+            path file('../../CMakeLists.txt')
+            version '3.22.1'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
