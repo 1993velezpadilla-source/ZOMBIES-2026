@@ -99,7 +99,8 @@ jobs:
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-audio -no-boot-anim
           script: |
-            set -euo pipefail
+            # android-emulator-runner invokes /bin/sh, NOT bash.
+            set -eu
             adb wait-for-device
             adb install -r android/iw3-native/android_app/app/build/outputs/apk/debug/app-debug.apk
             adb logcat -c
