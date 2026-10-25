@@ -328,3 +328,10 @@ The Android platform boundary now compiles the authentic `usercmd_s` declaration
 The Android Activity queries the real `usercmd_s` fields after every Android MotionEvent. The emulator runner taps the attack zone using the actual screenshot dimensions and requires logcat evidence that `BUTTON_ATTACK` (bit 0 from the original header) reaches the command snapshot. The runtime evidence parser now rejects a touch test if this bit is missing.
 
 **Strict boundary:** this is a platform input adapter using the authentic command ABI; it is **not yet wired into original `CL_CreateCmd`, `SV_GetUsercmd`, `G_RunFrame`, or player simulation**. The emulator remains x86_64 and this is still diagnostic code. No map, renderer, ARM64-device gameplay, or playable APK is claimed. The next gate is to connect Android input to the original SP client/serverless frame path without bypassing real player movement, weapon, actor, and damage functions.
+
+
+### Phase C verification evidence (commit `00969eaa`)
+
+- [Native host + ARM64 source gate](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40225028631) — **SUCCESS**: 23 Python source/runtime-evidence tests; 8/8 host CTest tests; ASAN/UBSAN 8/8; original `G_RunFrame` archive audit and Android ARM64 ELF build passed.
+- [Signed Android ARM64 JNI package build](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40225028685) — **SUCCESS**: original KisakCOD source linked into a signed diagnostic APK. This is still not a game APK.
+- [Android emulator input-to-usercmd runtime check](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40225028656) — was still running when this note was written; do not count the runtime gate as passed until its log proves a real ADB attack touch sets original `BUTTON_ATTACK` in the `usercmd_s` snapshot.
