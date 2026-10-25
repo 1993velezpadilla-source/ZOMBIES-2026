@@ -24,6 +24,17 @@ IW3_ANDROID_EXPORT int z2026_platform_read_file(
 // descriptor is owned by the caller; it is opened beneath the retained root,
 // rejecting absolute paths, dot components and symlink traversal.
 IW3_ANDROID_EXPORT int z2026_platform_open_read_fd(const char *relative_path);
+ 
+// Original FS_BuildOSPath callers may supply an absolute path. This variant
+// accepts it only when it is beneath the canonical app-data root.
+IW3_ANDROID_EXPORT int z2026_platform_open_engine_path_fd(const char *path);
+
+// Enumerate regular *.iwd files directly inside a rooted directory. The
+// output is NUL-separated basenames (no partial writes); empty directory means
+// the root itself. Returns byte count, or -1 on error/capacity overflow.
+IW3_ANDROID_EXPORT int z2026_platform_list_iwd_files(
+    const char *directory, char *output, std::size_t output_capacity,
+    std::size_t *entry_count);
 IW3_ANDROID_EXPORT int z2026_platform_write_file(
     const char *relative_path, const void *source, std::size_t length);
 IW3_ANDROID_EXPORT int z2026_platform_unlink_file(const char *relative_path);
