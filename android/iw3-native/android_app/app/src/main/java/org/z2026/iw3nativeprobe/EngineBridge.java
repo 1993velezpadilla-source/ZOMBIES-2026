@@ -15,7 +15,7 @@ public final class EngineBridge {
     // Open an app-owned directory as the native IW3 file-data root.
     // This is a platform boundary only; actual IW3 fastfile parsing is pending.
     public static native int nativeSetDataRoot(String absolutePath);
-    public static native String nativeReport();
+    public static native String nativeReport(String writableDirectory);
     public static native int nativeTouch(int pointerId, float x, float y, boolean pressed);
     public static native int nativeTouchSnapshot(int pointerId, float[] coordinates);
     public static native void nativeTouchReset();
