@@ -36,8 +36,15 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Use hosted Ubuntu Android SDK (avoid obsolete 'tools' package)
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdk="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          test -x "$sdk/cmdline-tools/16.0/bin/sdkmanager" || command -v sdkmanager
+          echo "ANDROID_HOME=$sdk" >>"$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$sdk" >>"$GITHUB_ENV"
+          echo "$sdk/cmdline-tools/16.0/bin" >>"$GITHUB_PATH"
 
       - name: Install pinned Android SDK packages
         shell: bash
