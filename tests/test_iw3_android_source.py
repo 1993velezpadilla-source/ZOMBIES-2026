@@ -219,7 +219,7 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
             source)
         body = function_source(source, "void __cdecl CL_CreateCmd(usercmd_s *result)")
         call = "z2026_platform_apply_touch_to_usercmd(result, clients[0].viewangles);"
-        self.assertIn("#if defined(__ANDROID__)\\n        " + call + "\\n#endif", body)
+        self.assertIn("#if defined(__ANDROID__)\n        " + call + "\n#endif", body)
         self.assertLess(body.index(call), body.index("CL_FinishMove(result);"))
         platform = (ROOT / "android/iw3-native/iw3_android_platform.cpp").read_text(encoding="utf-8")
         bridge = function_source(platform, "extern \"C\" IW3_ANDROID_EXPORT void z2026_platform_apply_touch_to_usercmd(")
