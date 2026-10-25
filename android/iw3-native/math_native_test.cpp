@@ -6,6 +6,9 @@ extern "C" int z2026_iw3_math_source_abi_version();
 extern "C" void z2026_iw3_angle_vectors(
     const float *, float *, float *, float *);
 extern "C" int z2026_iw3_math_smoke();
+extern "C" int z2026_iw3_surface_type_from_name(const char*);
+extern "C" const char* z2026_iw3_surface_type_name(int);
+extern "C" int z2026_iw3_surface_smoke();
 
 static bool near(float a, float b) { return std::fabs(a-b) < 0.0002f; }
 
@@ -21,6 +24,10 @@ int main() {
     const float pitch[3] = {90, 0, 0};
     z2026_iw3_angle_vectors(pitch, f, r, u);
     assert(near(f[0], 0) && near(f[2], -1));
-    puts("IW3_REAL_AIM_MATH_HOST_TEST_GREEN");
+    assert(z2026_iw3_surface_smoke() == 1);
+    assert(z2026_iw3_surface_type_from_name("wood") == 21);
+    assert(z2026_iw3_surface_type_from_name("FoLiAgE") == 8);
+    assert(z2026_iw3_surface_type_name(20)[0] == \'w\');
+    puts("IW3_REAL_AIM_AND_SURFACE_HOST_TEST_GREEN");
     return 0;
 }
