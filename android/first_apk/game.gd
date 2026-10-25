@@ -245,7 +245,7 @@ func _layout_hud() -> void:
 	sprint_button.position = Vector2(s.x - button_size * 3.0, s.y - button_size * 0.78)
 	menu.size = s
 	menu.position = Vector2.ZERO
-	menu.get_child(0).size = s
+	(menu.get_child(0) as ColorRect).size = s
 	menu_title.size = Vector2(s.x, s.y * 0.55)
 	menu_title.position = Vector2(0, s.y * 0.11)
 	menu_button.size = Vector2(minf(s.x * 0.55, 420), clampf(s.y * 0.15, 75, 110))
@@ -336,7 +336,7 @@ func _spawn_zombie() -> void:
 	desired.x = clampf(desired.x, -12.2, 12.2)
 	desired.z = clampf(desired.z, -12.2, 12.2)
 	desired.y = 1.0
-	var zombie := CharacterBody3D.new()
+	var zombie = CharacterBody3D.new()
 	zombie.set_script(ZOMBIE_SCENE_SCRIPT)
 	zombie.configure(player, wave)
 	zombie.position = desired
