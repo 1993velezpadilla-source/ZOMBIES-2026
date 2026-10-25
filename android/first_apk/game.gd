@@ -51,6 +51,9 @@ var shoot_flash := 0.0
 var ambient_lamp: OmniLight3D
 
 func _ready() -> void:
+	# Android/Foldables: enforce landscape, not portrait letterboxing.
+	if OS.has_feature("mobile") and DisplayServer.has_feature(DisplayServer.FEATURE_ORIENTATION):
+		DisplayServer.screen_set_orientation(DisplayServer.SCREEN_SENSOR_LANDSCAPE)
 	randomize()
 	_build_world()
 	_build_player()
