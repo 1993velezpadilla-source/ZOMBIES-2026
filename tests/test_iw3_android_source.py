@@ -59,8 +59,8 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
             self.assertEqual(evidence["original_registry_rows"], 833)
             self.assertEqual(evidence["source_sha256"], hashlib.sha256(original).hexdigest())
             patched = out.read_text(encoding="utf-8")
-            expected = ('#include "iw3_android_surface_compat.h"\\n'
-                        '#include "com_constantconfigstrings.h"\\n')
+            expected = ('#include "iw3_android_surface_compat.h"\n'
+                        '#include "com_constantconfigstrings.h"\n')
             original_body = original.decode("utf-8")[len(CONSTANT_PROLOGUE):]
             original_body = original_body.replace('#include "q_shared.h"', '', 1)
             self.assertEqual(patched, expected + original_body)
