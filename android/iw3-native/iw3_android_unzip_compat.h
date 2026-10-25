@@ -10,7 +10,6 @@
 #define __cdecl
 #endif
 #include <zlib/zlib.h>
-#include "unzip.h"
 #include "com_fileaccess.h"
 
 // The original engine Com_Memcpy implementation is linked from com_shared.cpp.
