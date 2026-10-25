@@ -17,6 +17,7 @@ extern "C" int z2026_iw3_surface_smoke();
 extern "C" int z2026_iw3_configstrings_smoke();
 extern "C" int z2026_iw3_frame_memcpy_smoke();
 extern "C" int z2026_iw3_real_pool_smoke();
+extern "C" int z2026_iw3_hitloc_copy_smoke();
 extern "C" int z2026_iw3_configstring_num(const char*);
 extern "C" int z2026_iw3_math_source_abi_version();
 
@@ -50,6 +51,7 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(JNIEnv *env, jclass) {
     const int config_ok = z2026_iw3_configstrings_smoke();
     const int frame_copy_ok = z2026_iw3_frame_memcpy_smoke();
     const int pool_ok = z2026_iw3_real_pool_smoke();
+    const int hitloc_ok = z2026_iw3_hitloc_copy_smoke();
     // Real app-private Android filesystem I/O through the native POSIX
     // platform bridge. Sentinel only; this is NOT a game map/fastfile.
     constexpr char kProbe[] = "IW3_NATIVE_IO_2026";
@@ -68,7 +70,7 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(JNIEnv *env, jclass) {
                         file_ok ? "PASS" : "FAIL");
     const int perk_index = z2026_iw3_configstring_num("specialty_rof");
     const std::uint64_t monotonic_time = z2026_platform_monotonic_ns();
-    const int success = math_ok && surface_ok && config_ok && frame_copy_ok && pool_ok && file_ok &&
+    const int success = math_ok && surface_ok && config_ok && frame_copy_ok && pool_ok && hitloc_ok && file_ok &&
                         perk_index == 2034 && monotonic_time > 0;
     char report[640];
     std::snprintf(report, sizeof(report),
@@ -79,6 +81,7 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(JNIEnv *env, jclass) {
                   "Configstring registry: %s\n"
                   "Original G_RunFrame Com_Memcpy: %s\n"
                   "Real IW3 64-bit Pool_Alloc/Free: %s\n"
+                  "Real IW3 SP hit-location byte copy: %s\n"
                   "Android app-private data-root I/O: %s\n"
                   "Original specialty_rof ID: %d\n"
                   "Monotonic Android clock: %s\n"
@@ -91,6 +94,7 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(JNIEnv *env, jclass) {
                   config_ok ? "PASS" : "FAIL",
                   frame_copy_ok ? "PASS" : "FAIL",
                   pool_ok ? "PASS" : "FAIL",
+                  hitloc_ok ? "PASS" : "FAIL",
                   file_ok ? "PASS" : "FAIL",
                   perk_index, monotonic_time ? "PASS" : "FAIL",
                   z2026_iw3_math_source_abi_version());
