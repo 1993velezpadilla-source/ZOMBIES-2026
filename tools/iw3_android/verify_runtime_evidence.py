@@ -10,6 +10,7 @@ from pathlib import Path
 REQUIRED = (
     "IW3_JNI_LIFECYCLE_1",
     "IW3_JNI_DATA_ROOT_READY",
+    "IW3_JNI_UNZIP_PARSER_PASS",
     "IW3_JNI_SNAP_FLOAT_PASS",
     "IW3_JNI_IWD_NAMES_PASS",
     "IW3_JNI_SANDBOX_IO_PASS",
@@ -19,7 +20,8 @@ REQUIRED = (
 ERRORS = (
     "JNI_NATIVE_ENGINE_PROBE_FAIL", "IW3_JNI_ACTIVITY_FAILED",
     "IW3_JNI_ACTIVITY_STARTED FAIL", "IW3_JNI_DATA_ROOT_FAIL",
-    "IW3_JNI_SNAP_FLOAT_FAIL", "IW3_JNI_IWD_NAMES_FAIL", "IW3_JNI_SANDBOX_IO_FAIL",
+    "IW3_JNI_UNZIP_PARSER_FAIL", "IW3_JNI_SNAP_FLOAT_FAIL",
+    "IW3_JNI_IWD_NAMES_FAIL", "IW3_JNI_SANDBOX_IO_FAIL",
     "IW3_JNI_TOUCH_FAILED", "TOUCH_NATIVE_REJECTED",
     "JNI_RESUME_FAILED", "JNI_PAUSE_FAILED", "JNI_DESTROY_FAILED",
     "FATAL EXCEPTION", "Fatal signal", "ANR in org.z2026.iw3nativeprobe",
@@ -70,6 +72,7 @@ def verify(log: str) -> dict:
         raise ValueError("Native touch must return both DOWN and UP for the same pointer")
     return {
         "android_jni_components_executed": True,
+        "original_iw3_zip32_stored_and_deflate_parser_executed": True,
         "touch_down_and_up_read_back_from_native": True,
         "android_pause_and_resume_observed": True,
         "arm64_device_execution_proven": False,
