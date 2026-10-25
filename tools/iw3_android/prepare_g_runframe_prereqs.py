@@ -102,6 +102,33 @@ def function_source(source: str, signature: str) -> str:
     raise ValueError("Incomplete original C++ function body")
 
 
+# The C++ test builds this verbatim span from the real G_RunFrame source
+# with deliberately adversarial 64-bit entity sizes. This is an ABI-unit
+# fixture, NOT a replacement frame or Android playable runtime.
+ENTITY_LOOP_BEGIN = "                if (level.num_entities > 1)\\n"
+ENTITY_LOOP_LAST_LINE = "                    } while (level.currentIndex < level.num_entities);"
+
+
+def actual_entity_loop(engine_text: str) -> str:
+    frame = function_source(engine_text, FRAME_SIGNATURE)
+    # Prefix specifically selects the animation re-check pass, not any
+    # unrelated entity iteration across the rest of G_RunFrame.
+    if frame.count(ENTITY_LOOP_BEGIN) != 1:
+        raise ValueError("G_RunFrame native animation pass occurrence changed")
+    first = frame.index(ENTITY_LOOP_BEGIN)
+    stop = frame.index(ENTITY_LOOP_LAST_LINE, first)
+    tail = stop + len(ENTITY_LOOP_LAST_LINE)
+    after = frame[tail:]
+    if not after.startswith("\\n                }\\n            } while (checkAnimChange);"):
+        raise ValueError("Original SP animation-loop boundary changed")
+    out = frame[first:tail] + "\\n                }\\n"
+    if out.count("gentity_s *animEnt = &g_entities[1];") != 1:
+        raise ValueError("Typed engine entity loop missing")
+    if any(snippet in out for snippet in FRAME_LEGACY_ASSUMPTIONS):
+        raise ValueError("Legacy 32-bit field math detected in source loop")
+    return out
+
+
 def prepare(engine: Path, output: Path, report: Path) -> dict:
     engine = engine.resolve()
     com_path = engine / COM_SHARED
@@ -172,8 +199,18 @@ def main() -> None:
     ap.add_argument("--engine", type=Path, required=True)
     ap.add_argument("--output", type=Path, required=True)
     ap.add_argument("--report", type=Path, required=True)
+    ap.add_argument("--entity-loop-output", type=Path)
     args = ap.parse_args()
     data = prepare(args.engine, args.output, args.report)
+    if args.entity_loop_output:
+        if args.entity_loop_output.resolve() == (args.engine.resolve() / G_MAIN):
+            raise ValueError("Never overwrite actual SP frame source")
+        source = (args.engine / G_MAIN).read_text(encoding="utf-8")
+        loop = actual_entity_loop(source)
+        args.entity_loop_output.parent.mkdir(parents=True, exist_ok=True)
+        args.entity_loop_output.write_text(loop, encoding="utf-8")
+        print("IW3_SOURCE_EXACT_G_RUNFRAME_ENTITY_LOOP_EXTRACTED",
+              hashlib.sha256(loop.encode("utf-8")).hexdigest())
     print("IW3_REAL_G_RUNFRAME_PREREQUISITE_SOURCE_STAGED", json.dumps(data, sort_keys=True))
 
 
