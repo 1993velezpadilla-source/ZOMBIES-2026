@@ -230,6 +230,39 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
         self.assertIn("g_pending_pitch_degrees = 0.0f;", bridge)
         self.assertIn("g_pending_yaw_degrees = 0.0f;", bridge)
 
+    def test_original_iwd_mount_is_safe_for_native_pointer_width(self):
+        source_path = ENGINE / "src/universal/com_files.cpp"
+        source = source_path.read_text(encoding="utf-8")
+        load_zip = function_source(
+            source, "iwd_t *__cdecl FS_LoadZipFile(char *zipfile, char *basename)")
+        # Invalid/unreadable archives must not pass a null handle into the
+        # authentic ZIP parser; partially indexed archives must not be published.
+        self.assertIn("uf = unzOpen(zipfile);", load_zip)
+        self.assertIn("if (!uf)\n        return 0;", load_zip)
+        self.assertIn("if (unzGetGlobalInfo(uf, &gi))", load_zip)
+        self.assertIn("unzClose(uf);", load_zip)
+        self.assertIn("if (i != gi.number_entry)", load_zip)
+        self.assertIn("Z_Free(iwd, 3);", load_zip)
+        self.assertIn("Z_Free(buildBuffer, 3);", load_zip)
+
+        # searchpath_s contains three pointers plus four integers. Its
+        # historical 28-byte allocation is only valid for the original Win32 ABI.
+        add_iwd = function_source(
+            source, "void __cdecl FS_AddIwdFilesForGameDirectory(char *path, char *pszGameFolder)")
+        add_dir = function_source(source, "void __cdecl FS_AddGameDirectory(")
+        self.assertIn("Z_Malloc(sizeof(searchpath_s),", add_iwd)
+        self.assertIn("Z_Malloc(sizeof(searchpath_s),", add_dir)
+        self.assertNotIn('Z_Malloc(28, "FS_AddIwdFilesForGameDirectory"', source)
+        self.assertNotIn('Z_Malloc(28, "FS_AddGameDirectory"', source)
+
+        header = (ENGINE / "src/universal/com_files.h").read_text(encoding="utf-8")
+        self.assertIn("searchpath_s *next;", header)
+        self.assertIn("iwd_t *iwd;", header)
+        self.assertIn("directory_t *dir;", header)
+        # This is source portability hardening only; com_files.cpp and the
+        # complete search-path/gameplay runtime are not yet linked into Android.
+        self.assertTrue(source_path.is_file())
+
     def test_no_vendor_overwrite(self):
         with self.assertRaisesRegex(ValueError, "Refusing"):
             prepare(ENGINE, ENGINE / ENGINE_FILE)
