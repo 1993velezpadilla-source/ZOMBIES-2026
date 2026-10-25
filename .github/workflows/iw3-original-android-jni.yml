@@ -91,6 +91,10 @@ jobs:
             --engine third_party/KisakCOD \
             --output "$folder/iw3_iwd_names.cpp" \
             --report "$RUNNER_TEMP/iw3-original-iwd-names.json"
+          python3 tools/iw3_android/prepare_real_engine_unzip.py \
+            --engine third_party/KisakCOD \
+            --output "$folder/unzip.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-unzip-abi.json"
           echo 'IW3_REAL_SOURCE_DIAGNOSTIC_INCLUDES_ONLY'
 
       - name: Compile JNI Activity with real KisakCOD source for Android ARM64
@@ -132,7 +136,8 @@ jobs:
             z2026_iw3_frame_memcpy_smoke \
             z2026_iw3_real_pool_smoke \
             z2026_iw3_hitloc_copy_smoke \
-            z2026_iw3_iwd_names_smoke; do
+            z2026_iw3_iwd_names_smoke \
+            z2026_iw3_unzip_smoke; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-jni-symbols.txt" || exit 1
           done
           "$sdk/build-tools/35.0.1/apksigner" verify --verbose "$apk"
@@ -150,6 +155,7 @@ jobs:
             ${{ runner.temp }}/iw3-original-pool-allocator.json
             ${{ runner.temp }}/iw3-original-sp-hitloc.json
             ${{ runner.temp }}/iw3-original-iwd-names.json
+            ${{ runner.temp }}/iw3-original-unzip-abi.json
             ${{ runner.temp }}/iw3-jni-elf.txt
             ${{ runner.temp }}/iw3-jni-symbols.txt
             ${{ runner.temp }}/iw3-diagnostic-apk-sha256.txt
