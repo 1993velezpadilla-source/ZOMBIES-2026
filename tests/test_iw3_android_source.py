@@ -16,6 +16,12 @@ from tools.iw3_android.prepare_g_runframe_prereqs import (
     function_source, prepare as prepare_frame_prereq,
 )
 
+from tools.iw3_android.prepare_real_engine_pool import (
+    ENGINE_POOL, PROLOGUE as POOL_PROLOGUE, REQUIRED as POOL_REQUIRED,
+    NOT_ALLOWED as UNSAFE_POOL_POINTERS, PORTABLE as PORTABLE_POOL_MARKERS,
+    prepare as prepare_pool,
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 ENGINE = ROOT / "third_party/KisakCOD"
 
@@ -105,6 +111,29 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
                 prepare_frame_prereq(ENGINE, ENGINE / COM_SHARED, report_path)
         self.assertEqual((ENGINE / COM_SHARED).read_bytes(), com_original)
         self.assertEqual((ENGINE / G_MAIN).read_bytes(), sp_original)
+
+    def test_original_engine_pool_has_native_width_pointer_links(self):
+        path = ENGINE / ENGINE_POOL
+        source = path.read_bytes()
+        text = source.decode("utf-8")
+        self.assertTrue(text.startswith(POOL_PROLOGUE))
+        for marker in POOL_REQUIRED:
+            self.assertEqual(text.count(marker), 1)
+        for marker in PORTABLE_POOL_MARKERS:
+            self.assertIn(marker, text)
+        for unsafe in UNSAFE_POOL_POINTERS:
+            self.assertNotIn(unsafe, text)
+        with TemporaryDirectory() as temp:
+            out = Path(temp) / "port" / "pool_allocator.cpp"
+            evidence = prepare_pool(ENGINE, out)
+            self.assertEqual(evidence["source_sha256"], hashlib.sha256(source).hexdigest())
+            self.assertTrue(evidence["pointer_truncation_removed_from_actual_iw3_engine"])
+            self.assertFalse(evidence["sp_gameplay_frame_operational"])
+            expected = '#include "iw3_android_pool_compat.h"\n#include "pool_allocator.h"\n'
+            self.assertEqual(out.read_text(encoding="utf-8"), expected + text[len(POOL_PROLOGUE):])
+            with self.assertRaisesRegex(ValueError, "Cannot overwrite"):
+                prepare_pool(ENGINE, path)
+        self.assertEqual(path.read_bytes(), source)
 
     def test_no_vendor_overwrite(self):
         with self.assertRaisesRegex(ValueError, "Refusing"):
