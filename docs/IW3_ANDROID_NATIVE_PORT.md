@@ -384,8 +384,12 @@ A second platform primitive, `z2026_platform_list_iwd_files`, enumerates
 regular `.iwd` files in a root-confined directory, supports both rooted
 relative and `FS_BuildOSPath` absolute directory forms, filters symlink entries,
 sorts results deterministically, and rejects insufficient output buffers
-without partial results. The original ZIP32 parser smoke now creates a valid
-IWD-named fixture, discovers it via that listing primitive, then opens it
+without partial results. Root-directory scans use a fresh `openat(".", ...)`
+descriptor rather than `dup(rootFd)`, because duplicated directory descriptors
+share a stream offset and would make a second IWD scan appear empty. A host
+regression repeats the same root scan through relative and absolute paths.
+The original ZIP32 parser smoke now creates a valid IWD-named fixture, discovers
+it via that listing primitive, then opens it
 through the original `unzOpen` using both relative and absolute paths.
 
 Host regression coverage includes Windows-style separators, prefix attacks,
