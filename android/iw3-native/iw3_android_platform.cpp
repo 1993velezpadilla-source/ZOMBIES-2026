@@ -130,6 +130,36 @@ int open_beneath_root(int root, const char *path) {
     close(parent);
     return -1;
 }
+
+int open_parent_beneath_root(int root, const char *path, char leaf[256]) {
+    if (!valid_path(path) || !leaf) return -1;
+    const char *cursor = path;
+    int parent = dup(root);
+    if (parent < 0) return -1;
+    for (;;) {
+        const char *end = std::strchr(cursor, '/');
+        const std::size_t len = end
+            ? static_cast<std::size_t>(end - cursor) : std::strlen(cursor);
+        if (len == 0 || len > 255 ||
+            (len == 1 && cursor[0] == '.') ||
+            (len == 2 && cursor[0] == '.' && cursor[1] == '.')) {
+            close(parent);
+            return -1;
+        }
+        char component[256]{};
+        std::memcpy(component, cursor, len);
+        if (!end) {
+            std::memcpy(leaf, component, len + 1);
+            return parent;
+        }
+        const int next = openat(parent, component,
+            O_RDONLY | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW);
+        close(parent);
+        if (next < 0) return -1;
+        parent = next;
+        cursor = end + 1;
+    }
+}
 } // namespace
 
 extern "C" IW3_ANDROID_EXPORT std::uint64_t z2026_platform_monotonic_ns() {
@@ -176,6 +206,62 @@ extern "C" IW3_ANDROID_EXPORT int z2026_platform_read_file(
     }
     close(fd);
     return static_cast<int>(transferred);
+}
+
+
+extern "C" IW3_ANDROID_EXPORT int z2026_platform_open_read_fd(
+    const char *relative) {
+    if (!valid_path(relative)) return -1;
+    std::lock_guard<std::mutex> lock(g_data_mutex);
+    if (g_data_root_fd < 0) return -1;
+    return open_beneath_root(g_data_root_fd, relative);
+}
+
+extern "C" IW3_ANDROID_EXPORT int z2026_platform_write_file(
+    const char *relative, const void *source, std::size_t length) {
+    if (!valid_path(relative) || (!source && length) ||
+        length > static_cast<std::size_t>(std::numeric_limits<int>::max())) return -1;
+    std::lock_guard<std::mutex> lock(g_data_mutex);
+    if (g_data_root_fd < 0) return -1;
+    char leaf[256]{};
+    const int parent = open_parent_beneath_root(g_data_root_fd, relative, leaf);
+    if (parent < 0) return -1;
+    const int fd = openat(parent, leaf,
+        O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC | O_NOFOLLOW, 0600);
+    if (fd < 0) { close(parent); return -1; }
+    struct stat st{};
+    if (fstat(fd, &st) != 0 || !S_ISREG(st.st_mode)) {
+        close(fd); close(parent); return -1;
+    }
+    std::size_t written = 0;
+    while (written < length) {
+        const ssize_t n = ::write(fd,
+            static_cast<const unsigned char *>(source) + written, length - written);
+        if (n < 0 && errno == EINTR) continue;
+        if (n <= 0) {
+            close(fd);
+            unlinkat(parent, leaf, 0);
+            close(parent);
+            return -1;
+        }
+        written += static_cast<std::size_t>(n);
+    }
+    const int close_result = close(fd);
+    close(parent);
+    return close_result == 0 ? static_cast<int>(written) : -1;
+}
+
+extern "C" IW3_ANDROID_EXPORT int z2026_platform_unlink_file(
+    const char *relative) {
+    if (!valid_path(relative)) return -1;
+    std::lock_guard<std::mutex> lock(g_data_mutex);
+    if (g_data_root_fd < 0) return -1;
+    char leaf[256]{};
+    const int parent = open_parent_beneath_root(g_data_root_fd, relative, leaf);
+    if (parent < 0) return -1;
+    const int rc = unlinkat(parent, leaf, 0);
+    close(parent);
+    return rc;
 }
 
 extern "C" IW3_ANDROID_EXPORT int z2026_platform_touch_event(
