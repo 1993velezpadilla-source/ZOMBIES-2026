@@ -77,8 +77,14 @@ int main() {
     assert(iwd_name_bytes == static_cast<int>(sizeof("generated.iwd")));
     assert(iwd_count == 1 && std::strcmp(iwd_names, "generated.iwd") == 0);
     std::size_t absolute_iwd_count = 0;
-    assert(z2026_platform_list_iwd_files(root, iwd_names, sizeof(iwd_names),
-                                         &absolute_iwd_count) == iwd_name_bytes);
+    const int absolute_iwd_name_bytes = z2026_platform_list_iwd_files(
+        root, iwd_names, sizeof(iwd_names), &absolute_iwd_count);
+    if (absolute_iwd_name_bytes != iwd_name_bytes) {
+        std::fprintf(stderr, "IWD_LIST_ROOT_DEBUG root='%s' bytes=%d expected=%d count=%zu name='%s'\\n",
+                     root, absolute_iwd_name_bytes, iwd_name_bytes,
+                     absolute_iwd_count, iwd_names);
+    }
+    assert(absolute_iwd_name_bytes == iwd_name_bytes);
     assert(absolute_iwd_count == 1 && std::strcmp(iwd_names, "generated.iwd") == 0);
     std::size_t overflow_count = 99;
     assert(z2026_platform_list_iwd_files("", iwd_names, 2, &overflow_count) == -1);
