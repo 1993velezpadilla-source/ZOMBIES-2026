@@ -37,6 +37,8 @@ struct Touch {
 std::array<Touch, 10> g_touches{};
 float g_view_yaw_degrees = 0.0f;
 float g_view_pitch_degrees = 0.0f;
+float g_pending_yaw_degrees = 0.0f;
+float g_pending_pitch_degrees = 0.0f;
 
 TouchRole classify_touch(float x, float y) {
     if (x >= 0.82f && y >= 0.76f) return TouchRole::Attack;
@@ -52,11 +54,16 @@ TouchRole classify_touch(float x, float y) {
 
 void update_touch_position(Touch &touch, float x, float y) {
     if (touch.role == TouchRole::Look) {
+        const float yaw_delta = (x - touch.previous_x) * 240.0f;
+        const float pitch_delta = (y - touch.previous_y) * 180.0f;
         g_view_yaw_degrees = std::remainder(
-            g_view_yaw_degrees + (x - touch.previous_x) * 240.0f, 360.0f);
+            g_view_yaw_degrees + yaw_delta, 360.0f);
         g_view_pitch_degrees = std::clamp(
-            g_view_pitch_degrees + (y - touch.previous_y) * 180.0f,
-            -89.0f, 89.0f);
+            g_view_pitch_degrees + pitch_delta, -89.0f, 89.0f);
+        // Keep frame deltas separate from diagnostic absolute angles. The
+        // original CL_CreateCmd consumes each delta exactly once per command.
+        g_pending_yaw_degrees += yaw_delta;
+        g_pending_pitch_degrees += pitch_delta;
     }
     touch.previous_x = x;
     touch.previous_y = y;
@@ -212,6 +219,8 @@ extern "C" IW3_ANDROID_EXPORT void z2026_platform_touch_reset() {
     g_touches.fill(Touch{});
     g_view_yaw_degrees = 0.0f;
     g_view_pitch_degrees = 0.0f;
+    g_pending_yaw_degrees = 0.0f;
+    g_pending_pitch_degrees = 0.0f;
 }
 
 extern "C" IW3_ANDROID_EXPORT int z2026_platform_usercmd_snapshot(
@@ -256,4 +265,56 @@ extern "C" IW3_ANDROID_EXPORT int z2026_platform_usercmd_snapshot(
     fields[8] = static_cast<int>(static_cast<signed char>(command.pitchmove));
     fields[9] = static_cast<int>(static_cast<signed char>(command.yawmove));
     return 0;
+}
+
+extern "C" IW3_ANDROID_EXPORT void z2026_platform_apply_touch_to_usercmd(
+    usercmd_s *command, float *viewangles) {
+    if (!command || !viewangles) return;
+    std::lock_guard<std::mutex> lock(g_touch_mutex);
+
+    // A touch-look delta is applied once to the original client viewangles;
+    // CL_FinishMove then encodes these into the real IW3 usercmd_s.
+    const float pitch_delta = std::clamp(g_pending_pitch_degrees, -90.0f, 90.0f);
+    const float yaw_delta = std::remainder(g_pending_yaw_degrees, 360.0f);
+    viewangles[0] = std::clamp(viewangles[0] + pitch_delta, -89.0f, 89.0f);
+    viewangles[1] = std::remainder(viewangles[1] + yaw_delta, 360.0f);
+    g_pending_pitch_degrees = 0.0f;
+    g_pending_yaw_degrees = 0.0f;
+
+    bool movement_claimed = false;
+    bool want_crouch = false;
+    bool want_prone = false;
+    for (const Touch &touch : g_touches) {
+        if (!touch.down) continue;
+        switch (touch.role) {
+        case TouchRole::Move:
+            if (!movement_claimed) {
+                const int forward = move_axis(touch.origin_y - touch.y);
+                const int right = move_axis(touch.x - touch.origin_x);
+                const int current_forward = static_cast<signed char>(command->forwardmove);
+                const int current_right = static_cast<signed char>(command->rightmove);
+                command->forwardmove = static_cast<char>(std::clamp(current_forward + forward, -127, 127));
+                command->rightmove = static_cast<char>(std::clamp(current_right + right, -127, 127));
+                movement_claimed = true;
+            }
+            break;
+        case TouchRole::Attack: command->buttons |= BUTTON_ATTACK; break;
+        case TouchRole::Ads: command->buttons |= BUTTON_ADS; break;
+        case TouchRole::Jump: command->buttons |= BUTTON_JUMP; break;
+        case TouchRole::Reload: command->buttons |= BUTTON_RELOAD; break;
+        case TouchRole::Use: command->buttons |= BUTTON_USE; break;
+        case TouchRole::Melee: command->buttons |= BUTTON_MELEE; break;
+        case TouchRole::Crouch: want_crouch = true; break;
+        case TouchRole::Prone: want_prone = true; break;
+        case TouchRole::None:
+        case TouchRole::Look: break;
+        }
+    }
+    if (want_prone) {
+        command->buttons |= BUTTON_PRONE;
+        command->buttons &= ~BUTTON_CROUCH;
+    } else if (want_crouch) {
+        command->buttons |= BUTTON_CROUCH;
+        command->buttons &= ~BUTTON_PRONE;
+    }
 }
