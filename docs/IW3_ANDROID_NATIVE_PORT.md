@@ -316,6 +316,6 @@ JNI diagnostic runs the same native parser smoke in app-private cache and
 requires an explicit `IW3_JNI_UNZIP_PARSER_PASS` log marker. This fixture is
 test data only, not a game asset.
 
-**Host build + CTest + ASAN/UBSAN passed** in [run 40222518391](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40222518391); it includes the new archive-reader test. The exact ARM64 link and Android emulator runtime gates must also pass before calling this phase fully green.
+**Host build + CTest + ASAN/UBSAN passed (8/8 CTest cases), and the ARM64 ELF64/AArch64 native library linked** in [run 40222518391](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40222518391); it includes the new archive-reader test. The packaged JNI APK's archive smoke and Android emulator execution are still being verified separately.
 
 Strict limit: this is still an isolated archive-parser dependency, not the engine's `FS_LoadZipFile` search-path system. Fastfile/IWD search-path initialization, actual map loading, native renderer, linked SP frame services, touchscreen-to-`usercmd` mapping and gameplay remain unimplemented. The JNI APK remains diagnostic only.
