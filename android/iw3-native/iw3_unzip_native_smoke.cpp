@@ -126,27 +126,57 @@ extern "C" IW3_UNZIP_EXPORT int z2026_iw3_unzip_smoke(const char *directory) {
     if (!make_zip(archiveBytes, entries)) return 0;
     char path[96]{};
     const int pathLength = std::snprintf(path, sizeof(path),
-        "iw3-unzip-smoke-%ld.zip", static_cast<long>(::getpid()));
+        "iw3-unzip-smoke-%ld.iwd", static_cast<long>(::getpid()));
     if (pathLength <= 0 || static_cast<std::size_t>(pathLength) >= sizeof(path)) return 0;
 
-    // The original ZIP parser must resolve its archive through the same
-    // root-confined file-open boundary used for future real IWD packages.
+    // The archive fixture uses the real IWD extension. Verify that the rooted
+    // discovery API sees it and that original unzOpen accepts both the
+    // relative probe path and an absolute FS_BuildOSPath-style path beneath
+    // the canonical app-data root.
     if (z2026_platform_write_file(path, archiveBytes.data(), archiveBytes.size()) !=
         static_cast<int>(archiveBytes.size())) return 0;
-
-    bool ok = false;
-    unzFile parsed = unzOpen(path);
-    if (parsed) {
-        unz_global_info global{};
-        ok = unzGetGlobalInfo(parsed, &global) == UNZ_OK &&
-             global.number_entry == entries.size() &&
-             unzGoToFirstFile(parsed) == UNZ_OK &&
-             read_current(parsed, entries[0]) &&
-             unzGoToNextFile(parsed) == UNZ_OK &&
-             read_current(parsed, entries[1]) &&
-             unzGoToNextFile(parsed) == UNZ_END_OF_LIST_OF_FILE;
-        if (unzClose(parsed) != UNZ_OK) ok = false;
+    std::vector<char> names(65536);
+    std::size_t name_count = 0;
+    const int names_bytes = z2026_platform_list_iwd_files(
+        "", names.data(), names.size(), &name_count);
+    bool discovered = false;
+    if (names_bytes >= 0) {
+        std::size_t offset = 0;
+        while (offset < static_cast<std::size_t>(names_bytes)) {
+            const char *name = names.data() + offset;
+            if (std::strcmp(name, path) == 0) discovered = true;
+            offset += std::strlen(name) + 1;
+        }
     }
+    char absolute_path[1024]{};
+    const int absolute_length = std::snprintf(
+        absolute_path, sizeof(absolute_path), "%s/%s", directory, path);
+    if (absolute_length <= 0 ||
+        static_cast<std::size_t>(absolute_length) >= sizeof(absolute_path)) {
+        z2026_platform_unlink_file(path);
+        return 0;
+    }
+
+    auto parse_original_iwd = [&](const char *archive_path) {
+        bool ok = false;
+        unzFile parsed = unzOpen(archive_path);
+        if (parsed) {
+            unz_global_info global{};
+            ok = unzGetGlobalInfo(parsed, &global) == UNZ_OK &&
+                 global.number_entry == entries.size() &&
+                 unzGoToFirstFile(parsed) == UNZ_OK &&
+                 read_current(parsed, entries[0]) &&
+                 unzGoToNextFile(parsed) == UNZ_OK &&
+                 read_current(parsed, entries[1]) &&
+                 unzGoToNextFile(parsed) == UNZ_END_OF_LIST_OF_FILE;
+            if (unzClose(parsed) != UNZ_OK) ok = false;
+        }
+        return ok;
+    };
+    const bool relative_parse_ok = parse_original_iwd(path);
+    const bool absolute_parse_ok = parse_original_iwd(absolute_path);
+    bool ok = discovered && name_count >= 1 &&
+              relative_parse_ok && absolute_parse_ok;
     if (z2026_platform_unlink_file(path) != 0) ok = false;
     return ok ? 1 : 0;
 }
