@@ -242,3 +242,13 @@ The native source staging script extracts the exact corrected original SP functi
 - [Android x86_64 emulator 40210343051](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40210343051): **GREEN**, original engine JNI probe, app-private native file-root I/O, traversal rejection and touchscreen event logged PASS.
 
 **All three are component/infrastructure proofs, not a working game.** The next high-priority blockers remain linking and executing full `G_RunFrame`, authentic archive/map load, native IW3 rendering and usercmd gameplay input.
+
+## Phase E — Authentic IW3 IWD filename lookup staged for Android (25 Oct 2026)
+
+**Blocker addressed:** The game cannot find `.iwd` archive members without reproducing its *real* filename lookup semantics. Rather than inventing a replacement archive index, the Android native module now compiles **verbatim** `FS_HashFileName`, `FS_FilenameCompare`, and `FS_ConvertPath` from the vendored original `src/universal/com_files.cpp`, plus the original `I_islower` from `src/universal/q_shared.cpp`. `tools/iw3_android/prepare_real_engine_iwd_names.py` extracts those exact bodies to a disposable translation unit, records source/function SHA-256 and rejects unexpected engine changes. It never modifies the original files.
+
+`android/iw3-native/iwd_names_native_test.cpp` tests real map, script and weapon paths, mixed case, Windows/Unix separators, original archive hash values, equality/inequality and `FS_ConvertPath`. The same engine functions are linked into the ARM64 library and the Android JNI diagnostic `z2026_iw3_iwd_names_smoke`; emulator evidence now **requires** `IW3_JNI_IWD_NAMES_PASS`. The native CMake target fails closed if the staged original source is absent.
+
+**Verification status:** CI was dispatched by the code commits; do not mark GREEN until [native ARM64 workflow](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/workflows/iw3-original-native-android.yml), [JNI ARM64 APK workflow](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/workflows/iw3-original-android-jni.yml) and [emulator runtime workflow](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/workflows/iw3-original-android-emulator-jni.yml) actually complete successfully at the relevant SHA.
+
+**Still missing:** actual `FS_*` IWD ZIP archive opening, archive member streaming, fastfile (`.ff`) loading, IW3 map/BSP load, full single-player `G_RunFrame`, renderer, touch-to-`usercmd` and gameplay. The signed Android JNI APK is **not playable**. This phase only ports original archive filename hashing/normalization; it does not claim game content is mounted or rendered.
