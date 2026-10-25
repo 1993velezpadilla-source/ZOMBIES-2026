@@ -34,6 +34,17 @@ runtime, so local leak detection was disabled; the CI sanitizer step enables
 it. Android ARM64 compilation and emulator results for this change must be
 checked on its exact pushed commit before calling those gates passed.
 
+CI on commit `844c1d1` confirmed the six native tests, ASAN/UBSAN with
+leak detection enabled, Android AArch64 ELF and signed ARM64 JNI package.
+The stricter emulator test correctly failed because no touch DOWN/UP was
+observed, despite successful JNI/component execution. The follow-up wakes
+and unlocks the emulator, locates the real visible TextView through Android
+UI hierarchy, injects a real ADB touchscreen tap at its center, and captures
+screenshots/window state even on failure. The readback requirement remains
+strict. The Windows build exposed a `min/max` macro collision in the new
+header; parenthesized numeric-limit calls and a macro-enabled host compile
+regression correct that issue. Both checks must pass on the follow-up commit.
+
 **Full-game blocker remains:** after removing the intrinsic-header error,
 a real `g_main.cpp` compilation now stops on `gfx_d3d/r_gfx.h` requiring
 `d3d9.h`, reached through client/actor headers. Full original `G_RunFrame`

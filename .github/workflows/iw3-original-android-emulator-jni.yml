@@ -111,30 +111,7 @@ jobs:
           force-avd-creation: false
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-audio -no-boot-anim
-          script: |
-            # android-emulator-runner invokes /bin/sh, NOT bash.
-            set -eu
-            adb wait-for-device
-            adb install -r android/iw3-native/android_app/app/build/outputs/apk/debug/app-debug.apk
-            adb logcat -c
-            adb shell am start -W -n org.z2026.iw3nativeprobe/.MainActivity
-            sleep 7
-            adb logcat -d -s IW3NativeGate:I AndroidRuntime:E DEBUG:E '*:S' | tee "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
-            grep -F 'JNI_NATIVE_ENGINE_PROBE_PASS' "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
-            grep -F 'IW3_JNI_SANDBOX_IO_PASS' "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
-            grep -F 'IW3_JNI_ACTIVITY_STARTED PASS' "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
-            adb shell input tap 420 320
-            sleep 2
-            adb logcat -d -s IW3NativeGate:I AndroidRuntime:E DEBUG:E '*:S' | tee "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
-            adb shell input keyevent 3
-            sleep 2
-            adb shell am start -W -n org.z2026.iw3nativeprobe/.MainActivity
-            sleep 2
-            adb logcat -d -s IW3NativeGate:I AndroidRuntime:E DEBUG:E '*:S' | tee "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
-            python3 tools/iw3_android/verify_runtime_evidence.py "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
-            echo 'IW3_ORIGINAL_CPP_EXECUTED_INSIDE_ANDROID_EMULATOR_GREEN'
-            # This confirms engine COMPONENT methods in Android, NOT a
-            # complete IW3 game engine or rendering gameplay.
+          script: bash tools/iw3_android/run_emulator_probe.sh
 
       - name: Upload real Android execution log, never claim ARM64 device gameplay
         if: always()
@@ -143,6 +120,7 @@ jobs:
           name: IW3-native-original-Cpp-Android-emulator-JNI-log-NOT-GAME
           path: |
             ${{ runner.temp }}/iw3-emulator-native-logcat.txt
+            ${{ runner.temp }}/iw3-android-runtime-proof/
             ${{ runner.temp }}/iw3-on-android-source-evidence.json
             ${{ runner.temp }}/iw3-original-g-runframe-audit.json
             ${{ runner.temp }}/iw3-original-pool-allocator.json

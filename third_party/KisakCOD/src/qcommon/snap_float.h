@@ -26,11 +26,11 @@ inline int SnapFloatToIntPortable(float value)
     // Check in double precision before converting, avoiding undefined C++
     // float-to-int behavior at +2^31 (INT_MAX rounds up when stored as float).
     if (!std::isfinite(rounded) ||
-        rounded < static_cast<double>(std::numeric_limits<int>::min()) ||
-        rounded > static_cast<double>(std::numeric_limits<int>::max()))
+        rounded < static_cast<double>((std::numeric_limits<int>::min)()) ||
+        rounded > static_cast<double>((std::numeric_limits<int>::max)()))
     {
         std::feraiseexcept(FE_INVALID);
-        return std::numeric_limits<int>::min();
+        return (std::numeric_limits<int>::min)();
     }
     return static_cast<int>(rounded);
 }

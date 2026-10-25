@@ -1,8 +1,21 @@
-#include "../qcommon/snap_float.h"
 #include <array>
 #include <bit>
 #include <cassert>
 #include <cstdio>
+#include <cfenv>
+#include <cmath>
+#include <cstdint>
+#include <limits>
+#if defined(_M_IX86) || defined(_M_X64) || defined(__i386__) || defined(__x86_64__)
+#include <xmmintrin.h>
+#endif
+// Reproduce Win32's function-like macros before including the actual
+// engine header. Native Android compilation alone missed this regression.
+#define min(a, b) (((a) < (b)) ? (a) : (b))
+#define max(a, b) (((a) > (b)) ? (a) : (b))
+#include "../qcommon/snap_float.h"
+#undef min
+#undef max
 
 extern "C" int z2026_iw3_snap_float_smoke();
 extern "C" int z2026_iw3_snap_float_to_int(float);
