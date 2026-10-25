@@ -58,6 +58,25 @@ class OriginalIW3UnzipPortTests(unittest.TestCase):
         self.assertEqual(source_path.read_bytes(), source_bytes)
         self.assertEqual(header_path.read_bytes(), header_bytes)
 
+    def test_original_zip_reader_uses_root_confined_android_file_handles(self):
+        adapter = (ROOT / "android/iw3-native/iw3_android_unzip_io.cpp").read_text(encoding="utf-8")
+        smoke = (ROOT / "android/iw3-native/iw3_unzip_native_smoke.cpp").read_text(encoding="utf-8")
+        platform = (ROOT / "android/iw3-native/iw3_android_platform.cpp").read_text(encoding="utf-8")
+        platform_test = (ROOT / "android/iw3-native/platform_native_test.cpp").read_text(encoding="utf-8")
+        activity = (ROOT / "android/iw3-native/android_app/app/src/main/java/org/z2026/iw3nativeprobe/MainActivity.java").read_text(encoding="utf-8")
+        self.assertIn("z2026_platform_open_read_fd(filename)", adapter)
+        self.assertNotIn("std::fopen(filename", adapter)
+        self.assertIn("z2026_platform_set_data_root(directory)", smoke)
+        self.assertIn("z2026_platform_write_file(path", smoke)
+        self.assertIn("unzOpen(path)", smoke)
+        self.assertIn("z2026_platform_unlink_file(path)", smoke)
+        self.assertIn("O_NOFOLLOW", platform)
+        self.assertIn("open_beneath_root(g_data_root_fd, relative)", platform)
+        self.assertIn('z2026_platform_open_read_fd("../sample.txt") == -1', platform_test)
+        self.assertIn('z2026_platform_write_file("../escape.bin", "bad", 3) == -1', platform_test)
+        self.assertIn('z2026_platform_write_file("outside", "bad", 3) == -1', platform_test)
+        self.assertIn("nativeReport(getFilesDir().getAbsolutePath())", activity)
+
     def test_native_and_android_builds_require_real_parser(self):
         cmake = (ROOT / "android/iw3-native/CMakeLists.txt").read_text(encoding="utf-8")
         gradle = (ROOT / "android/iw3-native/android_app/app/build.gradle").read_text(encoding="utf-8")
