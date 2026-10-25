@@ -3,6 +3,7 @@
 #include <cstddef>
 #include "iw3_android_surface_compat.h"
 #include "surfaceflags.h"
+#include "com_constantconfigstrings.h"
 
 #if defined(_WIN32)
 #error "This project is for Android NDK and portable host math tests only"
@@ -54,4 +55,24 @@ extern "C" Z2026_NATIVE_EXPORT int z2026_iw3_surface_smoke() {
            z2026_iw3_surface_type_from_name("foliage") == 8 &&
            z2026_iw3_surface_type_from_name("invalid-type") == -1 &&
            z2026_iw3_surface_type_from_name("default") == 0;
+}
+
+extern "C" Z2026_NATIVE_EXPORT void z2026_iw3_configstrings_initialize() {
+    // Calls KisakCOD's authentic registry init, not an emulator.
+    CCS_InitConstantConfigStrings();
+}
+
+extern "C" Z2026_NATIVE_EXPORT int z2026_iw3_configstring_num(const char* name) {
+    if (name == nullptr) return -1;
+    const int index = CCS_GetConstConfigStringIndex(name);
+    if (index < 0) return -1;
+    return CCS_GetConfigStringNumForConstIndex(static_cast<std::uint32_t>(index));
+}
+
+extern "C" Z2026_NATIVE_EXPORT int z2026_iw3_configstrings_smoke() {
+    z2026_iw3_configstrings_initialize();
+    return z2026_iw3_configstring_num("bg_aimSpreadMoveSpeedThreshold") == 20 &&
+           z2026_iw3_configstring_num("specialty_rof") == 2034 &&
+           z2026_iw3_configstring_num("SPECIALTY_ROF") == 2034 &&
+           z2026_iw3_configstring_num("__not_a_valid_IW3_config__") == -1;
 }
