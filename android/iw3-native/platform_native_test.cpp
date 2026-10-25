@@ -60,6 +60,11 @@ int main() {
     assert(z2026_platform_open_engine_path_fd("/etc/passwd") == -1);
     const std::string prefix_attack = std::string(root) + "-sibling/sample.txt";
     assert(z2026_platform_open_engine_path_fd(prefix_attack.c_str()) == -1);
+    const std::string windows_engine_path = std::string(root) + "\\sample.txt";
+    int windows_path_fd = z2026_platform_open_engine_path_fd(windows_engine_path.c_str());
+    assert(windows_path_fd >= 0);
+    close(windows_path_fd);
+    assert(z2026_platform_open_engine_path_fd("main\\..\\sample.txt") == -1);
     assert(z2026_platform_write_file("../escape.bin", "bad", 3) == -1);
     assert(z2026_platform_write_file("/absolute.bin", "bad", 3) == -1);
     assert(z2026_platform_write_file("generated.iwd", "IWD", 3) == 3);
@@ -104,6 +109,15 @@ int main() {
         "main", iwd_names, sizeof(iwd_names), &nested_iwd_count);
     assert(nested_iwd_bytes == static_cast<int>(sizeof("native-test.iwd")));
     assert(nested_iwd_count == 1 && std::strcmp(iwd_names, "native-test.iwd") == 0);
+    const std::string windows_nested = std::string(root) + "\\main\\native-test.iwd";
+    int windows_nested_fd = z2026_platform_open_engine_path_fd(windows_nested.c_str());
+    assert(windows_nested_fd >= 0);
+    close(windows_nested_fd);
+    std::size_t windows_list_count = 0;
+    assert(z2026_platform_list_iwd_files(
+        (std::string(root) + "\\main").c_str(), iwd_names, sizeof(iwd_names),
+        &windows_list_count) == nested_iwd_bytes);
+    assert(windows_list_count == 1 && std::strcmp(iwd_names, "native-test.iwd") == 0);
     assert(z2026_platform_read_file("main/../sample.txt", buffer, sizeof(buffer)) == -1);
     const std::string linked_dir = std::string(root) + "/linked-main";
     assert(symlink(main_dir.c_str(), linked_dir.c_str()) == 0);
