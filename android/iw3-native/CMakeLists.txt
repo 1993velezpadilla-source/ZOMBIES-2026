@@ -45,6 +45,11 @@ target_link_options(iw3_sp_math PRIVATE
     -Wl,--no-undefined
 )
 if(ANDROID)
+    # Java Activity JNI entry points are tied directly to the authentic
+    # IW3 native C++ library; not a gameplay stand-in or second engine.
+    target_sources(iw3_sp_math PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_jni.cpp")
+    target_link_libraries(iw3_sp_math PRIVATE log)
     if(NOT ANDROID_ABI STREQUAL "arm64-v8a")
         message(FATAL_ERROR "Only real Android arm64-v8a accepted in this gate")
     endif()
