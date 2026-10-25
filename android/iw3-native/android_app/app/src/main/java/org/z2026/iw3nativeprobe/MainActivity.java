@@ -26,6 +26,10 @@ public final class MainActivity extends Activity {
         label.setTextSize(17);
         label.setPadding(32, 25, 32, 25);
         label.setBackgroundColor(Color.rgb(10, 18, 28));
+        // The TextView occupies the whole screen and can consume touches.
+        // Bind touch directly on that actual view, rather than relying on
+        // Activity.onTouchEvent to receive unhandled events.
+        label.setOnTouchListener((view, motion) -> onTouchEvent(motion));
         setContentView(label);
         try {
             EngineBridge.nativeLifecycle(1);
