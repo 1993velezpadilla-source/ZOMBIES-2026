@@ -398,8 +398,17 @@ single-entry results, repeated scans and buffer-overflow rejection. CI on
 commit `500df941` reports **8/8 CTest passed**, including the original ZIP32
 reader and portable platform tests, followed by **ASAN/UBSAN GREEN**:
 [host/ARM64 port workflow](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40240635779).
-The Android ARM64 JNI package and x86_64 emulator runs for this same source
-revision are still in progress; they are diagnostic gates, not gameplay proof.
+The same source revision also passed the Android ARM64 JNI package gate:
+AArch64/ELF64, exported JNI symbols and v2 APK signature verified in
+[JNI build run 40240635788](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40240635788)
+(artifact `12616977484`). The x86_64 Android emulator then passed the actual
+Activity/JNI smoke in [runtime run 40240635813](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40240635813)
+(artifact `12616297536`): the original parser opened the IWD-named fixture by
+relative and absolute rooted paths, discovered it through the new directory
+listing API, observed touch DOWN/UP and an attack bit in the original
+`usercmd_s`, and passed pause/resume. The verifier explicitly records
+`arm64_device_execution_proven: false` and `gameplay_proven: false`; these
+remain diagnostic gates, not gameplay proof.
 
 **This is not yet the original search-path mount.** `FS_AddIwdFilesForGameDirectory`
 and `FS_LoadZipFile` from `universal/com_files.cpp` are still not part of the
