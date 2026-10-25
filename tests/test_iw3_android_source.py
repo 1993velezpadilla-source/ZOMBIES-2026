@@ -10,6 +10,12 @@ from tools.iw3_android.prepare_real_engine_math import (
     CONSTANT_FILE, CONSTANT_PROLOGUE, prepare_constants
 )
 
+from tools.iw3_android.prepare_g_runframe_prereqs import (
+    COM_SHARED, G_MAIN, MEMCPY_SIGNATURE, FRAME_SIGNATURE,
+    FRAME_LEGACY_ASSUMPTIONS, IMPORTANT_CALLS,
+    function_source, prepare as prepare_frame_prereq,
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 ENGINE = ROOT / "third_party/KisakCOD"
 
@@ -67,6 +73,33 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "Refusing"):
                 prepare_constants(ENGINE, ENGINE / CONSTANT_FILE)
         self.assertEqual((ENGINE / CONSTANT_FILE).read_bytes(), original)
+
+    def test_original_sp_runframe_prereq_and_32bit_blockers(self):
+        com_original = (ENGINE / COM_SHARED).read_bytes()
+        sp_original = (ENGINE / G_MAIN).read_bytes()
+        frame = function_source(sp_original.decode("utf-8"), FRAME_SIGNATURE)
+        self.assertGreater(frame.count("\n"), 200)
+        for marker in FRAME_LEGACY_ASSUMPTIONS:
+            self.assertIn(marker, frame)
+        for call in IMPORTANT_CALLS:
+            self.assertIn(call, frame)
+        with TemporaryDirectory() as temp:
+            out = Path(temp) / "stage" / "iw3_frame_memcpy.cpp"
+            report_path = Path(temp) / "evidence.json"
+            report = prepare_frame_prereq(ENGINE, out, report_path)
+            self.assertFalse(report["g_runframe_compiled_on_android"])
+            self.assertFalse(report["iw3_game_apk_available"])
+            self.assertTrue(report["original_memcpy_function_preserved_exactly"])
+            body = function_source(com_original.decode("utf-8"), MEMCPY_SIGNATURE)
+            self.assertEqual(out.read_text(encoding="utf-8"),
+                             '#include "iw3_android_frame_compat.h"\n' + body + "\n")
+            self.assertEqual(report["original_memcpy_source_sha256"],
+                             hashlib.sha256(body.encode("utf-8")).hexdigest())
+            self.assertTrue(report_path.is_file())
+            with self.assertRaisesRegex(ValueError, "Never overwrite"):
+                prepare_frame_prereq(ENGINE, ENGINE / COM_SHARED, report_path)
+        self.assertEqual((ENGINE / COM_SHARED).read_bytes(), com_original)
+        self.assertEqual((ENGINE / G_MAIN).read_bytes(), sp_original)
 
     def test_no_vendor_overwrite(self):
         with self.assertRaisesRegex(ValueError, "Refusing"):
