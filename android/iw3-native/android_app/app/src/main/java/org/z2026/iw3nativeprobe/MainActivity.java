@@ -6,6 +6,9 @@ import android.graphics.Color;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.widget.TextView;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Strict on-device native C++ integration diagnostic.
@@ -33,6 +36,16 @@ public final class MainActivity extends Activity {
         setContentView(label);
         try {
             EngineBridge.nativeLifecycle(1);
+            // Diagnostic sentinel, NOT a fake COD asset. The actual JNI
+            // module opens this through its sandboxed POSIX data-root bridge.
+            File probe = new File(getFilesDir(), "iw3-native-io-probe.bin");
+            try (FileOutputStream output = new FileOutputStream(probe, false)) {
+                output.write("IW3_NATIVE_IO_2026".getBytes(StandardCharsets.US_ASCII));
+                output.getFD().sync();
+            }
+            if (EngineBridge.nativeSetDataRoot(getFilesDir().getAbsolutePath()) != 0) {
+                throw new IllegalStateException("Native IW3 data root initialization failed");
+            }
             String report = EngineBridge.nativeReport();
             label.setText(report + "\n\nTOUCH TEST: TAP THIS SCREEN");
             Log.i(TAG, "IW3_JNI_ACTIVITY_STARTED " +
