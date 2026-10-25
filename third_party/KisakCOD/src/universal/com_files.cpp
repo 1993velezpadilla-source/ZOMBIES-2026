@@ -1356,11 +1356,24 @@ iwd_t *__cdecl FS_LoadZipFile(char *zipfile, char *basename)
 
     fs_numHeaderLongs = 0;
     uf = unzOpen(zipfile);
-    if (unzGetGlobalInfo(uf, &gi))
+    // Invalid or inaccessible IWDs are normal during directory scans. The
+    // original Win32 code dereferenced a null unz handle here; fail closed
+    // before asking the ZIP reader for its directory metadata.
+    if (!uf)
         return 0;
-    fs_iwdFileCount += gi.number_entry;
+    if (unzGetGlobalInfo(uf, &gi))
+    {
+        unzClose(uf);
+        return 0;
+    }
+    if (gi.number_entry && unzGoToFirstFile(uf) != UNZ_OK)
+    {
+        unzClose(uf);
+        return 0;
+    }
     len = 0;
-    unzGoToFirstFile(uf);
+    if (gi.number_entry)
+        unzGoToFirstFile(uf);
     for (i = 0; i < gi.number_entry && !unzGetCurrentFileInfo(uf, &file_info, filename_inzip, 0x100u, 0, 0, 0, 0); ++i)
     {
         len += &filename_inzip[strlen(filename_inzip) + 1] - &filename_inzip[1] + 1;
@@ -1408,6 +1421,17 @@ iwd_t *__cdecl FS_LoadZipFile(char *zipfile, char *basename)
         iwd->hashTable[hash] = &buildBuffer[i];
         unzGoToNextFile(uf);
     }
+    // A corrupt/truncated central directory must not publish an index whose
+    // numfiles claims entries that were never initialized.
+    if (i != gi.number_entry)
+    {
+        Z_Free(fs_headerLongs, 3);
+        Z_Free(iwd, 3);
+        Z_Free(buildBuffer, 3);
+        unzClose(uf);
+        return 0;
+    }
+    fs_iwdFileCount += gi.number_entry;
     iwd->checksum = Com_BlockChecksumKey32((const unsigned char *)fs_headerLongs, 4 * fs_numHeaderLongs, 0);
     if (fs_checksumFeed)
         iwd->pure_checksum = Com_BlockChecksumKey32((const unsigned char*)fs_headerLongs, 4 * fs_numHeaderLongs, fs_checksumFeed);
@@ -1597,7 +1621,7 @@ void __cdecl FS_AddIwdFilesForGameDirectory(char *path, char *pszGameFolder)
                 v4 = *v6;
                 *iwdGamename++ = *v6++;
             } while (v4);
-            search = (searchpath_s *)Z_Malloc(28, "FS_AddIwdFilesForGameDirectory", 3);
+            search = (searchpath_s *)Z_Malloc(sizeof(searchpath_s), "FS_AddIwdFilesForGameDirectory", 3);
             search->iwd = ZipFile;
             search->bLocalized = v10;
             search->language = piLanguageIndex;
@@ -1692,7 +1716,7 @@ void __cdecl FS_AddGameDirectory(char *path, char *dir, int bLanguageDirectory, 
     {
         I_strncpyz(fs_gamedir, szGameFolder, 256);
     }
-    search = (searchpath_s *)Z_Malloc(28, "FS_AddGameDirectory", 3);
+    search = (searchpath_s *)Z_Malloc(sizeof(searchpath_s), "FS_AddGameDirectory", 3);
     v4 = (uint32_t*)Z_Malloc(512, "FS_AddGameDirectory", 3);
     search->dir = (directory_t *)v4;
     I_strncpyz(search->dir->path, path, 256);
