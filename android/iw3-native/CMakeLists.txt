@@ -49,5 +49,8 @@ else()
     add_executable(iw3_math_host_test
         "${CMAKE_CURRENT_SOURCE_DIR}/math_native_test.cpp")
     target_link_libraries(iw3_math_host_test PRIVATE iw3_sp_math)
+    # CMake Release normally defines NDEBUG; keep C++ assert() ACTIVE in
+    # this verification executable, otherwise ctest yields a false-green.
+    target_compile_options(iw3_math_host_test PRIVATE -UNDEBUG)
     add_test(NAME iw3_real_math COMMAND iw3_math_host_test)
 endif()
