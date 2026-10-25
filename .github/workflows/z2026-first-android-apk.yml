@@ -139,6 +139,17 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging "$APK" >"$RUNNER_TEMP/z2026-badging.txt"
           grep -F "package: name='org.zombies2026.firstapk'" "$RUNNER_TEMP/z2026-badging.txt"
           grep -F 'arm64-v8a' "$RUNNER_TEMP/z2026-badging.txt"
+          # Regression guard for user screenshot: portrait letterbox was
+          # caused by project.godot orientation=1 (SCREEN_PORTRAIT).
+          # Godot SCREEN_SENSOR_LANDSCAPE=4 -> Android manifest value 6.
+          "$ANDROID_HOME/build-tools/35.0.1/aapt" dump xmltree "$APK" AndroidManifest.xml \
+            >"$RUNNER_TEMP/z2026-android-manifest.txt"
+          orientation="$(grep 'android:screenOrientation' "$RUNNER_TEMP/z2026-android-manifest.txt" | head -1 || true)"
+          echo "ANDROID_ORIENTATION_MANIFEST: $orientation"
+          echo "$orientation" | grep -Eq '0x00000006' || {
+            echo 'FAIL: APK is not forced to sensor landscape (Android code 6).' >&2
+            exit 1
+          }
           "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify --verbose "$APK"
           sha256sum "$APK" | tee "$RUNNER_TEMP/z2026-first-apk.sha256"
           ls -lh "$APK"
@@ -157,11 +168,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          tag='z2026-first-android-apk-v0.1.0'
+          tag='z2026-first-android-apk-v0.1.1'
           if ! gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release create "$tag" "$APK" --repo "$GITHUB_REPOSITORY" \
               --target "$GITHUB_SHA" \
-              --title 'ZOMBIES-2026 first Android APK (Godot original prototype)' \
-              --notes 'First signed Android ARM64 debug APK: original 3D offline FPS room, touch controls, waves, procedural zombies and test weapon. This is NOT an IW3 native Android port, not COD4, and ships NO proprietary COD models/maps/sounds. Not a production release. Requires landscape Android device.'
+              --title 'ZOMBIES-2026 v0.1.1 — landscape Android (Godot prototype)' \
+              --notes 'Landscape Android orientation fix for Pixel Fold and all supported ARM64 phones, expand aspect HUD. Original Godot 4.6 FPS vertical slice with original basic scenery, enemies, touch controls and waves. NOT an IW3 native Android port. No proprietary COD assets. Debug test APK.'
           fi
           gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json url,name,assets
