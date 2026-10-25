@@ -335,3 +335,15 @@ The Android Activity queries the real `usercmd_s` fields after every Android Mot
 - [Native host + ARM64 source gate](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40225028631) — **SUCCESS**: 23 Python source/runtime-evidence tests; 8/8 host CTest tests; ASAN/UBSAN 8/8; original `G_RunFrame` archive audit and Android ARM64 ELF build passed.
 - [Signed Android ARM64 JNI package build](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40225028685) — **SUCCESS**: original KisakCOD source linked into a signed diagnostic APK. This is still not a game APK.
 - [Android emulator input-to-usercmd runtime check](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40225028656) — was still running when this note was written; do not count the runtime gate as passed until its log proves a real ADB attack touch sets original `BUTTON_ATTACK` in the `usercmd_s` snapshot.
+
+
+## Phase D — Android touch merge into the original client command path
+
+The platform adapter previously produced a diagnostic snapshot of usercmd_s; the original client never consumed it. The genuine src/client/cl_input.cpp::CL_CreateCmd source now has an Android-only call to z2026_platform_apply_touch_to_usercmd(result, clients[0].viewangles) after the existing keyboard/mouse command collection and before the original CL_FinishMove(result). Windows input remains unchanged.
+
+The new platform function mutates the actual usercmd_s fields from qcommon/msg.h: combines movement with saturating signed-char arithmetic, maps attack/ADS/jump/reload/use/melee/crouch/prone to the original BUTTON_* values, and applies accumulated look deltas to the original client viewangles exactly once before CL_FinishMove packs the angles. Crouch/prone are made mutually exclusive, with prone taking precedence. Touch state remains synchronized and resets pending deltas on lifecycle reset.
+
+Host regression tests now exercise this actual struct mutation (movement + attack + look), verify that a second frame does not reapply the same look delta, and verify attack release. A source-structure test requires the call to exist inside the original CL_CreateCmd and before CL_FinishMove.
+
+**Important boundary:** this is a source-level integration and a compiled/tested platform bridge. The current Android CMake target still does not compile/link the original client/cl_input.cpp, whose remaining Win32/D3D/UI dependencies must be ported. Therefore the Android JNI APK still cannot exercise this hook in the real client, and no playable APK or in-game touch control is claimed. Next: split/port the client input TU's platform dependencies, link the original client command generation with the serverless/local SP frame, then bootstrap real game data and port the renderer.
+
