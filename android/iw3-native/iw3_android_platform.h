@@ -30,7 +30,8 @@ IW3_ANDROID_EXPORT void z2026_platform_touch_reset();
 
 // fields[10] = serverTime, buttons, packed pitch/yaw/roll angles, then
 // forward/right/up/pitch/yaw movement. Uses authentic qcommon/msg.h usercmd_s.
-// This adapter is not yet consumed by CL_CreateCmd or the game frame.
+// Diagnostic snapshot only; the original client source also has an Android-only
+// apply hook, but cl_input.cpp is not yet part of the Android shared-library target.
 IW3_ANDROID_EXPORT int z2026_platform_usercmd_snapshot(
     int server_time, int *fields, std::size_t field_count);
 
