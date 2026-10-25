@@ -1,6 +1,7 @@
 // C ABI for exercising REAL KisakCOD AngleVectors from Android arm64.
 #include <cmath>
 #include <cstddef>
+#include <cstring>
 #include "iw3_android_surface_compat.h"
 #include "surfaceflags.h"
 #include "com_constantconfigstrings.h"
@@ -75,4 +76,31 @@ extern "C" Z2026_NATIVE_EXPORT int z2026_iw3_configstrings_smoke() {
            z2026_iw3_configstring_num("specialty_rof") == 2034 &&
            z2026_iw3_configstring_num("SPECIALTY_ROF") == 2034 &&
            z2026_iw3_configstring_num("__not_a_valid_IW3_config__") == -1;
+}
+
+// Authentic IW3 Single-Player G_RunFrame prerequisite:
+// Source is extracted without modification from com_shared.cpp's Com_Memcpy.
+void Com_Memcpy(void *dest_p, const void *src_p, const std::size_t count);
+
+extern "C" Z2026_NATIVE_EXPORT int z2026_iw3_frame_memcpy_smoke() {
+    // The actual G_RunFrame copies 12 * pendingTriggerListSize bytes.
+    // Verify that boundary calculation against real original Com_Memcpy.
+    constexpr std::size_t trigger_stride = 12;
+    constexpr std::size_t trigger_count = 4;
+    unsigned char src[trigger_stride * trigger_count] {};
+    unsigned char dst[trigger_stride * trigger_count + 2] {};
+    for (std::size_t i = 0; i < sizeof(src); ++i) {
+        src[i] = static_cast<unsigned char>(i ^ 0xA5);
+    }
+    dst[0] = 0xCD;
+    dst[sizeof(dst) - 1] = 0xEF;
+    Com_Memcpy(dst + 1, src, trigger_stride * trigger_count);
+    if (dst[0] != 0xCD || dst[sizeof(dst) - 1] != 0xEF)
+        return 0;
+    if (std::memcmp(dst + 1, src, sizeof(src)) != 0)
+        return 0;
+    const unsigned char sentinel = 0x42;
+    unsigned char dest = sentinel;
+    Com_Memcpy(&dest, src, 0);
+    return dest == sentinel;
 }
