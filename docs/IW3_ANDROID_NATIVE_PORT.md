@@ -180,7 +180,7 @@ replace the IW3 engine with a different engine while reporting progress.
 **New Android/POSIX platform boundary (native C++, not an alternative engine):**
 - `z2026_platform_monotonic_ns()`: `CLOCK_MONOTONIC` nanoseconds, verified advancing in a real host run.
 - `z2026_platform_set_data_root()` / `z2026_platform_read_file()`: descriptor-rooted sandbox reads with `openat`, `O_NOFOLLOW`, safe relative paths, symlink/traversal and truncation rejection. Test uses only generated text under a temporary private directory.
-- `z2026_platform_touch_event()`, `touch_snapshot()`, `touch_reset()`: bounded multi-touch input state with validation, thread synchronization and native ABI symbols. **No gameplay usercmd or Android Activity event forwarding yet**.
+- `z2026_platform_touch_event()`, `touch_snapshot()`, and `touch_reset()` track bounded multi-touch state. The Activity now forwards MotionEvents into an adapter that fills the original `usercmd_s` layout; connecting those commands to `CL_CreateCmd` and player simulation remains pending.
 
 The compiled `libiw3_sp_math.so` now contains three **real KisakCOD engine source files** plus these native platform services. It has an Android arm64 ELF architecture and Android bionic link validation, **but the tests actually EXECUTED on the Linux host, not on an Android device**.
 
@@ -264,7 +264,7 @@ Strict limits remain: no full `G_RunFrame` linked or executed on Android, no gen
 
 The Android `MainActivity` now initializes the **native C++ platform file root** with `getFilesDir()` before calling the real-engine JNI smoke. The `nativeSetDataRoot` JNI method uses the existing `z2026_platform_set_data_root` descriptor-based POSIX adapter; `nativeReport` verifies actual file contents through `z2026_platform_read_file`. This is a necessary bridge for eventual IW3 map and fastfile access. A tiny explicitly diagnostic sentinel (`iw3-native-io-probe.bin`) is used **only for I/O verification**, not a fake map or game asset. Negative probes reject `../` traversal and too-small output buffers. The emulator CI now fails unless `IW3_JNI_SANDBOX_IO_PASS` is logged. Host CI additionally verifies `main/native-test.iwd` nested path access and rejects directory symlinks; the host test uses synthetic bytes strictly for sandbox behavior, not IW3 asset parsing.
 
-**Not yet implemented:** mounting/loading actual IW3 IWD/FF archives through `FS_*`, building a 3D renderer, running the real single-player `G_RunFrame`, mapping touch into authentic `usercmd`, or an Android ARM64 playable zombies APK. The Activity remains explicitly diagnostic; it is not a game or a substitute engine. Do not treat CI passing these gates as proof of gameplay.
+**Not yet implemented:** mounting/loading actual IW3 IWD/FF archives through `FS_*`, building a 3D renderer, running the real single-player `G_RunFrame`, wiring the touch-to-`usercmd_s` adapter into `CL_CreateCmd` and player simulation, or an Android ARM64 playable zombies APK. The Activity remains explicitly diagnostic; it is not a game or a substitute engine. Do not treat CI passing these gates as proof of gameplay.
 
 ## Phase D — authentic IW3 SP combat hit-location pointer fix: verified
 
@@ -277,7 +277,7 @@ The native source staging script extracts the exact corrected original SP functi
 - [ARM64 JNI diagnostic build 40210356891](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40210356891): **GREEN**, signed diagnostic APK contains real IW3 native modules and JNI data-root entrypoint.
 - [Android x86_64 emulator 40210343051](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40210343051): **GREEN**, original engine JNI probe, app-private native file-root I/O, traversal rejection and touchscreen event logged PASS.
 
-**All three are component/infrastructure proofs, not a working game.** The next high-priority blockers remain linking and executing full `G_RunFrame`, authentic archive/map load, native IW3 rendering and usercmd gameplay input.
+**All three are component/infrastructure proofs, not a working game.** The next high-priority blockers remain linking and executing full `G_RunFrame`, authentic archive/map loading, native IW3 rendering, and wiring the usercmd adapter into real player gameplay.
 
 ## Phase E — Authentic IW3 IWD filename lookup staged for Android (25 Oct 2026)
 
@@ -287,7 +287,7 @@ The native source staging script extracts the exact corrected original SP functi
 
 **Verification status — native host + ARM64 GREEN:** [GitHub Actions 40212690694](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40212690694) completed **SUCCESS** at source SHA `91a7df2316bb4c65a25f5bd40b39caba42d0a552`. Both Release and ASAN/UBSAN host configurations passed **7/7 CTest**, including original IW3 archive-name routines; the ELF64 AArch64 native library linked with the original code and exported `z2026_iw3_iwd_names_smoke`. **This does not establish Android device runtime or APK gameplay.** The [JNI ARM64 APK workflow](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40212690774) and [Android emulator runtime workflow](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40212690668) must complete independently before their respective gates can be called GREEN.
 
-**Still missing:** actual `FS_*` IWD ZIP archive opening, archive member streaming, fastfile (`.ff`) loading, IW3 map/BSP load, full single-player `G_RunFrame`, renderer, touch-to-`usercmd` and gameplay. The signed Android JNI APK is **not playable**. This phase only ports original archive filename hashing/normalization; it does not claim game content is mounted or rendered.
+**Still missing:** actual `FS_*` IWD ZIP archive opening, archive member streaming, fastfile (`.ff`) loading, IW3 map/BSP load, full single-player `G_RunFrame`, renderer, and wiring touch-derived `usercmd_s` into actual gameplay. The signed Android JNI APK is **not playable**. This phase only ports original archive filename hashing/normalization; it does not claim game content is mounted or rendered.
 
 ## Phase C — authentic ZIP32/IWD archive reader on 64-bit (25 Oct 2026)
 
@@ -318,7 +318,7 @@ test data only, not a game asset.
 
 **Host build + CTest + ASAN/UBSAN passed (8/8 CTest cases), and the ARM64 ELF64/AArch64 native library linked** in [run 40222518391](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40222518391); it includes the new archive-reader test. The ARM64 JNI diagnostic APK package/signature and symbol checks passed in [run 40222518411](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40222518411). The actual archive-parser smoke then **executed successfully inside an Android x86_64 emulator**, with explicit `IW3_JNI_UNZIP_PARSER_PASS`, Activity lifecycle and touch readback evidence in [run 40222518427](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40222518427). This is not ARM64 physical-device gameplay and none of these artifacts is a playable game.
 
-Strict limit: this is still an isolated archive-parser dependency, not the engine's `FS_LoadZipFile` search-path system. Fastfile/IWD search-path initialization, actual map loading, native renderer, linked SP frame services, touchscreen-to-`usercmd` mapping and gameplay remain unimplemented. The JNI APK remains diagnostic only.
+Strict limit: this is still an isolated archive-parser dependency, not the engine's `FS_LoadZipFile` search-path system. Fastfile/IWD search-path initialization, actual map loading, native renderer, linked SP frame services, and consumption of the touch-derived `usercmd_s` by gameplay remain unimplemented. The JNI APK remains diagnostic only.
 
 
 ## Phase C — Android touch mapped to original IW3 SP usercmd layout
