@@ -26,6 +26,9 @@ endif()
 if(NOT IW3_EXTRACTED_POOL OR NOT EXISTS "${IW3_EXTRACTED_POOL}")
     message(FATAL_ERROR "Authentic IW3 64-bit-safe pool allocator source required")
 endif()
+if(NOT IW3_EXTRACTED_HITLOC OR NOT EXISTS "${IW3_EXTRACTED_HITLOC}")
+    message(FATAL_ERROR "Authentic IW3 SP 64-bit-safe hit-location source required")
+endif()
 if(NOT EXISTS "${IW3_REAL_HEADER_ROOT}/pool_allocator.h")
     message(FATAL_ERROR "Authentic original IW3 pool declarations required")
 endif()
@@ -39,6 +42,7 @@ add_library(iw3_sp_math SHARED
     "${IW3_EXTRACTED_CONSTANTS}"
     "${IW3_EXTRACTED_FRAME_MEMCPY}"
     "${IW3_EXTRACTED_POOL}"
+    "${IW3_EXTRACTED_HITLOC}"
     "${CMAKE_CURRENT_SOURCE_DIR}/native_math_abi.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_platform.cpp"
 )
@@ -89,6 +93,14 @@ else()
     target_compile_options(iw3_real_pool_host_test PRIVATE -UNDEBUG)
     target_link_libraries(iw3_real_pool_host_test PRIVATE iw3_sp_math)
     add_test(NAME iw3_original_engine_pool_allocator_64bit COMMAND iw3_real_pool_host_test)
+    add_executable(iw3_real_hitloc_host_test
+        "${CMAKE_CURRENT_SOURCE_DIR}/hitloc_native_test.cpp"
+        "${IW3_EXTRACTED_HITLOC}")
+    target_include_directories(iw3_real_hitloc_host_test PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}")
+    target_compile_options(iw3_real_hitloc_host_test PRIVATE -UNDEBUG)
+    target_link_libraries(iw3_real_hitloc_host_test PRIVATE iw3_sp_math)
+    add_test(NAME iw3_original_sp_hitloc_copy_64bit COMMAND iw3_real_hitloc_host_test)
     add_executable(iw3_platform_host_test
         "${CMAKE_CURRENT_SOURCE_DIR}/platform_native_test.cpp")
     target_compile_options(iw3_platform_host_test PRIVATE -UNDEBUG)
