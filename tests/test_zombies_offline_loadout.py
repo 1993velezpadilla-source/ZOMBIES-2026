@@ -14,7 +14,7 @@ VENDORED = ROOT / "third_party/KisakCOD"
 
 class SPTestLoadoutTests(unittest.TestCase):
     def _clone_minimum(self, root):
-        for name in FILES.values():
+        for name in set(FILES.values()) | {Path("src/game/g_main.cpp")}:
             dest = root / name
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(VENDORED / name, dest)

@@ -14,7 +14,7 @@ FILES = {
     "weapon": Path("src/game/g_weapon.cpp"),
     "actor": Path("src/game/actor.cpp"),
     "combat": Path("src/game/g_combat.cpp"),
-    "main": Path("src/game/g_main.cpp"),
+    "main": Path("src/game/g_runframe.cpp"),
 }
 WEAPON = "void __cdecl FireWeapon("
 BULLET = "            Bullet_Fire(ent, fAimSpreadAmount, &wp, ent, gametime);"
@@ -123,6 +123,8 @@ def prepare(source_root: Path) -> dict:
     # Note: source_root is a disposable copy. No repository source is changed.
     for key, text in output.items():
         path = source_root / FILES[key]
+        if key == "main":
+            text = "#include <game/g_local.h>\n" + text
         if key != "main":
             text = "#include <cstdio>\n" + HELPER + "\n" + text
         path.write_text(text, encoding="utf-8")

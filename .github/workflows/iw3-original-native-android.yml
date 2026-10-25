@@ -153,6 +153,20 @@ jobs:
           # engine source C++ module ported and linked into a native .so.
           echo "IW3_ORIGINAL_SOURCE_ANDROID_ARM64_ELF_GREEN"
 
+      - name: Verify COMPLETE original IW3 frame compiled with real ARM64 state headers
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          python3 tools/iw3_android/verify_frame_archive.py \
+            --archive "$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_frame.a" \
+            --source third_party/KisakCOD/src/game/g_runframe.cpp \
+            --build "$RUNNER_TEMP/iw3-build-arm64" \
+            --nm "$ndk/llvm-nm" --readelf "$ndk/llvm-readelf" \
+            --machine AArch64 --report "$RUNNER_TEMP/iw3-complete-frame-arm64.json"
+          # The actual service references stay unresolved in this archive.
+          # No frame execution, linked Android runtime or gameplay is claimed.
+
       - name: Cross-compile ACTUAL G_RunFrame typed entity code with Android ARM64 ABI
         shell: bash
         run: |
@@ -177,6 +191,8 @@ jobs:
           name: z2026-iw3-real-math-arm64-phase-a-NOT-APK
           path: |
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_math.so
+            ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_frame.a
+            ${{ runner.temp }}/iw3-complete-frame-arm64.json
             ${{ runner.temp }}/iw3-native-source.json
             ${{ runner.temp }}/iw3-original-g-runframe-audit.json
             ${{ runner.temp }}/iw3-original-pool-allocator.json

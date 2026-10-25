@@ -1,5 +1,41 @@
 # IW3 native Android port — engineering gates
 
+## Complete original SP frame separated from Windows graphics
+
+The complete original `G_RunFrame` moved from `game/g_main.cpp` into
+`game/g_runframe.cpp`, selected by the real Windows SP build as well as the
+native Android CMake target. `game/g_level.h` shares the original state
+fields with bootstrap; `server/server_frame.h` shares its enum. There are
+no alternate entities, simulated frame, no-op gameplay callbacks or fake
+renderer. All original frame phases and call order are preserved. The only
+new body corrections convert two classname string IDs through the original
+`SL_ConvertToString` instead of interpreting small integers as addresses.
+The preservation test verifies the entire 303-line pre-move function hash
+with those two corrections normalized back.
+
+Original pointer-bearing types now have explicit 32/64-bit layout checks
+(`SpawnVar`, parser state, string table, entity handles). Fixed-layout wire
+and trigger checks remain active. Standard alignment replaces MSVC-only
+syntax for the types reached by the frame, retaining Win32 alignment and
+respecting native pointer/long-double requirements. GCC and Clang compiled
+the full frame against these **actual** engine declarations without Win32,
+Miles or Direct3D headers. Compiler dependency files and actual archive
+symbols are audited; original gameplay service references remain unresolved
+and are listed explicitly. No callback implementations are invented to make
+the frame link or appear to run.
+
+`libiw3_sp_frame.a` is a compiled engine module, **not linked into the JNI
+APK** and not a playable engine. Source-only verification cannot mark its
+Android compilation as passed; the ARM64 ELF/symbol/dependency audit must
+finish on the pushed commit. Windows SP build and real original SP runtime
+checks also run to protect the refactor. Temporary instrumentation follows
+the new frame file and still calls the original weapon/actor APIs.
+
+Local validation: complete frame compiles with GCC 13 and Clang 18;
+59 Python tests and 7 existing native CTest checks. CI results are pending
+until the actual runs finish. Next: resolve the actual remaining services,
+bootstrap/data loading and native renderer, then observe gameplay on ARM64.
+
 ## Current verification pass — native rounding and physics pool integration
 
 The actual `qcommon.h` unconditionally included Intel SSE and MSVC intrinsics.
@@ -47,12 +83,12 @@ The Windows build exposed a `min/max` macro collision in the new
 header; parenthesized numeric-limit calls and a macro-enabled host compile
 regression correct that issue. Both checks must pass on the follow-up commit.
 
-**Full-game blocker remains:** after removing the intrinsic-header error,
-a real `g_main.cpp` compilation now stops on `gfx_d3d/r_gfx.h` requiring
-`d3d9.h`, reached through client/actor headers. Full original `G_RunFrame`
-is still not compiled/linked. Decoupling those shared headers from D3D types,
-then real SP runtime and renderer integration, is required; no map rendering
-or playable APK is established by the component tests above.
+**Full-game blocker now:** the frame is a portable source module, but its
+original script, actor/entity-update and client services still need native
+Android linkage and execution. The bootstrap `g_main.cpp` and graphics/data
+systems retain Windows dependencies. Map loading and the real renderer are
+still required before gameplay is possible. Compiling the frame archive is
+not evidence of a running Android game.
 
 **Objective:** actual **KisakCOD IW3 Single-Player C++ source** running on
 Android ARM64, not a replacement Godot game, PC emulator, Android shell,

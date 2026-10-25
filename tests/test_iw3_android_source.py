@@ -11,7 +11,7 @@ from tools.iw3_android.prepare_real_engine_math import (
 )
 
 from tools.iw3_android.prepare_g_runframe_prereqs import (
-    COM_SHARED, G_MAIN, MEMCPY_SIGNATURE, FRAME_SIGNATURE,
+    COM_SHARED, G_FRAME, MEMCPY_SIGNATURE, FRAME_SIGNATURE,
     FRAME_LEGACY_ASSUMPTIONS, FRAME_TYPED_PORTABILITY_MARKERS, IMPORTANT_CALLS,
     function_source, prepare as prepare_frame_prereq,
 )
@@ -94,7 +94,7 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
 
     def test_original_sp_runframe_prereq_and_32bit_blockers(self):
         com_original = (ENGINE / COM_SHARED).read_bytes()
-        sp_original = (ENGINE / G_MAIN).read_bytes()
+        sp_original = (ENGINE / G_FRAME).read_bytes()
         frame = function_source(sp_original.decode("utf-8"), FRAME_SIGNATURE)
         self.assertGreater(frame.count("\n"), 200)
         for marker in FRAME_LEGACY_ASSUMPTIONS:
@@ -107,7 +107,7 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
             out = Path(temp) / "stage" / "iw3_frame_memcpy.cpp"
             report_path = Path(temp) / "evidence.json"
             report = prepare_frame_prereq(ENGINE, out, report_path)
-            self.assertFalse(report["g_runframe_compiled_on_android"])
+            self.assertIsNone(report["g_runframe_compiled_on_android"])
             self.assertFalse(report["iw3_game_apk_available"])
             self.assertTrue(report["original_memcpy_function_preserved_exactly"])
             self.assertTrue(report["frame_animation_loop_uses_typed_entity_fields"])
@@ -122,7 +122,22 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "Never overwrite"):
                 prepare_frame_prereq(ENGINE, ENGINE / COM_SHARED, report_path)
         self.assertEqual((ENGINE / COM_SHARED).read_bytes(), com_original)
-        self.assertEqual((ENGINE / G_MAIN).read_bytes(), sp_original)
+        self.assertEqual((ENGINE / G_FRAME).read_bytes(), sp_original)
+
+    def test_complete_original_frame_is_a_real_portable_engine_module(self):
+        source = (ENGINE / G_FRAME).read_text(encoding='utf-8')
+        frame = function_source(source, FRAME_SIGNATURE)
+        # The moved algorithm is the accepted original frame at 5197a09,
+        # with only the two invalid classname-ID casts corrected to the
+        # engine's real string lookup. No shortened or stand-in frame.
+        original = frame.replace('SL_ConvertToString(i->classname)', '(const char *)i->classname')
+        original = original.replace('SL_ConvertToString(m->classname)', '(const char *)m->classname')
+        self.assertEqual(hashlib.sha256(original.encode()).hexdigest(),
+                         '4574a36a187560c11b394564c9be97608befe4923d9f85ef2287ffa8bcefe9bb')
+        bootstrap = (ENGINE / 'src/game/g_main.cpp').read_text(encoding='utf-8')
+        self.assertNotIn(FRAME_SIGNATURE, bootstrap)
+        self.assertIn('${SRC_DIR}/game/g_runframe.cpp',
+                      (ENGINE / 'scripts/sp/sp_files.cmake').read_text(encoding='utf-8'))
 
     def test_original_engine_pool_has_native_width_pointer_links(self):
         path = ENGINE / ENGINE_POOL

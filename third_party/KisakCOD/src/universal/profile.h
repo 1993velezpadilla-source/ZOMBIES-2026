@@ -886,7 +886,7 @@ struct ProfileWritable // sizeof=0x1C
     ProfileAtom total;
     ProfileAtom child;
 };
-volatile struct ProfileReadable // sizeof=0xC
+struct ProfileReadable // sizeof=0xC
 {                                       // ...
     uint32_t hits;
     ProfileAtom total;                  // ...
@@ -914,7 +914,7 @@ struct ProfileProbe // sizeof=0x5A8
     ProfileReadable history[120];       // ...
 };
 
-struct __declspec(align(8)) ProfileReadableGlobal // sizeof=0x38
+struct alignas(alignof(long double) > 8 ? alignof(long double) : 8) ProfileReadableGlobal // Win32 sizeof=0x38
 {                                       // ...
     int sequence;                       // ...
     uint32_t hits;

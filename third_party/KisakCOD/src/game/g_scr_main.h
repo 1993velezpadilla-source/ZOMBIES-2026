@@ -4,7 +4,7 @@
 #error This file is for SinglePlayer only 
 #endif
 
-#include <bgame/bg_public.h>
+#include "g_level.h"
 
 #include <bgame/bg_actor_prone.h>
 #include <script/scr_variable.h>
@@ -76,13 +76,7 @@ struct ScriptFunctions
     int *address;
 };
 
-struct cached_tag_mat_t
-{
-    int time;
-    int entnum;
-    unsigned __int16 name;
-    float tagMat[4][3];
-};
+
 
 unsigned int __cdecl GScr_AllocString(const char *s);
 void __cdecl TRACK_g_scr_main();

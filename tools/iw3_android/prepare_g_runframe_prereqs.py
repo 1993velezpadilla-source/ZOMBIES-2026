@@ -16,7 +16,7 @@ import re
 from pathlib import Path
 
 COM_SHARED = Path("src/universal/com_shared.cpp")
-G_MAIN = Path("src/game/g_main.cpp")
+G_FRAME = Path("src/game/g_runframe.cpp")
 MEMCPY_SIGNATURE = "void __cdecl Com_Memcpy(void *dest_p, const void *src_p, const size_t count)"
 FRAME_SIGNATURE = "int __cdecl G_RunFrame(ServerFrameExtent extent, int timeCap)"
 FRAME_PHASES = (
@@ -132,7 +132,7 @@ def actual_entity_loop(engine_text: str) -> str:
 def prepare(engine: Path, output: Path, report: Path) -> dict:
     engine = engine.resolve()
     com_path = engine / COM_SHARED
-    frame_path = engine / G_MAIN
+    frame_path = engine / G_FRAME
     out = output.resolve()
     if not com_path.is_file() or not frame_path.is_file():
         raise ValueError("Real KisakCOD SP source missing")
@@ -172,7 +172,7 @@ def prepare(engine: Path, output: Path, report: Path) -> dict:
         "original_memcpy_function_preserved_exactly": True,
         "original_memcpy_source_sha256": hashlib.sha256(body.encode("utf-8")).hexdigest(),
         "generated_memcpy_sha256": hashlib.sha256(out.read_bytes()).hexdigest(),
-        "original_single_player_g_runframe_source": str(G_MAIN),
+        "original_single_player_g_runframe_source": str(G_FRAME),
         "original_single_player_g_runframe_sha256": hashlib.sha256(frame_bytes).hexdigest(),
         "frame_original_function_sha256": hashlib.sha256(original_frame.encode("utf-8")).hexdigest(),
         "frame_source_lines": original_frame.count("\n") + 1,
@@ -182,7 +182,8 @@ def prepare(engine: Path, output: Path, report: Path) -> dict:
         "frame_animation_loop_uses_typed_entity_fields": True,
         "typed_animation_loop_markers": portable,
         "other_sp_engine_abi_assumptions_unverified": True,
-        "g_runframe_compiled_on_android": False,
+        "g_runframe_compiled_on_android": None,
+        "compiled_archive_evidence_required": True,
         "g_runframe_executed_on_android": False,
         "iw3_3d_renderer_ported": False,
         "iw3_game_apk_available": False,
@@ -203,9 +204,9 @@ def main() -> None:
     args = ap.parse_args()
     data = prepare(args.engine, args.output, args.report)
     if args.entity_loop_output:
-        if args.entity_loop_output.resolve() == (args.engine.resolve() / G_MAIN):
+        if args.entity_loop_output.resolve() == (args.engine.resolve() / G_FRAME):
             raise ValueError("Never overwrite actual SP frame source")
-        source = (args.engine / G_MAIN).read_text(encoding="utf-8")
+        source = (args.engine / G_FRAME).read_text(encoding="utf-8")
         loop = actual_entity_loop(source)
         args.entity_loop_output.parent.mkdir(parents=True, exist_ok=True)
         args.entity_loop_output.write_text(loop, encoding="utf-8")

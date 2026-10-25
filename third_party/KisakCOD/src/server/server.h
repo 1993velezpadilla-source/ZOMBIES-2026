@@ -1,4 +1,5 @@
 #pragma once
+#include "server_frame.h"
 #include <qcommon/ent.h>
 
 #ifndef KISAK_SP 
@@ -147,11 +148,7 @@ struct __declspec(align(4)) PendingSave
     bool suppressPlayerNotify;
 };
 
-enum ServerFrameExtent : __int32
-{
-    SV_FRAME_DO_ALL = 0x0,
-    SV_FRAME_DO_SMOOTHING = 0x1,
-};
+
 
 // sv_ccmds
 void __cdecl SV_SetValuesFromSkill();

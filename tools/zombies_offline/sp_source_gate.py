@@ -67,7 +67,7 @@ def inspect(source: Path) -> dict:
         ),
         "single_player_actors": all(name in sp for name in (
             'actor.cpp', 'actor_spawner.cpp',
-            'actor_navigation.cpp', 'g_main.cpp'
+            'actor_navigation.cpp', 'g_main.cpp', 'g_runframe.cpp'
         )),
         "weapon_engine_in_shared_sources": all(name in common for name in (
             'bg_weapons.cpp', 'bg_weapons_load_obj.cpp',
