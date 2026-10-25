@@ -5,7 +5,8 @@ import hashlib
 import unittest
 
 from tools.iw3_android.prepare_real_engine_math import (
-    ENGINE_FILE, ORIGINAL_PROLOGUE, REQUIRED_FUNCTIONS, prepare
+    ENGINE_FILE, ORIGINAL_PROLOGUE, REQUIRED_FUNCTIONS, prepare,
+    SURFACE_FILE, SURFACE_PROLOGUE, prepare_surface
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -31,6 +32,20 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
             self.assertEqual(
                 patched, '#include "iw3_android_math_compat.h"\n' + original)
         self.assertEqual((ENGINE / ENGINE_FILE).read_bytes(), source)
+
+    def test_original_engine_surface_table_and_functions_are_unchanged(self):
+        original = (ENGINE / SURFACE_FILE).read_bytes()
+        self.assertTrue(original.decode("utf-8").startswith(SURFACE_PROLOGUE))
+        with TemporaryDirectory() as tmp:
+            out = Path(tmp) / "generated" / "surfaceflags.cpp"
+            result = prepare_surface(ENGINE, out)
+            self.assertEqual(result["source_sha256"], hashlib.sha256(original).hexdigest())
+            self.assertTrue(result["function_bodies_preserved"])
+            self.assertGreaterEqual(result["data_table_entries_preserved"], 50)
+            expected = '#include "iw3_android_surface_compat.h"\\n#include "surfaceflags.h"\\n'
+            self.assertEqual(out.read_text(encoding="utf-8"),
+                             expected + original.decode("utf-8")[len(SURFACE_PROLOGUE):])
+        self.assertEqual((ENGINE / SURFACE_FILE).read_bytes(), original)
 
     def test_no_vendor_overwrite(self):
         with self.assertRaisesRegex(ValueError, "Refusing"):
