@@ -5,6 +5,7 @@
 #include "iw3_android_surface_compat.h"
 #include "surfaceflags.h"
 #include "com_constantconfigstrings.h"
+#include "pool_allocator.h"
 
 #if defined(_WIN32)
 #error "This project is for Android NDK and portable host math tests only"
@@ -103,4 +104,26 @@ extern "C" Z2026_NATIVE_EXPORT int z2026_iw3_frame_memcpy_smoke() {
     unsigned char dest = sentinel;
     Com_Memcpy(&dest, src, 0);
     return dest == sentinel;
+}
+
+extern "C" Z2026_NATIVE_EXPORT int z2026_iw3_real_pool_smoke() {
+    // Runs actual KisakCOD Pool_Init/Alloc/Free/FreeCount linked from its
+    // original translation unit. No simulated allocator implementation.
+    struct alignas(void*) EnginePoolSlot {
+        freenode link;
+        std::uint64_t state_id;
+        unsigned char payload[24];
+    };
+    EnginePoolSlot slots[5]{};
+    pooldata_t pool{};
+    Pool_Init(reinterpret_cast<char*>(slots), &pool, sizeof(slots[0]), 5);
+    if (Pool_FreeCount(&pool) != 5 || pool.activeCount != 0) return 0;
+    freenode *first = Pool_Alloc(&pool);
+    freenode *second = Pool_Alloc(&pool);
+    if (first != &slots[0].link || second != &slots[1].link ||
+        Pool_FreeCount(&pool) != 3 || pool.activeCount != 2) return 0;
+    Pool_Free(second, &pool);
+    Pool_Free(first, &pool);
+    if (Pool_FreeCount(&pool) != 5 || pool.activeCount != 0) return 0;
+    return Pool_Alloc(&pool) == first && Pool_Alloc(&pool) == second;
 }
