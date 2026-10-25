@@ -141,13 +141,20 @@ jobs:
           grep -F 'arm64-v8a' "$RUNNER_TEMP/z2026-badging.txt"
           # Regression guard for user screenshot: portrait letterbox was
           # caused by project.godot orientation=1 (SCREEN_PORTRAIT).
-          # Godot SCREEN_SENSOR_LANDSCAPE=4 -> Android manifest value 6.
+          # Godot 4.6 exports SCREEN_SENSOR_LANDSCAPE=4 as Android
+          # userLandscape (manifest code 0xb = decimal 11), which is a
+          # supported landscape-only mode respecting device preference.
+          # Also accept Android sensorLandscape=6 or fixed landscape=0.
           "$ANDROID_HOME/build-tools/35.0.1/aapt" dump xmltree "$APK" AndroidManifest.xml \
             >"$RUNNER_TEMP/z2026-android-manifest.txt"
           orientation="$(grep 'android:screenOrientation' "$RUNNER_TEMP/z2026-android-manifest.txt" | head -1 || true)"
           echo "ANDROID_ORIENTATION_MANIFEST: $orientation"
-          echo "$orientation" | grep -Eq '0x00000006' || {
-            echo 'FAIL: APK is not forced to sensor landscape (Android code 6).' >&2
+          echo "$orientation" | grep -Eq '0xb([[:space:]]|$)|0x0000000b|0x00000006|0x00000000' || {
+            echo 'FAIL: APK orientation is not Android landscape or userLandscape.' >&2
+            exit 1
+          }
+          grep -Eq "versionCode='2' versionName='0.1.1'" "$RUNNER_TEMP/z2026-badging.txt" || {
+            echo 'FAIL: APK has the wrong version; install must be 0.1.1 (code 2).' >&2
             exit 1
           }
           "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify --verbose "$APK"
