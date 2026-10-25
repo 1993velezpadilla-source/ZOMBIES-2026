@@ -1,4 +1,5 @@
 #include "iw3_android_unzip_compat.h"
+#include "iw3_android_platform.h"
 #include <cerrno>
 #include <climits>
 #include <sys/types.h>
@@ -6,8 +7,14 @@
 // Original FS_File* interface semantics used by KisakCOD's unzip.cpp:
 // 0=current, 1=end, 2=absolute beginning (not stdio's SEEK_* constants).
 FILE *__cdecl FS_FileOpenReadBinary(const char *filename) {
-    if (!filename || !*filename) return nullptr;
-    return std::fopen(filename, "rb");
+    // Match the original engine's FS_FileOpenReadBinary contract while
+    // resolving archive names beneath the Android app-owned IW3 data root.
+    // Never pass a caller-controlled absolute path to fopen().
+    const int fd = z2026_platform_open_read_fd(filename);
+    if (fd < 0) return nullptr;
+    FILE *stream = ::fdopen(fd, "rb");
+    if (!stream) ::close(fd);
+    return stream;
 }
 void __cdecl FS_FileClose(FILE *stream) {
     if (stream) std::fclose(stream);
