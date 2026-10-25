@@ -32,6 +32,9 @@ endif()
 if(NOT IW3_EXTRACTED_IWD_NAMES OR NOT EXISTS "${IW3_EXTRACTED_IWD_NAMES}")
     message(FATAL_ERROR "Authentic KisakCOD IWD filename hash/compare source required")
 endif()
+if(NOT IW3_EXTRACTED_UNZIP OR NOT EXISTS "${IW3_EXTRACTED_UNZIP}")
+    message(FATAL_ERROR "Authentic original IW3 ZIP32/IWD parser source required")
+endif()
 if(NOT EXISTS "${IW3_REAL_HEADER_ROOT}/pool_allocator.h")
     message(FATAL_ERROR "Authentic original IW3 pool declarations required")
 endif()
@@ -59,11 +62,21 @@ add_library(iw3_sp_math SHARED
     "${IW3_EXTRACTED_POOL}"
     "${IW3_EXTRACTED_HITLOC}"
     "${IW3_EXTRACTED_IWD_NAMES}"
+    "${IW3_EXTRACTED_UNZIP}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_unzip_io.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/iw3_unzip_native_smoke.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/native_math_abi.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_platform.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/snap_float_abi.cpp"
 )
-target_include_directories(iw3_sp_math PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}" "${IW3_REAL_HEADER_ROOT}")
+target_include_directories(iw3_sp_math PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${IW3_REAL_HEADER_ROOT}"
+    "${IW3_ENGINE_SOURCE_ROOT}"
+    "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+    "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+find_library(IW3_Z_LIBRARY z REQUIRED)
+target_link_libraries(iw3_sp_math PRIVATE "${IW3_Z_LIBRARY}")
 set_target_properties(iw3_sp_math PROPERTIES
     CXX_VISIBILITY_PRESET hidden
     VISIBILITY_INLINES_HIDDEN YES
@@ -134,6 +147,11 @@ else()
     target_compile_options(iw3_real_iwd_names_host_test PRIVATE -UNDEBUG)
     target_link_libraries(iw3_real_iwd_names_host_test PRIVATE iw3_sp_math)
     add_test(NAME iw3_original_iwd_filename_hash_compare COMMAND iw3_real_iwd_names_host_test)
+    add_executable(iw3_real_unzip_host_test
+        "${CMAKE_CURRENT_SOURCE_DIR}/iw3_unzip_host_test.cpp")
+    target_compile_options(iw3_real_unzip_host_test PRIVATE -UNDEBUG)
+    target_link_libraries(iw3_real_unzip_host_test PRIVATE iw3_sp_math)
+    add_test(NAME iw3_original_iw3_zip32_archive_reader COMMAND iw3_real_unzip_host_test)
     add_executable(iw3_platform_host_test
         "${CMAKE_CURRENT_SOURCE_DIR}/platform_native_test.cpp")
     target_compile_options(iw3_platform_host_test PRIVATE -UNDEBUG)
