@@ -14,6 +14,7 @@
 extern "C" int z2026_iw3_math_smoke();
 extern "C" int z2026_iw3_surface_smoke();
 extern "C" int z2026_iw3_configstrings_smoke();
+extern "C" int z2026_iw3_frame_memcpy_smoke();
 extern "C" int z2026_iw3_configstring_num(const char*);
 extern "C" int z2026_iw3_math_source_abi_version();
 
@@ -30,9 +31,10 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(JNIEnv *env, jclass) {
     const int math_ok = z2026_iw3_math_smoke();
     const int surface_ok = z2026_iw3_surface_smoke();
     const int config_ok = z2026_iw3_configstrings_smoke();
+    const int frame_copy_ok = z2026_iw3_frame_memcpy_smoke();
     const int perk_index = z2026_iw3_configstring_num("specialty_rof");
     const std::uint64_t monotonic_time = z2026_platform_monotonic_ns();
-    const int success = math_ok && surface_ok && config_ok &&
+    const int success = math_ok && surface_ok && config_ok && frame_copy_ok &&
                         perk_index == 2034 && monotonic_time > 0;
     char report[640];
     std::snprintf(report, sizeof(report),
@@ -41,6 +43,7 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(JNIEnv *env, jclass) {
                   "AngleVectors / original aiming: %s\n"
                   "Surface / material table: %s\n"
                   "Configstring registry: %s\n"
+                  "Original G_RunFrame Com_Memcpy: %s\n"
                   "Original specialty_rof ID: %d\n"
                   "Monotonic Android clock: %s\n"
                   "Native ABI version: %d\n\n"
@@ -50,6 +53,7 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(JNIEnv *env, jclass) {
                   math_ok ? "PASS" : "FAIL",
                   surface_ok ? "PASS" : "FAIL",
                   config_ok ? "PASS" : "FAIL",
+                  frame_copy_ok ? "PASS" : "FAIL",
                   perk_index, monotonic_time ? "PASS" : "FAIL",
                   z2026_iw3_math_source_abi_version());
     __android_log_print(success ? ANDROID_LOG_INFO : ANDROID_LOG_ERROR,
