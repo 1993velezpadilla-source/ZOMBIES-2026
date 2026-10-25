@@ -89,6 +89,10 @@ jobs:
             --engine third_party/KisakCOD \
             --output "$folder/iw3_iwd_names.cpp" \
             --report "$RUNNER_TEMP/iw3-original-iwd-names.json"
+          python3 tools/iw3_android/prepare_real_engine_unzip.py \
+            --engine third_party/KisakCOD \
+            --output "$folder/unzip.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-unzip-abi.json"
 
       - name: Compile original IW3 native JNI for real x86 Android emulator (not ARM64 proof)
         shell: bash
@@ -130,5 +134,6 @@ jobs:
             ${{ runner.temp }}/iw3-original-pool-allocator.json
             ${{ runner.temp }}/iw3-original-sp-hitloc.json
             ${{ runner.temp }}/iw3-original-iwd-names.json
+            ${{ runner.temp }}/iw3-original-unzip-abi.json
           if-no-files-found: warn
           retention-days: 14
