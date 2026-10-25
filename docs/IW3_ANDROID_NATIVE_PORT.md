@@ -445,3 +445,18 @@ archive guards. This improves the authentic filesystem source's 64-bit safety,
 but it does **not** mean that `com_files.cpp` is linked into Android yet.
 The current JNI APK still does not call the real `FS_AddIwdFilesForGameDirectory`
 or mount a game IWD; FastFiles, maps, renderer, and gameplay remain open gates.
+
+A follow-up audit caught a second Win32 assumption in the same authentic mount
+path: `FS_AddIwdFilesForGameDirectory` sorted an array of `char*` using a
+hard-coded four-byte `qsort` element width. On ARM64 that would partially swap
+pointers and corrupt the sorted IWD list before mounting. It now passes
+`sizeof(s0[0])`. The source regression explicitly rejects the old four-byte
+sort and both 28-byte searchpath allocations.
+
+The archive-index loops now validate every advertised central-directory entry
+and the entry-position lookup. Empty archives are rejected before any zero-size
+allocation or null-based pointer arithmetic; failed reads free the partial
+index and close the ZIP handle. These changes are covered by the source gate
+and the Android/Windows build workflows triggered by the latest branch commits.
+They remain portability hardening of original code, not proof that the real
+IWD searchpath is linked or that a map/game is running on Android.
