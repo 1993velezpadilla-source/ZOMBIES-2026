@@ -97,3 +97,20 @@ The compiled `libiw3_sp_math.so` now contains three **real KisakCOD engine sourc
 **No APK was generated**, no Godot project was used, and no COD4 proprietary game content was bundled. There is **no claim of player/game frame, 3D graphics, or zombies executing on Android**.
 
 **Next concrete gate:** connect real Android Activity lifecycle and input events to these services, then port original SP engine frame, actor, weapon and renderer implementations. Android on-device execution must be observed separately before any IW3-native APK is called functioning.
+
+## Android JNI integration — real IW3 source embedded (25 Oct 2026)
+
+**ARM64 JNI build gate GREEN:** [Actions run 40160081942](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40160081942).
+
+`android/iw3-native/android_app/` is a minimal **Android diagnostic Activity**, not a replacement game. Its only purpose is to call the **real KisakCOD C++ source** from within an Android package using JNI, then report strict individual results. It is not a re-implemented IW3 client or gameplay mock-up.
+
+- `org.z2026.iw3nativeprobe.EngineBridge` uses `System.loadLibrary("iw3_sp_math")` for direct JNI calls to the native shared library.
+- `android/iw3-native/iw3_android_jni.cpp` invokes original engine `AngleVectors`, `Com_SurfaceTypeFromName`, `CCS_InitConstantConfigStrings` and `CCS_GetConstConfigStringIndex` through native ABI wrappers, while the Activity provides actual Android lifecycle and multi-touch events.
+- Native source remains the original vendored `com_math_anglevectors.cpp`, `surfaceflags.cpp`, and `com_constantconfigstrings.cpp`, staged in a disposable build directory with only portability include changes. JNI glue is separate.
+- CI compiled a **signed debug ARM64 Android APK containing `lib/arm64-v8a/libiw3_sp_math.so`** and validated its `ELF64 AArch64` architecture, exported JNI symbols, APK signature and original engine C++ entry points. The binary is retained as a CI artifact named **IW3-original-code-JNI-Android-integration-NOT-A-GAME**.
+- The app intentionally prints **"NO IW3 GAME FRAME OR RENDERER YET — THIS IS NOT A PLAYABLE GAME"**. It includes no 3D scene, map, shooting, actor, simulated zombie, original COD content or game assets.
+- The build gate **does not establish Android runtime success**. It establishes only that JNI methods are packaged and link correctly for Android ARM64. On-device execution must be verified separately through ADB/logcat or a real device.
+
+**Android runtime experiment:** The additional workflow `.github/workflows/iw3-original-android-emulator-jni.yml` targets Android emulator x86_64 to execute the **same original KisakCOD C++ code** in an Android process, record the native JNI result and touch events. Its x86_64 emulator path is strictly marked as diagnostic and is **not evidence of ARM64 runtime**, although the separate ARM64 native package is compiled and signed. The runtime gate is not GREEN until those logcat markers are observed.
+
+**Still not proven:** native `G_RunFrame`, IW3 SP actor AI or `FireWeapon` on Android, true IW3 renderer or mobile GPU output, data/map loading, and a playable IW3 Android APK. Their gates are unchanged.
