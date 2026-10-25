@@ -136,3 +136,20 @@ extern "C" Z2026_NATIVE_EXPORT int z2026_iw3_hitloc_copy_smoke() {
            dst[5] == 'a' && dst[6] == 'd' && dst[7] == 0 &&
            dst[8] == 0xC7;
 }
+
+int FS_HashFileName(const char *fname, int hashSize);
+int FS_FilenameCompare(const char *s1, const char *s2);
+void FS_ConvertPath(char *path);
+
+extern "C" Z2026_NATIVE_EXPORT int z2026_iw3_iwd_names_smoke() {
+    // Calls the authentic original KisakCOD IWD lookup/normalization
+    // routines from com_files.cpp (and I_islower from q_shared.cpp).
+    // This is NOT an IWD zip reader or a map loader.
+    char normalized[] = "MAPS\\MP:MP_CRASH.D3DBSP";
+    FS_ConvertPath(normalized);
+    return std::strcmp(normalized, "MAPS/MP/MP_CRASH.D3DBSP") == 0 &&
+           FS_HashFileName(normalized, 1024) == 785 &&
+           FS_HashFileName("maps/mp/mp_crash.d3dbsp", 1024) == 785 &&
+           FS_FilenameCompare(normalized, "maps/mp/mp_crash.d3dbsp") == 0 &&
+           FS_FilenameCompare("weapons/mp40", "weapons/mp41") == -1;
+}
