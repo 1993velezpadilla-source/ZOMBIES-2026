@@ -279,12 +279,32 @@ extern "C" IW3_ANDROID_EXPORT int z2026_platform_set_data_root(const char *dir) 
     // canonicalization instead.
     char resolved[PATH_MAX]{};
     if (!realpath(dir, resolved) || std::strlen(resolved) >= 1024) return -1;
+    std::string configured_root(dir);
+    while (configured_root.size() > 1 && configured_root.back() == '/')
+        configured_root.pop_back();
+    if (configured_root.size() >= 1024 ||
+        configured_root.find('\\') != std::string::npos) return -1;
+    // Do not retain dot components in the prefix used to recognize the
+    // engine's absolute FS_BuildOSPath strings. The descriptor itself still
+    // points at the canonical realpath target, so accepted suffixes remain
+    // opened beneath that descriptor even when Android exposes an alias path.
+    std::size_t component_start = 1;
+    while (component_start < configured_root.size()) {
+        const std::size_t slash = configured_root.find('/', component_start);
+        const std::size_t component_end = slash == std::string::npos
+            ? configured_root.size() : slash;
+        const std::string component = configured_root.substr(
+            component_start, component_end - component_start);
+        if (component.empty() || component == "." || component == "..") return -1;
+        if (slash == std::string::npos) break;
+        component_start = slash + 1;
+    }
     const int fd = open(resolved, O_RDONLY | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW);
     if (fd < 0) return -1;
     std::lock_guard<std::mutex> lock(g_data_mutex);
     if (g_data_root_fd >= 0) close(g_data_root_fd);
     g_data_root_fd = fd;
-    g_data_root_path.assign(resolved);
+    g_data_root_path = std::move(configured_root);
     return 0;
 }
 
