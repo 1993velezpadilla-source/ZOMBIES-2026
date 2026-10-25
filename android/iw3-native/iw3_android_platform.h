@@ -36,8 +36,8 @@ IW3_ANDROID_EXPORT int z2026_platform_usercmd_snapshot(
     int server_time, int *fields, std::size_t field_count);
 
 // Merge current Android touch state into a real original usercmd_s before
-// CL_FinishMove encodes viewangles. The original CL_CreateCmd calls this only
-// on Android; host/Windows builds retain their existing input path.
+// CL_FinishMove encodes viewangles. The original CL_CreateCmd source is wired
+// to call this only on Android; that client TU still needs Android build integration.
 struct usercmd_s;
 IW3_ANDROID_EXPORT void z2026_platform_apply_touch_to_usercmd(
     struct usercmd_s *command, float *viewangles);
