@@ -6,7 +6,8 @@ import unittest
 
 from tools.iw3_android.prepare_real_engine_math import (
     ENGINE_FILE, ORIGINAL_PROLOGUE, REQUIRED_FUNCTIONS, prepare,
-    SURFACE_FILE, SURFACE_PROLOGUE, prepare_surface
+    SURFACE_FILE, SURFACE_PROLOGUE, prepare_surface,
+    CONSTANT_FILE, CONSTANT_PROLOGUE, prepare_constants
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -46,6 +47,26 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
             self.assertEqual(out.read_text(encoding="utf-8"),
                              expected + original.decode("utf-8")[len(SURFACE_PROLOGUE):])
         self.assertEqual((ENGINE / SURFACE_FILE).read_bytes(), original)
+
+    def test_original_engine_config_registry_unchanged(self):
+        original = (ENGINE / CONSTANT_FILE).read_bytes()
+        self.assertTrue(original.decode("utf-8").startswith(CONSTANT_PROLOGUE))
+        self.assertIn(b'constantConfigStrings[833]', original)
+        with TemporaryDirectory() as tmp:
+            out = Path(tmp) / "generated" / "com_constantconfigstrings.cpp"
+            evidence = prepare_constants(ENGINE, out)
+            self.assertTrue(evidence["function_bodies_preserved"])
+            self.assertEqual(evidence["original_registry_rows"], 833)
+            self.assertEqual(evidence["source_sha256"], hashlib.sha256(original).hexdigest())
+            patched = out.read_text(encoding="utf-8")
+            expected = ('#include "iw3_android_surface_compat.h"\\n'
+                        '#include "com_constantconfigstrings.h"\\n')
+            original_body = original.decode("utf-8")[len(CONSTANT_PROLOGUE):]
+            original_body = original_body.replace('#include "q_shared.h"', '', 1)
+            self.assertEqual(patched, expected + original_body)
+            with self.assertRaisesRegex(ValueError, "Refusing"):
+                prepare_constants(ENGINE, ENGINE / CONSTANT_FILE)
+        self.assertEqual((ENGINE / CONSTANT_FILE).read_bytes(), original)
 
     def test_no_vendor_overwrite(self):
         with self.assertRaisesRegex(ValueError, "Refusing"):
