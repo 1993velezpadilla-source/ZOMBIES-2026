@@ -42,6 +42,7 @@ jobs:
           python3 tools/iw3_android/prepare_g_runframe_prereqs.py \
             --engine third_party/KisakCOD \
             --output "$RUNNER_TEMP/iw3-source/iw3_frame_memcpy.cpp" \
+            --entity-loop-output "$RUNNER_TEMP/iw3-source/iw3_g_runframe_entity_loop.inc" \
             --report "$RUNNER_TEMP/iw3-original-g-runframe-audit.json"
           echo "IW3_ACTUAL_SOURCE_USED_FROM_KISAKCOD"
 
@@ -55,6 +56,7 @@ jobs:
             -DIW3_EXTRACTED_SURFACE="$RUNNER_TEMP/iw3-source/surfaceflags.cpp" \
             -DIW3_EXTRACTED_CONSTANTS="$RUNNER_TEMP/iw3-source/com_constantconfigstrings.cpp" \
             -DIW3_EXTRACTED_FRAME_MEMCPY="$RUNNER_TEMP/iw3-source/iw3_frame_memcpy.cpp" \
+            -DIW3_ENTITY_LOOP_INC="$RUNNER_TEMP/iw3-source/iw3_g_runframe_entity_loop.inc" \
             -DIW3_REAL_HEADER_ROOT="$GITHUB_WORKSPACE/third_party/KisakCOD/src/universal"
           cmake --build "$RUNNER_TEMP/iw3-build-host" -j 2
           ctest --test-dir "$RUNNER_TEMP/iw3-build-host" --output-on-failure
@@ -89,6 +91,7 @@ jobs:
             -DIW3_EXTRACTED_SURFACE="$RUNNER_TEMP/iw3-source/surfaceflags.cpp" \
             -DIW3_EXTRACTED_CONSTANTS="$RUNNER_TEMP/iw3-source/com_constantconfigstrings.cpp" \
             -DIW3_EXTRACTED_FRAME_MEMCPY="$RUNNER_TEMP/iw3-source/iw3_frame_memcpy.cpp" \
+            -DIW3_ENTITY_LOOP_INC="$RUNNER_TEMP/iw3-source/iw3_g_runframe_entity_loop.inc" \
             -DIW3_REAL_HEADER_ROOT="$GITHUB_WORKSPACE/third_party/KisakCOD/src/universal"
           cmake --build "$RUNNER_TEMP/iw3-build-arm64" -j 2
           so="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_math.so"
