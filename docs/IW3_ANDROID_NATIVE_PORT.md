@@ -24,11 +24,11 @@ this real payload instead of a synthetic slot type.
 The Android emulator gate now requires native touch DOWN **and** UP for the
 same pointer, finite valid coordinates, successful native return values,
 and actual Activity resume/pause/resume. Runtime failures override passing
-markers. Seven parser regression tests reject incomplete or failing logs;
+markers. Nine parser regression tests reject incomplete or failing logs;
 their fixtures are not device evidence. Every original-source edit now
 re-triggers all three native/Android workflows.
 
-Local validation: 55 Python tests, 6/6 host CTest cases, and 6/6 ASAN/UBSAN
+Local validation: 57 Python tests, 6/6 host CTest cases, and 6/6 ASAN/UBSAN
 cases passed. LeakSanitizer cannot inspect `/proc/.../task` in this local
 runtime, so local leak detection was disabled; the CI sanitizer step enables
 it. Android ARM64 compilation and emulator results for this change must be
@@ -41,7 +41,9 @@ observed, despite successful JNI/component execution. The follow-up wakes
 and unlocks the emulator, locates the real visible TextView through Android
 UI hierarchy, injects a real ADB touchscreen tap at its center, and captures
 screenshots/window state even on failure. The readback requirement remains
-strict. The Windows build exposed a `min/max` macro collision in the new
+strict. The evidence reader validates the latest Activity instance after
+initial landscape recreation, and rejects stale touches from older instances.
+The Windows build exposed a `min/max` macro collision in the new
 header; parenthesized numeric-limit calls and a macro-enabled host compile
 regression correct that issue. Both checks must pass on the follow-up commit.
 

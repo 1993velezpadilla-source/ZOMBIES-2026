@@ -50,6 +50,18 @@ class NativeRuntimeEvidenceTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             verify(real_format_fixture().rsplit("IW3_JNI_LIFECYCLE_2", 1)[0])
 
+    def test_initial_landscape_recreation_uses_current_activity(self):
+        initial = "\n".join(REQUIRED) + "\nIW3_JNI_LIFECYCLE_2\n"
+        initial += "IW3_JNI_LIFECYCLE_3\nIW3_JNI_LIFECYCLE_4\n"
+        self.assertTrue(verify(initial + real_format_fixture())[
+            "touch_down_and_up_read_back_from_native"])
+
+    def test_previous_activity_touch_cannot_validate_new_instance(self):
+        fresh_without_touch = "\n".join(REQUIRED) + "\n" + "\n".join((
+            "IW3_JNI_LIFECYCLE_2", "IW3_JNI_LIFECYCLE_3", "IW3_JNI_LIFECYCLE_2"))
+        with self.assertRaises(ValueError):
+            verify(real_format_fixture() + "\nIW3_JNI_LIFECYCLE_4\n" + fresh_without_touch)
+
 
 if __name__ == "__main__":
     unittest.main()

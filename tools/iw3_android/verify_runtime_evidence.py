@@ -31,6 +31,13 @@ def verify(log: str) -> dict:
     for error in ERRORS:
         if error in log:
             raise ValueError("Android runtime failure: " + error)
+    # Android may recreate the Activity during initial landscape rotation.
+    # Validate the latest instance's own native report and input/lifecycle;
+    # never mistake a prior instance's orientation pause for the tested Home.
+    latest_create = log.rfind("IW3_JNI_LIFECYCLE_1")
+    if latest_create < 0:
+        raise ValueError("Actual Android Activity creation missing")
+    log = log[latest_create:]
     cursor = 0
     for marker in REQUIRED:
         offset = log.find(marker, cursor)
