@@ -1,6 +1,8 @@
 // C ABI for exercising REAL KisakCOD AngleVectors from Android arm64.
 #include <cmath>
 #include <cstddef>
+#include "iw3_android_surface_compat.h"
+#include "surfaceflags.h"
 
 #if defined(_WIN32)
 #error "This project is for Android NDK and portable host math tests only"
@@ -33,4 +35,23 @@ extern "C" Z2026_NATIVE_EXPORT int z2026_iw3_math_smoke() {
     return close(fwd[0], 0.0f) && close(fwd[1], 1.0f) &&
            close(fwd[2], 0.0f) && close(right[0], 1.0f) &&
            close(up[2], 1.0f);
+}
+
+extern "C" Z2026_NATIVE_EXPORT int z2026_iw3_surface_type_from_name(const char* name) {
+    if (!name) return -1;
+    // The 60-entry table and lookup routine come directly from the
+    // original IW3 src/universal/surfaceflags.cpp C++ translation unit.
+    return Com_SurfaceTypeFromName(name);
+}
+
+extern "C" Z2026_NATIVE_EXPORT const char* z2026_iw3_surface_type_name(int index) {
+    return Com_SurfaceTypeToName(index);
+}
+
+extern "C" Z2026_NATIVE_EXPORT int z2026_iw3_surface_smoke() {
+    return z2026_iw3_surface_type_from_name("brick") == 2 &&
+           z2026_iw3_surface_type_from_name("BRICK") == 2 &&
+           z2026_iw3_surface_type_from_name("foliage") == 8 &&
+           z2026_iw3_surface_type_from_name("invalid-type") == -1 &&
+           z2026_iw3_surface_type_from_name("default") == 0;
 }
