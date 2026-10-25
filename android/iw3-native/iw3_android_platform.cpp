@@ -144,14 +144,17 @@ bool normalize_engine_path(const char *path, char output[1024], bool allow_root)
     const char *relative = path;
     if (path[0] == '/') {
         const std::string &root = g_data_root_path;
+        if (root == path) {
+            if (!allow_root) return false;
+            output[0] = '\0';
+            return true;
+        }
         if (root == "/") {
             relative = path + 1;
         } else {
             const std::size_t root_length = root.size();
             if (std::strncmp(path, root.c_str(), root_length) != 0) return false;
-            if (path[root_length] == '\0') {
-                relative = path + root_length;
-            } else if (path[root_length] == '/' || path[root_length] == '\\') {
+            if (path[root_length] == '/' || path[root_length] == '\\') {
                 relative = path + root_length + 1;
             } else {
                 // Reject sibling-prefix attacks such as /data/app-evil.
