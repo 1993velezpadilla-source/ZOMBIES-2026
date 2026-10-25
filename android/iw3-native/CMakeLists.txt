@@ -82,7 +82,8 @@ else()
     target_compile_options(iw3_math_host_test PRIVATE -UNDEBUG)
     add_test(NAME iw3_real_math COMMAND iw3_math_host_test)
     add_executable(iw3_real_pool_host_test
-        "${CMAKE_CURRENT_SOURCE_DIR}/pool_native_test.cpp")
+        "${CMAKE_CURRENT_SOURCE_DIR}/pool_native_test.cpp"
+        "${IW3_EXTRACTED_POOL}")
     target_include_directories(iw3_real_pool_host_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}" "${IW3_REAL_HEADER_ROOT}")
     target_compile_options(iw3_real_pool_host_test PRIVATE -UNDEBUG)
