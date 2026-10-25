@@ -11,11 +11,19 @@ if(NOT IW3_EXTRACTED_MATH OR NOT EXISTS "${IW3_EXTRACTED_MATH}")
     message(FATAL_ERROR "Supply -DIW3_EXTRACTED_MATH=<generated real KisakCOD source>; no mock math allowed")
 endif()
 
+if(NOT IW3_EXTRACTED_SURFACE OR NOT EXISTS "${IW3_EXTRACTED_SURFACE}")
+    message(FATAL_ERROR "Original IW3 surface translation unit required; no mock data")
+endif()
+if(NOT IW3_REAL_HEADER_ROOT OR NOT EXISTS "${IW3_REAL_HEADER_ROOT}/surfaceflags.h")
+    message(FATAL_ERROR "Original KisakCOD surfaceflags.h required")
+endif()
+
 add_library(iw3_sp_math SHARED
     "${IW3_EXTRACTED_MATH}"
+    "${IW3_EXTRACTED_SURFACE}"
     "${CMAKE_CURRENT_SOURCE_DIR}/native_math_abi.cpp"
 )
-target_include_directories(iw3_sp_math PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+target_include_directories(iw3_sp_math PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}" "${IW3_REAL_HEADER_ROOT}")
 set_target_properties(iw3_sp_math PROPERTIES
     CXX_VISIBILITY_PRESET hidden
     VISIBILITY_INLINES_HIDDEN YES
