@@ -77,3 +77,23 @@ Windows-only import assumptions; decoder/data-loading and render
 backend; then remaining SP gameplay core and final on-device APK.
 Each gate must compile, run, and report native code evidence. Never
 replace the IW3 engine with a different engine while reporting progress.
+
+## Phase A extended / platform primitives — GREEN (25 Oct 2026)
+
+[GitHub Actions run **40159451519**](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40159451519) is **SUCCESS**. It ran the real source preservation tests, **two actual host CTest executables** with assertions enabled, and produced an NDK-linked `ELF64 AArch64` native library with the expected symbols.
+
+**Original KisakCOD C++ (no gameplay reimplementation):**
+- `com_math_anglevectors.cpp`: original `AngleVectors`, `AnglesToAxis`, `Vec4Normalize` and `AnglesToQuat` remain preserved, without header-level Win32 types.
+- `surfaceflags.cpp`: original 60-row material/surface registry and lookup, including the original foliage alias.
+- `com_constantconfigstrings.cpp`: original 833-entry IW3 config string declarations, hashing and lookup functions; the original C++ and its data table remain byte-identical except temporary platform include substitutions. Verified examples: `bg_aimSpreadMoveSpeedThreshold=20`, `player_sprintSpeedScale=96`, `specialty_rof=2034`.
+
+**New Android/POSIX platform boundary (native C++, not an alternative engine):**
+- `z2026_platform_monotonic_ns()`: `CLOCK_MONOTONIC` nanoseconds, verified advancing in a real host run.
+- `z2026_platform_set_data_root()` / `z2026_platform_read_file()`: descriptor-rooted sandbox reads with `openat`, `O_NOFOLLOW`, safe relative paths, symlink/traversal and truncation rejection. Test uses only generated text under a temporary private directory.
+- `z2026_platform_touch_event()`, `touch_snapshot()`, `touch_reset()`: bounded multi-touch input state with validation, thread synchronization and native ABI symbols. **No gameplay usercmd or Android Activity event forwarding yet**.
+
+The compiled `libiw3_sp_math.so` now contains three **real KisakCOD engine source files** plus these native platform services. It has an Android arm64 ELF architecture and Android bionic link validation, **but the tests actually EXECUTED on the Linux host, not on an Android device**.
+
+**No APK was generated**, no Godot project was used, and no COD4 proprietary game content was bundled. There is **no claim of player/game frame, 3D graphics, or zombies executing on Android**.
+
+**Next concrete gate:** connect real Android Activity lifecycle and input events to these services, then port original SP engine frame, actor, weapon and renderer implementations. Android on-device execution must be observed separately before any IW3-native APK is called functioning.
