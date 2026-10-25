@@ -7,9 +7,14 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <cctype>
+#include <cstdlib>
+#include <dirent.h>
 #include <fcntl.h>
 #include <limits>
 #include <mutex>
+#include <string>
+#include <vector>
 #include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
@@ -20,6 +25,7 @@
 namespace {
 std::mutex g_data_mutex;
 int g_data_root_fd = -1;
+std::string g_data_root_path;
 std::mutex g_touch_mutex;
 enum class TouchRole : std::uint8_t {
     None, Move, Look, Attack, Ads, Jump, Reload, Use, Melee, Crouch, Prone
@@ -131,6 +137,93 @@ int open_beneath_root(int root, const char *path) {
     return -1;
 }
 
+
+bool normalize_engine_path(const char *path, char output[1024], bool allow_root) {
+    if (!path || !output || g_data_root_path.empty()) return false;
+    const char *relative = path;
+    if (path[0] == '/') {
+        const std::string &root = g_data_root_path;
+        if (root == "/") {
+            relative = path + 1;
+        } else {
+            const std::size_t root_length = root.size();
+            if (std::strncmp(path, root.c_str(), root_length) != 0) return false;
+            if (path[root_length] == '\0') {
+                relative = path + root_length;
+            } else if (path[root_length] == '/') {
+                relative = path + root_length + 1;
+            } else {
+                // Reject sibling-prefix attacks such as /data/app-evil.
+                return false;
+            }
+        }
+    }
+    if (!*relative) {
+        if (!allow_root) return false;
+        output[0] = '\0';
+        return true;
+    }
+    if (!valid_path(relative)) return false;
+    const std::size_t length = std::strlen(relative);
+    if (length >= 1024) return false;
+    std::memcpy(output, relative, length + 1);
+    return true;
+}
+
+int open_directory_beneath_root(int root, const char *path) {
+    if (!path) return -1;
+    if (!*path) {
+        const int copy = dup(root);
+        if (copy < 0) return -1;
+        struct stat st{};
+        if (fstat(copy, &st) != 0 || !S_ISDIR(st.st_mode)) {
+            close(copy);
+            return -1;
+        }
+        return copy;
+    }
+    if (!valid_path(path)) return -1;
+    int current = dup(root);
+    if (current < 0) return -1;
+    const char *cursor = path;
+    while (*cursor) {
+        const char *end = std::strchr(cursor, '/');
+        const std::size_t length = end
+            ? static_cast<std::size_t>(end - cursor) : std::strlen(cursor);
+        if (length == 0 || length > 255 ||
+            (length == 1 && cursor[0] == '.') ||
+            (length == 2 && cursor[0] == '.' && cursor[1] == '.')) {
+            close(current);
+            return -1;
+        }
+        char component[256]{};
+        std::memcpy(component, cursor, length);
+        const int next = openat(current, component,
+            O_RDONLY | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW);
+        close(current);
+        if (next < 0) return -1;
+        current = next;
+        if (!end) break;
+        cursor = end + 1;
+    }
+    struct stat st{};
+    if (fstat(current, &st) != 0 || !S_ISDIR(st.st_mode)) {
+        close(current);
+        return -1;
+    }
+    return current;
+}
+
+bool has_iwd_extension(const char *name) {
+    const std::size_t length = std::strlen(name);
+    if (length < 4) return false;
+    const char *extension = name + length - 4;
+    return extension[0] == '.' &&
+        std::tolower(static_cast<unsigned char>(extension[1])) == 'i' &&
+        std::tolower(static_cast<unsigned char>(extension[2])) == 'w' &&
+        std::tolower(static_cast<unsigned char>(extension[3])) == 'd';
+}
+
 int open_parent_beneath_root(int root, const char *path, char leaf[256]) {
     if (!valid_path(path) || !leaf) return -1;
     const char *cursor = path;
@@ -171,11 +264,22 @@ extern "C" IW3_ANDROID_EXPORT std::uint64_t z2026_platform_monotonic_ns() {
 
 extern "C" IW3_ANDROID_EXPORT int z2026_platform_set_data_root(const char *dir) {
     if (!dir || dir[0] != '/') return -1;
-    const int fd = open(dir, O_RDONLY | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW);
-    if (fd < 0) return -1;
+    char *resolved = realpath(dir, nullptr);
+    if (!resolved) return -1;
+    if (std::strlen(resolved) >= 1024) {
+        std::free(resolved);
+        return -1;
+    }
+    const int fd = open(resolved, O_RDONLY | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW);
+    if (fd < 0) {
+        std::free(resolved);
+        return -1;
+    }
     std::lock_guard<std::mutex> lock(g_data_mutex);
     if (g_data_root_fd >= 0) close(g_data_root_fd);
     g_data_root_fd = fd;
+    g_data_root_path.assign(resolved);
+    std::free(resolved);
     return 0;
 }
 
@@ -215,6 +319,72 @@ extern "C" IW3_ANDROID_EXPORT int z2026_platform_open_read_fd(
     std::lock_guard<std::mutex> lock(g_data_mutex);
     if (g_data_root_fd < 0) return -1;
     return open_beneath_root(g_data_root_fd, relative);
+}
+
+
+extern "C" IW3_ANDROID_EXPORT int z2026_platform_open_engine_path_fd(
+    const char *path) {
+    char relative[1024]{};
+    std::lock_guard<std::mutex> lock(g_data_mutex);
+    if (g_data_root_fd < 0 ||
+        !normalize_engine_path(path, relative, false)) return -1;
+    return open_beneath_root(g_data_root_fd, relative);
+}
+
+extern "C" IW3_ANDROID_EXPORT int z2026_platform_list_iwd_files(
+    const char *directory, char *output, std::size_t output_capacity,
+    std::size_t *entry_count) {
+    if (!entry_count || (!output && output_capacity)) return -1;
+    *entry_count = 0;
+    char relative[1024]{};
+    std::lock_guard<std::mutex> lock(g_data_mutex);
+    if (g_data_root_fd < 0 ||
+        !normalize_engine_path(directory, relative, true)) return -1;
+    const int fd = open_directory_beneath_root(g_data_root_fd, relative);
+    if (fd < 0) return -1;
+    DIR *stream = fdopendir(fd);
+    if (!stream) {
+        close(fd);
+        return -1;
+    }
+    std::vector<std::string> names;
+    bool read_error = false;
+    for (;;) {
+        errno = 0;
+        dirent *entry = readdir(stream);
+        if (!entry) {
+            read_error = errno != 0;
+            break;
+        }
+        if (entry->d_name[0] == '.' ||
+            !has_iwd_extension(entry->d_name)) continue;
+        struct stat st{};
+        if (fstatat(dirfd(stream), entry->d_name, &st,
+                    AT_SYMLINK_NOFOLLOW) != 0 || !S_ISREG(st.st_mode)) {
+            continue;
+        }
+        names.emplace_back(entry->d_name);
+    }
+    if (closedir(stream) != 0) read_error = true;
+    if (read_error) return -1;
+    std::sort(names.begin(), names.end());
+    std::size_t needed = 0;
+    for (const std::string &name : names) {
+        if (name.size() + 1 > std::numeric_limits<std::size_t>::max() - needed)
+            return -1;
+        needed += name.size() + 1;
+    }
+    if (needed > output_capacity || (needed && !output) ||
+        needed > static_cast<std::size_t>(std::numeric_limits<int>::max())) {
+        return -1;
+    }
+    std::size_t offset = 0;
+    for (const std::string &name : names) {
+        std::memcpy(output + offset, name.c_str(), name.size() + 1);
+        offset += name.size() + 1;
+    }
+    *entry_count = names.size();
+    return static_cast<int>(needed);
 }
 
 extern "C" IW3_ANDROID_EXPORT int z2026_platform_write_file(
