@@ -20,6 +20,9 @@ endif()
 if(NOT IW3_EXTRACTED_CONSTANTS OR NOT EXISTS "${IW3_EXTRACTED_CONSTANTS}")
     message(FATAL_ERROR "Original 833-slot IW3 config registry required")
 endif()
+if(NOT IW3_EXTRACTED_FRAME_MEMCPY OR NOT EXISTS "${IW3_EXTRACTED_FRAME_MEMCPY}")
+    message(FATAL_ERROR "Actual KisakCOD G_RunFrame Com_Memcpy prerequisite required")
+endif()
 if(NOT EXISTS "${IW3_REAL_HEADER_ROOT}/com_constantconfigstrings.h")
     message(FATAL_ERROR "Original engine config registry declarations required")
 endif()
@@ -28,6 +31,7 @@ add_library(iw3_sp_math SHARED
     "${IW3_EXTRACTED_MATH}"
     "${IW3_EXTRACTED_SURFACE}"
     "${IW3_EXTRACTED_CONSTANTS}"
+    "${IW3_EXTRACTED_FRAME_MEMCPY}"
     "${CMAKE_CURRENT_SOURCE_DIR}/native_math_abi.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_platform.cpp"
 )
