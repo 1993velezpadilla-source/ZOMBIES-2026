@@ -127,3 +127,15 @@ extern "C" Z2026_NATIVE_EXPORT int z2026_iw3_real_pool_smoke() {
     if (Pool_FreeCount(&pool) != 5 || pool.activeCount != 0) return 0;
     return Pool_Alloc(&pool) == first && Pool_Alloc(&pool) == second;
 }
+
+void G_HitLocStrcpy(unsigned char *destination, const char *source);
+extern "C" Z2026_NATIVE_EXPORT int z2026_iw3_hitloc_copy_smoke() {
+    // Invoke the authentic KisakCOD SP g_combat.cpp function compiled
+    // unchanged from its ARM64-corrected source, not a substitute copy.
+    unsigned char dst[24];
+    std::memset(dst, 0xC7, sizeof(dst));
+    G_HitLocStrcpy(dst + 3, "head");
+    return dst[2] == 0xC7 && dst[3] == 'h' && dst[4] == 'e' &&
+           dst[5] == 'a' && dst[6] == 'd' && dst[7] == 0 &&
+           dst[8] == 0xC7;
+}
