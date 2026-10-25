@@ -27,7 +27,7 @@ int main() {
     assert(z2026_iw3_surface_smoke() == 1);
     assert(z2026_iw3_surface_type_from_name("wood") == 21);
     assert(z2026_iw3_surface_type_from_name("FoLiAgE") == 8);
-    assert(z2026_iw3_surface_type_name(20)[0] == \'w\');
+    assert(z2026_iw3_surface_type_name(20)[0] == 'w');
     puts("IW3_REAL_AIM_AND_SURFACE_HOST_TEST_GREEN");
     return 0;
 }
