@@ -57,6 +57,10 @@ jobs:
             --engine third_party/KisakCOD \
             --output "$RUNNER_TEMP/iw3-source/iw3_iwd_names.cpp" \
             --report "$RUNNER_TEMP/iw3-original-iwd-names.json"
+          python3 tools/iw3_android/prepare_real_engine_unzip.py \
+            --engine third_party/KisakCOD \
+            --output "$RUNNER_TEMP/iw3-source/unzip.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-unzip-abi.json"
           echo "IW3_ACTUAL_SOURCE_USED_FROM_KISAKCOD"
 
       - name: Compile and EXECUTE original KisakCOD aim math on host
@@ -72,6 +76,7 @@ jobs:
             -DIW3_EXTRACTED_POOL="$RUNNER_TEMP/iw3-source/pool_allocator.cpp" \
             -DIW3_EXTRACTED_HITLOC="$RUNNER_TEMP/iw3-source/iw3_g_combat_hitloc.cpp" \
             -DIW3_EXTRACTED_IWD_NAMES="$RUNNER_TEMP/iw3-source/iw3_iwd_names.cpp" \
+            -DIW3_EXTRACTED_UNZIP="$RUNNER_TEMP/iw3-source/unzip.cpp" \
             -DIW3_ENTITY_LOOP_INC="$RUNNER_TEMP/iw3-source/iw3_g_runframe_entity_loop.inc" \
             -DIW3_REAL_HEADER_ROOT="$GITHUB_WORKSPACE/third_party/KisakCOD/src/universal"
           cmake --build "$RUNNER_TEMP/iw3-build-host" -j 2
@@ -122,6 +127,7 @@ jobs:
             -DIW3_EXTRACTED_POOL="$RUNNER_TEMP/iw3-source/pool_allocator.cpp" \
             -DIW3_EXTRACTED_HITLOC="$RUNNER_TEMP/iw3-source/iw3_g_combat_hitloc.cpp" \
             -DIW3_EXTRACTED_IWD_NAMES="$RUNNER_TEMP/iw3-source/iw3_iwd_names.cpp" \
+            -DIW3_EXTRACTED_UNZIP="$RUNNER_TEMP/iw3-source/unzip.cpp" \
             -DIW3_ENTITY_LOOP_INC="$RUNNER_TEMP/iw3-source/iw3_g_runframe_entity_loop.inc" \
             -DIW3_REAL_HEADER_ROOT="$GITHUB_WORKSPACE/third_party/KisakCOD/src/universal"
           cmake --build "$RUNNER_TEMP/iw3-build-arm64" -j 2
@@ -198,6 +204,7 @@ jobs:
             ${{ runner.temp }}/iw3-original-pool-allocator.json
             ${{ runner.temp }}/iw3-original-sp-hitloc.json
             ${{ runner.temp }}/iw3-original-iwd-names.json
+            ${{ runner.temp }}/iw3-original-unzip-abi.json
             ${{ runner.temp }}/iw3-authentic-sp-frame-entity-arm64.o
             ${{ runner.temp }}/iw3-sp-frame-abi64-object-elf.txt
             ${{ runner.temp }}/iw3-arm64-elf.txt
