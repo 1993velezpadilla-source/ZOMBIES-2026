@@ -9,6 +9,9 @@ extern "C" int z2026_iw3_math_smoke();
 extern "C" int z2026_iw3_surface_type_from_name(const char*);
 extern "C" const char* z2026_iw3_surface_type_name(int);
 extern "C" int z2026_iw3_surface_smoke();
+extern "C" void z2026_iw3_configstrings_initialize();
+extern "C" int z2026_iw3_configstring_num(const char*);
+extern "C" int z2026_iw3_configstrings_smoke();
 
 static bool near(float a, float b) { return std::fabs(a-b) < 0.0002f; }
 
@@ -28,6 +31,9 @@ int main() {
     assert(z2026_iw3_surface_type_from_name("wood") == 21);
     assert(z2026_iw3_surface_type_from_name("FoLiAgE") == 8);
     assert(z2026_iw3_surface_type_name(20)[0] == 'w');
-    puts("IW3_REAL_AIM_AND_SURFACE_HOST_TEST_GREEN");
+    assert(z2026_iw3_configstrings_smoke() == 1);
+    assert(z2026_iw3_configstring_num("player_sprintSpeedScale") == 96);
+    assert(z2026_iw3_configstring_num("PLAYER_SPRINTSPEEDSCALE") == -1);
+    puts("IW3_REAL_AIM_SURFACE_CONFIG_REGISTRY_HOST_TEST_GREEN");
     return 0;
 }
