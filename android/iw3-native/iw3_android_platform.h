@@ -20,6 +20,14 @@ IW3_ANDROID_EXPORT int z2026_platform_set_data_root(const char *absolute_dir);
 IW3_ANDROID_EXPORT int z2026_platform_read_file(
     const char *relative_path, void *destination, std::size_t capacity);
 
+// Rooted native file primitives for the original ZIP/IWD reader. The returned
+// descriptor is owned by the caller; it is opened beneath the retained root,
+// rejecting absolute paths, dot components and symlink traversal.
+IW3_ANDROID_EXPORT int z2026_platform_open_read_fd(const char *relative_path);
+IW3_ANDROID_EXPORT int z2026_platform_write_file(
+    const char *relative_path, const void *source, std::size_t length);
+IW3_ANDROID_EXPORT int z2026_platform_unlink_file(const char *relative_path);
+
 // Android touch state plus a native adapter to original usercmd_s layout.
 // CL_CreateCmd/game-frame consumption remains pending.
 IW3_ANDROID_EXPORT int z2026_platform_touch_event(
