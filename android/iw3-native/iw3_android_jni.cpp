@@ -91,9 +91,17 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(
     __android_log_print(file_ok ? ANDROID_LOG_INFO : ANDROID_LOG_ERROR,
                         "IW3NativeGate", "IW3_JNI_SANDBOX_IO_%s",
                         file_ok ? "PASS" : "FAIL");
+    int initial_usercmd[10]{};
+    const int usercmd_ok =
+        z2026_platform_usercmd_snapshot(1234, initial_usercmd, 10) == 0 &&
+        initial_usercmd[0] == 1234 && initial_usercmd[1] == 0 &&
+        initial_usercmd[5] == 0 && initial_usercmd[6] == 0;
+    __android_log_print(usercmd_ok ? ANDROID_LOG_INFO : ANDROID_LOG_ERROR,
+                        "IW3NativeGate", "IW3_JNI_USERCMD_ADAPTER_%s",
+                        usercmd_ok ? "READY" : "FAIL");
     const int perk_index = z2026_iw3_configstring_num("specialty_rof");
     const std::uint64_t monotonic_time = z2026_platform_monotonic_ns();
-    const int success = unzip_ok && math_ok && surface_ok && config_ok && frame_copy_ok && pool_ok && snap_ok && hitloc_ok && iwd_names_ok && file_ok &&
+    const int success = unzip_ok && math_ok && surface_ok && config_ok && frame_copy_ok && pool_ok && snap_ok && hitloc_ok && iwd_names_ok && file_ok && usercmd_ok &&
                         perk_index == 2034 && monotonic_time > 0;
     char report[1024];
     std::snprintf(report, sizeof(report),
@@ -109,6 +117,7 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(
                   "Original IW3 IWD name lookup: %s\n"
                   "Original IW3 ZIP32 stored/deflate parser: %s\n"
                   "Android app-private data-root I/O: %s\n"
+                  "Original IW3 usercmd_s touch adapter: %s\n"
                   "Original specialty_rof ID: %d\n"
                   "Monotonic Android clock: %s\n"
                   "Native ABI version: %d\n\n"
@@ -125,6 +134,7 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(
                   iwd_names_ok ? "PASS" : "FAIL",
                   unzip_ok ? "PASS" : "FAIL",
                   file_ok ? "PASS" : "FAIL",
+                  usercmd_ok ? "PASS" : "FAIL",
                   perk_index, monotonic_time ? "PASS" : "FAIL",
                   z2026_iw3_math_source_abi_version());
     __android_log_print(success ? ANDROID_LOG_INFO : ANDROID_LOG_ERROR,
@@ -137,6 +147,23 @@ IW3_JNI_EXPORT jint JNICALL
 Java_org_z2026_iw3nativeprobe_EngineBridge_nativeTouch(
         JNIEnv *, jclass, jint id, jfloat x, jfloat y, jboolean pressed) {
     return z2026_platform_touch_event(static_cast<int>(id), x, y, pressed ? 1 : 0);
+}
+
+IW3_JNI_EXPORT jint JNICALL
+Java_org_z2026_iw3nativeprobe_EngineBridge_nativeUsercmdSnapshot(
+        JNIEnv *env, jclass, jint serverTime, jintArray out) {
+    if (out == nullptr || env->GetArrayLength(out) < 10) return -1;
+    int fields[10]{};
+    const int rc = z2026_platform_usercmd_snapshot(serverTime, fields, 10);
+    if (rc != 0) {
+        __android_log_print(ANDROID_LOG_ERROR, "IW3NativeGate",
+                            "IW3_JNI_USERCMD_SNAPSHOT_FAILED");
+        return rc;
+    }
+    jint values[10]{};
+    for (int i = 0; i < 10; ++i) values[i] = static_cast<jint>(fields[i]);
+    env->SetIntArrayRegion(out, 0, 10, values);
+    return 0;
 }
 
 IW3_JNI_EXPORT jint JNICALL

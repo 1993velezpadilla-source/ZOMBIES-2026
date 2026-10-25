@@ -8,6 +8,7 @@ def real_format_fixture():
     return "\n".join(REQUIRED) + "\n" + "\n".join((
         "IW3_JNI_LIFECYCLE_2",
         "IW3_JNI_TOUCH id=0 pressed=1 coords=0.18421052,0.2962963",
+        "IW3_JNI_USERCMD attack=1 buttons=1 forward=0 right=0 pitch=0 yaw=0",
         "IW3_JNI_TOUCH id=0 pressed=0 coords=0.18421052,0.2962963",
         "IW3_JNI_LIFECYCLE_3", "IW3_JNI_LIFECYCLE_2"))
 
@@ -30,6 +31,15 @@ class NativeRuntimeEvidenceTests(unittest.TestCase):
                         "JNI_NATIVE_ENGINE_PROBE_FAIL"):
             with self.subTest(failure=failure), self.assertRaises(ValueError):
                 verify(real_format_fixture() + "\n" + failure)
+
+    def test_touch_must_reach_original_usercmd_attack_bit(self):
+        valid = "IW3_JNI_USERCMD attack=1 buttons=1 forward=0 right=0 pitch=0 yaw=0"
+        for line in (
+            "IW3_JNI_USERCMD attack=0 buttons=0 forward=0 right=0 pitch=0 yaw=0",
+            "IW3_JNI_USERCMD attack=1 buttons=0 forward=0 right=0 pitch=0 yaw=0",
+        ):
+            with self.subTest(line=line), self.assertRaises(ValueError):
+                verify(real_format_fixture().replace(valid, line))
 
     def test_missing_release_is_not_working_touch(self):
         with self.assertRaises(ValueError):

@@ -83,7 +83,7 @@ set_target_properties(iw3_sp_math PROPERTIES
     OUTPUT_NAME "iw3_sp_math"
 )
 target_compile_options(iw3_sp_math PRIVATE
-    -ffunction-sections -fdata-sections -Wall -Wextra
+    -ffunction-sections -fdata-sections -Wall -Wextra -fsigned-char
     -frounding-math -fno-fast-math
 )
 target_link_options(iw3_sp_math PRIVATE
@@ -154,6 +154,8 @@ else()
     add_test(NAME iw3_original_iw3_zip32_archive_reader COMMAND iw3_real_unzip_host_test)
     add_executable(iw3_platform_host_test
         "${CMAKE_CURRENT_SOURCE_DIR}/platform_native_test.cpp")
+    target_include_directories(iw3_platform_host_test PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}" "${IW3_ENGINE_SOURCE_ROOT}/qcommon")
     target_compile_options(iw3_platform_host_test PRIVATE -UNDEBUG)
     target_link_libraries(iw3_platform_host_test PRIVATE iw3_sp_math)
     add_test(NAME iw3_portable_platform COMMAND iw3_platform_host_test)

@@ -20,11 +20,17 @@ IW3_ANDROID_EXPORT int z2026_platform_set_data_root(const char *absolute_dir);
 IW3_ANDROID_EXPORT int z2026_platform_read_file(
     const char *relative_path, void *destination, std::size_t capacity);
 
-// For the future Android input bridge: fingertip IDs [0, 9], coordinates
-// normalized [0, 1]. Actual game usercmd wiring is NOT yet implemented.
+// Android touch state plus a native adapter to original usercmd_s layout.
+// CL_CreateCmd/game-frame consumption remains pending.
 IW3_ANDROID_EXPORT int z2026_platform_touch_event(
     int pointer_id, float normalized_x, float normalized_y, int down);
 IW3_ANDROID_EXPORT int z2026_platform_touch_snapshot(
     int pointer_id, float *normalized_x, float *normalized_y);
 IW3_ANDROID_EXPORT void z2026_platform_touch_reset();
+
+// fields[10] = serverTime, buttons, packed pitch/yaw/roll angles, then
+// forward/right/up/pitch/yaw movement. Uses authentic qcommon/msg.h usercmd_s.
+// This adapter is not yet consumed by CL_CreateCmd or the game frame.
+IW3_ANDROID_EXPORT int z2026_platform_usercmd_snapshot(
+    int server_time, int *fields, std::size_t field_count);
 }

@@ -1,5 +1,7 @@
 #include "iw3_android_platform.h"
+#include "iw3_android_usercmd_compat.h"
 
+#include <algorithm>
 #include <array>
 #include <cerrno>
 #include <cmath>
@@ -19,12 +21,65 @@ namespace {
 std::mutex g_data_mutex;
 int g_data_root_fd = -1;
 std::mutex g_touch_mutex;
+enum class TouchRole : std::uint8_t {
+    None, Move, Look, Attack, Ads, Jump, Reload, Use, Melee, Crouch, Prone
+};
 struct Touch {
     bool down = false;
     float x = 0;
     float y = 0;
+    float origin_x = 0;
+    float origin_y = 0;
+    float previous_x = 0;
+    float previous_y = 0;
+    TouchRole role = TouchRole::None;
 };
 std::array<Touch, 10> g_touches{};
+float g_view_yaw_degrees = 0.0f;
+float g_view_pitch_degrees = 0.0f;
+
+TouchRole classify_touch(float x, float y) {
+    if (x >= 0.82f && y >= 0.76f) return TouchRole::Attack;
+    if (x >= 0.60f && x < 0.82f && y >= 0.76f) return TouchRole::Ads;
+    if (x >= 0.60f && x < 0.82f && y >= 0.58f && y < 0.76f) return TouchRole::Jump;
+    if (x >= 0.82f && y >= 0.58f && y < 0.76f) return TouchRole::Reload;
+    if (x >= 0.82f && y >= 0.40f && y < 0.58f) return TouchRole::Use;
+    if (x >= 0.60f && x < 0.82f && y >= 0.40f && y < 0.58f) return TouchRole::Melee;
+    if (x >= 0.60f && x < 0.82f && y >= 0.22f && y < 0.40f) return TouchRole::Crouch;
+    if (x >= 0.82f && y >= 0.22f && y < 0.40f) return TouchRole::Prone;
+    return x < 0.48f ? TouchRole::Move : TouchRole::Look;
+}
+
+void update_touch_position(Touch &touch, float x, float y) {
+    if (touch.role == TouchRole::Look) {
+        g_view_yaw_degrees = std::remainder(
+            g_view_yaw_degrees + (x - touch.previous_x) * 240.0f, 360.0f);
+        g_view_pitch_degrees = std::clamp(
+            g_view_pitch_degrees + (y - touch.previous_y) * 180.0f,
+            -89.0f, 89.0f);
+    }
+    touch.previous_x = x;
+    touch.previous_y = y;
+    touch.x = x;
+    touch.y = y;
+}
+
+int move_axis(float delta) {
+    constexpr float dead_zone = 0.04f;
+    constexpr float full_scale = 0.22f;
+    const float magnitude = std::fabs(delta);
+    if (magnitude <= dead_zone) return 0;
+    const float normalized = std::clamp((magnitude - dead_zone) /
+                                        (full_scale - dead_zone), 0.0f, 1.0f);
+    const int value = static_cast<int>(std::lround(normalized * 127.0f));
+    return delta < 0.0f ? -value : value;
+}
+
+int angle_to_short(float degrees) {
+    const auto packed = static_cast<long long>(
+        std::llround(static_cast<double>(degrees) * (65536.0 / 360.0)));
+    return static_cast<int>(static_cast<std::uint16_t>(packed & 0xffffLL));
+}
 bool valid_path(const char *p) {
     if (!p || !*p || *p == '/' || *p == '\\') return false;
     std::size_t len = 0;
@@ -123,7 +178,22 @@ extern "C" IW3_ANDROID_EXPORT int z2026_platform_touch_event(
         x < 0.0f || x > 1.0f || y < 0.0f || y > 1.0f ||
         (down != 0 && down != 1)) return -1;
     std::lock_guard<std::mutex> lock(g_touch_mutex);
-    g_touches[static_cast<std::size_t>(id)] = {down == 1, x, y};
+    Touch &touch = g_touches[static_cast<std::size_t>(id)];
+    if (down == 1) {
+        if (!touch.down) {
+            touch.down = true;
+            touch.x = touch.origin_x = touch.previous_x = x;
+            touch.y = touch.origin_y = touch.previous_y = y;
+            touch.role = classify_touch(x, y);
+        } else {
+            update_touch_position(touch, x, y);
+        }
+    } else {
+        if (touch.down) update_touch_position(touch, x, y);
+        else { touch.x = x; touch.y = y; }
+        touch.down = false;
+        touch.role = TouchRole::None;
+    }
     return 0;
 }
 
@@ -140,4 +210,50 @@ extern "C" IW3_ANDROID_EXPORT int z2026_platform_touch_snapshot(
 extern "C" IW3_ANDROID_EXPORT void z2026_platform_touch_reset() {
     std::lock_guard<std::mutex> lock(g_touch_mutex);
     g_touches.fill(Touch{});
+    g_view_yaw_degrees = 0.0f;
+    g_view_pitch_degrees = 0.0f;
+}
+
+extern "C" IW3_ANDROID_EXPORT int z2026_platform_usercmd_snapshot(
+    int server_time, int *fields, std::size_t field_count) {
+    if (!fields || field_count < 10 || server_time < 0) return -1;
+    std::lock_guard<std::mutex> lock(g_touch_mutex);
+    usercmd_s command{};
+    command.serverTime = server_time;
+    command.angles[0] = angle_to_short(g_view_pitch_degrees);
+    command.angles[1] = angle_to_short(g_view_yaw_degrees);
+    bool movement_claimed = false;
+    for (const Touch &touch : g_touches) {
+        if (!touch.down) continue;
+        switch (touch.role) {
+        case TouchRole::Move:
+            if (!movement_claimed) {
+                command.forwardmove = static_cast<char>(move_axis(touch.origin_y - touch.y));
+                command.rightmove = static_cast<char>(move_axis(touch.x - touch.origin_x));
+                movement_claimed = true;
+            }
+            break;
+        case TouchRole::Attack: command.buttons |= BUTTON_ATTACK; break;
+        case TouchRole::Ads: command.buttons |= BUTTON_ADS; break;
+        case TouchRole::Jump: command.buttons |= BUTTON_JUMP; break;
+        case TouchRole::Reload: command.buttons |= BUTTON_RELOAD; break;
+        case TouchRole::Use: command.buttons |= BUTTON_USE; break;
+        case TouchRole::Melee: command.buttons |= BUTTON_MELEE; break;
+        case TouchRole::Crouch: command.buttons |= BUTTON_CROUCH; break;
+        case TouchRole::Prone: command.buttons |= BUTTON_PRONE; break;
+        case TouchRole::None:
+        case TouchRole::Look: break;
+        }
+    }
+    fields[0] = command.serverTime;
+    fields[1] = command.buttons;
+    fields[2] = command.angles[0];
+    fields[3] = command.angles[1];
+    fields[4] = command.angles[2];
+    fields[5] = static_cast<int>(static_cast<signed char>(command.forwardmove));
+    fields[6] = static_cast<int>(static_cast<signed char>(command.rightmove));
+    fields[7] = static_cast<int>(static_cast<signed char>(command.upmove));
+    fields[8] = static_cast<int>(static_cast<signed char>(command.pitchmove));
+    fields[9] = static_cast<int>(static_cast<signed char>(command.yawmove));
+    return 0;
 }

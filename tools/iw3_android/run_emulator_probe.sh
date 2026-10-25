@@ -55,7 +55,27 @@ PY
 )
 printf 'ADB_REAL_TOUCH_TARGET x=%s y=%s\n' "$touch_x" "$touch_y"
 adb shell input touchscreen tap "$touch_x" "$touch_y"
-sleep 2
+sleep 1
+# Determine the rotated framebuffer from the real screenshot, not device assumptions.
+read -r screen_w screen_h < <(python3 - "$proof_dir/screen-before-touch.png" <<'PY'
+import struct
+import sys
+with open(sys.argv[1], "rb") as f:
+    header = f.read(24)
+if len(header) != 24 or header[:8] != b"\x89PNG\r\n\x1a\n":
+    raise SystemExit("Cannot determine actual Android screenshot dimensions")
+width, height = struct.unpack(">II", header[16:24])
+print(width, height)
+PY
+)
+attack_x=$((screen_w * 90 / 100))
+attack_y=$((screen_h * 85 / 100))
+printf 'ADB_REAL_ATTACK_TOUCH x=%s y=%s framebuffer=%sx%s\n' "$attack_x" "$attack_y" "$screen_w" "$screen_h"
+adb shell input touchscreen tap "$attack_x" "$attack_y"
+sleep 1
+adb logcat -d -s IW3NativeGate:I AndroidRuntime:E DEBUG:E '*:S' \
+    > "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
+grep -F 'IW3_JNI_USERCMD attack=1' "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
 adb exec-out screencap -p > "$proof_dir/screen-after-touch.png"
 adb shell input keyevent KEYCODE_HOME
 sleep 2

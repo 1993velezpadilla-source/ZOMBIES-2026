@@ -1,4 +1,5 @@
 #include "iw3_android_platform.h"
+#include "iw3_android_usercmd_compat.h"
 
 #include <cassert>
 #include <chrono>
@@ -71,6 +72,44 @@ int main() {
     assert(z2026_platform_touch_event(99, .5f, .5f, 1) == -1);
     assert(z2026_platform_touch_event(0, 1.01f, .5f, 1) == -1);
     assert(z2026_platform_touch_event(0, NAN, .5f, 1) == -1);
+
+    // Use the actual IW3 SP usercmd_s ABI from qcommon/msg.h.
+    z2026_platform_touch_reset();
+    int cmd[10]{};
+    assert(z2026_platform_usercmd_snapshot(1234, cmd, 10) == 0);
+    assert(cmd[0] == 1234 && cmd[1] == 0);
+    assert(cmd[2] == 0 && cmd[3] == 0 && cmd[4] == 0);
+    assert(cmd[5] == 0 && cmd[6] == 0 && cmd[7] == 0);
+    assert(z2026_platform_usercmd_snapshot(1234, cmd, 9) == -1);
+    assert(z2026_platform_usercmd_snapshot(-1, cmd, 10) == -1);
+    assert(z2026_platform_touch_event(0, .20f, .70f, 1) == 0);
+    assert(z2026_platform_touch_event(0, .38f, .55f, 1) == 0);
+    assert(z2026_platform_touch_event(1, .90f, .85f, 1) == 0); // attack
+    assert(z2026_platform_touch_event(2, .70f, .85f, 1) == 0); // ADS
+    assert(z2026_platform_touch_event(3, .70f, .65f, 1) == 0); // jump
+    assert(z2026_platform_touch_event(4, .90f, .65f, 1) == 0); // reload
+    assert(z2026_platform_touch_event(5, .90f, .48f, 1) == 0); // use
+    assert(z2026_platform_touch_event(6, .70f, .48f, 1) == 0); // melee
+    assert(z2026_platform_touch_event(7, .70f, .30f, 1) == 0); // crouch
+    assert(z2026_platform_touch_event(8, .90f, .30f, 1) == 0); // prone
+    assert(z2026_platform_touch_event(9, .55f, .50f, 1) == 0); // look
+    assert(z2026_platform_touch_event(9, .65f, .45f, 1) == 0);
+    assert(z2026_platform_usercmd_snapshot(4321, cmd, 10) == 0);
+    assert(cmd[0] == 4321);
+    assert((cmd[1] & BUTTON_ATTACK) != 0 && (cmd[1] & BUTTON_ADS) != 0);
+    assert((cmd[1] & BUTTON_JUMP) != 0 && (cmd[1] & BUTTON_RELOAD) != 0);
+    assert((cmd[1] & BUTTON_USE) != 0 && (cmd[1] & BUTTON_MELEE) != 0);
+    assert((cmd[1] & BUTTON_CROUCH) != 0 && (cmd[1] & BUTTON_PRONE) != 0);
+    assert(cmd[5] > 0 && cmd[6] > 0);
+    assert(cmd[2] != 0 && cmd[3] != 0);
+    assert(z2026_platform_touch_event(1, .90f, .85f, 0) == 0);
+    assert(z2026_platform_usercmd_snapshot(4322, cmd, 10) == 0);
+    assert((cmd[1] & BUTTON_ATTACK) == 0);
+    z2026_platform_touch_reset();
+    assert(z2026_platform_usercmd_snapshot(4323, cmd, 10) == 0);
+    assert(cmd[1] == 0 && cmd[2] == 0 && cmd[3] == 0);
+    assert(cmd[5] == 0 && cmd[6] == 0);
+    std::puts("IW3_ANDROID_TOUCH_TO_ORIGINAL_USERCMD_HOST_GREEN");
 
     unlink(symlink_path.c_str());
     unlink(path.c_str());

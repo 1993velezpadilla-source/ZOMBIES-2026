@@ -17,6 +17,9 @@ public final class EngineBridge {
     public static native int nativeSetDataRoot(String absolutePath);
     public static native String nativeReport(String writableDirectory);
     public static native int nativeTouch(int pointerId, float x, float y, boolean pressed);
+    // Original usercmd_s fields: time, buttons, packed angles, movement bytes.
+    // The game frame/CL_CreateCmd does not consume this adapter yet.
+    public static native int nativeUsercmdSnapshot(int serverTime, int[] fields);
     public static native int nativeTouchSnapshot(int pointerId, float[] coordinates);
     public static native void nativeTouchReset();
     public static native void nativeLifecycle(int event);
