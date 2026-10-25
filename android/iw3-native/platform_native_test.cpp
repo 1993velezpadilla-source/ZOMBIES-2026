@@ -127,12 +127,16 @@ int main() {
     assert(std::fabs(actual_viewangles[1] - 44.0f) < .01f);
     const float applied_pitch = actual_viewangles[0];
     const float applied_yaw = actual_viewangles[1];
-    z2026_platform_apply_touch_to_usercmd(&actual_command, actual_viewangles);
+    // CL_CreateCmd zeroes a fresh usercmd_s each frame; mirror that contract
+    // instead of reusing a command whose button bits were already set.
+    usercmd_s repeated_frame{};
+    z2026_platform_apply_touch_to_usercmd(&repeated_frame, actual_viewangles);
     assert(actual_viewangles[0] == applied_pitch && actual_viewangles[1] == applied_yaw);
-    assert((actual_command.buttons & BUTTON_ATTACK) != 0);
+    assert((repeated_frame.buttons & BUTTON_ATTACK) != 0);
     assert(z2026_platform_touch_event(1, .90f, .85f, 0) == 0);
-    z2026_platform_apply_touch_to_usercmd(&actual_command, actual_viewangles);
-    assert((actual_command.buttons & BUTTON_ATTACK) == 0);
+    usercmd_s released_frame{};
+    z2026_platform_apply_touch_to_usercmd(&released_frame, actual_viewangles);
+    assert((released_frame.buttons & BUTTON_ATTACK) == 0);
     z2026_platform_touch_reset();
     std::puts("IW3_ANDROID_TOUCH_TO_ORIGINAL_USERCMD_HOST_GREEN");
 
