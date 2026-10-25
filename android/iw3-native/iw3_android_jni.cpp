@@ -7,6 +7,7 @@
 #include <jni.h>
 #include <android/log.h>
 #include <cstdio>
+#include <atomic>
 #include <cstdint>
 #include "iw3_android_platform.h"
 
@@ -15,6 +16,10 @@ extern "C" int z2026_iw3_surface_smoke();
 extern "C" int z2026_iw3_configstrings_smoke();
 extern "C" int z2026_iw3_configstring_num(const char*);
 extern "C" int z2026_iw3_math_source_abi_version();
+
+namespace {
+std::atomic<int> g_lifecycle_state{0};
+}
 
 #define IW3_JNI_EXPORT extern "C" JNIEXPORT
 
@@ -76,4 +81,19 @@ IW3_JNI_EXPORT void JNICALL
 Java_org_z2026_iw3nativeprobe_EngineBridge_nativeTouchReset(
         JNIEnv *, jclass) {
     z2026_platform_touch_reset();
+}
+
+IW3_JNI_EXPORT void JNICALL
+Java_org_z2026_iw3nativeprobe_EngineBridge_nativeLifecycle(
+        JNIEnv *, jclass, jint state) {
+    if (state < 1 || state > 4) return;
+    g_lifecycle_state.store(state, std::memory_order_release);
+    __android_log_print(ANDROID_LOG_INFO, "IW3NativeGate",
+                        "IW3_JNI_LIFECYCLE_%d", state);
+}
+
+IW3_JNI_EXPORT jint JNICALL
+Java_org_z2026_iw3nativeprobe_EngineBridge_nativeLifecycleState(
+        JNIEnv *, jclass) {
+    return g_lifecycle_state.load(std::memory_order_acquire);
 }
