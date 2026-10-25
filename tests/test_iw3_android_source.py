@@ -42,7 +42,7 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
             self.assertEqual(result["source_sha256"], hashlib.sha256(original).hexdigest())
             self.assertTrue(result["function_bodies_preserved"])
             self.assertGreaterEqual(result["data_table_entries_preserved"], 50)
-            expected = '#include "iw3_android_surface_compat.h"\\n#include "surfaceflags.h"\\n'
+            expected = '#include "iw3_android_surface_compat.h"\n#include "surfaceflags.h"\n'
             self.assertEqual(out.read_text(encoding="utf-8"),
                              expected + original.decode("utf-8")[len(SURFACE_PROLOGUE):])
         self.assertEqual((ENGINE / SURFACE_FILE).read_bytes(), original)
