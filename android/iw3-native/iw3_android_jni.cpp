@@ -20,6 +20,7 @@ extern "C" int z2026_iw3_real_pool_smoke();
 extern "C" int z2026_iw3_snap_float_smoke();
 extern "C" int z2026_iw3_hitloc_copy_smoke();
 extern "C" int z2026_iw3_iwd_names_smoke();
+extern "C" int z2026_iw3_unzip_smoke(const char *directory);
 extern "C" int z2026_iw3_configstring_num(const char*);
 extern "C" int z2026_iw3_math_source_abi_version();
 
@@ -45,7 +46,19 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeSetDataRoot(
 
 
 IW3_JNI_EXPORT jstring JNICALL
-Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(JNIEnv *env, jclass) {
+Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(
+        JNIEnv *env, jclass, jstring writableDirectory) {
+    int unzip_ok = 0;
+    if (writableDirectory) {
+        const char *directory = env->GetStringUTFChars(writableDirectory, nullptr);
+        if (directory) {
+            unzip_ok = z2026_iw3_unzip_smoke(directory);
+            env->ReleaseStringUTFChars(writableDirectory, directory);
+        }
+    }
+    __android_log_print(unzip_ok ? ANDROID_LOG_INFO : ANDROID_LOG_ERROR,
+                        "IW3NativeGate", "IW3_JNI_UNZIP_PARSER_%s",
+                        unzip_ok ? "PASS" : "FAIL");
     // These calls resolve to the original engine's math, material and
     // configstring implementations via native_math_abi.cpp.
     const int math_ok = z2026_iw3_math_smoke();
@@ -80,7 +93,7 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(JNIEnv *env, jclass) {
                         file_ok ? "PASS" : "FAIL");
     const int perk_index = z2026_iw3_configstring_num("specialty_rof");
     const std::uint64_t monotonic_time = z2026_platform_monotonic_ns();
-    const int success = math_ok && surface_ok && config_ok && frame_copy_ok && pool_ok && snap_ok && hitloc_ok && iwd_names_ok && file_ok &&
+    const int success = unzip_ok && math_ok && surface_ok && config_ok && frame_copy_ok && pool_ok && snap_ok && hitloc_ok && iwd_names_ok && file_ok &&
                         perk_index == 2034 && monotonic_time > 0;
     char report[1024];
     std::snprintf(report, sizeof(report),
@@ -93,7 +106,7 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(JNIEnv *env, jclass) {
                   "Real IW3 64-bit Pool_Alloc/Free: %s\n"
                   "IW3 ARM64 snap rounding: %s\n"
                   "Real IW3 SP hit-location byte copy: %s\n"
-                  "Original IW3 IWD name lookup: %s\n"
+                  "Original IW3 IWD name lookup: %s\n"                  "Original IW3 ZIP32 stored/deflate parser: %s\n"\n
                   "Android app-private data-root I/O: %s\n"
                   "Original specialty_rof ID: %d\n"
                   "Monotonic Android clock: %s\n"
@@ -108,7 +121,7 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(JNIEnv *env, jclass) {
                   pool_ok ? "PASS" : "FAIL",
                   snap_ok ? "PASS" : "FAIL",
                   hitloc_ok ? "PASS" : "FAIL",
-                  iwd_names_ok ? "PASS" : "FAIL",
+                  iwd_names_ok ? "PASS" : "FAIL",\n                  unzip_ok ? "PASS" : "FAIL",
                   file_ok ? "PASS" : "FAIL",
                   perk_index, monotonic_time ? "PASS" : "FAIL",
                   z2026_iw3_math_source_abi_version());
