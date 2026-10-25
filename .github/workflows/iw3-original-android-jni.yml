@@ -73,6 +73,10 @@ jobs:
             --surface-output "$folder/surfaceflags.cpp" \
             --constant-output "$folder/com_constantconfigstrings.cpp" \
             --report "$RUNNER_TEMP/iw3-original-source-provenance.json"
+          python3 tools/iw3_android/prepare_g_runframe_prereqs.py \
+            --engine third_party/KisakCOD \
+            --output "$folder/iw3_frame_memcpy.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-g-runframe-audit.json"
           echo 'IW3_REAL_SOURCE_DIAGNOSTIC_INCLUDES_ONLY'
 
       - name: Compile JNI Activity with real KisakCOD source for Android ARM64
@@ -109,7 +113,8 @@ jobs:
             Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport \
             Java_org_z2026_iw3nativeprobe_EngineBridge_nativeTouch \
             Java_org_z2026_iw3nativeprobe_EngineBridge_nativeLifecycle \
-            z2026_iw3_configstring_num z2026_iw3_angle_vectors; do
+            z2026_iw3_configstring_num z2026_iw3_angle_vectors \
+            z2026_iw3_frame_memcpy_smoke; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-jni-symbols.txt" || exit 1
           done
           "$sdk/build-tools/35.0.1/apksigner" verify --verbose "$apk"
@@ -123,6 +128,7 @@ jobs:
           path: |
             ${{ github.workspace }}/android/iw3-native/android_app/app/build/outputs/apk/debug/app-debug.apk
             ${{ runner.temp }}/iw3-original-source-provenance.json
+            ${{ runner.temp }}/iw3-original-g-runframe-audit.json
             ${{ runner.temp }}/iw3-jni-elf.txt
             ${{ runner.temp }}/iw3-jni-symbols.txt
             ${{ runner.temp }}/iw3-diagnostic-apk-sha256.txt
