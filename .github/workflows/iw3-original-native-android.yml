@@ -1,0 +1,103 @@
+name: IW3 ORIGINAL SOURCE Android ARM64 math port (NOT APK)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/iw3-native-android-arm64-20261025
+    paths:
+      - .github/workflows/iw3-original-native-android.yml
+      - android/iw3-native/**
+      - tools/iw3_android/**
+      - tests/test_iw3_android_source.py
+      - third_party/KisakCOD/src/universal/com_math_anglevectors.cpp
+
+permissions:
+  contents: read
+
+concurrency:
+  group: iw3-original-android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native-iw3-original-android:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      NDK_VER: "27.2.12479018"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify original upstream IW3 source and synthesize header-only ABI overlay
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s tests -p 'test_iw3_android_source.py' -v
+          python3 tools/iw3_android/prepare_real_engine_math.py \
+            --engine third_party/KisakCOD \
+            --output "$RUNNER_TEMP/iw3-source/com_math_anglevectors.cpp" \
+            --report "$RUNNER_TEMP/iw3-native-source.json"
+          echo "IW3_ACTUAL_SOURCE_USED_FROM_KISAKCOD"
+
+      - name: Compile and EXECUTE original KisakCOD aim math on host
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -S android/iw3-native -B "$RUNNER_TEMP/iw3-build-host" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DIW3_EXTRACTED_MATH="$RUNNER_TEMP/iw3-source/com_math_anglevectors.cpp"
+          cmake --build "$RUNNER_TEMP/iw3-build-host" -j 2
+          ctest --test-dir "$RUNNER_TEMP/iw3-build-host" --output-on-failure
+          echo "IW3_REAL_SOURCE_HOST_MATH_GREEN"
+
+      - name: Install Android NDK for compiling original C++ engine function
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdk="$RUNNER_TEMP/android-sdk"
+          mkdir -p "$sdk/cmdline-tools/latest"
+          curl -fLsS --retry 3 -o "$RUNNER_TEMP/commandline-tools.zip" \
+            'https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip'
+          unzip -qo "$RUNNER_TEMP/commandline-tools.zip" -d "$RUNNER_TEMP/commandline-temp"
+          mv "$RUNNER_TEMP/commandline-temp/cmdline-tools/"* "$sdk/cmdline-tools/latest/"
+          yes | "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" --licenses >/dev/null || true
+          "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" "ndk;${NDK_VER}"
+          test -f "$sdk/ndk/${NDK_VER}/build/cmake/android.toolchain.cmake"
+          echo "ANDROID_NDK_HOME=$sdk/ndk/${NDK_VER}" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$sdk" >> "$GITHUB_ENV"
+
+      - name: Link original KisakCOD aim math into genuine Android arm64-v8a ELF
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -S android/iw3-native -B "$RUNNER_TEMP/iw3-build-arm64" \
+            -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake" \
+            -DANDROID_ABI=arm64-v8a \
+            -DANDROID_PLATFORM=android-26 \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DIW3_EXTRACTED_MATH="$RUNNER_TEMP/iw3-source/com_math_anglevectors.cpp"
+          cmake --build "$RUNNER_TEMP/iw3-build-arm64" -j 2
+          so="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_math.so"
+          test -s "$so"
+          elf="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
+          "$elf" -h "$so" | tee "$RUNNER_TEMP/iw3-arm64-elf.txt"
+          grep -F 'Class:                             ELF64' "$RUNNER_TEMP/iw3-arm64-elf.txt"
+          grep -F 'Machine:                           AArch64' "$RUNNER_TEMP/iw3-arm64-elf.txt"
+          "$elf" --dyn-syms "$so" > "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_iw3_angle_vectors' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_iw3_math_smoke' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          # No Android package or game claims: this is a single authentic
+          # engine source C++ module ported and linked into a native .so.
+          echo "IW3_ORIGINAL_SOURCE_ANDROID_ARM64_ELF_GREEN"
+
+      - name: Attach evidence and compiled native module (NOT an APK)
+        uses: actions/upload-artifact@v4
+        with:
+          name: z2026-iw3-real-math-arm64-phase-a-NOT-APK
+          path: |
+            ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_math.so
+            ${{ runner.temp }}/iw3-native-source.json
+            ${{ runner.temp }}/iw3-arm64-elf.txt
+            ${{ runner.temp }}/iw3-arm64-symbols.txt
+          retention-days: 30
+          if-no-files-found: error
