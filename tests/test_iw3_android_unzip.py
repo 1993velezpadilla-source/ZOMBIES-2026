@@ -1,0 +1,71 @@
+import hashlib
+import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
+from tools.iw3_android.prepare_real_engine_unzip import (
+    HEADER, PROLOGUE, REQUIRED_FIXED_FIELDS, REQUIRED_SOURCE, SOURCE, prepare,
+)
+
+ROOT = Path(__file__).resolve().parents[1]
+ENGINE = ROOT / "third_party" / "KisakCOD"
+
+
+class OriginalIW3UnzipPortTests(unittest.TestCase):
+    def test_zip32_public_and_internal_numeric_fields_are_fixed_width(self):
+        header = (ENGINE / HEADER).read_text(encoding="utf-8")
+        source = (ENGINE / SOURCE).read_text(encoding="utf-8")
+        for marker in REQUIRED_FIXED_FIELDS:
+            with self.subTest(marker=marker):
+                self.assertIn(marker, header)
+        for line in header.splitlines():
+            if line.lstrip().startswith("//"):
+                continue
+            self.assertNotRegex(line, r"\bunsigned long\s+\w+\s*;")
+        self.assertIn("uint32_t fileNameBufferSize", source)
+        self.assertIn("uint32_t extraFieldBufferSize", source)
+        self.assertIn("uint32_t commentBufferSize", source)
+        self.assertIn("uint32_t *pos", source)
+        self.assertIn("uint32_t pos", source)
+        self.assertIn("static_assert(sizeof(unz_file_info) == 80", 
+                      (ROOT / "android/iw3-native/iw3_unzip_native_smoke.cpp").read_text())
+
+    def test_original_parser_body_is_staged_without_reimplementation(self):
+        source_path = ENGINE / SOURCE
+        header_path = ENGINE / HEADER
+        source_bytes = source_path.read_bytes()
+        header_bytes = header_path.read_bytes()
+        source = source_bytes.decode("utf-8")
+        self.assertTrue(source.startswith(PROLOGUE))
+        for marker in REQUIRED_SOURCE:
+            self.assertEqual(source.count(marker), 1)
+        with TemporaryDirectory() as temp:
+            output = Path(temp) / "generated" / "unzip.cpp"
+            evidence = prepare(ENGINE, output)
+            staged = output.read_text(encoding="utf-8")
+            self.assertEqual(staged, '#include "iw3_android_unzip_compat.h"\n' + source[len(PROLOGUE):])
+            self.assertEqual(evidence["source_sha256"], hashlib.sha256(source_bytes).hexdigest())
+            self.assertEqual(evidence["header_sha256"], hashlib.sha256(header_bytes).hexdigest())
+            self.assertTrue(evidence["parser_body_preserved_after_include_adapter"])
+            self.assertTrue(evidence["zip32_numeric_fields_fixed_width"])
+            self.assertFalse(evidence["archive_searchpath_integration"])
+            self.assertFalse(evidence["map_loading_verified"])
+            with self.assertRaisesRegex(ValueError, "Cannot overwrite"):
+                prepare(ENGINE, source_path)
+        self.assertEqual(source_path.read_bytes(), source_bytes)
+        self.assertEqual(header_path.read_bytes(), header_bytes)
+
+    def test_native_and_android_builds_require_real_parser(self):
+        cmake = (ROOT / "android/iw3-native/CMakeLists.txt").read_text(encoding="utf-8")
+        gradle = (ROOT / "android/iw3-native/android_app/app/build.gradle").read_text(encoding="utf-8")
+        jni = (ROOT / "android/iw3-native/iw3_android_jni.cpp").read_text(encoding="utf-8")
+        self.assertIn("IW3_EXTRACTED_UNZIP", cmake)
+        self.assertIn("iw3_android_unzip_io.cpp", cmake)
+        self.assertIn("iw3_unzip_native_smoke.cpp", cmake)
+        self.assertIn("IW3_EXTRACTED_UNZIP", gradle)
+        self.assertIn("z2026_iw3_unzip_smoke", jni)
+        self.assertIn("IW3_JNI_UNZIP_PARSER_PASS", 
+                      (ROOT / "tools/iw3_android/verify_runtime_evidence.py").read_text())
+
+if __name__ == "__main__":
+    unittest.main()
