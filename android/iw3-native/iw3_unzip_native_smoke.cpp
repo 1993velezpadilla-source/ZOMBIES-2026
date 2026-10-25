@@ -1,4 +1,5 @@
 #include "iw3_android_unzip_compat.h"
+#include "iw3_android_platform.h"
 #include "unzip.h"
 #include <array>
 #include <string>
@@ -114,7 +115,8 @@ extern "C" IW3_UNZIP_EXPORT int z2026_iw3_unzip_smoke(const char *directory) {
     static_assert(sizeof(unz_global_info) == 8, "IW3 ZIP32 global-info layout drift");
     static_assert(sizeof(unz_file_info) == 80, "IW3 ZIP32 file-info layout drift");
     static_assert(sizeof(unz_file_info_internal) == 4, "IW3 ZIP32 file offset layout drift");
-    if (!directory || !*directory || std::strlen(directory) > 700) return 0;
+    if (!directory || directory[0] != '/' || std::strlen(directory) > 700 ||
+        z2026_platform_set_data_root(directory) != 0) return 0;
 
     std::array<Entry, 2> entries{{
         {"maps/iw3_android_probe.txt", "KISAKCOD_IWD_STORED_64BIT", 0, {}, 0, 0},
@@ -122,16 +124,15 @@ extern "C" IW3_UNZIP_EXPORT int z2026_iw3_unzip_smoke(const char *directory) {
     }};
     Bytes archiveBytes;
     if (!make_zip(archiveBytes, entries)) return 0;
-    char path[1024]{};
+    char path[96]{};
     const int pathLength = std::snprintf(path, sizeof(path),
-        "%s/iw3-unzip-smoke-%ld.zip", directory, static_cast<long>(::getpid()));
+        "iw3-unzip-smoke-%ld.zip", static_cast<long>(::getpid()));
     if (pathLength <= 0 || static_cast<std::size_t>(pathLength) >= sizeof(path)) return 0;
 
-    FILE *file = std::fopen(path, "wb");
-    if (!file) return 0;
-    const bool wrote = std::fwrite(archiveBytes.data(), 1, archiveBytes.size(), file) == archiveBytes.size();
-    const bool closed = std::fclose(file) == 0;
-    if (!wrote || !closed) { ::unlink(path); return 0; }
+    // The original ZIP parser must resolve its archive through the same
+    // root-confined file-open boundary used for future real IWD packages.
+    if (z2026_platform_write_file(path, archiveBytes.data(), archiveBytes.size()) !=
+        static_cast<int>(archiveBytes.size())) return 0;
 
     bool ok = false;
     unzFile parsed = unzOpen(path);
@@ -146,6 +147,6 @@ extern "C" IW3_UNZIP_EXPORT int z2026_iw3_unzip_smoke(const char *directory) {
              unzGoToNextFile(parsed) == UNZ_END_OF_LIST_OF_FILE;
         if (unzClose(parsed) != UNZ_OK) ok = false;
     }
-    ::unlink(path);
+    if (z2026_platform_unlink_file(path) != 0) ok = false;
     return ok ? 1 : 0;
 }
