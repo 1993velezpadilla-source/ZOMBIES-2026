@@ -22,6 +22,7 @@ add_library(iw3_sp_math SHARED
     "${IW3_EXTRACTED_MATH}"
     "${IW3_EXTRACTED_SURFACE}"
     "${CMAKE_CURRENT_SOURCE_DIR}/native_math_abi.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_platform.cpp"
 )
 target_include_directories(iw3_sp_math PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}" "${IW3_REAL_HEADER_ROOT}")
 set_target_properties(iw3_sp_math PROPERTIES
@@ -53,4 +54,9 @@ else()
     # this verification executable, otherwise ctest yields a false-green.
     target_compile_options(iw3_math_host_test PRIVATE -UNDEBUG)
     add_test(NAME iw3_real_math COMMAND iw3_math_host_test)
+    add_executable(iw3_platform_host_test
+        "${CMAKE_CURRENT_SOURCE_DIR}/platform_native_test.cpp")
+    target_compile_options(iw3_platform_host_test PRIVATE -UNDEBUG)
+    target_link_libraries(iw3_platform_host_test PRIVATE iw3_sp_math)
+    add_test(NAME iw3_portable_platform COMMAND iw3_platform_host_test)
 endif()
