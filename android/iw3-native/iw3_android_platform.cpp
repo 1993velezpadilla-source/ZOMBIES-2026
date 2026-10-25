@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include <dirent.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <limits>
 #include <mutex>
 #include <string>
@@ -272,8 +273,12 @@ extern "C" IW3_ANDROID_EXPORT std::uint64_t z2026_platform_monotonic_ns() {
 
 extern "C" IW3_ANDROID_EXPORT int z2026_platform_set_data_root(const char *dir) {
     if (!dir || dir[0] != '/') return -1;
-    char resolved[1024]{};
-    if (!realpath(dir, resolved)) return -1;
+    // POSIX requires a PATH_MAX-sized destination for realpath when the
+    // caller supplies its own buffer. A 1 KiB buffer trips fortify on glibc
+    // even for a short app path; validate our tighter stored-path limit after
+    // canonicalization instead.
+    char resolved[PATH_MAX]{};
+    if (!realpath(dir, resolved) || std::strlen(resolved) >= 1024) return -1;
     const int fd = open(resolved, O_RDONLY | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW);
     if (fd < 0) return -1;
     std::lock_guard<std::mutex> lock(g_data_mutex);
