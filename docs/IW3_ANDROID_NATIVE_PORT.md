@@ -288,3 +288,34 @@ The native source staging script extracts the exact corrected original SP functi
 **Verification status — native host + ARM64 GREEN:** [GitHub Actions 40212690694](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40212690694) completed **SUCCESS** at source SHA `91a7df2316bb4c65a25f5bd40b39caba42d0a552`. Both Release and ASAN/UBSAN host configurations passed **7/7 CTest**, including original IW3 archive-name routines; the ELF64 AArch64 native library linked with the original code and exported `z2026_iw3_iwd_names_smoke`. **This does not establish Android device runtime or APK gameplay.** The [JNI ARM64 APK workflow](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40212690774) and [Android emulator runtime workflow](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40212690668) must complete independently before their respective gates can be called GREEN.
 
 **Still missing:** actual `FS_*` IWD ZIP archive opening, archive member streaming, fastfile (`.ff`) loading, IW3 map/BSP load, full single-player `G_RunFrame`, renderer, touch-to-`usercmd` and gameplay. The signed Android JNI APK is **not playable**. This phase only ports original archive filename hashing/normalization; it does not claim game content is mounted or rendered.
+
+## Phase C — authentic ZIP32/IWD archive reader on 64-bit (25 Oct 2026)
+
+The next asset-loading dependency is now ported as a real engine module:
+`third_party/KisakCOD/src/qcommon/unzip.cpp` and its original `unzip.h`.
+The old Windows ABI used 32-bit `unsigned long`; LP64 Android widens it to
+64 bits. Active ZIP32 fields and public offsets/sizes now use `uint32_t`,
+preserving their original Win32 width and the 80-byte `unz_file_info`
+layout. The actual parser's little-endian readers decode the 2- and 4-byte
+archive fields explicitly, support both fixed-width record fields and native
+zlib counters, and reject short field reads. The IWD filename-position call
+in `com_files.cpp` now passes the real `uint32_t` field directly.
+
+The Android adapter implements the original `FS_File*` calls required by
+this parser using POSIX `FILE*` I/O and retains KisakCOD's non-stdio seek
+enum (0=current, 1=end, 2=absolute). The old int-sized file API deliberately
+rejects archives over `INT_MAX`; ZIP64 and full search-path integration are
+not claimed. The source-staging script replaces only the Windows-heavy
+include pair and verifies the actual vendored parser body/hash. It does not
+synthesize a second ZIP reader.
+
+The host/ASAN test generates a disposable two-entry ZIP fixture (one stored,
+one raw-deflate), then calls the actual `unzOpen`, central-directory
+enumeration, current-file open/read/close and end-of-list APIs. The Android
+JNI diagnostic runs the same native parser smoke in app-private cache and
+requires an explicit `IW3_JNI_UNZIP_PARSER_PASS` log marker. This fixture is
+test data only, not a game asset.
+
+**Host build + CTest + ASAN/UBSAN passed** in [run 40222518391](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40222518391); it includes the new archive-reader test. The exact ARM64 link and Android emulator runtime gates must also pass before calling this phase fully green.
+
+Strict limit: this is still an isolated archive-parser dependency, not the engine's `FS_LoadZipFile` search-path system. Fastfile/IWD search-path initialization, actual map loading, native renderer, linked SP frame services, touchscreen-to-`usercmd` mapping and gameplay remain unimplemented. The JNI APK remains diagnostic only.
