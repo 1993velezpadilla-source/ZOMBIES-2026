@@ -27,6 +27,7 @@ android {
                 arguments "-DIW3_EXTRACTED_MATH=${new File(sourceDir, 'com_math_anglevectors.cpp').absolutePath}",
                           "-DIW3_EXTRACTED_SURFACE=${new File(sourceDir, 'surfaceflags.cpp').absolutePath}",
                           "-DIW3_EXTRACTED_CONSTANTS=${new File(sourceDir, 'com_constantconfigstrings.cpp').absolutePath}",
+                          "-DIW3_EXTRACTED_FRAME_MEMCPY=${new File(sourceDir, 'iw3_frame_memcpy.cpp').absolutePath}",
                           "-DIW3_REAL_HEADER_ROOT=${originalHeaders.absolutePath}",
                           "-DIW3_EMULATOR_DIAGNOSTIC_ONLY=${emulatorProbe ? 'ON' : 'OFF'}"
             }
