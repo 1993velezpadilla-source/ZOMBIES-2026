@@ -241,7 +241,12 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
         self.assertIn("if (!uf)\n        return 0;", load_zip)
         self.assertIn("if (unzGetGlobalInfo(uf, &gi))", load_zip)
         self.assertIn("unzClose(uf);", load_zip)
+        self.assertIn("if (!gi.number_entry || unzGoToFirstFile(uf) != UNZ_OK)", load_zip)
+        self.assertIn("if (unzGetCurrentFileInfoPosition(uf, &buildBuffer[i].pos) != UNZ_OK)", load_zip)
+        self.assertIn("if (i + 1 < gi.number_entry && unzGoToNextFile(uf) != UNZ_OK)", load_zip)
         self.assertIn("if (i != gi.number_entry)", load_zip)
+        self.assertLess(load_zip.rindex("if (i != gi.number_entry)"),
+                        load_zip.index("fs_iwdFileCount += gi.number_entry"))
         self.assertIn("Z_Free(iwd, 3);", load_zip)
         self.assertIn("Z_Free(buildBuffer, 3);", load_zip)
 
