@@ -1,0 +1,153 @@
+name: ZOMBIES-2026 first original Android APK gauntlet
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/android-first-apk-20261024
+    paths:
+      - .github/workflows/z2026-first-android-apk.yml
+      - android/first_apk/**
+
+permissions:
+  contents: write
+
+concurrency:
+  group: z2026-first-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-publish-android:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    env:
+      GODOT_VERSION: "4.6"
+      GODOT_RELEASE: "4.6-stable"
+      APK: "android/first_apk/build/ZOMBIES-2026-first-android-debug.apk"
+    steps:
+      - name: Fetch code (original assets only)
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install pinned Android SDK packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.1"
+          test -d "$ANDROID_HOME/platforms/android-35"
+          test -x "$ANDROID_HOME/build-tools/35.0.1/aapt"
+
+      - name: Install Godot 4.6 editor and matching Android export templates
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}"
+          curl -fL --retry 3 --connect-timeout 25 -o "$RUNNER_TEMP/godot-linux.zip" \
+            "$base/Godot_v${GODOT_RELEASE}_linux.x86_64.zip"
+          unzip -qo "$RUNNER_TEMP/godot-linux.zip" -d "$RUNNER_TEMP"
+          sudo install -m 0755 "$RUNNER_TEMP/Godot_v${GODOT_RELEASE}_linux.x86_64" /usr/local/bin/godot
+          godot --version
+          curl -fL --retry 3 --connect-timeout 25 -o "$RUNNER_TEMP/godot-export.tpz" \
+            "$base/Godot_v${GODOT_RELEASE}_export_templates.tpz"
+          mkdir -p "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          unzip -qo "$RUNNER_TEMP/godot-export.tpz" \
+            'templates/android_debug.apk' \
+            'templates/android_release.apk' \
+            'templates/version.txt' -d "$RUNNER_TEMP/godot-templates"
+          cp "$RUNNER_TEMP"/godot-templates/templates/* \
+             "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable/"
+          test -s "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable/android_debug.apk"
+          rm -f "$RUNNER_TEMP/godot-linux.zip" "$RUNNER_TEMP/godot-export.tpz"
+
+      - name: Configure Godot Android export editor settings and debug keystore
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.config/godot"
+          cat >"$HOME/.config/godot/editor_settings-4.6.tres" <<EOF
+          [gd_resource type="EditorSettings" format=3]
+
+          [resource]
+          export/android/java_sdk_path = "$JAVA_HOME"
+          export/android/android_sdk_path = "$ANDROID_HOME"
+          EOF
+          keytool -genkeypair -v -keystore "$RUNNER_TEMP/z2026-debug.keystore" \
+            -storepass android -alias androiddebugkey -keypass android \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=Z2026 Debug,O=Open Prototype,C=US" >/dev/null 2>&1
+          echo "GODOT_ANDROID_KEYSTORE_DEBUG_PATH=$RUNNER_TEMP/z2026-debug.keystore" >>"$GITHUB_ENV"
+          echo "GODOT_ANDROID_KEYSTORE_DEBUG_USER=androiddebugkey" >>"$GITHUB_ENV"
+          echo "GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD=android" >>"$GITHUB_ENV"
+
+      - name: Godot project import and parser gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p android/first_apk/build
+          godot --headless --editor --path android/first_apk --import --quit \
+            2>&1 | tee "$RUNNER_TEMP/z2026-godot-import.txt"
+          if grep -E 'SCRIPT ERROR|Parse Error|Parser Error' "$RUNNER_TEMP/z2026-godot-import.txt"; then
+            echo 'Godot GDScript parser gate failed.' >&2
+            exit 1
+          fi
+
+      - name: Build actual signed debug Android arm64 APK (no IW3 port claims)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$(dirname "$APK")"
+          godot --headless --path android/first_apk --export-debug Android "$(pwd)/$APK" \
+            2>&1 | tee "$RUNNER_TEMP/z2026-android-export.txt"
+          if grep -E 'SCRIPT ERROR|Parse Error|Parser Error|ERROR:.*export' "$RUNNER_TEMP/z2026-android-export.txt"; then
+            echo 'Android export reported engine/script errors.' >&2
+            exit 1
+          fi
+          test -s "$APK"
+          unzip -tq "$APK" | tail -n 3
+          unzip -Z1 "$APK" | grep -E '^lib/arm64-v8a/.*\.so$'
+          echo 'Z2026_REAL_ARM64_APK_BUILT'
+
+      - name: Android APK manifest and signature gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging "$APK" >"$RUNNER_TEMP/z2026-badging.txt"
+          grep -F "package: name='org.zombies2026.firstapk'" "$RUNNER_TEMP/z2026-badging.txt"
+          grep -F 'arm64-v8a' "$RUNNER_TEMP/z2026-badging.txt"
+          "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify --verbose "$APK"
+          sha256sum "$APK" | tee "$RUNNER_TEMP/z2026-first-apk.sha256"
+          ls -lh "$APK"
+
+      - name: Upload first installable Android APK (actual binary)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ZOMBIES-2026-first-android-APK-ARM64
+          path: android/first_apk/build/ZOMBIES-2026-first-android-debug.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish original prototype APK as downloadable GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag='z2026-first-android-apk-v0.1.0'
+          if ! gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$tag" "$APK" --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" \
+              --title 'ZOMBIES-2026 first Android APK (Godot original prototype)' \
+              --notes 'First signed Android ARM64 debug APK: original 3D offline FPS room, touch controls, waves, procedural zombies and test weapon. This is NOT an IW3 native Android port, not COD4, and ships NO proprietary COD models/maps/sounds. Not a production release. Requires landscape Android device.'
+          fi
+          gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json url,name,assets
