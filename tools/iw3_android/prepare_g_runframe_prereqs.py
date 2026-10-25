@@ -105,7 +105,7 @@ def function_source(source: str, signature: str) -> str:
 # The C++ test builds this verbatim span from the real G_RunFrame source
 # with deliberately adversarial 64-bit entity sizes. This is an ABI-unit
 # fixture, NOT a replacement frame or Android playable runtime.
-ENTITY_LOOP_BEGIN = "                if (level.num_entities > 1)\\n"
+ENTITY_LOOP_BEGIN = "                if (level.num_entities > 1)\n"
 ENTITY_LOOP_LAST_LINE = "                    } while (level.currentIndex < level.num_entities);"
 
 
@@ -119,9 +119,9 @@ def actual_entity_loop(engine_text: str) -> str:
     stop = frame.index(ENTITY_LOOP_LAST_LINE, first)
     tail = stop + len(ENTITY_LOOP_LAST_LINE)
     after = frame[tail:]
-    if not after.startswith("\\n                }\\n            } while (checkAnimChange);"):
+    if not after.startswith("\n                }\n            } while (checkAnimChange);"):
         raise ValueError("Original SP animation-loop boundary changed")
-    out = frame[first:tail] + "\\n                }\\n"
+    out = frame[first:tail] + "\n                }\n"
     if out.count("gentity_s *animEnt = &g_entities[1];") != 1:
         raise ValueError("Typed engine entity loop missing")
     if any(snippet in out for snippet in FRAME_LEGACY_ASSUMPTIONS):
