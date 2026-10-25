@@ -61,12 +61,19 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeTouch(
 
 IW3_JNI_EXPORT jint JNICALL
 Java_org_z2026_iw3nativeprobe_EngineBridge_nativeTouchSnapshot(
-        JNIEnv *, jclass, jint id, jfloatArray out) {
-    if (out == nullptr || id < 0 || id >= 10) return -1;
-    // GetArrayLength is checked before SetFloatArrayRegion; never write
-    // outside a Java-side buffer.
-    JNIEnv *env = nullptr;
-    // JNI signature above intentionally lacks the named environment.
-    // See below: replace by a validated JNIEnv* parameter.
-    return -1;
+        JNIEnv *env, jclass, jint id, jfloatArray out) {
+    if (out == nullptr || id < 0 || id >= 10 ||
+        env->GetArrayLength(out) < 2) return -1;
+    float x = 0.0f, y = 0.0f;
+    const int pressed = z2026_platform_touch_snapshot(id, &x, &y);
+    if (pressed < 0) return -1;
+    const jfloat coords[2] = {x, y};
+    env->SetFloatArrayRegion(out, 0, 2, coords);
+    return pressed;
+}
+
+IW3_JNI_EXPORT void JNICALL
+Java_org_z2026_iw3nativeprobe_EngineBridge_nativeTouchReset(
+        JNIEnv *, jclass) {
+    z2026_platform_touch_reset();
 }
