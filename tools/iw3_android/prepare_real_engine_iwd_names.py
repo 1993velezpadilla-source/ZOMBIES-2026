@@ -10,7 +10,10 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
-from tools.iw3_android.prepare_g_runframe_prereqs import function_source
+if __package__:
+    from .prepare_g_runframe_prereqs import function_source
+else:
+    from prepare_g_runframe_prereqs import function_source
 
 FILES = Path("src/universal/com_files.cpp")
 SHARED = Path("src/universal/q_shared.cpp")
