@@ -156,3 +156,16 @@ This assumed **628-byte `gentity_s`**, and offsets **168** and **136** from `r.i
 
 **Narrow proof limit:** The full real `G_RunFrame` **still does not compile/link or execute in Android**; this patch eliminates *one confirmed bad Win32 entity addressing assumption*, not the remaining Win32, renderer, actor, script VM, `gentity_s` layout and 32-bit `static_assert` incompatibilities in other SP modules. No playable IW3 Android APK or 3D frame exists. CI proof links will be added after each job actually finishes GREEN; a regression failure is RED, not a success.
 
+
+## Phase B native memory — KisakCOD pool allocator repaired for 64-bit
+
+The **actual original** `third_party/KisakCOD/src/universal/pool_allocator.cpp` `Pool_Init()` was writing next-pointer links as `uint32_t`: `*(uint32_t*)&pool[...] = (uint32_t)&pool[...]`. **This truncates pointer addresses** on Android ARM64/x86_64 and corrupts the free list. The real engine source now initializes typed `freenode*` links, with minimum slot-size and alignment guards. No synthetic game allocator was swapped in. The `Pool_Alloc`, `Pool_Free`, and `Pool_FreeCount` game functions remain original.
+
+The native-port script `tools/iw3_android/prepare_real_engine_pool.py` stages a temporary copy of the **full real corrected `pool_allocator.cpp`**, replacing only Windows-dependent headers for Android. Python source-verification tests compare the complete remainder of the source byte-for-byte and fail if legacy 32-bit pointer-truncation lines return.
+
+`android/iw3-native/pool_native_test.cpp` runs the original allocator at 64 bits on an aligned 97-item pool: verifies all allocated addresses, exhausted state, reverse frees, active/free counts, and reuse; the Android JNI diagnostic also calls a source-linked native `Pool_*` smoke. ARM64 NDK builds use the same real source module. This is a **dependency for future SP runtime**, not the full SP game loop.
+
+**Host + ELF GREEN:** [Native build 40209841645](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40209841645): 4/4 CTest checks passed and ELF64 AArch64 artifact linked with corrected allocator.
+
+Strict limits remain: no full `G_RunFrame` linked or executed on Android, no genuine IW3 graphics/game scene, and no playable IW3 Android APK. Diagnostic APKs must never be relabeled as working zombies games.
+
