@@ -22,6 +22,12 @@ from tools.iw3_android.prepare_real_engine_pool import (
     prepare as prepare_pool,
 )
 
+from tools.iw3_android.prepare_real_engine_hitloc import (
+    SOURCE as HITLOC_SOURCE, SIGNATURE as HITLOC_SIGNATURE,
+    REQUIRED as HITLOC_REQUIRED, UNSAFE as HITLOC_UNSAFE,
+    prepare as prepare_hitloc,
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 ENGINE = ROOT / "third_party/KisakCOD"
 
@@ -134,6 +140,28 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "Cannot overwrite"):
                 prepare_pool(ENGINE, path)
         self.assertEqual(path.read_bytes(), source)
+
+    def test_authentic_sp_hitloc_pointer_width_fix(self):
+        path = ENGINE / HITLOC_SOURCE
+        original = path.read_bytes()
+        source = original.decode("utf-8")
+        self.assertEqual(source.count(HITLOC_SIGNATURE), 1)
+        with TemporaryDirectory() as temp:
+            out = Path(temp) / "stage" / "iw3_g_combat_hitloc.cpp"
+            evidence = prepare_hitloc(ENGINE, out)
+            self.assertTrue(evidence["function_body_preserved"])
+            self.assertTrue(evidence["win32_pointer_delta_removed_from_real_engine"])
+            self.assertFalse(evidence["full_hitloc_damage_system_ported"])
+            self.assertEqual(evidence["source_sha256"], hashlib.sha256(original).hexdigest())
+            staged = out.read_text(encoding="utf-8")
+            self.assertTrue(staged.startswith('#include "iw3_android_hitloc_compat.h"\n'))
+            for marker in HITLOC_REQUIRED:
+                self.assertIn(marker, staged)
+            for marker in HITLOC_UNSAFE:
+                self.assertNotIn(marker, staged)
+            with self.assertRaisesRegex(ValueError, "Never overwrite"):
+                prepare_hitloc(ENGINE, path)
+        self.assertEqual(path.read_bytes(), original)
 
     def test_no_vendor_overwrite(self):
         with self.assertRaisesRegex(ValueError, "Refusing"):
