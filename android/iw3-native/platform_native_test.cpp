@@ -38,6 +38,24 @@ int main() {
     assert(z2026_platform_read_file("sample.txt", buffer, 2) == -1);
     assert(z2026_platform_read_file("", buffer, sizeof(buffer)) == -1);
     assert(z2026_platform_read_file("fake.txt", buffer, sizeof(buffer)) == -1);
+
+    // The original ZIP/IWD reader now opens relative archive names through
+    // the retained data root, not unrestricted absolute fopen paths.
+    const int rooted_fd = z2026_platform_open_read_fd("sample.txt");
+    assert(rooted_fd >= 0);
+    unsigned char rooted_bytes[3]{};
+    assert(read(rooted_fd, rooted_bytes, sizeof(rooted_bytes)) == 3);
+    assert(std::memcmp(rooted_bytes, "IW3", 3) == 0);
+    close(rooted_fd);
+    assert(z2026_platform_open_read_fd("../sample.txt") == -1);
+    assert(z2026_platform_open_read_fd("/etc/passwd") == -1);
+    assert(z2026_platform_write_file("../escape.bin", "bad", 3) == -1);
+    assert(z2026_platform_write_file("/absolute.bin", "bad", 3) == -1);
+    assert(z2026_platform_write_file("generated.iwd", "IWD", 3) == 3);
+    assert(z2026_platform_read_file("generated.iwd", buffer, sizeof(buffer)) == 3);
+    assert(std::memcmp(buffer, "IWD", 3) == 0);
+    assert(z2026_platform_unlink_file("generated.iwd") == 0);
+    assert(z2026_platform_open_read_fd("generated.iwd") == -1);
     // Actual IW3 game data is nested (e.g. main/zone), not flat.
     // Exercise an app-owned nested file while rejecting directory symlinks.
     const std::string main_dir = std::string(root) + "/main";
@@ -60,6 +78,9 @@ int main() {
     const std::string symlink_path = std::string(root) + "/outside";
     assert(symlink("/etc/passwd", symlink_path.c_str()) == 0);
     assert(z2026_platform_read_file("outside", buffer, sizeof(buffer)) == -1);
+    assert(z2026_platform_open_read_fd("outside") == -1);
+    assert(z2026_platform_write_file("outside", "bad", 3) == -1);
+    assert(z2026_platform_unlink_file("outside") == 0);
 
     z2026_platform_touch_reset();
     float x = 4, y = 4;
