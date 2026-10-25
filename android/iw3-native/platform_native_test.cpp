@@ -37,6 +37,25 @@ int main() {
     assert(z2026_platform_read_file("sample.txt", buffer, 2) == -1);
     assert(z2026_platform_read_file("", buffer, sizeof(buffer)) == -1);
     assert(z2026_platform_read_file("fake.txt", buffer, sizeof(buffer)) == -1);
+    // Actual IW3 game data is nested (e.g. main/zone), not flat.
+    // Exercise an app-owned nested file while rejecting directory symlinks.
+    const std::string main_dir = std::string(root) + "/main";
+    assert(mkdir(main_dir.c_str(), 0700) == 0);
+    const std::string nested = main_dir + "/native-test.iwd";
+    const int nested_fd = open(nested.c_str(), O_WRONLY | O_CREAT | O_EXCL, 0600);
+    assert(nested_fd >= 0);
+    assert(write(nested_fd, "IWD", 3) == 3);
+    close(nested_fd);
+    assert(z2026_platform_read_file("main/native-test.iwd", buffer, sizeof(buffer)) == 3);
+    assert(std::memcmp(buffer, "IWD", 3) == 0);
+    assert(z2026_platform_read_file("main/../sample.txt", buffer, sizeof(buffer)) == -1);
+    const std::string linked_dir = std::string(root) + "/linked-main";
+    assert(symlink(main_dir.c_str(), linked_dir.c_str()) == 0);
+    assert(z2026_platform_read_file("linked-main/native-test.iwd", buffer, sizeof(buffer)) == -1);
+    assert(unlink(linked_dir.c_str()) == 0);
+    assert(unlink(nested.c_str()) == 0);
+    assert(rmdir(main_dir.c_str()) == 0);
+
     const std::string symlink_path = std::string(root) + "/outside";
     assert(symlink("/etc/passwd", symlink_path.c_str()) == 0);
     assert(z2026_platform_read_file("outside", buffer, sizeof(buffer)) == -1);
