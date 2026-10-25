@@ -150,7 +150,7 @@ bool normalize_engine_path(const char *path, char output[1024], bool allow_root)
             if (std::strncmp(path, root.c_str(), root_length) != 0) return false;
             if (path[root_length] == '\0') {
                 relative = path + root_length;
-            } else if (path[root_length] == '/') {
+            } else if (path[root_length] == '/' || path[root_length] == '\\') {
                 relative = path + root_length + 1;
             } else {
                 // Reject sibling-prefix attacks such as /data/app-evil.
@@ -163,10 +163,18 @@ bool normalize_engine_path(const char *path, char output[1024], bool allow_root)
         output[0] = '\0';
         return true;
     }
-    if (!valid_path(relative)) return false;
-    const std::size_t length = std::strlen(relative);
+    // FS_BuildOSPath on the original Windows engine emits backslashes.
+    // Normalize separators before rejecting dot components in the rooted
+    // open/list routines; never let a Windows-style ".." bypass traversal
+    // checks on POSIX.
+    std::string normalized(relative);
+    for (char &character : normalized) {
+        if (character == '\\') character = '/';
+    }
+    if (!valid_path(normalized.c_str())) return false;
+    const std::size_t length = normalized.size();
     if (length >= 1024) return false;
-    std::memcpy(output, relative, length + 1);
+    std::memcpy(output, normalized.c_str(), length + 1);
     return true;
 }
 
