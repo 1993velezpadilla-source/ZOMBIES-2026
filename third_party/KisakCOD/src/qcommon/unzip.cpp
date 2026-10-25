@@ -570,11 +570,11 @@ static int unzlocal_GetCurrentFileInfoInternal (unzFile file,
                                                   unz_file_info_internal 
                                                   *pfile_info_internal,
                                                   char *szFileName,
-												  uLong fileNameBufferSize,
+												  uint32_t fileNameBufferSize,
                                                   void *extraField,
-												  uLong extraFieldBufferSize,
+												  uint32_t extraFieldBufferSize,
                                                   char *szComment,
-												  uLong commentBufferSize)
+												  uint32_t commentBufferSize)
 {
 	unz_s* s;
 	unz_file_info file_info;
@@ -730,9 +730,9 @@ static int unzlocal_GetCurrentFileInfoInternal (unzFile file,
   return UNZ_OK if there is no problem.
 */
 extern int unzGetCurrentFileInfo (	unzFile file, unz_file_info *pfile_info,
-									char *szFileName, uLong fileNameBufferSize,
-									void *extraField, uLong extraFieldBufferSize,
-									char *szComment, uLong commentBufferSize)
+									char *szFileName, uint32_t fileNameBufferSize,
+									void *extraField, uint32_t extraFieldBufferSize,
+									char *szComment, uint32_t commentBufferSize)
 {
 	return unzlocal_GetCurrentFileInfoInternal(file,pfile_info,NULL,
 												szFileName,fileNameBufferSize,
@@ -793,7 +793,7 @@ extern int unzGoToNextFile (unzFile file)
   Get the position of the info of the current file in the zip.
   return UNZ_OK if there is no problem
 */
-extern int unzGetCurrentFileInfoPosition (unzFile file, unsigned long *pos )
+extern int unzGetCurrentFileInfoPosition (unzFile file, uint32_t *pos )
 {
 	unz_s* s;	
 
@@ -809,7 +809,7 @@ extern int unzGetCurrentFileInfoPosition (unzFile file, unsigned long *pos )
   Set the position of the info of the current file in the zip.
   return UNZ_OK if there is no problem
 */
-extern int unzSetCurrentFileInfoPosition (unzFile file, unsigned long pos )
+extern int unzSetCurrentFileInfoPosition (unzFile file, uint32_t pos )
 {
 	unz_s* s;	
 	int err;
