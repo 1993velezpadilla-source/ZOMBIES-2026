@@ -304,7 +304,7 @@ extern "C" IW3_ANDROID_EXPORT int z2026_platform_set_data_root(const char *dir) 
     std::lock_guard<std::mutex> lock(g_data_mutex);
     if (g_data_root_fd >= 0) close(g_data_root_fd);
     g_data_root_fd = fd;
-    g_data_root_path = std::move(configured_root);
+    g_data_root_path = configured_root;
     return 0;
 }
 
