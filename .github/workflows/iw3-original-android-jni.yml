@@ -116,6 +116,7 @@ jobs:
             >"$RUNNER_TEMP/iw3-jni-symbols.txt"
           for symbol in \
             Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport \
+            Java_org_z2026_iw3nativeprobe_EngineBridge_nativeSetDataRoot \
             Java_org_z2026_iw3nativeprobe_EngineBridge_nativeTouch \
             Java_org_z2026_iw3nativeprobe_EngineBridge_nativeLifecycle \
             z2026_iw3_configstring_num z2026_iw3_angle_vectors \
