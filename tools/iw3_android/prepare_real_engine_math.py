@@ -28,6 +28,18 @@ SURFACE_FUNCTIONS = (
     "const char *__cdecl Com_SurfaceTypeToName(",
 )
 
+CONSTANT_FILE = Path("src/universal/com_constantconfigstrings.cpp")
+CONSTANT_PROLOGUE = (
+    '#include <universal/q_shared.h>\n'
+    '#include "com_constantconfigstrings.h"\n'
+    '#include "assertive.h"\n'
+)
+CONSTANT_FUNCTIONS = (
+    "void __cdecl CCS_InitConstantConfigStrings(",
+    "int __cdecl CCS_GetConstConfigStringIndex(",
+    "int __cdecl CCS_GetConfigStringNumForConstIndex(",
+)
+
 REQUIRED_FUNCTIONS = (
     "void __cdecl AngleVectors(",
     "void __cdecl AnglesToAxis(",
@@ -108,16 +120,52 @@ def prepare_surface(source_root: Path, output: Path) -> dict:
         "portable_headers_only": True,
     }
 
+def prepare_constants(source_root: Path, output: Path) -> dict:
+    source = source_root.resolve() / CONSTANT_FILE
+    dest = output.resolve()
+    if not source.is_file():
+        raise ValueError("Missing IW3 constant config string registry")
+    if source == dest:
+        raise ValueError("Refusing to edit IW3 vendored constant strings")
+    raw = source.read_bytes()
+    original = raw.decode("utf-8")
+    if not original.startswith(CONSTANT_PROLOGUE):
+        raise ValueError("Unexpected IW3 constant registry includes")
+    if original.count('#include "q_shared.h"') != 1:
+        raise ValueError("Unexpected original shared dependency")
+    for anchor in CONSTANT_FUNCTIONS:
+        if original.count(anchor) != 1:
+            raise ValueError("Native source registry function missing: " + anchor)
+    # Preserve the 833 original entries AND the original algorithms.
+    header = '#include "iw3_android_surface_compat.h"\n#include "com_constantconfigstrings.h"\n'
+    text = header + original[len(CONSTANT_PROLOGUE):].replace('#include "q_shared.h"', '', 1)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_text(text, encoding="utf-8")
+    if source.read_bytes() != raw:
+        raise RuntimeError("Vendored IW3 registry modified")
+    return {
+        "engine_origin": str(CONSTANT_FILE),
+        "source_sha256": hashlib.sha256(raw).hexdigest(),
+        "function_bodies_preserved": True,
+        "actual_engine_config_registry": True,
+        "original_registry_rows": 833,
+        "portable_includes_only": True,
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--engine", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--report", type=Path, required=True)
     parser.add_argument("--surface-output", type=Path)
+    parser.add_argument("--constant-output", type=Path)
     options = parser.parse_args()
     evidence = prepare(options.engine, options.output)
     if options.surface_output:
         evidence["surface"] = prepare_surface(options.engine, options.surface_output)
+    if options.constant_output:
+        evidence["config_registry"] = prepare_constants(options.engine, options.constant_output)
     options.report.parent.mkdir(parents=True, exist_ok=True)
     options.report.write_text(json.dumps(evidence, indent=2, sort_keys=True)+"\n", encoding="utf-8")
     print("IW3_ANDROID_NATIVE_REAL_SOURCE_PREPARED", json.dumps(evidence, sort_keys=True))
