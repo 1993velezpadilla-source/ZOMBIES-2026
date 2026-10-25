@@ -2305,9 +2305,6 @@ int __cdecl G_RunFrame(ServerFrameExtent extent, int timeCap)
     gentity_s *k; // r30
     int inuse; // r11
     bool checkAnimChange; // r11
-    unsigned __int8 *p_inuse; // r30
-    int v17; // r10
-    int v18; // r10
     int v19; // r3
     gentity_s *vehEnt; // r3
     gentity_s *v21; // r30
@@ -2437,28 +2434,37 @@ int __cdecl G_RunFrame(ServerFrameExtent extent, int timeCap)
                 level.checkAnimChange = 0;
                 if (level.num_entities > 1)
                 {
-                    p_inuse = &g_entities[1].r.inuse;
+                    // Portable entity traversal: the original reverse-engineered
+                    // Win32 code walked r.inuse with a hard-coded 628-byte stride,
+                    // recovered gentity_s with -168 bytes, and loaded flags from
+                    // a 136-byte offset. These addresses are WRONG for 64-bit
+                    // pointers. Access the SAME ORIGINAL IW3 fields by type,
+                    // letting the compiler select sizeof(gentity_s) and offsets.
+                    gentity_s *animEnt = &g_entities[1];
                     do
                     {
-                        if (*p_inuse)
+                        if (animEnt->r.inuse)
                         {
                             do
                             {
-                                v17 = *((unsigned int *)p_inuse + 34);
-                                if ((v17 & 0x40000) == 0 || (v17 & 0x1000) != 0)
+                                const unsigned int animFlags = static_cast<unsigned int>(animEnt->flags);
+                                if ((animFlags & FL_REPEAT_ANIM_UPDATE) == 0 ||
+                                    (animFlags & FL_NO_AUTO_ANIM_UPDATE) != 0)
                                     break;
-                                if (!G_DObjUpdateServerTime((gentity_s *)(p_inuse - 168), 1))
+                                if (!G_DObjUpdateServerTime(animEnt, 1))
                                 {
                                     checkAnimChange = level.checkAnimChange;
                                     break;
                                 }
                                 Scr_RunCurrentThreads();
                                 checkAnimChange = 1;
-                                v18 = *p_inuse;
+                                const bool stillInUse = animEnt->r.inuse != 0;
                                 level.checkAnimChange = 1;
-                            } while (v18);
+                                if (!stillInUse)
+                                    break;
+                            } while (true);
                         }
-                        p_inuse += 628;
+                        ++animEnt;
                         ++level.currentIndex;
                     } while (level.currentIndex < level.num_entities);
                 }
