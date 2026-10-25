@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Stage authentic IW3 SP frame prerequisite functions and audit G_RunFrame.
 
-Never rewrite KisakCOD game formulas/function bodies, never synthesize a
-fake G_RunFrame. Extract only original complete Com_Memcpy from the vendored
-com_shared.cpp; it is directly used by G_RunFrame for script triggers.
-Report the real remaining ABI and dependency hazards on 64-bit Android.
+Never synthesize a fake G_RunFrame. Extract unmodified original Com_Memcpy
+from com_shared.cpp. The vendored real G_RunFrame source receives a narrow
+ABI portability fix: iterate typed entity objects rather than Win32 byte
+strides; audit this patched source and reject any legacy pointer arithmetic.
+The full G_RunFrame cannot yet link or execute on Android.
 """
 from __future__ import annotations
 
@@ -33,6 +34,16 @@ IMPORTANT_CALLS = (
 FRAME_LEGACY_ASSUMPTIONS = (
     "p_inuse += 628;",
     "(gentity_s *)(p_inuse - 168)",
+    "*((unsigned int *)p_inuse + 34)",
+)
+FRAME_TYPED_PORTABILITY_MARKERS = (
+    "gentity_s *animEnt = &g_entities[1];",
+    "animEnt->r.inuse",
+    "animEnt->flags",
+    "FL_REPEAT_ANIM_UPDATE",
+    "FL_NO_AUTO_ANIM_UPDATE",
+    "G_DObjUpdateServerTime(animEnt, 1)",
+    "++animEnt;",
 )
 
 # Parser only locates a function region. No replacements of its body.
@@ -123,8 +134,11 @@ def prepare(engine: Path, output: Path, report: Path) -> dict:
         raise ValueError("Original SP G_RunFrame phases missing/changed")
     if not all(v >= 1 for v in calls.values()):
         raise ValueError("Original SP G_RunFrame dependencies missing/changed")
-    if not all(v >= 1 for v in legacy.values()):
-        raise ValueError("Expected known 32-bit entity pointer hazards not found; re-audit")
+    if any(v != 0 for v in legacy.values()):
+        raise ValueError("Hard-coded 32-bit entity addressing remains in SP frame")
+    portable = {m: original_frame.count(m) for m in FRAME_TYPED_PORTABILITY_MARKERS}
+    if not all(v >= 1 for v in portable.values()):
+        raise ValueError("Typed 64-bit-safe entity loop missing/changed; re-audit")
     result = {
         "com_shared_source": str(COM_SHARED),
         "com_shared_sha256": hashlib.sha256(com_bytes).hexdigest(),
@@ -137,7 +151,10 @@ def prepare(engine: Path, output: Path, report: Path) -> dict:
         "frame_source_lines": original_frame.count("\n") + 1,
         "frame_phase_markers": phases,
         "frame_function_call_occurrences": calls,
-        "known_32bit_entity_pointer_hazards": legacy,
+        "known_32bit_entity_pointer_hazards_remaining": legacy,
+        "frame_animation_loop_uses_typed_entity_fields": True,
+        "typed_animation_loop_markers": portable,
+        "other_sp_engine_abi_assumptions_unverified": True,
         "g_runframe_compiled_on_android": False,
         "g_runframe_executed_on_android": False,
         "iw3_3d_renderer_ported": False,
