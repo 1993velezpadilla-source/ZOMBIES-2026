@@ -8,10 +8,11 @@
 // Original FS_File* interface semantics used by KisakCOD's unzip.cpp:
 // 0=current, 1=end, 2=absolute beginning (not stdio's SEEK_* constants).
 FILE *__cdecl FS_FileOpenReadBinary(const char *filename) {
-    // Match the original engine's FS_FileOpenReadBinary contract while
-    // resolving archive names beneath the Android app-owned IW3 data root.
-    // Never pass a caller-controlled absolute path to fopen().
-    const int fd = z2026_platform_open_read_fd(filename);
+    // Match the original engine's FS_FileOpenReadBinary contract.
+    // FS_LoadZipFile passes FS_BuildOSPath output, which is absolute on the
+    // desktop; Android accepts that form only when it is beneath the retained
+    // app-data root. Relative paths remain supported for archive probes.
+    const int fd = z2026_platform_open_engine_path_fd(filename);
     if (fd < 0) return nullptr;
     FILE *stream = ::fdopen(fd, "rb");
     if (!stream) ::close(fd);
