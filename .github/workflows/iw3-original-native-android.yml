@@ -53,6 +53,10 @@ jobs:
             --engine third_party/KisakCOD \
             --output "$RUNNER_TEMP/iw3-source/iw3_g_combat_hitloc.cpp" \
             --report "$RUNNER_TEMP/iw3-original-sp-hitloc.json"
+          python3 tools/iw3_android/prepare_real_engine_iwd_names.py \
+            --engine third_party/KisakCOD \
+            --output "$RUNNER_TEMP/iw3-source/iw3_iwd_names.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-iwd-names.json"
           echo "IW3_ACTUAL_SOURCE_USED_FROM_KISAKCOD"
 
       - name: Compile and EXECUTE original KisakCOD aim math on host
@@ -67,6 +71,7 @@ jobs:
             -DIW3_EXTRACTED_FRAME_MEMCPY="$RUNNER_TEMP/iw3-source/iw3_frame_memcpy.cpp" \
             -DIW3_EXTRACTED_POOL="$RUNNER_TEMP/iw3-source/pool_allocator.cpp" \
             -DIW3_EXTRACTED_HITLOC="$RUNNER_TEMP/iw3-source/iw3_g_combat_hitloc.cpp" \
+            -DIW3_EXTRACTED_IWD_NAMES="$RUNNER_TEMP/iw3-source/iw3_iwd_names.cpp" \
             -DIW3_ENTITY_LOOP_INC="$RUNNER_TEMP/iw3-source/iw3_g_runframe_entity_loop.inc" \
             -DIW3_REAL_HEADER_ROOT="$GITHUB_WORKSPACE/third_party/KisakCOD/src/universal"
           cmake --build "$RUNNER_TEMP/iw3-build-host" -j 2
@@ -116,6 +121,7 @@ jobs:
             -DIW3_EXTRACTED_FRAME_MEMCPY="$RUNNER_TEMP/iw3-source/iw3_frame_memcpy.cpp" \
             -DIW3_EXTRACTED_POOL="$RUNNER_TEMP/iw3-source/pool_allocator.cpp" \
             -DIW3_EXTRACTED_HITLOC="$RUNNER_TEMP/iw3-source/iw3_g_combat_hitloc.cpp" \
+            -DIW3_EXTRACTED_IWD_NAMES="$RUNNER_TEMP/iw3-source/iw3_iwd_names.cpp" \
             -DIW3_ENTITY_LOOP_INC="$RUNNER_TEMP/iw3-source/iw3_g_runframe_entity_loop.inc" \
             -DIW3_REAL_HEADER_ROOT="$GITHUB_WORKSPACE/third_party/KisakCOD/src/universal"
           cmake --build "$RUNNER_TEMP/iw3-build-arm64" -j 2
@@ -137,6 +143,7 @@ jobs:
           grep 'z2026_iw3_frame_memcpy_smoke' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
           grep 'z2026_iw3_real_pool_smoke' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
           grep 'z2026_iw3_hitloc_copy_smoke' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_iw3_iwd_names_smoke' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
           grep 'z2026_platform_monotonic_ns' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
           grep 'z2026_platform_set_data_root' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
           grep 'z2026_platform_read_file' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
@@ -174,6 +181,7 @@ jobs:
             ${{ runner.temp }}/iw3-original-g-runframe-audit.json
             ${{ runner.temp }}/iw3-original-pool-allocator.json
             ${{ runner.temp }}/iw3-original-sp-hitloc.json
+            ${{ runner.temp }}/iw3-original-iwd-names.json
             ${{ runner.temp }}/iw3-authentic-sp-frame-entity-arm64.o
             ${{ runner.temp }}/iw3-sp-frame-abi64-object-elf.txt
             ${{ runner.temp }}/iw3-arm64-elf.txt
