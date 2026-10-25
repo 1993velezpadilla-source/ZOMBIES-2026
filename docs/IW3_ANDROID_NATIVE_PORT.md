@@ -364,3 +364,41 @@ The final code fix for the POSIX `close()` declaration is in commit `f2486fb00bf
 - [Android emulator runtime](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40233218612) passed. Its evidence explicitly confirms `original_iw3_zip32_stored_and_deflate_parser_executed: true`, touch DOWN/UP translated to the original `usercmd_s` adapter, and lifecycle resume/pause/resume. It explicitly records `arm64_device_execution_proven: false` and `gameplay_proven: false`: this is an x86_64 emulator diagnostic, not a playable game or physical ARM64 proof. The offline Windows SP runtime diagnostic is separate from Android proof.
 
 **Next concrete gate:** port the original engine's IWD searchpath initialization to consume these rooted descriptors and demonstrate opening a real licensed IWD entry from app storage without replacing the original archive parser. After that, tackle the original FastFile and map loader. No playable Android APK exists yet.
+
+
+## Follow-up — original FS_BuildOSPath and IWD discovery boundary (2026-10-25)
+
+The rooted Android file bridge now supports the path forms the original desktop
+filesystem emits. `z2026_platform_open_engine_path_fd` accepts relative paths
+or absolute paths strictly beneath the canonical app-owned data root; sibling
+prefixes, outside absolute paths, traversal components, and symlinks remain
+rejected. It normalizes the original Windows-style backslash separators before
+component validation, so `FS_BuildOSPath` paths can be consumed without
+weakening root confinement. The original ZIP/IWD adapter
+`FS_FileOpenReadBinary` now uses this engine-path entry point instead of the
+relative-only descriptor function.
+
+A second platform primitive, `z2026_platform_list_iwd_files`, enumerates
+regular `.iwd` files in a root-confined directory, supports both rooted
+relative and `FS_BuildOSPath` absolute directory forms, filters symlink entries,
+sorts results deterministically, and rejects insufficient output buffers
+without partial results. The original ZIP32 parser smoke now creates a valid
+IWD-named fixture, discovers it via that listing primitive, then opens it
+through the original `unzOpen` using both relative and absolute paths.
+
+Host regression coverage includes Windows-style separators, prefix attacks,
+dot-dot traversal, symlinked directories, regular-file filtering, deterministic
+single-entry results and buffer-overflow rejection. The emulator diagnostic
+executes the same original-parser smoke through JNI.
+
+**This is not yet the original search-path mount.** `FS_AddIwdFilesForGameDirectory`
+and `FS_LoadZipFile` from `universal/com_files.cpp` are still not part of the
+Android library; the full engine filesystem startup, IWD hash-table construction,
+FastFile loader, map loader and renderer remain unlinked. The generated IWD is
+only a ZIP32 test fixture, not game content. The diagnostic must not be described
+as an IWD mounted into the game or as gameplay evidence.
+
+Next: port the real `Sys_ListFiles`/directory enumeration dependency and link
+the original `FS_AddIwdFilesForGameDirectory` + `FS_LoadZipFile` code with its
+real allocator/checksum/string services, then mount a user-provided IWD and
+prove a real asset lookup before advancing to FastFiles/maps. Keep PR #4 open.
