@@ -47,7 +47,7 @@ public final class MainActivity extends Activity {
             if (EngineBridge.nativeSetDataRoot(getFilesDir().getAbsolutePath()) != 0) {
                 throw new IllegalStateException("Native IW3 data root initialization failed");
             }
-            String report = EngineBridge.nativeReport(getCacheDir().getAbsolutePath());
+            String report = EngineBridge.nativeReport(getFilesDir().getAbsolutePath());
             label.setText(report + "\n\nTOUCH TEST: TAP THIS SCREEN");
             Log.i(TAG, "IW3_JNI_ACTIVITY_STARTED " +
                     (report.contains("JNI: PASS") ? "PASS" : "FAIL"));
