@@ -394,8 +394,12 @@ through the original `unzOpen` using both relative and absolute paths.
 
 Host regression coverage includes Windows-style separators, prefix attacks,
 dot-dot traversal, symlinked directories, regular-file filtering, deterministic
-single-entry results and buffer-overflow rejection. The emulator diagnostic
-executes the same original-parser smoke through JNI.
+single-entry results, repeated scans and buffer-overflow rejection. CI on
+commit `500df941` reports **8/8 CTest passed**, including the original ZIP32
+reader and portable platform tests, followed by **ASAN/UBSAN GREEN**:
+[host/ARM64 port workflow](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40240635779).
+The Android ARM64 JNI package and x86_64 emulator runs for this same source
+revision are still in progress; they are diagnostic gates, not gameplay proof.
 
 **This is not yet the original search-path mount.** `FS_AddIwdFilesForGameDirectory`
 and `FS_LoadZipFile` from `universal/com_files.cpp` are still not part of the
