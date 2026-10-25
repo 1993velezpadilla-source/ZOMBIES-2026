@@ -212,6 +212,24 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
         for path, raw in original_files.items():
             self.assertEqual((ENGINE / path).read_bytes(), raw)
 
+    def test_android_touch_is_consumed_inside_original_cl_createcmd(self):
+        source = (ENGINE / "src/client/cl_input.cpp").read_text(encoding="utf-8")
+        self.assertIn(
+            'extern "C" void z2026_platform_apply_touch_to_usercmd(usercmd_s *cmd, float *viewangles);',
+            source)
+        body = function_source(source, "void __cdecl CL_CreateCmd(usercmd_s *result)")
+        call = "z2026_platform_apply_touch_to_usercmd(result, clients[0].viewangles);"
+        self.assertIn("#if defined(__ANDROID__)\\n        " + call + "\\n#endif", body)
+        self.assertLess(body.index(call), body.index("CL_FinishMove(result);"))
+        platform = (ROOT / "android/iw3-native/iw3_android_platform.cpp").read_text(encoding="utf-8")
+        bridge = function_source(platform, "extern \"C\" IW3_ANDROID_EXPORT void z2026_platform_apply_touch_to_usercmd(")
+        self.assertIn("command->buttons |= BUTTON_ATTACK", bridge)
+        self.assertIn("command->forwardmove", bridge)
+        self.assertIn("viewangles[0]", bridge)
+        self.assertIn("viewangles[1]", bridge)
+        self.assertIn("g_pending_pitch_degrees = 0.0f;", bridge)
+        self.assertIn("g_pending_yaw_degrees = 0.0f;", bridge)
+
     def test_no_vendor_overwrite(self):
         with self.assertRaisesRegex(ValueError, "Refusing"):
             prepare(ENGINE, ENGINE / ENGINE_FILE)
