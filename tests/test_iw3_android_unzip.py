@@ -36,14 +36,17 @@ class OriginalIW3UnzipPortTests(unittest.TestCase):
         source_bytes = source_path.read_bytes()
         header_bytes = header_path.read_bytes()
         source = source_bytes.decode("utf-8")
-        self.assertTrue(source.startswith(PROLOGUE))
+        self.assertEqual(source.count(PROLOGUE), 1)
+        prologue_offset = source.index(PROLOGUE)
         for marker in REQUIRED_SOURCE:
             self.assertEqual(source.count(marker), 1)
         with TemporaryDirectory() as temp:
             output = Path(temp) / "generated" / "unzip.cpp"
             evidence = prepare(ENGINE, output)
             staged = output.read_text(encoding="utf-8")
-            self.assertEqual(staged, '#include "iw3_android_unzip_compat.h"\n' + source[len(PROLOGUE):])
+            self.assertEqual(staged, source[:prologue_offset] +
+                             '#include "iw3_android_unzip_compat.h"\n' +
+                             source[prologue_offset + len(PROLOGUE):])
             self.assertEqual(evidence["source_sha256"], hashlib.sha256(source_bytes).hexdigest())
             self.assertEqual(evidence["header_sha256"], hashlib.sha256(header_bytes).hexdigest())
             self.assertTrue(evidence["parser_body_preserved_after_include_adapter"])
