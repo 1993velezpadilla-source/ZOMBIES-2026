@@ -93,6 +93,11 @@ jobs:
           grep 'z2026_iw3_math_smoke' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
           grep 'z2026_iw3_surface_type_from_name' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
           grep 'z2026_iw3_surface_smoke' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_platform_monotonic_ns' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_platform_set_data_root' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_platform_read_file' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_platform_touch_event' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_platform_touch_snapshot' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
           # No Android package or game claims: this is a single authentic
           # engine source C++ module ported and linked into a native .so.
           echo "IW3_ORIGINAL_SOURCE_ANDROID_ARM64_ELF_GREEN"
