@@ -23,6 +23,12 @@ endif()
 if(NOT IW3_EXTRACTED_FRAME_MEMCPY OR NOT EXISTS "${IW3_EXTRACTED_FRAME_MEMCPY}")
     message(FATAL_ERROR "Actual KisakCOD G_RunFrame Com_Memcpy prerequisite required")
 endif()
+if(NOT IW3_EXTRACTED_POOL OR NOT EXISTS "${IW3_EXTRACTED_POOL}")
+    message(FATAL_ERROR "Authentic IW3 64-bit-safe pool allocator source required")
+endif()
+if(NOT EXISTS "${IW3_REAL_HEADER_ROOT}/pool_allocator.h")
+    message(FATAL_ERROR "Authentic original IW3 pool declarations required")
+endif()
 if(NOT EXISTS "${IW3_REAL_HEADER_ROOT}/com_constantconfigstrings.h")
     message(FATAL_ERROR "Original engine config registry declarations required")
 endif()
@@ -32,6 +38,7 @@ add_library(iw3_sp_math SHARED
     "${IW3_EXTRACTED_SURFACE}"
     "${IW3_EXTRACTED_CONSTANTS}"
     "${IW3_EXTRACTED_FRAME_MEMCPY}"
+    "${IW3_EXTRACTED_POOL}"
     "${CMAKE_CURRENT_SOURCE_DIR}/native_math_abi.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_platform.cpp"
 )
@@ -74,6 +81,13 @@ else()
     # this verification executable, otherwise ctest yields a false-green.
     target_compile_options(iw3_math_host_test PRIVATE -UNDEBUG)
     add_test(NAME iw3_real_math COMMAND iw3_math_host_test)
+    add_executable(iw3_real_pool_host_test
+        "${CMAKE_CURRENT_SOURCE_DIR}/pool_native_test.cpp")
+    target_include_directories(iw3_real_pool_host_test PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}" "${IW3_REAL_HEADER_ROOT}")
+    target_compile_options(iw3_real_pool_host_test PRIVATE -UNDEBUG)
+    target_link_libraries(iw3_real_pool_host_test PRIVATE iw3_sp_math)
+    add_test(NAME iw3_original_engine_pool_allocator_64bit COMMAND iw3_real_pool_host_test)
     add_executable(iw3_platform_host_test
         "${CMAKE_CURRENT_SOURCE_DIR}/platform_native_test.cpp")
     target_compile_options(iw3_platform_host_test PRIVATE -UNDEBUG)
