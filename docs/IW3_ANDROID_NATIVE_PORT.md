@@ -347,3 +347,17 @@ Host regression tests now exercise this actual struct mutation (movement + attac
 
 **Important boundary:** this is a source-level integration and a compiled/tested platform bridge. The current Android CMake target still does not compile/link the original client/cl_input.cpp, whose remaining Win32/D3D/UI dependencies must be ported. Therefore the Android JNI APK still cannot exercise this hook in the real client, and no playable APK or in-game touch control is claimed. Next: split/port the client input TU's platform dependencies, link the original client command generation with the serverless/local SP frame, then bootstrap real game data and port the renderer.
 
+
+## Current pass — original ZIP/IWD reads are confined to the Android data root
+
+The previous ZIP32 regression only exercised the original KisakCOD `unzOpen` parser against an absolute temporary pathname. That proved decompression and ZIP32 field sizes, but did **not** prove that the reader could use the app's configured IW3 data directory. The old Android adapter also called unrestricted `fopen(filename, "rb")`.
+
+This pass adds `z2026_platform_open_read_fd()`, `z2026_platform_write_file()`, and `z2026_platform_unlink_file()` to the POSIX boundary. Each path is relative to the retained app-owned root descriptor; component-by-component `openat` uses `O_NOFOLLOW`, rejects absolute paths, backslashes, empty/dot/dot-dot components, and requires regular files for reads. The write path also refuses symlink targets and removes partial files on write failure.
+
+The adapter implementing the original `FS_FileOpenReadBinary` interface now wraps the descriptor in `fdopen`; it no longer uses unrestricted `fopen(filename, "rb")`. The native smoke writes a temporary ZIP under the configured data root and opens it through the **original KisakCOD `unzOpen(relativePath)`** code path, then removes it through the confined unlink API. The Android activity points the parser smoke at the same app-private `filesDir` that contains the configured data root. Host regressions cover descriptor reads, nested paths, traversal, absolute paths, symlink reads/writes, and cleanup.
+
+This is a real platform I/O improvement and a prerequisite for opening IWD archives from app-owned storage. It is **not yet an engine searchpath mount**: `FS_Startup`/IWD enumeration, `searchpath_s` population, FastFile loading and BSP/map loading are still not connected to Android. The ZIP smoke fixture is generated test data, not a COD archive or map.
+
+Validation source changes are in commit `f43b0a460758ee426a64004fb3f52cf4fec6b401`. The Android host/NDK/emulator CI jobs triggered for that exact commit were still queued or pending at documentation time; results must be read from the run links before calling this pass green. The offline Windows SP runtime diagnostic is separate from Android proof.
+
+**Next concrete gate:** port the original engine's IWD searchpath initialization to consume these rooted descriptors and demonstrate opening a real licensed IWD entry from app storage without replacing the original archive parser. After that, tackle the original FastFile and map loader. No playable Android APK exists yet.
