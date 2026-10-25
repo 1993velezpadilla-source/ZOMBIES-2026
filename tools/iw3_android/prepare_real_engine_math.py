@@ -20,8 +20,8 @@ ORIGINAL_PROLOGUE = (
 ORIGINAL_THIRD_HEADER = '#include "q_shared.h"'
 SURFACE_FILE = Path("src/universal/surfaceflags.cpp")
 SURFACE_PROLOGUE = (
-    '#include <universal/q_shared.h>\\n'
-    '#include "surfaceflags.h"\\n'
+    '#include <universal/q_shared.h>\n'
+    '#include "surfaceflags.h"\n'
 )
 SURFACE_FUNCTIONS = (
     "int __cdecl Com_SurfaceTypeFromName(",
@@ -94,7 +94,7 @@ def prepare_surface(source_root: Path, output: Path) -> dict:
     for name in SURFACE_FUNCTIONS:
         if original.count(name) != 1:
             raise ValueError("Unexpected IW3 native surface function " + name)
-    header = '#include "iw3_android_surface_compat.h"\\n#include "surfaceflags.h"\\n'
+    header = '#include "iw3_android_surface_compat.h"\n#include "surfaceflags.h"\n'
     patched = header + original[len(SURFACE_PROLOGUE):]
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_text(patched, encoding="utf-8")
