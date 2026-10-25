@@ -15,6 +15,12 @@
 #include <ui/ui.h>
 #include <gfx_d3d/r_dvars.h>
 
+#if defined(__ANDROID__)
+// Implemented by the Android platform boundary; consumes touch state into the
+// authentic usercmd_s and client viewangles before CL_FinishMove packs angles.
+extern "C" void z2026_platform_apply_touch_to_usercmd(usercmd_s *cmd, float *viewangles);
+#endif
+
 const dvar_t *cl_stanceHoldTime;
 const dvar_t *cl_analog_attack_threshold;
 const dvar_t *cl_yawspeed;
@@ -1604,6 +1610,9 @@ void __cdecl CL_CreateCmd(usercmd_s *result)
         CL_CmdButtons(result);
         CL_KeyMove(result);
         CL_MouseMove(result);
+#if defined(__ANDROID__)
+        z2026_platform_apply_touch_to_usercmd(result, clients[0].viewangles);
+#endif
         // KISAKTODO
         //if (GPad_IsActive(CL_ControllerIndexFromClientNum(0)))
         //    CL_GamepadMove(result);
