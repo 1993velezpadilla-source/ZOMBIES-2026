@@ -6,6 +6,8 @@ plugins {
 // ORIGINAL KisakCOD IW3 native C++. NO Godot, fake engine or game assets.
 def sourceDir = new File(rootProject.projectDir, 'build/generated/iw3-source')
 def originalHeaders = new File(rootProject.projectDir, '../../../third_party/KisakCOD/src/universal')
+// Property is deliberately opt-in; production ABI stays arm64-v8a.
+def emulatorProbe = project.hasProperty('iw3EmulatorAbi')
 android {
     namespace 'org.z2026.iw3nativeprobe'
     compileSdk 35
@@ -18,14 +20,15 @@ android {
         versionCode 1
         versionName '0.1.0-native-jni-diagnostics'
         ndk {
-            abiFilters 'arm64-v8a'
+            abiFilters (emulatorProbe ? 'x86_64' : 'arm64-v8a')
         }
         externalNativeBuild {
             cmake {
                 arguments "-DIW3_EXTRACTED_MATH=${new File(sourceDir, 'com_math_anglevectors.cpp').absolutePath}",
                           "-DIW3_EXTRACTED_SURFACE=${new File(sourceDir, 'surfaceflags.cpp').absolutePath}",
                           "-DIW3_EXTRACTED_CONSTANTS=${new File(sourceDir, 'com_constantconfigstrings.cpp').absolutePath}",
-                          "-DIW3_REAL_HEADER_ROOT=${originalHeaders.absolutePath}"
+                          "-DIW3_REAL_HEADER_ROOT=${originalHeaders.absolutePath}",
+                          "-DIW3_EMULATOR_DIAGNOSTIC_ONLY=${emulatorProbe ? 'ON' : 'OFF'}"
             }
         }
     }
