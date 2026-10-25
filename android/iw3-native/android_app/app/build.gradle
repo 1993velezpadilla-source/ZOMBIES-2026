@@ -31,6 +31,7 @@ android {
                           "-DIW3_EXTRACTED_POOL=${new File(sourceDir, 'pool_allocator.cpp').absolutePath}",
                           "-DIW3_EXTRACTED_HITLOC=${new File(sourceDir, 'iw3_g_combat_hitloc.cpp').absolutePath}",
                           "-DIW3_EXTRACTED_IWD_NAMES=${new File(sourceDir, 'iw3_iwd_names.cpp').absolutePath}",
+                          "-DIW3_EXTRACTED_UNZIP=${new File(sourceDir, 'unzip.cpp').absolutePath}",
                           "-DIW3_REAL_HEADER_ROOT=${originalHeaders.absolutePath}",
                           "-DIW3_EMULATOR_DIAGNOSTIC_ONLY=${emulatorProbe ? 'ON' : 'OFF'}"
             }
