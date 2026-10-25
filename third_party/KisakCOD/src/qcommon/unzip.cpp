@@ -263,23 +263,29 @@ const char * gzerror OF((gzFile file, int *errnum));
 /* ===========================================================================
    Reads a long in LSB order from the given gz_stream. Sets 
 */
-static int unzlocal_getShort (ZIP_FILE* fin, uLong *pX)
+template <typename T>
+static int unzlocal_getShort (ZIP_FILE* fin, T *pX)
 {
-	short	v;
-
-	ZIP_fread( &v, sizeof(v),fin );
-
-	*pX = LittleShort( v);
+	unsigned char bytes[2];
+	if (ZIP_fread(bytes, sizeof(bytes), fin) != sizeof(bytes))
+		return UNZ_ERRNO;
+	const uint32_t value = static_cast<uint32_t>(bytes[0]) |
+		(static_cast<uint32_t>(bytes[1]) << 8);
+	*pX = static_cast<T>(value);
 	return UNZ_OK;
 }
 
-static int unzlocal_getLong (ZIP_FILE *fin, uLong *pX)
+template <typename T>
+static int unzlocal_getLong (ZIP_FILE *fin, T *pX)
 {
-	int		v;
-
-	ZIP_fread( &v, sizeof(v),fin );
-
-	*pX = LittleLong( v);
+	unsigned char bytes[4];
+	if (ZIP_fread(bytes, sizeof(bytes), fin) != sizeof(bytes))
+		return UNZ_ERRNO;
+	const uint32_t value = static_cast<uint32_t>(bytes[0]) |
+		(static_cast<uint32_t>(bytes[1]) << 8) |
+		(static_cast<uint32_t>(bytes[2]) << 16) |
+		(static_cast<uint32_t>(bytes[3]) << 24);
+	*pX = static_cast<T>(value);
 	return UNZ_OK;
 }
 
