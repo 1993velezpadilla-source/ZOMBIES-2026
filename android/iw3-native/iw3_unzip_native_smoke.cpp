@@ -1,4 +1,5 @@
 #include "iw3_android_unzip_compat.h"
+#include "unzip.h"
 #include <array>
 #include <string>
 #include <vector>
