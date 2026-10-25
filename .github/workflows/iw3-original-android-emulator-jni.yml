@@ -1,0 +1,128 @@
+name: IW3 original C++ JNI Android Emulator Runtime Proof (NOT GAME)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/iw3-native-android-arm64-20261025
+    paths:
+      - .github/workflows/iw3-original-android-emulator-jni.yml
+      - android/iw3-native/CMakeLists.txt
+      - android/iw3-native/iw3_android_jni.cpp
+      - android/iw3-native/android_app/**
+      - tools/iw3_android/**
+
+permissions:
+  contents: read
+
+concurrency:
+  group: z2026-iw3-android-runtime-jni-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android-emulator-real-iw3-cpp-jni:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      NDK_VER: "27.2.12479018"
+      APP_DIR: "android/iw3-native/android_app"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Install actual Android SDK and NDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdk="$RUNNER_TEMP/z2026-emulator-sdk"
+          mkdir -p "$sdk/cmdline-tools/latest"
+          curl -fLsS --retry 3 -o "$RUNNER_TEMP/cli.zip" \
+            'https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip'
+          unzip -qo "$RUNNER_TEMP/cli.zip" -d "$RUNNER_TEMP/cli"
+          mv "$RUNNER_TEMP/cli/cmdline-tools/"* "$sdk/cmdline-tools/latest/"
+          yes | "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" --licenses >/dev/null || true
+          "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" \
+            "platform-tools" "platforms;android-35" "build-tools;35.0.1" \
+            "ndk;${NDK_VER}" "cmake;3.22.1" "emulator" \
+            "system-images;android-35;default;x86_64"
+          echo "ANDROID_HOME=$sdk" >>"$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$sdk" >>"$GITHUB_ENV"
+          echo "$sdk/platform-tools" >>"$GITHUB_PATH"
+          # GitHub hosted Linux runners usually provide KVM acceleration.
+          if [ -e /dev/kvm ]; then sudo chmod 666 /dev/kvm; fi
+
+      - name: Generate actual upstream KisakCOD math surface and game config source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s tests -p 'test_iw3_android_source.py' -v
+          folder="$GITHUB_WORKSPACE/$APP_DIR/build/generated/iw3-source"
+          mkdir -p "$folder"
+          python3 tools/iw3_android/prepare_real_engine_math.py \
+            --engine third_party/KisakCOD \
+            --output "$folder/com_math_anglevectors.cpp" \
+            --surface-output "$folder/surfaceflags.cpp" \
+            --constant-output "$folder/com_constantconfigstrings.cpp" \
+            --report "$RUNNER_TEMP/iw3-on-android-source-evidence.json"
+
+      - name: Compile original IW3 native JNI for real x86 Android emulator (not ARM64 proof)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$APP_DIR"
+          gradle --no-daemon --stacktrace -Piw3EmulatorAbi :app:assembleDebug
+          apk="app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$apk"
+          unzip -Z1 "$apk" | grep -Fx "lib/x86_64/libiw3_sp_math.so"
+          if unzip -Z1 "$apk" | grep -E 'lib/arm64-v8a/'; then
+            echo "Unexpected physical-device ABI inside emulator-only gate" >&2
+            exit 1
+          fi
+          echo "IW3_ORIGINAL_CPP_ANDROID_EMULATOR_ABI_COMPILED"
+
+      - name: Actually boot Android and execute native IW3 functions through Activity JNI
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: default
+          arch: x86_64
+          profile: pixel_4
+          force-avd-creation: false
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-audio -no-boot-anim
+          script: |
+            set -euo pipefail
+            adb wait-for-device
+            adb install -r android/iw3-native/android_app/app/build/outputs/apk/debug/app-debug.apk
+            adb logcat -c
+            adb shell am start -W -n org.z2026.iw3nativeprobe/.MainActivity
+            sleep 7
+            adb logcat -d -s IW3NativeGate:I '*:S' | tee "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
+            grep -F 'JNI_NATIVE_ENGINE_PROBE_PASS' "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
+            grep -F 'IW3_JNI_ACTIVITY_STARTED PASS' "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
+            adb shell input tap 420 320
+            sleep 2
+            adb logcat -d -s IW3NativeGate:I '*:S' | tee "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
+            grep -F 'IW3_JNI_TOUCH' "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
+            echo 'IW3_ORIGINAL_CPP_EXECUTED_INSIDE_ANDROID_EMULATOR_GREEN'
+            # This confirms engine COMPONENT methods in Android, NOT a
+            # complete IW3 game engine or rendering gameplay.
+
+      - name: Upload real Android execution log, never claim ARM64 device gameplay
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: IW3-native-original-Cpp-Android-emulator-JNI-log-NOT-GAME
+          path: |
+            ${{ runner.temp }}/iw3-emulator-native-logcat.txt
+            ${{ runner.temp }}/iw3-on-android-source-evidence.json
+          if-no-files-found: warn
+          retention-days: 14
