@@ -117,6 +117,7 @@ jobs:
             sleep 7
             adb logcat -d -s IW3NativeGate:I '*:S' | tee "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
             grep -F 'JNI_NATIVE_ENGINE_PROBE_PASS' "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
+            grep -F 'IW3_JNI_SANDBOX_IO_PASS' "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
             grep -F 'IW3_JNI_ACTIVITY_STARTED PASS' "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
             adb shell input tap 420 320
             sleep 2
