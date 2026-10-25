@@ -106,7 +106,8 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(
                   "Real IW3 64-bit Pool_Alloc/Free: %s\n"
                   "IW3 ARM64 snap rounding: %s\n"
                   "Real IW3 SP hit-location byte copy: %s\n"
-                  "Original IW3 IWD name lookup: %s\n"                  "Original IW3 ZIP32 stored/deflate parser: %s\n"\n
+                  "Original IW3 IWD name lookup: %s\n"
+                  "Original IW3 ZIP32 stored/deflate parser: %s\n"
                   "Android app-private data-root I/O: %s\n"
                   "Original specialty_rof ID: %d\n"
                   "Monotonic Android clock: %s\n"
@@ -121,7 +122,8 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(
                   pool_ok ? "PASS" : "FAIL",
                   snap_ok ? "PASS" : "FAIL",
                   hitloc_ok ? "PASS" : "FAIL",
-                  iwd_names_ok ? "PASS" : "FAIL",\n                  unzip_ok ? "PASS" : "FAIL",
+                  iwd_names_ok ? "PASS" : "FAIL",
+                  unzip_ok ? "PASS" : "FAIL",
                   file_ok ? "PASS" : "FAIL",
                   perk_index, monotonic_time ? "PASS" : "FAIL",
                   z2026_iw3_math_source_abi_version());
