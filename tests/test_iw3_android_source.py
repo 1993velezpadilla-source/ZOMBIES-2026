@@ -167,6 +167,15 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Refusing"):
             prepare(ENGINE, ENGINE / ENGINE_FILE)
 
+    def test_real_physics_pool_caller_tracks_native_payload_size(self):
+        source = (ENGINE / 'src/physics/phys_ode.cpp').read_text(encoding='utf-8')
+        init = function_source(source, 'void __cdecl Phys_Init()')
+        self.assertIn('INIT_STATIC_POOL(physGlob.userData, &physGlob.userDataPool);', init)
+        self.assertNotIn('0x70u', init)
+        local = (ENGINE / 'src/physics/phys_local.h').read_text(encoding='utf-8')
+        self.assertIn('#include "phys_userdata.h"', local)
+        self.assertIn('PhysObjUserData userData[512]', local)
+
 
 if __name__ == "__main__":
     unittest.main()

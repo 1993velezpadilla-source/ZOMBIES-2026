@@ -1,5 +1,46 @@
 # IW3 native Android port — engineering gates
 
+## Current verification pass — native rounding and physics pool integration
+
+The actual `qcommon.h` unconditionally included Intel SSE and MSVC intrinsics.
+Its `SnapFloatToInt` and `SnapFloat` now live in the engine's small
+`qcommon/snap_float.h` header. The x86 instruction remains the original
+implementation; ARM64 uses a checked current-rounding-mode conversion with
+the same integer results (including NaN, Infinity and out-of-range inputs).
+The host regression compares the portable path against actual x86 CVTSS2SI
+for **4,000,000 bit-pattern/mode combinations** in four rounding modes.
+The native Android library and JNI diagnostic compile/use this same header.
+
+Auditing `Pool_Init` callers also exposed a missed 64-bit defect in the real
+`Phys_Init`: it still used `0x70` as the item stride. `PhysObjUserData` is
+120 bytes on the tested 64-bit ABI, rather than the original 112 bytes.
+The genuine engine caller now uses `INIT_STATIC_POOL` and `sizeof` via its
+original macro. Its payload declaration moved unchanged in field order to
+`physics/phys_userdata.h` (32-bit enum explicitly preserved), allowing both
+engine and tests to consume the real type. CTest allocates, writes, exhausts
+and frees all 512 original physics payloads. The JNI pool smoke also uses
+this real payload instead of a synthetic slot type.
+
+The Android emulator gate now requires native touch DOWN **and** UP for the
+same pointer, finite valid coordinates, successful native return values,
+and actual Activity resume/pause/resume. Runtime failures override passing
+markers. Seven parser regression tests reject incomplete or failing logs;
+their fixtures are not device evidence. Every original-source edit now
+re-triggers all three native/Android workflows.
+
+Local validation: 55 Python tests, 6/6 host CTest cases, and 6/6 ASAN/UBSAN
+cases passed. LeakSanitizer cannot inspect `/proc/.../task` in this local
+runtime, so local leak detection was disabled; the CI sanitizer step enables
+it. Android ARM64 compilation and emulator results for this change must be
+checked on its exact pushed commit before calling those gates passed.
+
+**Full-game blocker remains:** after removing the intrinsic-header error,
+a real `g_main.cpp` compilation now stops on `gfx_d3d/r_gfx.h` requiring
+`d3d9.h`, reached through client/actor headers. Full original `G_RunFrame`
+is still not compiled/linked. Decoupling those shared headers from D3D types,
+then real SP runtime and renderer integration, is required; no map rendering
+or playable APK is established by the component tests above.
+
 **Objective:** actual **KisakCOD IW3 Single-Player C++ source** running on
 Android ARM64, not a replacement Godot game, PC emulator, Android shell,
 or CoD4 multiplayer/Steam. Base source:

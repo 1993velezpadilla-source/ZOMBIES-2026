@@ -7,10 +7,10 @@ on:
       - feature/iw3-native-android-arm64-20261025
     paths:
       - .github/workflows/iw3-original-android-emulator-jni.yml
-      - android/iw3-native/CMakeLists.txt
-      - android/iw3-native/iw3_android_jni.cpp
-      - android/iw3-native/android_app/**
+      - android/iw3-native/**
       - tools/iw3_android/**
+      - third_party/KisakCOD/src/**
+      - tests/test_iw3_android_*.py
 
 permissions:
   contents: read
@@ -63,7 +63,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 -m unittest discover -s tests -p 'test_iw3_android_source.py' -v
+          python3 -m unittest discover -s tests -p 'test_iw3_android_*.py' -v
           folder="$GITHUB_WORKSPACE/$APP_DIR/build/generated/iw3-source"
           mkdir -p "$folder"
           python3 tools/iw3_android/prepare_real_engine_math.py \
@@ -119,14 +119,19 @@ jobs:
             adb logcat -c
             adb shell am start -W -n org.z2026.iw3nativeprobe/.MainActivity
             sleep 7
-            adb logcat -d -s IW3NativeGate:I '*:S' | tee "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
+            adb logcat -d -s IW3NativeGate:I AndroidRuntime:E DEBUG:E '*:S' | tee "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
             grep -F 'JNI_NATIVE_ENGINE_PROBE_PASS' "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
             grep -F 'IW3_JNI_SANDBOX_IO_PASS' "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
             grep -F 'IW3_JNI_ACTIVITY_STARTED PASS' "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
             adb shell input tap 420 320
             sleep 2
-            adb logcat -d -s IW3NativeGate:I '*:S' | tee "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
-            grep -F 'IW3_JNI_TOUCH' "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
+            adb logcat -d -s IW3NativeGate:I AndroidRuntime:E DEBUG:E '*:S' | tee "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
+            adb shell input keyevent 3
+            sleep 2
+            adb shell am start -W -n org.z2026.iw3nativeprobe/.MainActivity
+            sleep 2
+            adb logcat -d -s IW3NativeGate:I AndroidRuntime:E DEBUG:E '*:S' | tee "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
+            python3 tools/iw3_android/verify_runtime_evidence.py "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
             echo 'IW3_ORIGINAL_CPP_EXECUTED_INSIDE_ANDROID_EMULATOR_GREEN'
             # This confirms engine COMPONENT methods in Android, NOT a
             # complete IW3 game engine or rendering gameplay.

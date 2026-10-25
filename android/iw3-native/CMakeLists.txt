@@ -45,6 +45,7 @@ add_library(iw3_sp_math SHARED
     "${IW3_EXTRACTED_HITLOC}"
     "${CMAKE_CURRENT_SOURCE_DIR}/native_math_abi.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_platform.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/snap_float_abi.cpp"
 )
 target_include_directories(iw3_sp_math PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}" "${IW3_REAL_HEADER_ROOT}")
 set_target_properties(iw3_sp_math PROPERTIES
@@ -54,6 +55,7 @@ set_target_properties(iw3_sp_math PROPERTIES
 )
 target_compile_options(iw3_sp_math PRIVATE
     -ffunction-sections -fdata-sections -Wall -Wextra
+    -frounding-math -fno-fast-math
 )
 target_link_options(iw3_sp_math PRIVATE
     -Wl,--gc-sections
@@ -78,6 +80,13 @@ if(ANDROID)
     message(STATUS "IW3 original code native Android JNI enabled")
 else()
     enable_testing()
+    add_executable(iw3_snap_float_host_test
+        "${CMAKE_CURRENT_SOURCE_DIR}/snap_float_native_test.cpp")
+    target_include_directories(iw3_snap_float_host_test PRIVATE "${IW3_REAL_HEADER_ROOT}")
+    target_compile_options(iw3_snap_float_host_test PRIVATE
+        -UNDEBUG -frounding-math -fno-fast-math)
+    target_link_libraries(iw3_snap_float_host_test PRIVATE iw3_sp_math)
+    add_test(NAME iw3_original_snap_float_arm_portability COMMAND iw3_snap_float_host_test)
     add_executable(iw3_math_host_test
         "${CMAKE_CURRENT_SOURCE_DIR}/math_native_test.cpp")
     target_link_libraries(iw3_math_host_test PRIVATE iw3_sp_math)

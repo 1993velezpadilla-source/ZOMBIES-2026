@@ -9,7 +9,8 @@ on:
       - .github/workflows/iw3-original-android-jni.yml
       - android/iw3-native/**
       - tools/iw3_android/**
-      - tests/test_iw3_android_source.py
+      - third_party/KisakCOD/src/**
+      - tests/test_iw3_android_*.py
 
 permissions:
   contents: read
@@ -64,7 +65,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 -m unittest discover -s tests -p 'test_iw3_android_source.py' -v
+          python3 -m unittest discover -s tests -p 'test_iw3_android_*.py' -v
           folder="$GITHUB_WORKSPACE/$APP_DIR/build/generated/iw3-source"
           mkdir -p "$folder"
           python3 tools/iw3_android/prepare_real_engine_math.py \

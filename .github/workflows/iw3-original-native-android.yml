@@ -9,7 +9,8 @@ on:
       - .github/workflows/iw3-original-native-android.yml
       - android/iw3-native/**
       - tools/iw3_android/**
-      - tests/test_iw3_android_source.py
+      - third_party/KisakCOD/src/**
+      - tests/test_iw3_android_*.py
       - third_party/KisakCOD/src/universal/com_math_anglevectors.cpp
 
 permissions:
@@ -32,7 +33,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 -m unittest discover -s tests -p 'test_iw3_android_source.py' -v
+          python3 -m unittest discover -s tests -p 'test_iw3_android_*.py' -v
           python3 tools/iw3_android/prepare_real_engine_math.py \
             --engine third_party/KisakCOD \
             --output "$RUNNER_TEMP/iw3-source/com_math_anglevectors.cpp" \
@@ -71,6 +72,18 @@ jobs:
           cmake --build "$RUNNER_TEMP/iw3-build-host" -j 2
           ctest --test-dir "$RUNNER_TEMP/iw3-build-host" --output-on-failure
           echo "IW3_REAL_SOURCE_HOST_MATH_GREEN"
+
+      - name: Check native engine modules for address and undefined behavior errors
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -S android/iw3-native -B "$RUNNER_TEMP/iw3-build-host" \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
+          cmake --build "$RUNNER_TEMP/iw3-build-host" -j 2
+          ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1 \
+            ctest --test-dir "$RUNNER_TEMP/iw3-build-host" --output-on-failure
+          echo "IW3_REAL_SOURCE_HOST_ASAN_UBSAN_GREEN"
 
       - name: Install Android NDK for compiling original C++ engine function
         shell: bash
@@ -115,6 +128,8 @@ jobs:
           "$elf" --dyn-syms "$so" > "$RUNNER_TEMP/iw3-arm64-symbols.txt"
           grep 'z2026_iw3_angle_vectors' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
           grep 'z2026_iw3_math_smoke' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_iw3_snap_float_to_int' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_iw3_snap_float_smoke' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
           grep 'z2026_iw3_surface_type_from_name' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
           grep 'z2026_iw3_surface_smoke' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
           grep 'z2026_iw3_configstrings_smoke' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
