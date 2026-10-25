@@ -49,11 +49,37 @@ int main() {
     close(rooted_fd);
     assert(z2026_platform_open_read_fd("../sample.txt") == -1);
     assert(z2026_platform_open_read_fd("/etc/passwd") == -1);
+    // The original desktop FS_LoadZipFile passes FS_BuildOSPath absolute
+    // paths. Android accepts only absolute paths rooted beneath filesDir.
+    int engine_path_fd = z2026_platform_open_engine_path_fd(path.c_str());
+    assert(engine_path_fd >= 0);
+    unsigned char engine_path_bytes[3]{};
+    assert(read(engine_path_fd, engine_path_bytes, sizeof(engine_path_bytes)) == 3);
+    assert(std::memcmp(engine_path_bytes, "IW3", 3) == 0);
+    close(engine_path_fd);
+    assert(z2026_platform_open_engine_path_fd("/etc/passwd") == -1);
+    const std::string prefix_attack = std::string(root) + "-sibling/sample.txt";
+    assert(z2026_platform_open_engine_path_fd(prefix_attack.c_str()) == -1);
     assert(z2026_platform_write_file("../escape.bin", "bad", 3) == -1);
     assert(z2026_platform_write_file("/absolute.bin", "bad", 3) == -1);
     assert(z2026_platform_write_file("generated.iwd", "IWD", 3) == 3);
     assert(z2026_platform_read_file("generated.iwd", buffer, sizeof(buffer)) == 3);
     assert(std::memcmp(buffer, "IWD", 3) == 0);
+    char iwd_names[512]{};
+    std::size_t iwd_count = 0;
+    const int iwd_name_bytes = z2026_platform_list_iwd_files(
+        "", iwd_names, sizeof(iwd_names), &iwd_count);
+    assert(iwd_name_bytes == static_cast<int>(sizeof("generated.iwd")));
+    assert(iwd_count == 1 && std::strcmp(iwd_names, "generated.iwd") == 0);
+    std::size_t absolute_iwd_count = 0;
+    assert(z2026_platform_list_iwd_files(root, iwd_names, sizeof(iwd_names),
+                                         &absolute_iwd_count) == iwd_name_bytes);
+    assert(absolute_iwd_count == 1 && std::strcmp(iwd_names, "generated.iwd") == 0);
+    std::size_t overflow_count = 99;
+    assert(z2026_platform_list_iwd_files("", iwd_names, 2, &overflow_count) == -1);
+    assert(overflow_count == 0);
+    assert(z2026_platform_list_iwd_files("../", iwd_names, sizeof(iwd_names),
+                                         &overflow_count) == -1);
     assert(z2026_platform_unlink_file("generated.iwd") == 0);
     assert(z2026_platform_open_read_fd("generated.iwd") == -1);
     // Actual IW3 game data is nested (e.g. main/zone), not flat.
@@ -67,10 +93,25 @@ int main() {
     close(nested_fd);
     assert(z2026_platform_read_file("main/native-test.iwd", buffer, sizeof(buffer)) == 3);
     assert(std::memcmp(buffer, "IWD", 3) == 0);
+    int nested_engine_fd = z2026_platform_open_engine_path_fd(nested.c_str());
+    assert(nested_engine_fd >= 0);
+    unsigned char nested_bytes[3]{};
+    assert(read(nested_engine_fd, nested_bytes, sizeof(nested_bytes)) == 3);
+    assert(std::memcmp(nested_bytes, "IWD", 3) == 0);
+    close(nested_engine_fd);
+    std::size_t nested_iwd_count = 0;
+    const int nested_iwd_bytes = z2026_platform_list_iwd_files(
+        "main", iwd_names, sizeof(iwd_names), &nested_iwd_count);
+    assert(nested_iwd_bytes == static_cast<int>(sizeof("native-test.iwd")));
+    assert(nested_iwd_count == 1 && std::strcmp(iwd_names, "native-test.iwd") == 0);
     assert(z2026_platform_read_file("main/../sample.txt", buffer, sizeof(buffer)) == -1);
     const std::string linked_dir = std::string(root) + "/linked-main";
     assert(symlink(main_dir.c_str(), linked_dir.c_str()) == 0);
     assert(z2026_platform_read_file("linked-main/native-test.iwd", buffer, sizeof(buffer)) == -1);
+    std::size_t linked_count = 99;
+    assert(z2026_platform_list_iwd_files("linked-main", iwd_names,
+                                         sizeof(iwd_names), &linked_count) == -1);
+    assert(linked_count == 0);
     assert(unlink(linked_dir.c_str()) == 0);
     assert(unlink(nested.c_str()) == 0);
     assert(rmdir(main_dir.c_str()) == 0);
