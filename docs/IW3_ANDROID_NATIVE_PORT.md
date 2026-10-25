@@ -136,3 +136,21 @@ The `JNI_NATIVE_ENGINE_PROBE_PASS` marker originates from the C++ JNI bridge *af
 **Physical Android ARM64 build separately GREEN:** [Actions **40160241820**](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40160241820) — signed ARM64 APK containing real C++ and exported JNI functions. The x86_64 emulator pass cannot be used as proof that the ARM64 app executes correctly on a phone.
 
 This diagnostic Android APK is **NOT the requested playable IW3 game** and cannot yet execute `G_RunFrame`, `FireWeapon`, zombies, level/map loading or IW3's renderer. User's earlier Godot APK remains rejected. Never call this phase the finished port; next priority is to link real IW3 SP `G_RunFrame` and its dependent C++ runtime into Android, then implement render backend and data loading.
+
+## Phase B: First real `G_RunFrame` 32→64-bit ABI source fix — 25 Oct 2026
+
+In **the actual vendored KisakCOD** `third_party/KisakCOD/src/game/g_main.cpp`, the SP `G_RunFrame` animation recheck loop contained reverse-engineered x86 pointer arithmetic:
+
+```cpp
+p_inuse = &g_entities[1].r.inuse;
+v17 = *((unsigned int *)p_inuse + 34);
+G_DObjUpdateServerTime((gentity_s *)(p_inuse - 168), 1);
+p_inuse += 628;
+```
+
+This assumed **628-byte `gentity_s`**, and offsets **168** and **136** from `r.inuse`. It is not portable to 64-bit because game structs contain actual pointers. The vendored original **`G_RunFrame` has now been changed in-place at this exact location** to use typed accesses `animEnt->r.inuse`, `animEnt->flags`, `G_DObjUpdateServerTime(animEnt, 1)`, `++animEnt`, and the existing `FL_REPEAT_ANIM_UPDATE` / `FL_NO_AUTO_ANIM_UPDATE` enums. Original loop semantics, entity iteration order, script callbacks, and break conditions remain intact. All other original frame stages and callbacks remain unchanged.
+
+**Evidence harness:** The source preflight explicitly rejects legacy byte-stride expressions and checks the real function's call graph and staged source hash. The Python extraction tool also copies the **exact corrected C++ entity-loop block out of the actual `G_RunFrame` source** to `iw3_g_runframe_entity_loop.inc`; host CTest compiles **that exact block** against a deliberately *different* 64-bit entity layout with multiple pointer-size-sensitive fields, checks animation callbacks and break cases. These fixture types are *ABI regression tests only* and are not a new engine, game entities, or Android gameplay. The Android NDK can additionally cross-compile the verbatim source block into an AArch64 ELF object, without linking the entire SP game.
+
+**Narrow proof limit:** The full real `G_RunFrame` **still does not compile/link or execute in Android**; this patch eliminates *one confirmed bad Win32 entity addressing assumption*, not the remaining Win32, renderer, actor, script VM, `gentity_s` layout and 32-bit `static_assert` incompatibilities in other SP modules. No playable IW3 Android APK or 3D frame exists. CI proof links will be added after each job actually finishes GREEN; a regression failure is RED, not a success.
+
