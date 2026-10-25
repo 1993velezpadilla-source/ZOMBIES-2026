@@ -28,6 +28,12 @@ from tools.iw3_android.prepare_real_engine_hitloc import (
     prepare as prepare_hitloc,
 )
 
+from tools.iw3_android.prepare_real_engine_iwd_names import (
+    FILES as IWD_SOURCE, SHARED as IWD_SHARED,
+    FUNCTIONS as IWD_FUNCTIONS, HEADER as IWD_HEADER,
+    prepare as prepare_iwd_names,
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 ENGINE = ROOT / "third_party/KisakCOD"
 
@@ -162,6 +168,34 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "Never overwrite"):
                 prepare_hitloc(ENGINE, path)
         self.assertEqual(path.read_bytes(), original)
+
+    def test_verbatim_original_iwd_filename_lookup_source(self):
+        original_files = {
+            IWD_SOURCE: (ENGINE / IWD_SOURCE).read_bytes(),
+            IWD_SHARED: (ENGINE / IWD_SHARED).read_bytes(),
+        }
+        with TemporaryDirectory() as temp:
+            out = Path(temp) / "stage" / "iw3_iwd_names.cpp"
+            report = prepare_iwd_names(ENGINE, out)
+            self.assertTrue(report["source_bodies_preserved"])
+            self.assertTrue(report["iwd_filename_hash_and_compare_ported"])
+            self.assertFalse(report["iwd_zip_archive_mount_ported"])
+            self.assertFalse(report["fastfile_map_loading_ported"])
+            self.assertFalse(report["playable_apk"])
+            expected_bodies = [
+                function_source(original_files[path].decode("utf-8"), signature)
+                for signature, path in IWD_FUNCTIONS
+            ]
+            self.assertEqual(out.read_text(encoding="utf-8"),
+                             IWD_HEADER + "\n\n".join(expected_bodies) + "\n")
+            self.assertEqual(
+                report["function_sha256"],
+                [hashlib.sha256(body.encode("utf-8")).hexdigest()
+                 for body in expected_bodies])
+            with self.assertRaisesRegex(ValueError, "Never overwrite"):
+                prepare_iwd_names(ENGINE, ENGINE / IWD_SOURCE)
+        for path, raw in original_files.items():
+            self.assertEqual((ENGINE / path).read_bytes(), raw)
 
     def test_no_vendor_overwrite(self):
         with self.assertRaisesRegex(ValueError, "Refusing"):
