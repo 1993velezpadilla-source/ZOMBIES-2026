@@ -421,3 +421,27 @@ Next: port the real `Sys_ListFiles`/directory enumeration dependency and link
 the original `FS_AddIwdFilesForGameDirectory` + `FS_LoadZipFile` code with its
 real allocator/checksum/string services, then mount a user-provided IWD and
 prove a real asset lookup before advancing to FastFiles/maps. Keep PR #4 open.
+
+## Native-width IWD searchpath allocation and invalid archive handling (2026-10-25)
+
+The latest source review found two hard-coded 28-byte allocations in the genuine
+`FS_AddIwdFilesForGameDirectory` and `FS_AddGameDirectory` functions. That size
+matches `searchpath_s` only in the original 32-bit Win32 ABI; the structure
+contains three pointers plus four integers and grows on a 64-bit target. Both
+allocations now use `sizeof(searchpath_s)`, preserving the original 28-byte
+Win32 size while preventing heap overwrite on 64-bit builds.
+
+The original `FS_LoadZipFile` also passed a failed `unzOpen` result directly
+to `unzGetGlobalInfo`. It now returns cleanly on a null archive, closes an
+opened archive if directory metadata is invalid, verifies that the central
+directory can be positioned before indexing, and refuses to publish a partial
+index when the second pass cannot read every advertised entry. Partial index
+allocations and the ZIP handle are released on that failure path. The global
+IWD entry count is incremented only after a complete index is built.
+
+A source regression was added to `tests/test_iw3_android_source.py` to prevent
+the Win32-sized searchpath allocation from returning and to retain the corrupt
+archive guards. This improves the authentic filesystem source's 64-bit safety,
+but it does **not** mean that `com_files.cpp` is linked into Android yet.
+The current JNI APK still does not call the real `FS_AddIwdFilesForGameDirectory`
+or mount a game IWD; FastFiles, maps, renderer, and gameplay remain open gates.
