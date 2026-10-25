@@ -1,6 +1,8 @@
 #include "iw3_android_platform.h"
 
 #include <cassert>
+#include <chrono>
+#include <cstdlib>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
