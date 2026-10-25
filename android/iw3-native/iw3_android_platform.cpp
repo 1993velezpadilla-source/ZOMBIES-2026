@@ -185,7 +185,12 @@ bool normalize_engine_path(const char *path, char output[1024], bool allow_root)
 int open_directory_beneath_root(int root, const char *path) {
     if (!path) return -1;
     if (!*path) {
-        const int copy = dup(root);
+        // Do not dup(root) here: dup shares the directory stream offset with
+        // the retained root descriptor, so the first readdir would leave later
+        // IWD scans at EOF. openat(".") gives each scan an independent open
+        // file description while staying anchored to the trusted root fd.
+        const int copy = openat(root, ".",
+            O_RDONLY | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW);
         if (copy < 0) return -1;
         struct stat st{};
         if (fstat(copy, &st) != 0 || !S_ISDIR(st.st_mode)) {
