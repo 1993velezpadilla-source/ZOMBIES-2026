@@ -1,0 +1,26 @@
+; Engine configuration file.
+; ZOMBIES-2026 / independent first Android 3D prototype.
+; This is not a native IW3 Android port and ships no COD assets.
+
+config_version=5
+
+[application]
+config/name="ZOMBIES-2026 First APK"
+run/main_scene="res://main.tscn"
+config/features=PackedStringArray("4.6", "GL Compatibility")
+config/description="First installable offline 3D zombies Android vertical slice - original geometry"
+
+[display]
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/handheld/orientation=1
+window/stretch/mode="canvas_items"
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/default_filters/use_nearest_mipmap_filter=false
+environment/defaults/default_clear_color=Color(0.024, 0.034, 0.053, 1)
+
+[physics]
+3d/default_gravity=24.0
