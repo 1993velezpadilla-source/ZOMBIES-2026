@@ -9,7 +9,7 @@ int main() {
     int iwd_mount_ok = 0;
     const int parser_ok = z2026_iw3_unzip_smoke(directory.c_str(), &iwd_mount_ok);
     if (!parser_ok || iwd_mount_ok != 1) {
-        std::fprintf(stderr, "IW3_ORIGINAL_IWD_INDEX_HOST_FAIL parser=%d mount=%d\\n",
+        std::fprintf(stderr, "IW3_ORIGINAL_IWD_INDEX_HOST_FAIL parser=%d mount=%d\n",
                      parser_ok, iwd_mount_ok);
         return 1;
     }
