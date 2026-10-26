@@ -586,3 +586,35 @@ playable APK. The IWD indexer remains a separate static module with unresolved
 allocator/checksum services; the native Android library still does not mount
 real IWD searchpaths, load FastFiles/maps, or run the original client/game loop.
 Keep PR #4 open and unmerged.
+
+
+## Original IWD loader: bounds-safe extension trimming (2026-10-26)
+
+A source-level audit of the genuine `FS_LoadZipFile` found an out-of-bounds
+path expression in the vendored engine:
+`iwdFilename[strlen(iwdBasename) + 252]`. Since `iwdFilename` is a 256-byte
+array and normal archive basenames such as `pak0.iwd` are longer than four
+characters, that index can exceed the field boundary. The expression could
+read unrelated fields and could write outside the filename buffer when the
+extension comparison happened to match.
+
+The original function now computes the copied full-path length, checks that at
+least four characters are present, compares the suffix at
+`iwdFilename + filenameLength - 4`, and truncates at that same checked index.
+The archive parser, hash-table builder, checksum collection, and returned
+`iwd_t` remain the original engine implementation; only the unsafe extension
+offset was corrected. The staging generator requires the new bounds-safe
+markers and rejects the old expression, and the source regression checks both
+conditions.
+
+Changes are in [`com_files.cpp`](https://github.com/1993velezpadilla-source/ZOMBIES-2026/blob/feature/iw3-native-android-arm64-20261025/third_party/KisakCOD/src/universal/com_files.cpp),
+[`prepare_real_engine_iwd_mount.py`](https://github.com/1993velezpadilla-source/ZOMBIES-2026/blob/feature/iw3-native-android-arm64-20261025/tools/iw3_android/prepare_real_engine_iwd_mount.py),
+and [`test_iw3_android_source.py`](https://github.com/1993velezpadilla-source/ZOMBIES-2026/blob/feature/iw3-native-android-arm64-20261025/tests/test_iw3_android_source.py).
+The CI runs triggered by these changes must still confirm compilation and
+regression success before this fix is considered validated.
+
+This removes a concrete memory-safety blocker from the original IWD loader,
+but does **not** yet prove that `FS_LoadZipFile` is linked into the Android
+JNI library or that an IWD is mounted into the engine's live searchpath list.
+FastFiles/maps, renderer, real client input consumption, and ARM64 gameplay
+remain unverified. Keep PR #4 open and unmerged.
