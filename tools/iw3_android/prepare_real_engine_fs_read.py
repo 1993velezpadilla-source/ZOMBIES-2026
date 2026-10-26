@@ -65,6 +65,34 @@ FORBIDDEN = (
 )
 
 
+def definition_source(source: str, signature: str) -> str:
+    """Remove declaration-only matches so the exact single upstream body is extracted."""
+    positions = []
+    cursor = 0
+    while True:
+        position = source.find(signature, cursor)
+        if position < 0:
+            break
+        positions.append(position)
+        cursor = position + len(signature)
+    definitions = []
+    prototypes = []
+    for position in positions:
+        after = position + len(signature)
+        while after < len(source) and source[after].isspace():
+            after += 1
+        if after < len(source) and source[after] == "{":
+            definitions.append(position)
+        elif after < len(source) and source[after] == ";":
+            prototypes.append(position)
+    if len(definitions) != 1:
+        raise ValueError("Expected one original IW3 definition for " + signature)
+    filtered = source
+    for position in reversed(prototypes):
+        filtered = filtered[:position] + filtered[position + len(signature):]
+    return function_source(filtered, signature)
+
+
 def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict:
     engine = engine.resolve()
     source_paths = {source_path for _, source_path in FUNCTIONS}
@@ -75,7 +103,7 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
         raise ValueError("Refusing to overwrite authentic KisakCOD source")
     source_text = {source_path: raw.decode("utf-8")
                    for source_path, raw in source_bytes.items()}
-    bodies = [function_source(source_text[source_path], signature)
+    bodies = [definition_source(source_text[source_path], signature)
               for signature, source_path in FUNCTIONS]
     combined = "\n\n".join(bodies) + "\n"
     for marker in REQUIRED:
