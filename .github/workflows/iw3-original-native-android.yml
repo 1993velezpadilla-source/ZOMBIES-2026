@@ -179,6 +179,18 @@ jobs:
           # The actual service references stay unresolved in this archive.
           # No frame execution, linked Android runtime or gameplay is claimed.
 
+      - name: Verify original IWD indexer is present in ARM64 static archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          archive="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_iwd_mount.a"
+          test -s "$archive"
+          "$ndk/llvm-nm" -C --defined-only "$archive" | tee "$RUNNER_TEMP/iw3-iwd-mount-arm64-symbols.txt"
+          grep -F "FS_LoadZipFile" "$RUNNER_TEMP/iw3-iwd-mount-arm64-symbols.txt"
+          echo "IW3_ORIGINAL_FS_LOADZIPFILE_AARCH64_ARCHIVE_COMPILED_GREEN"
+          # This static archive is deliberately not linked into the JNI APK.
+
       - name: Cross-compile ACTUAL G_RunFrame typed entity code with Android ARM64 ABI
         shell: bash
         run: |
@@ -204,6 +216,7 @@ jobs:
           path: |
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_math.so
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_frame.a
+            ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_iwd_mount.a
             ${{ runner.temp }}/iw3-complete-frame-arm64.json
             ${{ runner.temp }}/iw3-native-source.json
             ${{ runner.temp }}/iw3-original-g-runframe-audit.json
@@ -216,5 +229,6 @@ jobs:
             ${{ runner.temp }}/iw3-sp-frame-abi64-object-elf.txt
             ${{ runner.temp }}/iw3-arm64-elf.txt
             ${{ runner.temp }}/iw3-arm64-symbols.txt
+            ${{ runner.temp }}/iw3-iwd-mount-arm64-symbols.txt
           retention-days: 30
           if-no-files-found: error
