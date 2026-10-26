@@ -180,15 +180,220 @@ jobs:
           grep -F 'FS_FileForHandle' "$RUNNER_TEMP/iw3-original-fs-read-defined.txt"
           grep -F 'FS_Read' "$RUNNER_TEMP/iw3-original-fs-read-defined.txt"
           "$llvm_nm" -u -C "$fs_read_archive" | tee "$RUNNER_TEMP/iw3-original-fs-read-undefined.txt"
-          # fsh remains unresolved in this standalone audit archive because
-          # upstream com_files.cpp keeps its table file-local static. The JNI
-          # diagnostic compiles original FS_HandleForFile ->
-          # FS_FOpenFileReadForThread -> FS_Read -> FS_FCloseFile against an
-          # Android-owned native-width table and exercises IWD clone plus
-          # rooted directory fallback paths; the complete engine filesystem
-          # is not linked into that diagnostic.
-          grep -F 'fsh' "$RUNNER_TEMP/iw3-original-fs-read-undefined.txt"
-          echo "IW3_ORIGINAL_FS_READ_AARCH64_AUDIT_ARCHIVE_SEPARATE_FROM_JNI"
+          # fsh is now defined by the shared original-engine source and
+          # referenced by the verbatim open/read/close bodies. The static archive
+          # must contain both the reference and the engine-owned definition; the
+          # complete com_files.cpp translation unit is still not linked here.
+          "$llvm_nm" -C "$fs_read_archive" | tee "$RUNNER_TEMP/iw3-original-fs-read-symbols.txt"
+          grep -E ' [BbDd] fsh
+          so="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_math.so"
+          test -s "$so"
+          elf="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
+          "$elf" -h "$so" | tee "$RUNNER_TEMP/iw3-arm64-elf.txt"
+          grep -F 'Class:                             ELF64' "$RUNNER_TEMP/iw3-arm64-elf.txt"
+          grep -F 'Machine:                           AArch64' "$RUNNER_TEMP/iw3-arm64-elf.txt"
+          "$elf" --dyn-syms "$so" > "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_iw3_angle_vectors' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_iw3_math_smoke' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_iw3_snap_float_to_int' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_iw3_snap_float_smoke' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_iw3_surface_type_from_name' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_iw3_surface_smoke' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_iw3_configstrings_smoke' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_iw3_configstring_num' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_iw3_frame_memcpy_smoke' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_iw3_real_pool_smoke' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_iw3_hitloc_copy_smoke' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_iw3_iwd_names_smoke' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_platform_monotonic_ns' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_platform_set_data_root' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_platform_read_file' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_platform_touch_event' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_platform_touch_snapshot' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          # No Android package or game claims: this is a single authentic
+          # engine source C++ module ported and linked into a native .so.
+          echo "IW3_ORIGINAL_SOURCE_ANDROID_ARM64_ELF_GREEN"
+
+      - name: Verify COMPLETE original IW3 frame compiled with real ARM64 state headers
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          python3 tools/iw3_android/verify_frame_archive.py \
+            --archive "$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_frame.a" \
+            --source third_party/KisakCOD/src/game/g_runframe.cpp \
+            --build "$RUNNER_TEMP/iw3-build-arm64" \
+            --nm "$ndk/llvm-nm" --readelf "$ndk/llvm-readelf" \
+            --machine AArch64 --report "$RUNNER_TEMP/iw3-complete-frame-arm64.json"
+          # The actual service references stay unresolved in this archive.
+          # No frame execution, linked Android runtime or gameplay is claimed.
+
+      - name: Verify original IWD indexer is present in ARM64 static archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          archive="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_iwd_mount.a"
+          test -s "$archive"
+          "$ndk/llvm-nm" -C --defined-only "$archive" | tee "$RUNNER_TEMP/iw3-iwd-mount-arm64-symbols.txt"
+          grep -F "FS_LoadZipFile" "$RUNNER_TEMP/iw3-iwd-mount-arm64-symbols.txt"
+          echo "IW3_ORIGINAL_FS_LOADZIPFILE_AARCH64_ARCHIVE_COMPILED_GREEN"
+          # This static archive is deliberately not linked into the JNI APK.
+
+      - name: Cross-compile ACTUAL G_RunFrame typed entity code with Android ARM64 ABI
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64"
+          "$ndk/bin/aarch64-linux-android26-clang++" \
+            -std=c++20 -Wall -Wextra -UNDEBUG -O2 \
+            -I"$RUNNER_TEMP/iw3-source" \
+            -c android/iw3-native/frame_loop_abi_test.cpp \
+            -o "$RUNNER_TEMP/iw3-authentic-sp-frame-entity-arm64.o"
+          "$ndk/bin/llvm-readelf" -h "$RUNNER_TEMP/iw3-authentic-sp-frame-entity-arm64.o" \
+            | tee "$RUNNER_TEMP/iw3-sp-frame-abi64-object-elf.txt"
+          grep -F 'Machine:                           AArch64' "$RUNNER_TEMP/iw3-sp-frame-abi64-object-elf.txt"
+          grep -F 'Class:                             ELF64' "$RUNNER_TEMP/iw3-sp-frame-abi64-object-elf.txt"
+          echo 'IW3_VERBATIM_G_RUNFRAME_ENTITY_LOOP_ANDROID_ARM64_COMPILES_GREEN'
+          # Caution: This proves only the corrected source block compiling
+          # for ARM64, NOT that full G_RunFrame or game engine links/runs.
+
+      - name: Attach evidence and compiled native module (NOT an APK)
+        uses: actions/upload-artifact@v4
+        with:
+          name: z2026-iw3-real-math-arm64-phase-a-NOT-APK
+          path: |
+            ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_math.so
+            ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_frame.a
+            ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_iwd_mount.a
+            ${{ runner.temp }}/iw3-complete-frame-arm64.json
+            ${{ runner.temp }}/iw3-native-source.json
+            ${{ runner.temp }}/iw3-original-g-runframe-audit.json
+            ${{ runner.temp }}/iw3-original-pool-allocator.json
+            ${{ runner.temp }}/iw3-original-sp-hitloc.json
+            ${{ runner.temp }}/iw3-original-iwd-names.json
+            ${{ runner.temp }}/iw3-original-unzip-abi.json
+            ${{ runner.temp }}/iw3-original-iwd-mount.json
+            ${{ runner.temp }}/iw3-original-iwd-services.json
+            ${{ runner.temp }}/iw3-original-iwd-directory.json
+            ${{ runner.temp }}/iw3-original-iwd-lookup.json
+            ${{ runner.temp }}/iw3-original-iwd-read-lifecycle.json
+            ${{ runner.temp }}/iw3-original-fs-read.json
+            ${{ runner.temp }}/iw3-original-fs-read-defined.txt
+            ${{ runner.temp }}/iw3-original-fs-read-undefined.txt
+            ${{ runner.temp }}/iw3-authentic-sp-frame-entity-arm64.o
+            ${{ runner.temp }}/iw3-sp-frame-abi64-object-elf.txt
+            ${{ runner.temp }}/iw3-arm64-elf.txt
+            ${{ runner.temp }}/iw3-arm64-symbols.txt
+            ${{ runner.temp }}/iw3-iwd-mount-arm64-symbols.txt
+          retention-days: 30
+          if-no-files-found: error
+ "$RUNNER_TEMP/iw3-original-fs-read-symbols.txt"
+          grep -E ' U fsh
+          so="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_math.so"
+          test -s "$so"
+          elf="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
+          "$elf" -h "$so" | tee "$RUNNER_TEMP/iw3-arm64-elf.txt"
+          grep -F 'Class:                             ELF64' "$RUNNER_TEMP/iw3-arm64-elf.txt"
+          grep -F 'Machine:                           AArch64' "$RUNNER_TEMP/iw3-arm64-elf.txt"
+          "$elf" --dyn-syms "$so" > "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_iw3_angle_vectors' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_iw3_math_smoke' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_iw3_snap_float_to_int' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_iw3_snap_float_smoke' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_iw3_surface_type_from_name' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_iw3_surface_smoke' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_iw3_configstrings_smoke' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_iw3_configstring_num' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_iw3_frame_memcpy_smoke' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_iw3_real_pool_smoke' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_iw3_hitloc_copy_smoke' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_iw3_iwd_names_smoke' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_platform_monotonic_ns' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_platform_set_data_root' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_platform_read_file' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_platform_touch_event' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          grep 'z2026_platform_touch_snapshot' "$RUNNER_TEMP/iw3-arm64-symbols.txt"
+          # No Android package or game claims: this is a single authentic
+          # engine source C++ module ported and linked into a native .so.
+          echo "IW3_ORIGINAL_SOURCE_ANDROID_ARM64_ELF_GREEN"
+
+      - name: Verify COMPLETE original IW3 frame compiled with real ARM64 state headers
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          python3 tools/iw3_android/verify_frame_archive.py \
+            --archive "$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_frame.a" \
+            --source third_party/KisakCOD/src/game/g_runframe.cpp \
+            --build "$RUNNER_TEMP/iw3-build-arm64" \
+            --nm "$ndk/llvm-nm" --readelf "$ndk/llvm-readelf" \
+            --machine AArch64 --report "$RUNNER_TEMP/iw3-complete-frame-arm64.json"
+          # The actual service references stay unresolved in this archive.
+          # No frame execution, linked Android runtime or gameplay is claimed.
+
+      - name: Verify original IWD indexer is present in ARM64 static archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          archive="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_iwd_mount.a"
+          test -s "$archive"
+          "$ndk/llvm-nm" -C --defined-only "$archive" | tee "$RUNNER_TEMP/iw3-iwd-mount-arm64-symbols.txt"
+          grep -F "FS_LoadZipFile" "$RUNNER_TEMP/iw3-iwd-mount-arm64-symbols.txt"
+          echo "IW3_ORIGINAL_FS_LOADZIPFILE_AARCH64_ARCHIVE_COMPILED_GREEN"
+          # This static archive is deliberately not linked into the JNI APK.
+
+      - name: Cross-compile ACTUAL G_RunFrame typed entity code with Android ARM64 ABI
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64"
+          "$ndk/bin/aarch64-linux-android26-clang++" \
+            -std=c++20 -Wall -Wextra -UNDEBUG -O2 \
+            -I"$RUNNER_TEMP/iw3-source" \
+            -c android/iw3-native/frame_loop_abi_test.cpp \
+            -o "$RUNNER_TEMP/iw3-authentic-sp-frame-entity-arm64.o"
+          "$ndk/bin/llvm-readelf" -h "$RUNNER_TEMP/iw3-authentic-sp-frame-entity-arm64.o" \
+            | tee "$RUNNER_TEMP/iw3-sp-frame-abi64-object-elf.txt"
+          grep -F 'Machine:                           AArch64' "$RUNNER_TEMP/iw3-sp-frame-abi64-object-elf.txt"
+          grep -F 'Class:                             ELF64' "$RUNNER_TEMP/iw3-sp-frame-abi64-object-elf.txt"
+          echo 'IW3_VERBATIM_G_RUNFRAME_ENTITY_LOOP_ANDROID_ARM64_COMPILES_GREEN'
+          # Caution: This proves only the corrected source block compiling
+          # for ARM64, NOT that full G_RunFrame or game engine links/runs.
+
+      - name: Attach evidence and compiled native module (NOT an APK)
+        uses: actions/upload-artifact@v4
+        with:
+          name: z2026-iw3-real-math-arm64-phase-a-NOT-APK
+          path: |
+            ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_math.so
+            ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_frame.a
+            ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_iwd_mount.a
+            ${{ runner.temp }}/iw3-complete-frame-arm64.json
+            ${{ runner.temp }}/iw3-native-source.json
+            ${{ runner.temp }}/iw3-original-g-runframe-audit.json
+            ${{ runner.temp }}/iw3-original-pool-allocator.json
+            ${{ runner.temp }}/iw3-original-sp-hitloc.json
+            ${{ runner.temp }}/iw3-original-iwd-names.json
+            ${{ runner.temp }}/iw3-original-unzip-abi.json
+            ${{ runner.temp }}/iw3-original-iwd-mount.json
+            ${{ runner.temp }}/iw3-original-iwd-services.json
+            ${{ runner.temp }}/iw3-original-iwd-directory.json
+            ${{ runner.temp }}/iw3-original-iwd-lookup.json
+            ${{ runner.temp }}/iw3-original-iwd-read-lifecycle.json
+            ${{ runner.temp }}/iw3-original-fs-read.json
+            ${{ runner.temp }}/iw3-original-fs-read-defined.txt
+            ${{ runner.temp }}/iw3-original-fs-read-undefined.txt
+            ${{ runner.temp }}/iw3-authentic-sp-frame-entity-arm64.o
+            ${{ runner.temp }}/iw3-sp-frame-abi64-object-elf.txt
+            ${{ runner.temp }}/iw3-arm64-elf.txt
+            ${{ runner.temp }}/iw3-arm64-symbols.txt
+            ${{ runner.temp }}/iw3-iwd-mount-arm64-symbols.txt
+          retention-days: 30
+          if-no-files-found: error
+ "$RUNNER_TEMP/iw3-original-fs-read-symbols.txt"
+          echo "IW3_ENGINE_SHARED_FSH_TABLE_AARCH64_AUDIT_GREEN"
           so="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_math.so"
           test -s "$so"
           elf="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"

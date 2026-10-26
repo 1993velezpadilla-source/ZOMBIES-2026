@@ -1,9 +1,9 @@
 #pragma once
 // ABI boundary for exact KisakCOD file-handle allocation/open/read/close bodies.
-// The complete upstream com_files.cpp owns a file-local static fsh[65]. This
-// diagnostic compiles those original bodies against a native-width table of the
-// same fileHandleData_t type, plus narrowly scoped Android platform services.
-// It exercises the per-handle lifecycle, not the complete engine filesystem.
+// The original engine-owned fsh[65] is defined in
+// src/universal/com_files_handle_table.cpp and shared with com_files.cpp.
+// This generated-source slice uses that same table, with narrow Android
+// platform services; the full com_files.cpp translation unit is not linked here.
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>

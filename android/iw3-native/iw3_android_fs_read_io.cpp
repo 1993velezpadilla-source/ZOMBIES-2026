@@ -4,9 +4,8 @@
 #include <climits>
 #include <cstdio>
 
-// This is the native-width handle table for the isolated original filesystem
-// slice. The full upstream com_files.cpp keeps its own fsh[65] file-local.
-fileHandleData_t fsh[65]{};
+// fsh is defined once by the shared original-engine source
+// com_files_handle_table.cpp. This file supplies only narrow platform services.
 
 namespace {
 dvar_s g_z2026_fs_debug{};

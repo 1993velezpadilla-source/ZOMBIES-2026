@@ -520,6 +520,7 @@ set(UNIVERSAL
     "${SRC_DIR}/universal/com_convexhull.cpp"
     "${SRC_DIR}/universal/com_convexhull.h"
     "${SRC_DIR}/universal/com_files.cpp"
+    "${SRC_DIR}/universal/com_files_handle_table.cpp"
     "${SRC_DIR}/universal/com_files.h"
     "${SRC_DIR}/universal/com_loadutils.cpp"
     "${SRC_DIR}/universal/com_math.cpp"

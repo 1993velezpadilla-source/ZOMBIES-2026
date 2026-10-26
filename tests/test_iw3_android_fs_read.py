@@ -36,11 +36,11 @@ class OriginalFSReadStageTests(unittest.TestCase):
             self.assertTrue(report["original_FS_Read_body_preserved_exactly"])
             self.assertTrue(report["original_FS_FCloseFile_body_preserved_exactly"])
             self.assertTrue(report["original_extension_and_purity_helpers_preserved_exactly"])
-            self.assertTrue(report["full_open_read_close_lifecycle_integrated"])
             self.assertTrue(report["full_original_open_read_close_lifecycle_compiled_into_diagnostic"])
+            self.assertTrue(report["engine_shared_fsh_table_source_present"])
+            self.assertFalse(report["full_original_com_files_translation_unit_linked"])
+            self.assertTrue(report["report_is_static_staging_audit"])
             self.assertFalse(report["runtime_handle_path_executed"])
-            self.assertFalse(report["original_upstream_fsh_table_integrated"])
-            self.assertTrue(report["android_native_width_fsh_table_adapter_required"])
             self.assertFalse(report["gameplay_proven"])
             self.assertFalse(report["playable_apk"])
             self.assertEqual(report["source_sha256"][str(SOURCE)],
@@ -67,6 +67,20 @@ class OriginalFSReadStageTests(unittest.TestCase):
         self.assertIn('"original_fs_directory_fallback_read_executed": True', verifier)
         self.assertIn("iwd_fs_disk_read_ok && math_ok", jni)
 
+    def test_handle_table_is_shared_engine_source_not_android_owned(self):
+        header = (ENGINE / "src/universal/com_files.h").read_text(encoding="utf-8")
+        original = (ENGINE / "src/universal/com_files.cpp").read_text(encoding="utf-8")
+        table = (ENGINE / "src/universal/com_files_handle_table.cpp").read_text(encoding="utf-8")
+        common = (ENGINE / "scripts/common_files.cmake").read_text(encoding="utf-8")
+        cmake = (ROOT / "android/iw3-native/CMakeLists.txt").read_text(encoding="utf-8")
+        adapter = (ROOT / "android/iw3-native/iw3_android_fs_read_io.cpp").read_text(encoding="utf-8")
+        self.assertIn("extern fileHandleData_t fsh[65];", header)
+        self.assertNotIn("static fileHandleData_t fsh[65];", original)
+        self.assertIn("fileHandleData_t fsh[65] = {};", table)
+        self.assertIn("com_files_handle_table.cpp", common)
+        self.assertGreaterEqual(cmake.count("universal/com_files_handle_table.cpp"), 2)
+        self.assertNotIn("fileHandleData_t fsh[65]{};", adapter)
+        self.assertIn("sizeof(fileHandleData_t) == (sizeof(void *) == 8 ? 304u : 284u)", table)
 
 if __name__ == "__main__":
     unittest.main()

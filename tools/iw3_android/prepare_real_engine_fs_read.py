@@ -3,8 +3,9 @@
 
 The exact upstream FS_HandleForFile and FS_FOpenFileReadForThread bodies are
 compiled into the Android diagnostic with the original FS_Read/FS_FCloseFile
-bodies. A narrow Android adapter supplies the native-width handle table and
-platform services; this does not link the complete engine filesystem/runtime.
+bodies. The handle table comes from the shared engine source
+com_files_handle_table.cpp; the Android adapter supplies only narrow platform
+services. The complete com_files.cpp translation unit is not linked.
 """
 from __future__ import annotations
 
@@ -20,6 +21,8 @@ except ModuleNotFoundError:
 
 SOURCE = Path("src/universal/com_files.cpp")
 SHARED_SOURCE = Path("src/universal/q_shared.cpp")
+TABLE_SOURCE = Path("src/universal/com_files_handle_table.cpp")
+HEADER_SOURCE = Path("src/universal/com_files.h")
 SIGNATURE = "uint32_t __cdecl FS_Read(uint8_t *buffer, uint32_t len, int h)"
 FUNCTIONS = (
     ("int __cdecl FS_filelength(int f)", SOURCE),
@@ -106,6 +109,16 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
         raise ValueError("Refusing to overwrite authentic KisakCOD source")
     source_text = {source_path: raw.decode("utf-8")
                    for source_path, raw in source_bytes.items()}
+    table_bytes = (engine / TABLE_SOURCE).read_bytes()
+    header_bytes = (engine / HEADER_SOURCE).read_bytes()
+    table_text = table_bytes.decode("utf-8")
+    header_text = header_bytes.decode("utf-8")
+    if "extern fileHandleData_t fsh[65];" not in header_text:
+        raise ValueError("Original com_files.h must declare the shared fsh table")
+    if "fileHandleData_t fsh[65] = {};" not in table_text:
+        raise ValueError("Shared engine handle-table definition is missing")
+    if "static fileHandleData_t fsh[65]" in source_text[SOURCE]:
+        raise ValueError("com_files.cpp still owns a private static fsh table")
     bodies = [definition_source(source_text[source_path], signature)
               for signature, source_path in FUNCTIONS]
     combined = "\n\n".join(bodies) + "\n"
@@ -137,11 +150,12 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
         "original_FS_Read_body_preserved_exactly": True,
         "original_FS_FCloseFile_body_preserved_exactly": True,
         "original_extension_and_purity_helpers_preserved_exactly": True,
-        "full_open_read_close_lifecycle_integrated": True,
         "full_original_open_read_close_lifecycle_compiled_into_diagnostic": True,
+        "engine_shared_fsh_table_source_present": True,
+        "engine_shared_fsh_table_source_sha256": hashlib.sha256(table_bytes).hexdigest(),
+        "full_original_com_files_translation_unit_linked": False,
+        "report_is_static_staging_audit": True,
         "runtime_handle_path_executed": False,
-        "original_upstream_fsh_table_integrated": False,
-        "android_native_width_fsh_table_adapter_required": True,
         "fastfile_map_loading_proven": False,
         "gameplay_proven": False,
         "playable_apk": False,

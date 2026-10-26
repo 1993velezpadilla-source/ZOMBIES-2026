@@ -82,6 +82,10 @@ struct fileHandleData_t // sizeof=0x11C
     char name[256];
 };
 
+// Shared engine-owned file-handle table used by this translation unit and
+// portable engine-source slices that compile the original file lifecycle.
+extern fileHandleData_t fsh[65];
+
 bool __cdecl FS_Initialized();
 
 int __cdecl FS_ConditionalRestart(int localClientNum, int checksumFeed);

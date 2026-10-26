@@ -88,9 +88,11 @@ target_compile_options(iw3_sp_iwd_mount PRIVATE
     -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
 
 # Compile the verbatim original read helpers into a separate ABI/dependency
-# archive. This archive is NOT linked into iw3_sp_math/JNI; its fsh reference
-# remains unresolved so the original file-local table limitation is visible.
-add_library(iw3_sp_fs_read STATIC "${IW3_EXTRACTED_FS_READ}")
+# archive with the same engine-owned native-width handle table used by
+# com_files.cpp. Other platform/service references remain visible in this audit.
+add_library(iw3_sp_fs_read STATIC
+    "${IW3_EXTRACTED_FS_READ}"
+    "${IW3_ENGINE_SOURCE_ROOT}/universal/com_files_handle_table.cpp")
 target_include_directories(iw3_sp_fs_read PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}"
     "${IW3_REAL_HEADER_ROOT}"
@@ -101,13 +103,13 @@ target_compile_definitions(iw3_sp_fs_read PRIVATE KISAK_SP=1)
 target_compile_options(iw3_sp_fs_read PRIVATE
     -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
 
-# The diagnostic shared library compiles the exact original handle allocator,
-# FS_FOpenFileReadForThread, FS_Read and FS_FCloseFile bodies against an
-# Android-owned native-width table. The IWD fixture opens one indexed member
-# twice, requires the second open to take the original clone branch, reads both
-# handles and verifies both original close paths. This table is not the upstream
-# file-local fsh, and the complete engine filesystem remains unported.
+# The diagnostic shared library compiles exact original handle allocator/open/
+# read/close bodies against the shared engine-owned native-width fsh table. The
+# IWD fixture opens one member twice to exercise the original unzReOpen clone
+# branch and verifies both original close paths. The full com_files.cpp runtime
+# and its remaining platform services are not linked into this diagnostic.
 add_library(iw3_sp_math SHARED
+    "${IW3_ENGINE_SOURCE_ROOT}/universal/com_files_handle_table.cpp"
     "${IW3_EXTRACTED_FS_READ}"
     "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_fs_read_io.cpp"
     "${IW3_EXTRACTED_MATH}"

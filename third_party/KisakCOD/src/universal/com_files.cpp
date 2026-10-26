@@ -42,7 +42,7 @@ int fs_iwdFileCount;
 int fs_checksumFeed;
 int bLanguagesListed;
 
-static fileHandleData_t fsh[65];
+// fsh is defined in com_files_handle_table.cpp and declared in com_files.h.
 
 char fs_gamedir[256];
 searchpath_s *fs_searchpaths;
