@@ -511,3 +511,22 @@ checksum/string services and Android file-searchpath startup; mount a real
 user-supplied IWD and verify an original asset lookup; then integrate FastFiles,
 map loading, the original renderer, real client commands, and gameplay. Keep
 PR #4 open and unmerged.
+
+
+## Offline SP combat probe: bounded aim at an existing actor
+
+The current Windows-only disposable SP diagnostic reaches the original
+`FireWeapon` and `Bullet_Fire` callbacks, but the last evidence did not reach
+`G_Damage` for an actor. The input probe now directs its finite test-only
+attack commands toward the nearest already-existing live damageable actor
+from the original SP `g_entities` list. It does not spawn an actor, relocate
+entities, invoke weapon/damage callbacks directly, or modify the vendored game
+source. Aim is capped at the same 12 generated attack commands. The runtime
+report separately records `test_aimed_at_existing_actor`, actual actor damage,
+and actor death; aiming or bullet dispatch alone never counts as a hit.
+
+The workflow now runs when this input-probe script, its test, or the runtime
+probe changes. This remains a Windows SP diagnostic only; it does not prove
+Android client linkage, graphics, map rendering, ARM64-device execution, or a
+playable Android APK. The next CI result must determine whether real traces
+actually hit the existing actor; if not, preserve that failure as a blocker.

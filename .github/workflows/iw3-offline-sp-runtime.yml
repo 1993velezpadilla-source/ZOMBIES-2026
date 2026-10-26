@@ -9,6 +9,9 @@ on:
       - 'tools/zombies_offline/instrument_sp_level.py'
       - 'tools/zombies_offline/instrument_sp_combat.py'
       - 'tools/zombies_offline/instrument_sp_loadout.py'
+      - 'tools/zombies_offline/instrument_sp_input.py'
+      - 'tools/zombies_offline/probe_sp_runtime.ps1'
+      - 'tests/test_zombies_offline_input.py'
       - '.github/workflows/iw3-offline-sp-runtime.yml'
   push:
     branches:

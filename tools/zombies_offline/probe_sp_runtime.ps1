@@ -36,6 +36,8 @@ $report=[ordered]@{
   test_weapon_switch_requested=$false
   test_no_compatible_registered_weapon=$false
   test_client_attack_button_injected=$false
+  test_aimed_at_existing_actor=$false
+  test_no_aimable_actor_found=$false
   sp_actor_present=$false
   actual_weapon_fire_callback=$false
   bullet_fire_dispatched=$false
@@ -47,6 +49,8 @@ $report=[ordered]@{
   offline_sp_level_loop_verified=$false
   actual_graphics_verified=$false
   weapon_fired_verified=$false
+  aimed_weapon_damage_verified=$false
+  actor_death_verified=$false
   zombie_spawned_verified=$false
   multiplayer_connection_attempted=$false
   steam_login_attempted_by_test=$false
@@ -143,10 +147,14 @@ finally {
   if(Test-Path $inputTrace) {
     $report.input_trace=@(Get-Content $inputTrace -TotalCount 10 -ErrorAction SilentlyContinue)
     $report.test_client_attack_button_injected=('TEST_ATTACK_BUTTON_INJECTED' -in $report.input_trace)
+    $report.test_aimed_at_existing_actor=('TEST_AIMED_AT_EXISTING_ACTOR' -in $report.input_trace)
+    $report.test_no_aimable_actor_found=('TEST_NO_AIMABLE_ACTOR' -in $report.input_trace)
   }
   # True weapon fire requires original FireWeapon/Bullet_Fire callbacks.
   # A test-issued button or fake kill command NEVER counts as a shot.
   $report.weapon_fired_verified=$report.actual_weapon_fire_callback -and $report.bullet_fire_dispatched
+  $report.aimed_weapon_damage_verified=$report.weapon_fired_verified -and $report.test_aimed_at_existing_actor -and $report.actor_damage_callback
+  $report.actor_death_verified=$report.actor_death_callback
   $report | ConvertTo-Json -Depth 4 | Set-Content $reportPath -Encoding utf8
   Write-Host 'Z2026_OFFLINE_SP_RUNTIME_BEGIN'
   Get-Content $reportPath

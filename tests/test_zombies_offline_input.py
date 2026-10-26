@@ -8,6 +8,7 @@ from tools.zombies_offline.instrument_sp_input import SOURCE, apply
 
 ROOT = Path(__file__).resolve().parents[1]
 VENDORED = ROOT / "third_party/KisakCOD"
+PROBE = ROOT / "tools/zombies_offline/probe_sp_runtime.ps1"
 
 class OfflineSPInputTests(unittest.TestCase):
     def test_only_client_command_hook_in_temp_source(self):
@@ -21,6 +22,9 @@ class OfflineSPInputTests(unittest.TestCase):
             self.assertTrue(report["test_only_input"])
             self.assertEqual(report["client_commands_limited_to"], 12)
             self.assertTrue(report["requires_player_snapshot_weapon"])
+            self.assertTrue(report["aims_at_existing_damageable_actor"])
+            self.assertEqual(report["aim_commands_limited_to"], 12)
+            self.assertFalse(report["injects_actor_or_damage"])
             self.assertFalse(report["fireweapon_called_directly"])
             self.assertFalse(report["multiplayer_auth_changed"])
             patched = path.read_text(encoding="utf-8")
@@ -29,11 +33,24 @@ class OfflineSPInputTests(unittest.TestCase):
             self.assertIn("z2026_test_attack_cmds < 12", patched)
             self.assertIn("#if defined(KISAK_SP)", patched)
             self.assertIn('Z2026_TestInputTrace("TEST_ATTACK_BUTTON_INJECTED")', patched)
+            self.assertIn('Z2026_TestInputTrace("TEST_AIMED_AT_EXISTING_ACTOR")', patched)
+            self.assertIn("z2026_candidate->actor", patched)
+            self.assertIn("z2026_candidate->takedamage", patched)
+            self.assertIn("z2026_test_aim_cmds < 12", patched)
+            self.assertIn("std::atan2", patched)
+            self.assertIn("CL_FinishMove(result);", patched)
             self.assertNotIn("FireWeapon(", patched)
             self.assertNotIn("G_Damage(", patched)
             with self.assertRaisesRegex(ValueError, "already applied"):
                 apply(copy)
         self.assertEqual((VENDORED / SOURCE).read_bytes(), before)
+
+    def test_runtime_report_does_not_confuse_aim_with_damage(self):
+        report = PROBE.read_text(encoding="utf-8")
+        self.assertIn("test_aimed_at_existing_actor", report)
+        self.assertIn("aimed_weapon_damage_verified", report)
+        self.assertIn("$report.actor_damage_callback", report)
+        self.assertIn("$report.actor_death_verified=$report.actor_death_callback", report)
 
     def test_missing_original_symbol_fails_closed(self):
         with TemporaryDirectory() as tmp:
