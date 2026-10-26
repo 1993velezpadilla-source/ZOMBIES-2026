@@ -800,3 +800,14 @@ The source regression and generator contract were corrected after the first nati
 - Windows SP build/runtime regression checks `40317221188` and `40317221216`: still running at this checkpoint.
 
 Thus the corrected source and native ARM64 module compile are verified, but the new cloned-IWD reopen/read smoke has not yet received its final Android runtime result. The original file-handle allocation plus `FS_Read` lifecycle remains unported, as do FastFiles/maps, renderer integration and real gameplay. There is still no playable APK; keep PR #4 unmerged.
+
+### Phase I follow-up — Android directory adapter escape correction (26 Oct 2026)
+
+Inspection of the completed Android emulator job for head `449ea041608d6f64757abc3c238574d70522539e` showed three Clang `-Wmultichar` warnings in `android/iw3-native/iw3_android_iwd_directory_io.cpp`: the `Com_sprintf` terminators were written as multi-character literals `'\\\\0'`, and the assertion adapter used `'\\\\n'`. Those are not the C++ NUL/newline escapes; they can truncate to an ordinary character (the previous build specifically warned that the literal value 23600 converted to character '0').
+
+Commit `4097f4e9d62778f18c2aa92ebec8cfbd12271054` corrects these to `'\\0'` and `'\\n'`. New regression tests in `tests/test_iw3_android_directory_adapter.py` require the intended literals and reject the doubled-backslash forms. The follow-up is wired into the existing `test_iw3_android_*.py` workflow discovery; CI for the new commits must still finish before this correction is called green.
+
+The latest completed runtime evidence on the prior code is Android x86_64 diagnostic run [40317213167](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40317213167): original ZIP parser, IWD index, searchpath insertion, directory scan, game-directory registration and lookup-only branch passed; native touch DOWN/UP reached the original `usercmd_s`. The evidence explicitly records `original_fs_read_handle_path_executed=false`, `arm64_device_execution_proven=false`, and `gameplay_proven=false`. Its smoke directly calls original `unzReOpen`/ZIP-member read; it does not exercise the engine's `FS_FOpenFileReadForThread` handle allocation plus `FS_Read`/close lifecycle. That is the next file-I/O gate.
+
+No game map, renderer, full client/server frame linkage or playable APK has been proven. The generated IWD remains a synthetic fixture, the emulator is x86_64, and PR #4 remains intentionally unmerged.
+
