@@ -32,6 +32,7 @@ FUNCTIONS = (
     ("BOOL __cdecl FS_PureIgnoresExtension(const char *extension)", SOURCE),
     ("char __cdecl FS_FilesAreLoadedGlobally(const char *filename)", SOURCE),
     ("int __cdecl FS_IwdIsPure(iwd_t *iwd)", SOURCE),
+    ("bool __cdecl FS_GameDirDomainFunc(dvar_s *dvar, DvarValue newValue)", SOURCE),
     (SIGNATURE, SOURCE),
     ("void __cdecl FS_FCloseFile(int h)", SOURCE),
     ("const char *__cdecl Com_GetExtensionSubString(const char *filename)", SHARED_SOURCE),
@@ -122,6 +123,20 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
     bodies = [definition_source(source_text[source_path], signature)
               for signature, source_path in FUNCTIONS]
     combined = "\n\n".join(bodies) + "\n"
+    domain_signature = "bool __cdecl FS_GameDirDomainFunc(dvar_s *dvar, DvarValue newValue)"
+    domain_index = next(i for i, (signature, _) in enumerate(FUNCTIONS)
+                        if signature == domain_signature)
+    domain_body = bodies[domain_index]
+    for marker in (
+        "if (!newValue.string[0])",
+        "newValue.string[4] != '/'",
+        'strstr(newValue.string, "..")',
+        'strstr(newValue.string, "::")',
+    ):
+        if marker not in domain_body:
+            raise ValueError("Original game-directory validator lost native-width string access: " + marker)
+    if "newValue.integer" in domain_body or "(int)strstr" in domain_body:
+        raise ValueError("Original game-directory validator truncates a string pointer")
     for marker in REQUIRED:
         if marker not in combined:
             raise ValueError("Original FS lifecycle contract missing: " + marker)
@@ -150,6 +165,9 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
         "original_FS_Read_body_preserved_exactly": True,
         "original_FS_FCloseFile_body_preserved_exactly": True,
         "original_extension_and_purity_helpers_preserved_exactly": True,
+        "original_FS_GameDirDomainFunc_body_preserved_exactly": True,
+        "original_FS_GameDirDomainFunc_uses_native_width_string_member": True,
+        "game_directory_domain_validator_runtime_executed": False,
         "full_original_open_read_close_lifecycle_compiled_into_diagnostic": True,
         "engine_shared_fsh_table_source_present": True,
         "engine_shared_fsh_table_source_sha256": hashlib.sha256(table_bytes).hexdigest(),
