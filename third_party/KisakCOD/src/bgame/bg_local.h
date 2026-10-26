@@ -1202,7 +1202,11 @@ struct CEntPlayerInfo // sizeof=0xC
     // padding byte
     // padding byte
 };
+#if defined(__LP64__)
+static_assert(sizeof(CEntPlayerInfo) == 0x10);
+#else
 static_assert(sizeof(CEntPlayerInfo) == 0xC);
+#endif
 
 struct CEntTurretAngles // sizeof=0x8
 {                                       // ...
@@ -1272,7 +1276,11 @@ struct CEntFx // sizeof=0x8  (SP/MP Same)
     int32_t triggerTime;
     FxEffect* effect;
 };
+#if defined(__LP64__)
+static_assert(sizeof(CEntFx) == 0x10);
+#else
 static_assert(sizeof(CEntFx) == 0x8);
+#endif
 
 #if defined(KISAK_MP) || defined(KISAK_RADIANT) // radiant: for cpose_t
 struct GfxSkinCacheEntry // sizeof=0xC
@@ -2263,7 +2271,11 @@ struct BulletTraceResults // sizeof=0x44
     // padding byte
     int32_t depthSurfaceType;               // ...
 };
+#if defined(__LP64__)
+static_assert(sizeof(BulletTraceResults) == 0x50);
+#else
 static_assert(sizeof(BulletTraceResults) == 0x44);
+#endif
 
 struct viewState_t // sizeof=0x24
 {                                       // ...
@@ -2277,7 +2289,11 @@ struct viewState_t // sizeof=0x24
     float fLastIdleFactor;              // ...
     int32_t*weapIdleTime;                  // ...
 };
+#if defined(__LP64__)
+static_assert(sizeof(viewState_t) == 0x30);
+#else
 static_assert(sizeof(viewState_t) == 0x24);
+#endif
 
 struct weaponState_t // sizeof=0x54
 {                                       // ...
@@ -2295,7 +2311,11 @@ struct weaponState_t // sizeof=0x54
     float swayAngles[3];                // ...
     int32_t*weapIdleTime;                  // ...
 };
+#if defined(__LP64__)
+static_assert(sizeof(weaponState_t) == 0x60);
+#else
 static_assert(sizeof(weaponState_t) == 0x54);
+#endif
 
 void __cdecl TRACK_bg_weapons();
 void __cdecl BG_LoadPenetrationDepthTable();
