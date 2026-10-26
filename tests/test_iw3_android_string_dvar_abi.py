@@ -30,8 +30,8 @@ class OriginalFilesystemStringDvarABITests(unittest.TestCase):
         startup_start = self.source.index("void __cdecl FS_Startup(char *gameName)")
         startup_end = self.source.index("void __cdecl FS_InitFilesystem()", startup_start)
         startup = self.source[startup_start:startup_end]
-        self.assertIn("fs_basepath->current.string[0] != '\0'", startup)
-        self.assertIn("fs_homepath->current.string[0] != '\0'", startup)
+        self.assertIn("fs_basepath->current.string[0] != '\\0'", startup)
+        self.assertIn("fs_homepath->current.string[0] != '\\0'", startup)
         self.assertIn("FS_AddLocalizedGameDirectory((char *)fs_basepath->current.string", startup)
         self.assertNotIn("current.integer", startup)
 
