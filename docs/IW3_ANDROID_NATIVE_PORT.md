@@ -618,3 +618,30 @@ but does **not** yet prove that `FS_LoadZipFile` is linked into the Android
 JNI library or that an IWD is mounted into the engine's live searchpath list.
 FastFiles/maps, renderer, real client input consumption, and ARM64 gameplay
 remain unverified. Keep PR #4 open and unmerged.
+
+
+## Offline SP fire probe: allow the original weapon raise/switch to settle (2026-10-26)
+
+The latest source-built Windows SP runtime (run 40261282799, commit
+`d6be2d7`) completed without a process error, and the player/actor/frame
+markers were present, but its evidence showed `actual_weapon_fire_callback:
+false`, `bullet_fire_dispatched: false`, and no actor damage. The earlier
+input probe spent its entire 12-command attack budget immediately after the
+test-only real weapon grant/select. That can overlap the original game's weapon
+raise/switch interval, so a logged injected button was not proof that the
+weapon state machine accepted a shot.
+
+The disposable input probe now waits 120 client commands after the snapshot
+first reports a real weapon, then injects at most 12 attack commands through
+the normal `CL_CreateCmd`/`usercmd` path. It emits a separate
+`TEST_WEAPON_WARMUP_COMPLETE` marker before the first injected shot. It still
+does not call `FireWeapon`, `Bullet_Fire`, or `G_Damage` directly, does not
+spawn/move actors, and never edits the vendored engine source. The regression
+test asserts the warm-up bound and marker.
+
+This is a diagnostic-harness correction against the real Windows SP engine,
+not an Android gameplay milestone. The new runtime must still demonstrate
+`actual_weapon_fire_callback` before the damage probe is meaningful; aim,
+weapon grant, and injected-button markers alone are insufficient. The current
+Android target still does not link the original IWD mount module or run the
+client/frame/render/map stack. Keep PR #4 open and unmerged.
