@@ -768,3 +768,13 @@ Inspection of the authentic FS_BuildOSPathForThread() and FS_ReplaceSeparators()
 The Android path normalizer now converts backslashes before its absolute-path/root-boundary check. A new native regression verifies that a leading-backslash absolute path beneath the configured data root opens successfully, while a leading-backslash /etc/passwd path is rejected. The JNI smoke also creates a real file under the registered game directory and requires the original lookup branch to find it through the directory fallback, in addition to an IWD-member hit, an absent-file miss, and traversal rejection.
 
 The current-head native workflow has passed the host compile/CTest stage and the ASAN/UBSAN stage, then advanced to Android NDK setup. The ARM64 ELF build, JNI packaging, and x86_64 emulator execution are still running; do not treat those as green until their run conclusions and runtime evidence are available. This is still a lookup-only test, not FS_Read or a playable APK.
+
+### Phase H validation results — 26 Oct 2026
+
+The path-normalization and disk-fallback test revision (code commit a9c820295111b24a7d7672672bada2d19f9d727b) completed its relevant CI gates:
+
+- Native ARM64 workflow 40315452085: Release CTest passed 8/8; ASAN/UBSAN CTest passed 8/8; the output ELF was verified as ELF64/AArch64; FS_LoadZipFile(char*, char*) was present in the ARM64 static archive. The original G_RunFrame() also compiled with real ARM64 engine state headers, but its evidence still lists nine unresolved gameplay services and explicitly says frame execution/gameplay are not proven. Artifact 12647235802 is a native module bundle, not an APK.
+- JNI integration workflow 40315452368: passed the ARM64 JNI link/package/signature gate and emitted ORIGINAL_IW3_ANDROID_JNI_DIAGNOSTIC_APK_BUILT. Artifact 12647240759 is explicitly diagnostic, not a playable game.
+- Android emulator runtime workflow 40315451991: passed and emitted IW3_JNI_IWD_LOOKUP_PASS. The evidence validator reports original_fs_fopenfileread_searchpath_lookup_branch_executed=true, original_fs_read_handle_path_executed=false, arm64_device_execution_proven=false, and gameplay_proven=false. Artifact 12645814971 contains the x86_64 emulator log and evidence, not a game APK.
+
+This proves the original lookup-only branch can find an IWD member, find a real file through the directory searchpath fallback, reject a missing file and reject traversal input in the Android diagnostic process. It does not prove that a licensed game IWD/FastFile/map is mounted or that the original FS_Read handle lifecycle is integrated. PR #4 remains intentionally unmerged.
