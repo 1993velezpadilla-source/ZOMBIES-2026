@@ -47,6 +47,10 @@ class OriginalFSReadAbiGateTests(unittest.TestCase):
         self.assertIn('"engine_shared_fsh_table_source_present": True', generator)
         self.assertIn('"full_original_com_files_translation_unit_linked": False', generator)
         self.assertIn('"playable_apk": False', generator)
+        self.assertIn("FS_GameDirDomainFunc(dvar_s *dvar, DvarValue newValue)", generator)
+        self.assertIn('"original_FS_GameDirDomainFunc_body_preserved_exactly": True', generator)
+        self.assertIn('"original_FS_GameDirDomainFunc_uses_native_width_string_member": True', generator)
+        self.assertIn('"game_directory_domain_validator_runtime_executed": False', generator)
 
 
 if __name__ == "__main__":
