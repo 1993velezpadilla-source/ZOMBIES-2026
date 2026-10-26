@@ -20,7 +20,7 @@ extern "C" int z2026_iw3_real_pool_smoke();
 extern "C" int z2026_iw3_snap_float_smoke();
 extern "C" int z2026_iw3_hitloc_copy_smoke();
 extern "C" int z2026_iw3_iwd_names_smoke();
-extern "C" int z2026_iw3_unzip_smoke(const char *directory, int *iwd_mount_ok, int *iwd_searchpath_ok);
+extern "C" int z2026_iw3_unzip_smoke(const char *directory, int *iwd_mount_ok, int *iwd_searchpath_ok, int *iwd_directory_scan_ok);
 extern "C" int z2026_iw3_configstring_num(const char*);
 extern "C" int z2026_iw3_math_source_abi_version();
 
@@ -51,10 +51,11 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(
     int unzip_ok = 0;
     int iwd_mount_ok = 0;
     int iwd_searchpath_ok = 0;
+    int iwd_directory_scan_ok = 0;
     if (writableDirectory) {
         const char *directory = env->GetStringUTFChars(writableDirectory, nullptr);
         if (directory) {
-            unzip_ok = z2026_iw3_unzip_smoke(directory, &iwd_mount_ok, &iwd_searchpath_ok);
+            unzip_ok = z2026_iw3_unzip_smoke(directory, &iwd_mount_ok, &iwd_searchpath_ok, &iwd_directory_scan_ok);
             env->ReleaseStringUTFChars(writableDirectory, directory);
         }
     }
@@ -67,6 +68,9 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(
     __android_log_print(iwd_searchpath_ok ? ANDROID_LOG_INFO : ANDROID_LOG_ERROR,
                         "IW3NativeGate", "IW3_JNI_IWD_SEARCHPATH_%s",
                         iwd_searchpath_ok ? "PASS" : "FAIL");
+    __android_log_print(iwd_directory_scan_ok ? ANDROID_LOG_INFO : ANDROID_LOG_ERROR,
+                        "IW3NativeGate", "IW3_JNI_IWD_DIRECTORY_SCAN_%s",
+                        iwd_directory_scan_ok ? "PASS" : "FAIL");
     // These calls resolve to the original engine's math, material and
     // configstring implementations via native_math_abi.cpp.
     const int math_ok = z2026_iw3_math_smoke();
@@ -109,7 +113,7 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(
                         usercmd_ok ? "READY" : "FAIL");
     const int perk_index = z2026_iw3_configstring_num("specialty_rof");
     const std::uint64_t monotonic_time = z2026_platform_monotonic_ns();
-    const int success = unzip_ok && iwd_mount_ok && iwd_searchpath_ok && math_ok && surface_ok && config_ok && frame_copy_ok && pool_ok && snap_ok && hitloc_ok && iwd_names_ok && file_ok && usercmd_ok &&
+    const int success = unzip_ok && iwd_mount_ok && iwd_searchpath_ok && iwd_directory_scan_ok && math_ok && surface_ok && config_ok && frame_copy_ok && pool_ok && snap_ok && hitloc_ok && iwd_names_ok && file_ok && usercmd_ok &&
                         perk_index == 2034 && monotonic_time > 0;
     char report[1536];
     std::snprintf(report, sizeof(report),
@@ -126,6 +130,7 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(
                   "Original IW3 ZIP32 stored/deflate parser: %s\n"
                   "Original FS_LoadZipFile IWD index: %s\n"
                   "Original FS_AddSearchPath fixture insertion: %s\n"
+                  "Original FS_AddIwdFilesForGameDirectory scan: %s\n"
                   "Android app-private data-root I/O: %s\n"
                   "Original IW3 usercmd_s touch adapter: %s\n"
                   "Original specialty_rof ID: %d\n"
@@ -145,6 +150,7 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(
                   unzip_ok ? "PASS" : "FAIL",
                   iwd_mount_ok ? "PASS" : "FAIL",
                   iwd_searchpath_ok ? "PASS" : "FAIL",
+                  iwd_directory_scan_ok ? "PASS" : "FAIL",
                   file_ok ? "PASS" : "FAIL",
                   usercmd_ok ? "PASS" : "FAIL",
                   perk_index, monotonic_time ? "PASS" : "FAIL",

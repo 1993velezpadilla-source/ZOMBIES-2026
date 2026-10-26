@@ -108,6 +108,13 @@ class OriginalIW3UnzipPortTests(unittest.TestCase):
         self.assertIn("index_original_iwd(path, entries, &searchpath_ok)", smoke)
         self.assertIn("FS_AddSearchPath(search)", smoke)
         self.assertIn("IW3_JNI_IWD_SEARCHPATH_PASS", (ROOT / "tools/iw3_android/verify_runtime_evidence.py").read_text())
+        self.assertIn("IW3_JNI_IWD_DIRECTORY_SCAN_PASS", (ROOT / "tools/iw3_android/verify_runtime_evidence.py").read_text())
+        self.assertIn("FS_AddIwdFilesForGameDirectory(root_copy, game_copy)", smoke)
+        self.assertIn("scan_original_iwd_directory(directory, entries, archiveBytes)", smoke)
+        self.assertIn("iwd_directory_scan_ok != 1", host_test)
+        workflow = (ROOT / ".github/workflows/iw3-original-native-android.yml").read_text(encoding="utf-8")
+        arm64_config = workflow.split('cmake -S android/iw3-native -B "$RUNNER_TEMP/iw3-build-arm64"', 1)[1].split("cmake --build", 1)[0]
+        self.assertIn('-DIW3_EXTRACTED_IWD_DIRECTORY="$RUNNER_TEMP/iw3-source/iw3_iwd_directory.cpp"', arm64_config)
         self.assertIn("iwd_mount_ok != 1", host_test)
         self.assertIn("iwd_searchpath_ok != 1", host_test)
         self.assertIn("IW3_ORIGINAL_FS_ADDSSEARCHPATH_HOST_GREEN", host_test)

@@ -1,6 +1,7 @@
 #include "iw3_android_unzip_compat.h"
 #include "iw3_android_platform.h"
 #include "iw3_android_iwd_mount_compat.h"
+#include "iw3_android_iwd_directory_compat.h"
 #include <array>
 #include <string>
 #include <vector>
@@ -186,11 +187,118 @@ bool index_original_iwd(const char *path, const std::array<Entry, 2> &expected, 
     fs_checksumFeed = old_feed;
     return ok;
 }
+
+bool scan_original_iwd_directory(const char *root,
+                                 const std::array<Entry, 2> &expected,
+                                 const Bytes &archiveBytes) {
+    if (!root || root[0] != '/' || std::strlen(root) > 700) return false;
+
+    char subdir[48]{};
+    char basename[64]{};
+    char relative_archive[128]{};
+    char root_copy[1024]{};
+    char game_copy[48]{};
+    const long pid = static_cast<long>(::getpid());
+    const int subdir_length = std::snprintf(subdir, sizeof(subdir), "iw3-scan-%ld", pid);
+    const int basename_length = std::snprintf(
+        basename, sizeof(basename), "iw3-directory-scan-%ld.iwd", pid);
+    const int relative_length = std::snprintf(
+        relative_archive, sizeof(relative_archive), "%s/%s", subdir, basename);
+    const int root_length = std::snprintf(root_copy, sizeof(root_copy), "%s", root);
+    const int game_length = std::snprintf(game_copy, sizeof(game_copy), "%s", subdir);
+    if (subdir_length <= 0 || static_cast<std::size_t>(subdir_length) >= sizeof(subdir) ||
+        basename_length <= 0 || static_cast<std::size_t>(basename_length) >= sizeof(basename) ||
+        relative_length <= 0 || static_cast<std::size_t>(relative_length) >= sizeof(relative_archive) ||
+        root_length <= 0 || static_cast<std::size_t>(root_length) >= sizeof(root_copy) ||
+        game_length <= 0 || static_cast<std::size_t>(game_length) >= sizeof(game_copy) ||
+        std::strlen(root) + 1 + std::strlen(subdir) + 1 + std::strlen(basename) >= 260) {
+        return false;
+    }
+    if (z2026_platform_mkdir(subdir) != 0) return false;
+    const bool wrote = z2026_platform_write_file(
+        relative_archive, archiveBytes.data(), archiveBytes.size()) ==
+        static_cast<int>(archiveBytes.size());
+    bool ok = false;
+
+    if (wrote) {
+        const int old_count = fs_iwdFileCount;
+        const int old_feed = fs_checksumFeed;
+        searchpath_s *const previous = fs_searchpaths;
+        fs_checksumFeed = 0;
+
+        // Execute the ORIGINAL directory scanner end-to-end: Sys_ListFiles
+        // enumerates the rooted fixture directory, the original scanner sorts
+        // and opens the .iwd, FS_LoadZipFile builds its index, and the original
+        // FS_AddSearchPath inserts the resulting searchpath node.
+        FS_AddIwdFilesForGameDirectory(root_copy, game_copy);
+
+        searchpath_s *const inserted = fs_searchpaths;
+        if (inserted && inserted != previous && inserted->next == previous &&
+            inserted->iwd && inserted->iwd->numfiles == static_cast<int>(expected.size()) &&
+            inserted->bLocalized == 0 && inserted->language == 0 &&
+            inserted->iwd->checksum == inserted->iwd->pure_checksum &&
+            fs_iwdFileCount == old_count + static_cast<int>(expected.size()) &&
+            std::strcmp(inserted->iwd->iwdBasename, basename) == 0 &&
+            std::strcmp(inserted->iwd->iwdGamename, game_copy) == 0) {
+            ok = inserted->iwd->buildBuffer != nullptr &&
+                 inserted->iwd->hashTable != nullptr &&
+                 inserted->iwd->hashSize != 0 &&
+                 (inserted->iwd->hashSize & (inserted->iwd->hashSize - 1)) == 0;
+            for (std::size_t i = 0; ok && i < expected.size(); ++i) {
+                fileInIwd_s *indexed = &inserted->iwd->buildBuffer[i];
+                if (!indexed->name ||
+                    std::strcmp(indexed->name, expected[i].name.c_str()) != 0) {
+                    ok = false;
+                    break;
+                }
+                const int bucket = FS_HashFileName(
+                    indexed->name, static_cast<int>(inserted->iwd->hashSize));
+                bool found = false;
+                fileInIwd_s *entry = inserted->iwd->hashTable[bucket];
+                for (std::size_t step = 0; entry && step < expected.size();
+                     ++step, entry = entry->next) {
+                    if (entry == indexed) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) ok = false;
+            }
+        }
+
+        // Restore global state before freeing the fixture-owned searchpaths.
+        fs_searchpaths = previous;
+        searchpath_s *cursor = inserted;
+        std::size_t released = 0;
+        while (cursor && cursor != previous && released < 8) {
+            searchpath_s *next = cursor->next;
+            if (cursor->iwd) {
+                iwd_t *iwd = cursor->iwd;
+                if (unzClose(reinterpret_cast<unzFile>(iwd->handle)) != UNZ_OK)
+                    ok = false;
+                if (iwd->buildBuffer) Z_Free(iwd->buildBuffer, 3);
+                Z_Free(iwd, 3);
+            }
+            Z_Free(cursor, 3);
+            cursor = next;
+            ++released;
+        }
+        if (cursor != previous) ok = false;
+        fs_iwdFileCount = old_count;
+        fs_checksumFeed = old_feed;
+    }
+
+    if (wrote && z2026_platform_unlink_file(relative_archive) != 0) ok = false;
+    if (z2026_platform_rmdir(subdir) != 0) ok = false;
+    return ok;
+}
+
 } // namespace
 
-extern "C" IW3_UNZIP_EXPORT int z2026_iw3_unzip_smoke(const char *directory, int *iwd_mount_ok, int *iwd_searchpath_ok) {
+extern "C" IW3_UNZIP_EXPORT int z2026_iw3_unzip_smoke(const char *directory, int *iwd_mount_ok, int *iwd_searchpath_ok, int *iwd_directory_scan_ok) {
     if (iwd_mount_ok) *iwd_mount_ok = 0;
     if (iwd_searchpath_ok) *iwd_searchpath_ok = 0;
+    if (iwd_directory_scan_ok) *iwd_directory_scan_ok = 0;
     static_assert(sizeof(unz_global_info) == 8, "IW3 ZIP32 global-info layout drift");
     static_assert(sizeof(unz_file_info) == 80, "IW3 ZIP32 file-info layout drift");
     static_assert(sizeof(unz_file_info_internal) == 4, "IW3 ZIP32 file offset layout drift");
@@ -258,9 +366,11 @@ extern "C" IW3_UNZIP_EXPORT int z2026_iw3_unzip_smoke(const char *directory, int
               relative_parse_ok && absolute_parse_ok;
     bool searchpath_ok = false;
     const bool mount_ok = index_original_iwd(path, entries, &searchpath_ok);
+    const bool directory_scan_ok = scan_original_iwd_directory(directory, entries, archiveBytes);
     if (iwd_mount_ok) *iwd_mount_ok = mount_ok ? 1 : 0;
     if (iwd_searchpath_ok) *iwd_searchpath_ok = searchpath_ok ? 1 : 0;
-    ok = ok && mount_ok && searchpath_ok;
+    if (iwd_directory_scan_ok) *iwd_directory_scan_ok = directory_scan_ok ? 1 : 0;
+    ok = ok && mount_ok && searchpath_ok && directory_scan_ok;
     if (z2026_platform_unlink_file(path) != 0) ok = false;
     return ok ? 1 : 0;
 }
