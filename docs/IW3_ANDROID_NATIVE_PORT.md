@@ -712,3 +712,22 @@ from the actual game directory. The full \`FS_AddIwdFilesForGameDirectory()\`
 scan, real asset lookup through \`FS_OpenFile\`, FastFiles/maps, renderer,
 client frame loop, physical ARM64 execution and gameplay remain unproven.
 The diagnostic APK is not a playable game; keep PR #4 open and unmerged.
+
+## Latest verified IWD directory-scan execution — 26 Oct 2026
+
+Commit `0ac0182617c1b51aafe540b91f1e04cdba0e5aae` advances the archive path from “scanner source staged” to executing the **original** `FS_AddIwdFilesForGameDirectory()` against an isolated generated `.iwd` fixture.
+
+The diagnostic creates a temporary directory below the app-private data root, writes one ZIP32 fixture there, and calls the vendored directory scanner with the real root/game-folder path. The original scanner then goes through the rooted `Sys_ListFiles` platform boundary, its native-width sort and filename/language handling, original `FS_LoadZipFile()`, and original `FS_AddSearchPath()`. The test checks the inserted list node, basename/game-folder fields, entry count, hash buckets and checksums, then restores global search-path/checksum counters and closes/frees the fixture-owned objects.
+
+A separate CI configuration defect was fixed in the same pass: the ARM64 CMake invocation had omitted `IW3_EXTRACTED_IWD_DIRECTORY`, so CMake stopped before compiling the module. The ARM64 workflow now passes the generated original scanner source and archives its provenance report.
+
+**Verified evidence on this commit:**
+
+- [Native/ARM64 workflow 40300544114](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40300544114) — SUCCESS. Host Release CTest **8/8**, ASAN/UBSAN CTest **8/8**, NDK output validated as ELF64/AArch64, full original `G_RunFrame` and original IWD indexer compiled as separate native modules. The frame still has nine unresolved gameplay services and is not linked into a running game.
+- [ARM64 JNI package workflow 40300544062](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40300544062) — SUCCESS. Signed ARM64 diagnostic APK with the native components; **not a playable game**.
+- [Android emulator runtime 40300544065](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40300544065) — SUCCESS on **Android x86_64 emulator**, not an ARM64 device. Logcat confirms `IW3_JNI_IWD_MOUNT_PASS`, `IW3_JNI_IWD_SEARCHPATH_PASS`, `IW3_JNI_IWD_DIRECTORY_SCAN_PASS`, native touch DOWN/UP, and attack-bit readback through the diagnostic `usercmd_s` adapter. The evidence validator explicitly returns `arm64_device_execution_proven=false` and `gameplay_proven=false`.
+
+Artifacts are labelled honestly: [ARM64 module archive — NOT APK](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40300544114/artifacts/12640057787), [signed JNI diagnostic APK — NOT GAME](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40300544062/artifacts/12639219830), and [Android x86_64 runtime log — NOT GAME](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40300544065/artifacts/12639324934).
+
+**Limit remains strict:** the test indexes only its generated fixture; it does not mount licensed/original game IWD packages into a complete game session. FastFiles/maps, original renderer output, touch consumption by the real `CL_CreateCmd`/player simulation, weapons/actors in an Android game frame, and physical ARM64 gameplay remain unproven. No playable IW3 APK is claimed. Keep PR #4 open and unmerged.
+
