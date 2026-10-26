@@ -125,8 +125,8 @@ int Com_sprintf(char *dest, uint32_t size, const char *format, ...) {
     const int written = std::vsnprintf(dest, static_cast<std::size_t>(size),
                                        format, args);
     va_end(args);
-    dest[size - 1] = '\\0';
-    if (written < 0) dest[0] = '\\0';
+    dest[size - 1] = '\0';
+    if (written < 0) dest[0] = '\0';
     return written;
 }
 
@@ -140,6 +140,6 @@ void __cdecl MyAssertHandler(const char *filename, int line, int type,
         std::vfprintf(stderr, format, args);
         va_end(args);
     }
-    std::fputc('\\n', stderr);
+    std::fputc('\n', stderr);
     std::abort();
 }
