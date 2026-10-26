@@ -22,7 +22,10 @@ class NativeRuntimeEvidenceTests(unittest.TestCase):
         self.assertTrue(result["original_fs_add_game_directory_registered_fixture_executed"])
         self.assertTrue(result["original_fs_fopenfileread_searchpath_lookup_branch_executed"])
         self.assertTrue(result["original_fs_read_iwd_zip_branch_executed"])
-        self.assertFalse(result["original_fs_read_handle_path_executed"])
+        self.assertTrue(result["original_fs_read_handle_path_executed"])
+        self.assertTrue(result["original_fs_open_read_close_lifecycle_executed"])
+        self.assertTrue(result["original_fs_iwd_clone_handle_path_executed"])
+        self.assertFalse(result["original_upstream_fsh_table_integrated"])
         self.assertFalse(result["arm64_device_execution_proven"])
         self.assertFalse(result["gameplay_proven"])
 
@@ -35,7 +38,9 @@ class NativeRuntimeEvidenceTests(unittest.TestCase):
         for failure in ("TOUCH_NATIVE_REJECTED", "JNI_RESUME_FAILED",
                         "Fatal signal", "IW3_JNI_UNZIP_PARSER_FAIL",
                         "IW3_JNI_IWD_MOUNT_FAIL", "IW3_JNI_IWD_LOOKUP_FAIL",
-                        "IW3_JNI_IWD_FS_READ_FAIL", "JNI_NATIVE_ENGINE_PROBE_FAIL"):
+                        "IW3_JNI_IWD_FS_READ_FAIL",
+                        "IW3_JNI_IWD_FS_OPEN_READ_CLOSE_FAIL",
+                        "IW3_JNI_IWD_FS_CLONE_FAIL", "JNI_NATIVE_ENGINE_PROBE_FAIL"):
             with self.subTest(failure=failure), self.assertRaises(ValueError):
                 verify(real_format_fixture() + "\n" + failure)
 
