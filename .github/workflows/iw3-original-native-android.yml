@@ -89,6 +89,10 @@ jobs:
             --engine third_party/KisakCOD \
             --output "$RUNNER_TEMP/iw3-source/iw3_fs_read.cpp" \
             --report "$RUNNER_TEMP/iw3-original-fs-read.json"
+          python3 tools/iw3_android/prepare_real_engine_filtered_files.py \
+            --engine third_party/KisakCOD \
+            --output "$RUNNER_TEMP/iw3-source/iw3_filtered_files_location.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-filtered-files-location.json"
           echo "IW3_ORIGINAL_FILE_READ_LIFECYCLE_STAGED_NOT_LINKED"
           echo "IW3_ORIGINAL_FS_READ_ABI_AUDIT_SOURCE_STAGED"
           echo "IW3_ACTUAL_SOURCE_USED_FROM_KISAKCOD"
@@ -113,6 +117,7 @@ jobs:
             -DIW3_EXTRACTED_IWD_DIRECTORY="$RUNNER_TEMP/iw3-source/iw3_iwd_directory.cpp" \
             -DIW3_EXTRACTED_IWD_LOOKUP="$RUNNER_TEMP/iw3-source/iw3_iwd_lookup.cpp" \
             -DIW3_EXTRACTED_FS_READ="$RUNNER_TEMP/iw3-source/iw3_fs_read.cpp" \
+            -DIW3_EXTRACTED_FILTERED_FILES="$RUNNER_TEMP/iw3-source/iw3_filtered_files_location.cpp" \
             -DIW3_ENTITY_LOOP_INC="$RUNNER_TEMP/iw3-source/iw3_g_runframe_entity_loop.inc" \
             -DIW3_REAL_HEADER_ROOT="$GITHUB_WORKSPACE/third_party/KisakCOD/src/universal"
           cmake --build "$RUNNER_TEMP/iw3-build-host" -j 2
@@ -170,6 +175,7 @@ jobs:
             -DIW3_EXTRACTED_IWD_DIRECTORY="$RUNNER_TEMP/iw3-source/iw3_iwd_directory.cpp" \
             -DIW3_EXTRACTED_IWD_LOOKUP="$RUNNER_TEMP/iw3-source/iw3_iwd_lookup.cpp" \
             -DIW3_EXTRACTED_FS_READ="$RUNNER_TEMP/iw3-source/iw3_fs_read.cpp" \
+            -DIW3_EXTRACTED_FILTERED_FILES="$RUNNER_TEMP/iw3-source/iw3_filtered_files_location.cpp" \
             -DIW3_ENTITY_LOOP_INC="$RUNNER_TEMP/iw3-source/iw3_g_runframe_entity_loop.inc" \
             -DIW3_REAL_HEADER_ROOT="$GITHUB_WORKSPACE/third_party/KisakCOD/src/universal"
           cmake --build "$RUNNER_TEMP/iw3-build-arm64" -j 2
@@ -242,6 +248,23 @@ jobs:
           echo "IW3_ORIGINAL_FS_LOADZIPFILE_AARCH64_ARCHIVE_COMPILED_GREEN"
           # This static archive is deliberately not linked into the JNI APK.
 
+      - name: Compile original FS_ListFilteredFilesInLocation for ARM64 and inspect real service dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          archive="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_filtered_files.a"
+          test -s "$archive"
+          "$ndk/llvm-nm" -C --defined-only "$archive" | tee "$RUNNER_TEMP/iw3-filtered-files-defined.txt"
+          grep -F "FS_ListFilteredFilesInLocation" "$RUNNER_TEMP/iw3-filtered-files-defined.txt"
+          "$ndk/llvm-nm" -u -C "$archive" | tee "$RUNNER_TEMP/iw3-filtered-files-undefined.txt"
+          for symbol in Hunk_UserCreate Hunk_UserAlloc Hunk_UserDestroy FS_CheckLocation FS_ListFilteredFiles MyAssertHandler; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-filtered-files-undefined.txt"
+          done
+          echo "IW3_ORIGINAL_FILTERED_FILES_LOCATION_AARCH64_COMPILE_GREEN"
+          # Unresolved original services are intentional; this is a compile/dependency
+          # audit, not a linked filesystem runtime or gameplay proof.
+
       - name: Cross-compile ACTUAL G_RunFrame typed entity code with Android ARM64 ABI
         shell: bash
         run: |
@@ -268,6 +291,8 @@ jobs:
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_math.so
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_frame.a
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_iwd_mount.a
+            ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_filtered_files.a
+            ${{ runner.temp }}/iw3-original-filtered-files-location.json
             ${{ runner.temp }}/iw3-complete-frame-arm64.json
             ${{ runner.temp }}/iw3-native-source.json
             ${{ runner.temp }}/iw3-original-g-runframe-audit.json

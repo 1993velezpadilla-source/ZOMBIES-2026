@@ -87,6 +87,25 @@ target_compile_definitions(iw3_sp_iwd_mount PRIVATE KISAK_SP=1)
 target_compile_options(iw3_sp_iwd_mount PRIVATE
     -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
 
+# Compile the complete original location-filter function with native-width
+# searchpath_s size/alignment. Its real Hunk/list services remain unresolved in
+# this audit archive; it is intentionally not linked into the JNI diagnostic.
+if(IW3_EXTRACTED_FILTERED_FILES)
+    if(NOT EXISTS "${IW3_EXTRACTED_FILTERED_FILES}")
+        message(FATAL_ERROR "Original FS_ListFilteredFilesInLocation source extraction required")
+    endif()
+    add_library(iw3_sp_filtered_files STATIC "${IW3_EXTRACTED_FILTERED_FILES}")
+    target_include_directories(iw3_sp_filtered_files PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+        "${IW3_REAL_HEADER_ROOT}"
+        "${IW3_ENGINE_SOURCE_ROOT}"
+        "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+        "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+    target_compile_definitions(iw3_sp_filtered_files PRIVATE KISAK_SP=1)
+    target_compile_options(iw3_sp_filtered_files PRIVATE
+        -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
+endif()
+
 # Compile the verbatim original read helpers into a separate ABI/dependency
 # archive with the same engine-owned native-width handle table used by
 # com_files.cpp. Other platform/service references remain visible in this audit.
