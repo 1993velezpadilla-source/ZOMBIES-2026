@@ -108,11 +108,29 @@ CODE = """
 #if defined(KISAK_SP)
         // Test-only, finite attack input; first require a loaded weapon.
         static unsigned int z2026_test_attack_cmds = 0;
+        static unsigned int z2026_test_weapon_warmup_cmds = 0;
+        static bool z2026_test_weapon_warmup_logged = false;
         if (clients[0].snap.ps.weapon > 0 && z2026_test_attack_cmds < 12)
         {
-            result->buttons |= BUTTON_ATTACK;
-            if (z2026_test_attack_cmds++ == 0)
-                Z2026_TestInputTrace("TEST_ATTACK_BUTTON_INJECTED");
+            // The test loadout is granted by the real SP APIs. Do not spend
+            // the finite attack budget while the original raise/switch state
+            // is still settling; wait 120 client commands, then inject at most
+            // 12 real attack usercmds through the normal client path.
+            if (z2026_test_weapon_warmup_cmds < 120)
+            {
+                ++z2026_test_weapon_warmup_cmds;
+            }
+            else
+            {
+                if (!z2026_test_weapon_warmup_logged)
+                {
+                    z2026_test_weapon_warmup_logged = true;
+                    Z2026_TestInputTrace("TEST_WEAPON_WARMUP_COMPLETE");
+                }
+                result->buttons |= BUTTON_ATTACK;
+                if (z2026_test_attack_cmds++ == 0)
+                    Z2026_TestInputTrace("TEST_ATTACK_BUTTON_INJECTED");
+            }
         }
 #endif
 """
@@ -142,6 +160,8 @@ def apply(copy: Path) -> dict:
     return {
         "test_only_input": True,
         "client_commands_limited_to": 12,
+        "warmup_client_commands_before_attack": 120,
+        "weapon_raise_window_is_respected": True,
         "requires_player_snapshot_weapon": True,
         "fireweapon_called_directly": False,
         "game_assets_modified": False,
