@@ -39,6 +39,11 @@ from tools.iw3_android.prepare_real_engine_iwd_mount import (
     REQUIRED as IWD_MOUNT_REQUIRED, prepare as prepare_iwd_mount,
 )
 
+from tools.iw3_android.prepare_real_engine_iwd_services import (
+    FUNCTIONS as IWD_SERVICE_FUNCTIONS, REQUIRED as IWD_SERVICE_REQUIRED,
+    prepare as prepare_iwd_services,
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 ENGINE = ROOT / "third_party/KisakCOD"
 
@@ -341,6 +346,33 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
         self.assertIn('#include "phys_userdata.h"', local)
         self.assertIn('PhysObjUserData userData[512]', local)
 
+
+    def test_original_iwd_runtime_services_are_verbatim_and_safe_to_stage(self):
+        source_paths = {path for _, path in IWD_SERVICE_FUNCTIONS}
+        source_paths.add(IWD_MOUNT_SOURCE.parent / "com_files.cpp" if False else Path("src/universal/com_files.cpp"))
+        original_files = {path: (ENGINE / path).read_bytes() for path in source_paths}
+        with TemporaryDirectory() as temp:
+            out = Path(temp) / "stage" / "iw3_iwd_services.cpp"
+            report = prepare_iwd_services(ENGINE, out)
+            staged = out.read_text(encoding="utf-8")
+            self.assertTrue(report["function_bodies_preserved_verbatim"])
+            self.assertTrue(report["original_allocator_and_free_staged"])
+            self.assertTrue(report["original_checksum_algorithm_staged"])
+            self.assertTrue(report["original_string_helpers_staged"])
+            self.assertTrue(report["iwd_state_globals_from_original_source"])
+            self.assertFalse(report["playable_apk"])
+            for marker in IWD_SERVICE_REQUIRED:
+                self.assertIn(marker, staged)
+            for signature, path in IWD_SERVICE_FUNCTIONS:
+                body = function_source(original_files[path].decode("utf-8"), signature)
+                self.assertIn(body, staged)
+            self.assertIn("int fs_iwdFileCount;", staged)
+            self.assertIn("int fs_checksumFeed;", staged)
+            self.assertIn("#define iassert(expr) assert(expr)", staged)
+            with self.assertRaisesRegex(ValueError, "Never overwrite"):
+                prepare_iwd_services(ENGINE, ENGINE / Path("src/universal/com_files.cpp"))
+        for path, raw in original_files.items():
+            self.assertEqual((ENGINE / path).read_bytes(), raw)
 
 if __name__ == "__main__":
     unittest.main()
