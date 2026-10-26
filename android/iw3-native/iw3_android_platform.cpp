@@ -420,6 +420,51 @@ extern "C" IW3_ANDROID_EXPORT int z2026_platform_list_iwd_files(
     return static_cast<int>(needed);
 }
 
+extern "C" IW3_ANDROID_EXPORT int z2026_platform_directory_has_contents(
+    const char *directory) {
+    char relative[1024]{};
+    std::lock_guard<std::mutex> lock(g_data_mutex);
+    if (g_data_root_fd < 0 ||
+        !normalize_engine_path(directory, relative, true)) return -1;
+    const int fd = open_directory_beneath_root(g_data_root_fd, relative);
+    if (fd < 0) return -1;
+    DIR *stream = fdopendir(fd);
+    if (!stream) {
+        close(fd);
+        return -1;
+    }
+
+    int result = 0;
+    bool read_error = false;
+    for (;;) {
+        errno = 0;
+        dirent *entry = readdir(stream);
+        if (!entry) {
+            read_error = errno != 0;
+            break;
+        }
+        if (!std::strcmp(entry->d_name, ".") ||
+            !std::strcmp(entry->d_name, "..")) continue;
+
+        struct stat st{};
+        if (fstatat(dirfd(stream), entry->d_name, &st,
+                    AT_SYMLINK_NOFOLLOW) != 0) {
+            if (errno == ENOENT) continue;
+            read_error = true;
+            break;
+        }
+        // Fail closed on symlinks; directory scanning must remain beneath the
+        // retained app-data root even when a file changes during enumeration.
+        if (S_ISLNK(st.st_mode)) continue;
+        if (!S_ISDIR(st.st_mode) || std::strcmp(entry->d_name, "CVS") != 0) {
+            result = 1;
+            break;
+        }
+    }
+    if (closedir(stream) != 0) read_error = true;
+    return read_error ? -1 : result;
+}
+
 extern "C" IW3_ANDROID_EXPORT int z2026_platform_mkdir(const char *relative) {
     if (!valid_path(relative)) return -1;
     std::lock_guard<std::mutex> lock(g_data_mutex);
