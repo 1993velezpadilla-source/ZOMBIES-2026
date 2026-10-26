@@ -77,6 +77,10 @@ jobs:
             --engine third_party/KisakCOD \
             --output "$RUNNER_TEMP/iw3-source/iw3_iwd_directory.cpp" \
             --report "$RUNNER_TEMP/iw3-original-iwd-directory.json"
+          python3 tools/iw3_android/prepare_real_engine_iwd_lookup.py \
+            --engine third_party/KisakCOD \
+            --output "$RUNNER_TEMP/iw3-source/iw3_iwd_lookup.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-iwd-lookup.json"
           echo "IW3_ACTUAL_SOURCE_USED_FROM_KISAKCOD"
 
       - name: Compile and EXECUTE original KisakCOD aim math on host
@@ -97,6 +101,7 @@ jobs:
             -DIW3_EXTRACTED_IWD_SERVICES="$RUNNER_TEMP/iw3-source/iw3_iwd_services.cpp" \
             -DIW3_EXTRACTED_IWD_SEARCHPATH="$RUNNER_TEMP/iw3-source/iw3_iwd_searchpath.cpp" \
             -DIW3_EXTRACTED_IWD_DIRECTORY="$RUNNER_TEMP/iw3-source/iw3_iwd_directory.cpp" \
+            -DIW3_EXTRACTED_IWD_LOOKUP="$RUNNER_TEMP/iw3-source/iw3_iwd_lookup.cpp" \
             -DIW3_ENTITY_LOOP_INC="$RUNNER_TEMP/iw3-source/iw3_g_runframe_entity_loop.inc" \
             -DIW3_REAL_HEADER_ROOT="$GITHUB_WORKSPACE/third_party/KisakCOD/src/universal"
           cmake --build "$RUNNER_TEMP/iw3-build-host" -j 2
@@ -152,6 +157,7 @@ jobs:
             -DIW3_EXTRACTED_IWD_SERVICES="$RUNNER_TEMP/iw3-source/iw3_iwd_services.cpp" \
             -DIW3_EXTRACTED_IWD_SEARCHPATH="$RUNNER_TEMP/iw3-source/iw3_iwd_searchpath.cpp" \
             -DIW3_EXTRACTED_IWD_DIRECTORY="$RUNNER_TEMP/iw3-source/iw3_iwd_directory.cpp" \
+            -DIW3_EXTRACTED_IWD_LOOKUP="$RUNNER_TEMP/iw3-source/iw3_iwd_lookup.cpp" \
             -DIW3_ENTITY_LOOP_INC="$RUNNER_TEMP/iw3-source/iw3_g_runframe_entity_loop.inc" \
             -DIW3_REAL_HEADER_ROOT="$GITHUB_WORKSPACE/third_party/KisakCOD/src/universal"
           cmake --build "$RUNNER_TEMP/iw3-build-arm64" -j 2
