@@ -29,6 +29,7 @@ class OriginalFSReadStageTests(unittest.TestCase):
             report = prepare(ENGINE, output, report_path)
             staged = output.read_text(encoding="utf-8")
             self.assertEqual(staged, PROLOGUE + combined)
+            self.assertTrue(report["original_FS_filelength_body_preserved_exactly"])
             self.assertTrue(report["original_handle_allocation_body_preserved_exactly"])
             self.assertTrue(report["original_FS_FOpenFileReadForThread_body_preserved_exactly"])
             self.assertTrue(report["original_FS_FileForHandle_body_preserved_exactly"])
