@@ -103,10 +103,10 @@ target_compile_options(iw3_sp_fs_read PRIVATE
 
 # The diagnostic shared library compiles the exact original handle allocator,
 # FS_FOpenFileReadForThread, FS_Read and FS_FCloseFile bodies against an
-# Android-owned native-width table. The IWD fixture exercises primary and
-# cloned ZIP handles through the real open/read/close bodies. This table is
-# not the upstream file-local fsh, and the complete engine filesystem remains
-# unported.
+# Android-owned native-width table. The IWD fixture opens one indexed member
+# twice, requires the second open to take the original clone branch, reads both
+# handles and verifies both original close paths. This table is not the upstream
+# file-local fsh, and the complete engine filesystem remains unported.
 add_library(iw3_sp_math SHARED
     "${IW3_EXTRACTED_FS_READ}"
     "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_fs_read_io.cpp"
