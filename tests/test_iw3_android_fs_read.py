@@ -6,8 +6,8 @@ import unittest
 
 from tools.iw3_android.prepare_real_engine_fs_read import (
     SOURCE, SHARED_SOURCE, SIGNATURE, FUNCTIONS, REQUIRED, PROLOGUE, prepare,
+    definition_source,
 )
-from tools.iw3_android.prepare_g_runframe_prereqs import function_source
 
 ROOT = Path(__file__).resolve().parents[1]
 ENGINE = ROOT / "third_party/KisakCOD"
@@ -20,7 +20,7 @@ class OriginalFSReadStageTests(unittest.TestCase):
                      for source_path in source_paths}
         texts = {source_path: raw.decode("utf-8")
                  for source_path, raw in originals.items()}
-        bodies = [function_source(texts[source_path], signature)
+        bodies = [definition_source(texts[source_path], signature)
                   for signature, source_path in FUNCTIONS]
         combined = "\n\n".join(bodies) + "\n"
         with TemporaryDirectory() as temp:
