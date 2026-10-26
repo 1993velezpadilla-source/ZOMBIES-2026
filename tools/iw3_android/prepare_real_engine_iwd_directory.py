@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Stage the authentic KisakCOD IWD directory scanner with Android filesystem adapters.
 
-The FS_AddIwdFilesForGameDirectory, IwdFileLanguage, FS_PathCmp, iwdsort and
-I_strncmp bodies are extracted from the vendored original source. Only the
+The FS_AddGameDirectory and FS_AddIwdFilesForGameDirectory, IwdFileLanguage,
+FS_PathCmp, iwdsort and I_strncmp bodies are extracted from vendored source. Only the
 OS directory enumeration/path services and language/logging boundary are
 provided by the Android adapter; this is not a replacement game runtime.
 """
@@ -26,6 +26,7 @@ FUNCTIONS = (
     ("int __cdecl FS_PathCmp(const char *s1, const char *s2)", FILES),
     ("int __cdecl iwdsort(const char **a, char **b)", FILES),
     ("void __cdecl FS_AddIwdFilesForGameDirectory(char *path, char *pszGameFolder)", FILES),
+    ("void __cdecl FS_AddGameDirectory(char *path, char *dir, int bLanguageDirectory, int iLanguage)", FILES),
 )
 HEADER = (
     '#include "iw3_android_iwd_directory_compat.h"\n'
@@ -37,6 +38,7 @@ GLOBALS = (
     "char szIwdLanguageName[2][64];\n"
     "int iString = 0;\n"
     "int bLanguagesListed = 0;\n"
+    "char fs_gamedir[256] = {};\n"
 )
 REQUIRED = (
     "int __cdecl I_strncmp(const char *s0, const char *s1, int n)",
@@ -44,6 +46,9 @@ REQUIRED = (
     "int __cdecl FS_PathCmp(const char *s1, const char *s2)",
     "int __cdecl iwdsort(const char **a, char **b)",
     "void __cdecl FS_AddIwdFilesForGameDirectory(char *path, char *pszGameFolder)",
+    "void __cdecl FS_AddGameDirectory(char *path, char *dir, int bLanguageDirectory, int iLanguage)",
+    "FS_AddIwdFilesForGameDirectory(path, szGameFolder);",
+    "I_strncpyz(fs_gamedir, szGameFolder, 256);",
     "numfiles = 0;",
     "if (!list || numfiles <= 0)",
     "qsort(s0, numfiles, sizeof(s0[0]),",
@@ -87,6 +92,8 @@ def prepare(engine: Path, output: Path) -> dict:
         "function_sha256": [hashlib.sha256(body.encode("utf-8")).hexdigest()
                             for body in bodies],
         "original_directory_scanner_preserved_from_vendored_source": True,
+        "original_game_directory_registration_preserved_from_vendored_source": True,
+        "game_directory_source_staged_for_android_diagnostic": True,
         "null_or_failed_directory_listing_fails_closed": True,
         "native_pointer_width_qsort": True,
         "android_os_directory_adapter": "rooted z2026_platform_list_iwd_files",
