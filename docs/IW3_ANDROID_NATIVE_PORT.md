@@ -645,3 +645,26 @@ not an Android gameplay milestone. The new runtime must still demonstrate
 weapon grant, and injected-button markers alone are insufficient. The current
 Android target still does not link the original IWD mount module or run the
 client/frame/render/map stack. Keep PR #4 open and unmerged.
+
+
+## Original IWD loader: reject archive paths that cannot be represented (2026-10-26)
+
+A further review of the authentic `FS_LoadZipFile` found that it copied
+`zipfile` and `basename` into fixed-size `iwd_t` arrays with
+`I_strncpyz`, which silently truncates overlong inputs. That could leave a
+successfully opened archive indexed under a truncated path/name, so later
+searchpath and pure-file identity checks would not refer to the exact archive
+that was opened.
+
+The original function now rejects null/empty inputs and rejects either string
+when its length would not fit the corresponding actual `iwd_t` field, before
+opening the archive. The source-staging gate and source regression require all
+three checks. This preserves the original ZIP parser, hash-table construction,
+and checksum code; it does not add a fake filesystem or change the archive
+format. The guard should be validated by the current ARM64 original-source
+build and Windows SP regression before being considered green.
+
+This remains a loader safety/ABI fix, not a real IWD mount. The isolated
+`iw3_sp_iwd_mount` archive still has unresolved original allocator/checksum
+services and is not linked into JNI; real `searchpath_s` registration,
+FastFiles/maps, renderer, and Android gameplay remain open gates.
