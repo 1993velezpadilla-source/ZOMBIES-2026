@@ -206,6 +206,8 @@ extern void *g_writeLogCompleteEvent;
 extern int fs_loadStack;
 extern const char *fs_serverIwdNames[1024];
 
+extern int fs_iwdFileCount;
 extern int fs_checksumFeed;
+extern int bLanguagesListed;
 
 extern char fs_gamedir[256];

@@ -11,7 +11,8 @@ except ModuleNotFoundError:
 SOURCE = Path("src/universal/com_files.cpp")
 SIGNATURE = "void __cdecl FS_AddSearchPath(searchpath_s *search)"
 HEADER = '#include "iw3_android_iwd_mount_compat.h"\n'
-GLOBAL = "searchpath_s *fs_searchpaths = nullptr;"
+STATE_SOURCE = Path("src/universal/com_files_state.cpp")
+HEADER_SOURCE = Path("src/universal/com_files.h")
 REQUIRED = (
     "pSearch = &fs_searchpaths;",
     "if (search->bLocalized)",
@@ -29,6 +30,15 @@ def prepare(engine: Path, output: Path) -> dict:
     if output == source_path:
         raise ValueError("Refusing to overwrite authentic KisakCOD com_files.cpp")
     original = source_path.read_bytes()
+    state_bytes = (engine / STATE_SOURCE).read_bytes()
+    state_text = state_bytes.decode("utf-8")
+    header_text = (engine / HEADER_SOURCE).read_text(encoding="utf-8")
+    if "searchpath_s *fs_searchpaths = nullptr;" not in state_text:
+        raise ValueError("Shared engine fs_searchpaths definition is missing")
+    if "extern searchpath_s *fs_searchpaths;" not in header_text:
+        raise ValueError("Original com_files.h must declare fs_searchpaths")
+    if "searchpath_s *fs_searchpaths;" in original.decode("utf-8"):
+        raise ValueError("com_files.cpp still owns a private fs_searchpaths definition")
     body = function_source(original.decode("utf-8"), SIGNATURE)
     for marker in REQUIRED:
         if marker not in body:
@@ -36,7 +46,7 @@ def prepare(engine: Path, output: Path) -> dict:
     for marker in FORBIDDEN:
         if marker in body:
             raise ValueError("Unsafe pointer traversal remains: " + marker)
-    rendered = HEADER + GLOBAL + "\n\n" + body + "\n"
+    rendered = HEADER + body + "\n"
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(rendered, encoding="utf-8")
     if source_path.read_bytes() != original:
@@ -45,6 +55,8 @@ def prepare(engine: Path, output: Path) -> dict:
         "source": str(SOURCE),
         "source_sha256": hashlib.sha256(original).hexdigest(),
         "function_sha256": hashlib.sha256(body.encode("utf-8")).hexdigest(),
+        "engine_shared_fs_state_source_present": True,
+        "engine_shared_fs_state_source_sha256": hashlib.sha256(state_bytes).hexdigest(),
         "function_body_preserved_verbatim_from_vendored_source": True,
         "pointer_traversal_uses_next_member_address": True,
         "original_localized_insertion_order_preserved": True,

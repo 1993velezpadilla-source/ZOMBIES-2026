@@ -20,6 +20,7 @@ except ModuleNotFoundError:
 
 FILES = Path("src/universal/com_files.cpp")
 SHARED = Path("src/universal/q_shared.cpp")
+STATE_SOURCE = Path("src/universal/com_files_state.cpp")
 FUNCTIONS = (
     ("int __cdecl I_strncmp(const char *s0, const char *s1, int n)", SHARED),
     ("char *__cdecl IwdFileLanguage(const char *pszIwdFileName)", FILES),
@@ -37,8 +38,6 @@ HEADER = (
 GLOBALS = (
     "char szIwdLanguageName[2][64];\n"
     "int iString = 0;\n"
-    "int bLanguagesListed = 0;\n"
-    "char fs_gamedir[256] = {};\n"
 )
 REQUIRED = (
     "int __cdecl I_strncmp(const char *s0, const char *s1, int n)",
@@ -72,6 +71,10 @@ def prepare(engine: Path, output: Path) -> dict:
     if output in {(engine / path).resolve() for path in source_paths}:
         raise ValueError("Refusing to overwrite authentic KisakCOD source")
     texts = {path: raw.decode("utf-8") for path, raw in originals.items()}
+    state_bytes = (engine / STATE_SOURCE).read_bytes()
+    state_text = state_bytes.decode("utf-8")
+    if "int bLanguagesListed = 0;" not in state_text or "char fs_gamedir[256] = {};" not in state_text:
+        raise ValueError("Shared engine directory state is missing")
     bodies = [function_source(texts[path], signature) for signature, path in FUNCTIONS]
     rendered = HEADER + GLOBALS + "\n\n".join(bodies) + "\n"
     for marker in REQUIRED:
@@ -88,6 +91,8 @@ def prepare(engine: Path, output: Path) -> dict:
     return {
         "source_sha256": {str(path): hashlib.sha256(raw).hexdigest()
                           for path, raw in originals.items()},
+        "engine_shared_fs_state_source_present": True,
+        "engine_shared_fs_state_source_sha256": hashlib.sha256(state_bytes).hexdigest(),
         "function_signatures": [signature for signature, _ in FUNCTIONS],
         "function_sha256": [hashlib.sha256(body.encode("utf-8")).hexdigest()
                             for body in bodies],

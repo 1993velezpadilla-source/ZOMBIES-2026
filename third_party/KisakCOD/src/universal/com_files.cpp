@@ -38,14 +38,8 @@ void *g_writeLogCompleteEvent;
 int fs_loadStack;
 const char *fs_serverIwdNames[1024];
 
-int fs_iwdFileCount;
-int fs_checksumFeed;
-int bLanguagesListed;
-
-// fsh is defined in com_files_handle_table.cpp and declared in com_files.h.
-
-char fs_gamedir[256];
-searchpath_s *fs_searchpaths;
+// File-system state is defined in com_files_state.cpp; the declarations live
+// in com_files.h so the original engine and Android source slices share it.
 
 char __cdecl FS_SanitizeFilename(const char *filename, char *sanitizedName, int sanitizedNameSize);
 BOOL __cdecl FS_UseSearchPath(const searchpath_s *pSearch);

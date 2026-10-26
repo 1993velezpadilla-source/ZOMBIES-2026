@@ -368,9 +368,12 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
             out = Path(temp) / "stage" / "iw3_iwd_searchpath.cpp"
             report = prepare_iwd_searchpath(ENGINE, out)
             staged = out.read_text(encoding="utf-8")
-            expected = ('#include "iw3_android_iwd_mount_compat.h"\n'
-                        'searchpath_s *fs_searchpaths = nullptr;\n\n' + body + "\n")
+            expected = '#include "iw3_android_iwd_mount_compat.h"\n' + body + "\n"
             self.assertEqual(staged, expected)
+            self.assertTrue(report["engine_shared_fs_state_source_present"])
+            self.assertNotIn("searchpath_s *fs_searchpaths = nullptr;", staged)
+            state = (ENGINE / "src/universal/com_files_state.cpp").read_text(encoding="utf-8")
+            self.assertIn("searchpath_s *fs_searchpaths = nullptr;", state)
             self.assertTrue(report["function_body_preserved_verbatim_from_vendored_source"])
             self.assertTrue(report["pointer_traversal_uses_next_member_address"])
             self.assertTrue(report["original_localized_insertion_order_preserved"])
@@ -415,7 +418,13 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
             self.assertTrue(evidence["native_pointer_width_qsort"])
             self.assertTrue(evidence["original_game_directory_registration_preserved_from_vendored_source"])
             self.assertTrue(evidence["game_directory_source_staged_for_android_diagnostic"])
+            self.assertTrue(evidence["engine_shared_fs_state_source_present"])
             self.assertFalse(evidence["real_game_iwd_mounted"])
+            self.assertNotIn("char fs_gamedir[256] = {};", staged)
+            self.assertNotIn("int bLanguagesListed = 0;", staged)
+            state = (ENGINE / "src/universal/com_files_state.cpp").read_text(encoding="utf-8")
+            self.assertIn("char fs_gamedir[256] = {};", state)
+            self.assertIn("int bLanguagesListed = 0;", state)
             self.assertIn("void __cdecl FS_AddGameDirectory", staged)
             for marker in IWD_DIRECTORY_REQUIRED:
                 self.assertIn(marker, staged)
@@ -468,15 +477,19 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
             self.assertTrue(report["original_allocator_and_free_staged"])
             self.assertTrue(report["original_checksum_algorithm_staged"])
             self.assertTrue(report["original_string_helpers_staged"])
-            self.assertTrue(report["iwd_state_globals_from_original_source"])
+            self.assertTrue(report["iwd_state_globals_from_shared_engine_source"])
+            self.assertTrue(report["engine_shared_fs_state_source_present"])
             self.assertFalse(report["playable_apk"])
             for marker in IWD_SERVICE_REQUIRED:
                 self.assertIn(marker, staged)
             for signature, path in IWD_SERVICE_FUNCTIONS:
                 body = function_source(original_files[path].decode("utf-8"), signature)
                 self.assertIn(body, staged)
-            self.assertIn("int fs_iwdFileCount;", staged)
-            self.assertIn("int fs_checksumFeed;", staged)
+            self.assertNotIn("int fs_iwdFileCount;", staged)
+            self.assertNotIn("int fs_checksumFeed;", staged)
+            state = (ENGINE / "src/universal/com_files_state.cpp").read_text(encoding="utf-8")
+            self.assertIn("int fs_iwdFileCount = 0;", state)
+            self.assertIn("int fs_checksumFeed = 0;", state)
             self.assertIn("#define iassert(expr) assert(expr)", staged)
             with self.assertRaisesRegex(ValueError, "Never overwrite"):
                 prepare_iwd_services(ENGINE, ENGINE / Path("src/universal/com_files.cpp"))
@@ -586,6 +599,39 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
         self.assertIn("IW3_ORIGINAL_FILE_READ_LIFECYCLE_STAGED_NOT_LINKED", workflow)
         self.assertIn("FS_FOpenFileReadForThread -> FS_Read -> FS_FCloseFile", workflow)
         self.assertIn("rooted directory fallback paths", workflow)
+
+    def test_iwd_state_globals_have_one_engine_owned_definition(self):
+        header = (ENGINE / "src/universal/com_files.h").read_text(encoding="utf-8")
+        original = (ENGINE / "src/universal/com_files.cpp").read_text(encoding="utf-8")
+        state = (ENGINE / "src/universal/com_files_state.cpp").read_text(encoding="utf-8")
+        common = (ENGINE / "scripts/common_files.cmake").read_text(encoding="utf-8")
+        cmake = (ROOT / "android/iw3-native/CMakeLists.txt").read_text(encoding="utf-8")
+        for declaration in (
+            "extern searchpath_s *fs_searchpaths;",
+            "extern char fs_gamedir[256];",
+            "extern int fs_iwdFileCount;",
+            "extern int fs_checksumFeed;",
+            "extern int bLanguagesListed;",
+        ):
+            self.assertIn(declaration, header)
+        for definition in (
+            "searchpath_s *fs_searchpaths = nullptr;",
+            "char fs_gamedir[256] = {};",
+            "int fs_iwdFileCount = 0;",
+            "int fs_checksumFeed = 0;",
+            "int bLanguagesListed = 0;",
+        ):
+            self.assertIn(definition, state)
+        for private_definition in (
+            "searchpath_s *fs_searchpaths;",
+            "char fs_gamedir[256];",
+            "int fs_iwdFileCount;",
+            "int fs_checksumFeed;",
+            "int bLanguagesListed;",
+        ):
+            self.assertNotIn(private_definition, original)
+        self.assertIn("com_files_state.cpp", common)
+        self.assertGreaterEqual(cmake.count("universal/com_files_state.cpp"), 2)
 
 if __name__ == "__main__":
     unittest.main()

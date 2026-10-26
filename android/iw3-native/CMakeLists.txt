@@ -92,7 +92,8 @@ target_compile_options(iw3_sp_iwd_mount PRIVATE
 # com_files.cpp. Other platform/service references remain visible in this audit.
 add_library(iw3_sp_fs_read STATIC
     "${IW3_EXTRACTED_FS_READ}"
-    "${IW3_ENGINE_SOURCE_ROOT}/universal/com_files_handle_table.cpp")
+    "${IW3_ENGINE_SOURCE_ROOT}/universal/com_files_handle_table.cpp"
+    "${IW3_ENGINE_SOURCE_ROOT}/universal/com_files_state.cpp")
 target_include_directories(iw3_sp_fs_read PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}"
     "${IW3_REAL_HEADER_ROOT}"
@@ -110,6 +111,7 @@ target_compile_options(iw3_sp_fs_read PRIVATE
 # and its remaining platform services are not linked into this diagnostic.
 add_library(iw3_sp_math SHARED
     "${IW3_ENGINE_SOURCE_ROOT}/universal/com_files_handle_table.cpp"
+    "${IW3_ENGINE_SOURCE_ROOT}/universal/com_files_state.cpp"
     "${IW3_EXTRACTED_FS_READ}"
     "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_fs_read_io.cpp"
     "${IW3_EXTRACTED_MATH}"

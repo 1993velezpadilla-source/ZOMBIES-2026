@@ -18,6 +18,8 @@ except ModuleNotFoundError:
     from prepare_g_runframe_prereqs import function_source
 
 FILES = Path("src/universal/com_files.cpp")
+STATE_SOURCE = Path("src/universal/com_files_state.cpp")
+SHARED_STATE_GLOBALS = ("int fs_iwdFileCount = 0;", "int fs_checksumFeed = 0;")
 FUNCTIONS = (
     ("bool I_isupper(int c)", Path("src/universal/q_shared.cpp")),
     ("void I_strncpyz(char* dest, const char* src, int destsize)", Path("src/universal/q_shared.cpp")),
@@ -43,7 +45,7 @@ HEADER = (
     '#undef iassert\n'
     '#define iassert(expr) assert(expr)\n'
 )
-GLOBALS = ("int fs_iwdFileCount;", "int fs_checksumFeed;")
+GLOBALS = ()
 REQUIRED = (
     "return 2 * (c0 >= c1) - 1;",
     "buf = (char*)malloc(size);",
@@ -67,15 +69,20 @@ def prepare(engine: Path, output: Path) -> dict:
         raise ValueError("Never overwrite authentic KisakCOD source")
 
     source_text = {path: raw.decode("utf-8") for path, raw in source_bytes.items()}
-    for marker in GLOBALS:
-        if marker not in source_text[FILES]:
-            raise ValueError("Original IWD global state declaration missing: " + marker)
+    state_bytes = (engine / STATE_SOURCE).read_bytes()
+    state_text = state_bytes.decode("utf-8")
+    for marker in SHARED_STATE_GLOBALS:
+        if marker not in state_text:
+            raise ValueError("Shared engine IWD state definition missing: " + marker)
+    for marker in ("int fs_iwdFileCount;", "int fs_checksumFeed;"):
+        if marker in source_text[FILES]:
+            raise ValueError("com_files.cpp still owns a private IWD state definition: " + marker)
 
     bodies = [
         function_source(source_text[path], signature)
         for signature, path in FUNCTIONS
     ]
-    rendered = HEADER + "\n\n".join(bodies) + "\n" + "\n".join(GLOBALS) + "\n"
+    rendered = HEADER + "\n\n".join(bodies) + "\n"
     for marker in REQUIRED:
         if marker not in rendered:
             raise ValueError("Original IWD service body changed: " + marker)
@@ -91,6 +98,8 @@ def prepare(engine: Path, output: Path) -> dict:
     return {
         "source_sha256": {str(path): hashlib.sha256(raw).hexdigest()
                           for path, raw in source_bytes.items()},
+        "engine_shared_fs_state_source_present": True,
+        "engine_shared_fs_state_source_sha256": hashlib.sha256(state_bytes).hexdigest(),
         "function_signatures": [signature for signature, _ in FUNCTIONS],
         "function_sha256": [hashlib.sha256(body.encode("utf-8")).hexdigest()
                             for body in bodies],
@@ -98,7 +107,7 @@ def prepare(engine: Path, output: Path) -> dict:
         "original_allocator_and_free_staged": True,
         "original_checksum_algorithm_staged": True,
         "original_string_helpers_staged": True,
-        "iwd_state_globals_from_original_source": True,
+        "iwd_state_globals_from_shared_engine_source": True,
         "assertion_adapter": "standard assert for isolated original string helpers",
         "source_staged_for_android_diagnostic_link": True,
         "runtime_execution_proven": False,
