@@ -188,8 +188,9 @@ bool index_original_iwd(const char *path, const std::array<Entry, 2> &expected, 
 }
 } // namespace
 
-extern "C" IW3_UNZIP_EXPORT int z2026_iw3_unzip_smoke(const char *directory, int *iwd_mount_ok) {
+extern "C" IW3_UNZIP_EXPORT int z2026_iw3_unzip_smoke(const char *directory, int *iwd_mount_ok, int *iwd_searchpath_ok) {
     if (iwd_mount_ok) *iwd_mount_ok = 0;
+    if (iwd_searchpath_ok) *iwd_searchpath_ok = 0;
     static_assert(sizeof(unz_global_info) == 8, "IW3 ZIP32 global-info layout drift");
     static_assert(sizeof(unz_file_info) == 80, "IW3 ZIP32 file-info layout drift");
     static_assert(sizeof(unz_file_info_internal) == 4, "IW3 ZIP32 file offset layout drift");
