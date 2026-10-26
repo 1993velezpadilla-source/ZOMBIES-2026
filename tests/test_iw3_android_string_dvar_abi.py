@@ -54,6 +54,19 @@ class OriginalFilesystemStringDvarABITests(unittest.TestCase):
         self.assertIn("homePath = (char *)fs_basepath->reset.string;", self.source)
         self.assertNotIn("fs_basepath->reset.integer", self.source)
 
+    def test_game_directory_validator_never_truncates_string_pointers(self):
+        start = self.source.index(
+            "bool __cdecl FS_GameDirDomainFunc(dvar_s *dvar, DvarValue newValue)"
+        )
+        end = self.source.index("\\nvoid FS_RegisterDvars()", start)
+        body = self.source[start:end]
+        self.assertIn("if (!newValue.string[0])", body)
+        self.assertIn("newValue.string[4] != '/'", body)
+        self.assertIn('strstr(newValue.string, "..")', body)
+        self.assertIn('strstr(newValue.string, "::")', body)
+        self.assertNotIn("newValue.integer", body)
+        self.assertNotIn("(int)strstr", body)
+
     def test_numeric_debug_dvar_stays_numeric(self):
         self.assertIn("fs_debug->current.integer", self.source)
 
