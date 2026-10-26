@@ -390,6 +390,14 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
         self.assertIn("if (!list || numfiles <= 0)", scanner)
         self.assertIn("qsort(s0, numfiles, sizeof(s0[0]),", scanner)
         self.assertNotIn("qsort(s0, numfiles, 4u,", scanner)
+        game_directory = function_source(
+            source,
+            "void __cdecl FS_AddGameDirectory(char *path, char *dir, int bLanguageDirectory, int iLanguage)",
+        )
+        self.assertIn("I_strncpyz(fs_gamedir, szGameFolder, 256);", game_directory)
+        self.assertIn("FS_AddSearchPath(search);", game_directory)
+        self.assertIn("FS_AddIwdFilesForGameDirectory(path, szGameFolder);", game_directory)
+        self.assertIn("Z_Malloc(sizeof(searchpath_s), \"FS_AddGameDirectory\", 3)", game_directory)
         with TemporaryDirectory() as tmp:
             output = Path(tmp) / "iw3_iwd_directory.cpp"
             evidence = prepare_iwd_directory(ENGINE, output)
@@ -397,9 +405,19 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
             self.assertTrue(evidence["original_directory_scanner_preserved_from_vendored_source"])
             self.assertTrue(evidence["null_or_failed_directory_listing_fails_closed"])
             self.assertTrue(evidence["native_pointer_width_qsort"])
+            self.assertTrue(evidence["original_game_directory_registration_preserved_from_vendored_source"])
+            self.assertTrue(evidence["game_directory_source_staged_for_android_diagnostic"])
             self.assertFalse(evidence["real_game_iwd_mounted"])
+            self.assertIn("void __cdecl FS_AddGameDirectory", staged)
             for marker in IWD_DIRECTORY_REQUIRED:
                 self.assertIn(marker, staged)
+        smoke = (ROOT / "android/iw3-native/iw3_unzip_native_smoke.cpp").read_text(encoding="utf-8")
+        self.assertIn("FS_AddGameDirectory(root_copy, game_copy, 0, 0);", smoke)
+        self.assertIn("directory_node->dir->path, root_copy", smoke)
+        self.assertIn("std::memcpy(fs_gamedir, previous_gamedir", smoke)
+        platform = (ROOT / "android/iw3-native/iw3_android_platform.cpp").read_text(encoding="utf-8")
+        self.assertIn("z2026_platform_directory_has_contents", platform)
+        self.assertIn("AT_SYMLINK_NOFOLLOW", platform)
         self.assertEqual((ENGINE / "src/universal/com_files.cpp").read_text(encoding="utf-8"),
                          source)
 
