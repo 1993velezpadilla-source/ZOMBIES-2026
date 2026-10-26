@@ -369,7 +369,8 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
         smoke = (ROOT / "android/iw3-native/iw3_unzip_native_smoke.cpp").read_text(encoding="utf-8")
         self.assertIn("FS_AddSearchPath(search);", smoke)
         self.assertIn("fs_searchpaths == search", smoke)
-        self.assertIn("search->iwd == iwd", smoke)
+        self.assertIn("search->iwd = iwd;", smoke)
+        self.assertIn("cursor->iwd == iwd", smoke)
         jni = (ROOT / "android/iw3-native/iw3_android_jni.cpp").read_text(encoding="utf-8")
         self.assertIn("IW3_JNI_IWD_SEARCHPATH_%s", jni)
 
