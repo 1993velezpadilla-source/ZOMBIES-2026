@@ -254,6 +254,12 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
                         load_zip.index("fs_iwdFileCount += gi.number_entry"))
         self.assertIn("Z_Free(iwd, 3);", load_zip)
         self.assertIn("Z_Free(buildBuffer, 3);", load_zip)
+        # The original decompilation indexed a 256-byte path with
+        # basenameLength + 252, which is out of bounds for ordinary *.iwd names.
+        self.assertIn("const size_t iwdFilenameLength = strlen(iwd->iwdFilename);", load_zip)
+        self.assertIn("iwd->iwdFilename + iwdFilenameLength - 4", load_zip)
+        self.assertIn("iwd->iwdFilename[iwdFilenameLength - 4] = 0;", load_zip)
+        self.assertNotIn("strlen(iwd->iwdBasename) + 252", load_zip)
 
         # searchpath_s contains three pointers plus four integers. Its
         # historical 28-byte allocation is only valid for the original Win32 ABI.
