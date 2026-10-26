@@ -462,14 +462,22 @@ struct animScriptItem_t // sizeof=0x100
     int32_t numCommands;
     animScriptCommand_t commands[8];
 };
+#if defined(__LP64__)
+static_assert(sizeof(animScriptItem_t) == 0x140);
+#else
 static_assert(sizeof(animScriptItem_t) == 0x100);
+#endif
 
 struct animScript_t // sizeof=0x204
 {                                       // ...
     int32_t numItems;
     animScriptItem_t* items[128];
 };
+#if defined(__LP64__)
+static_assert(sizeof(animScript_t) == 0x408);
+#else
 static_assert(sizeof(animScript_t) == 0x204);
+#endif
 
 struct scr_animtree_t // sizeof=0x4
 {                                       // ...
@@ -479,7 +487,11 @@ struct scr_animtree_t // sizeof=0x4
     }
     XAnim_s* anims;                     // ...
 };
+#if defined(__LP64__)
+static_assert(sizeof(scr_animtree_t) == 0x8);
+#else
 static_assert(sizeof(scr_animtree_t) == 0x4);
+#endif
 
 struct alignas(8) animScriptData_t // sizeof=0x9A9D0
 {                                       // ...
@@ -504,7 +516,11 @@ struct alignas(8) animScriptData_t // sizeof=0x9A9D0
     // padding byte
     // padding byte
 };
+#if defined(__LP64__)
+static_assert(sizeof(animScriptData_t) == 820112);
+#else
 static_assert(sizeof(animScriptData_t) == 0x9A9D0);
+#endif
 
 struct lerpFrame_t // sizeof=0x30
 {                                       // ...
@@ -519,7 +535,11 @@ struct lerpFrame_t // sizeof=0x30
     float animSpeedScale;
     int32_t oldFrameSnapshotTime;
 };
+#if defined(__LP64__)
+static_assert(sizeof(lerpFrame_t) == 0x38);
+#else
 static_assert(sizeof(lerpFrame_t) == 0x30);
+#endif
 
 struct clientControllers_t // sizeof=0x60
 {                                       // ...
