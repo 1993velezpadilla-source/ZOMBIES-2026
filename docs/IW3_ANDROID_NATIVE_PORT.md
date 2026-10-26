@@ -731,3 +731,17 @@ Artifacts are labelled honestly: [ARM64 module archive — NOT APK](https://gith
 
 **Limit remains strict:** the test indexes only its generated fixture; it does not mount licensed/original game IWD packages into a complete game session. FastFiles/maps, original renderer output, touch consumption by the real `CL_CreateCmd`/player simulation, weapons/actors in an Android game frame, and physical ARM64 gameplay remain unproven. No playable IW3 APK is claimed. Keep PR #4 open and unmerged.
 
+
+## Original FS_AddGameDirectory Android integration pass — 26 Oct 2026
+
+The latest code pass stages and calls the vendored KisakCOD `FS_AddGameDirectory(path, dir, 0, 0)` function, not just its child `FS_AddIwdFilesForGameDirectory`. The fixture test now verifies the resulting searchpath order: the indexed IWD node precedes the original directory node, which precedes the pre-existing searchpath list. It checks the original `directory_t` path/game-folder fields and `fs_gamedir`, then restores globals and frees the fixture-owned IWD/directory/searchpath allocations.
+
+Platform prerequisites added for this original path:
+- A rooted `z2026_platform_directory_has_contents()` implementation for the original `Sys_DirectoryHasContents` boundary. It rejects paths outside the retained app-data root and symlink traversal; an unreadable directory fails closed.
+- An adapter for the original `Com_sprintf` signature using bounded `vsnprintf`.
+- An assertion adapter for the otherwise unreachable invalid-language assertion path; it aborts rather than silently suppressing an engine assertion.
+- Regression coverage for empty/non-empty/missing and symlinked directories, source-preservation of the original `FS_AddGameDirectory`, searchpath-chain layout, and the new explicit `IW3_JNI_IWD_GAME_DIRECTORY_PASS` marker.
+
+The first JNI CI attempt at commit `4a2e3fd` failed in a Python source test because it still expected the old direct call to `FS_AddIwdFilesForGameDirectory`. This was a stale expectation, not a C++ compiler failure. Commit `379a719` updates the assertion to the new original `FS_AddGameDirectory` path. The subsequent JNI run `40308239783` was still in progress at the last check; the ARM64 build run was queued behind the serialized build. Do not count either as green until the jobs complete.
+
+**Scope remains diagnostic:** this exercises a generated ZIP32 fixture in the original searchpath structures. It does not mount licensed/original game assets, resolve real map/fastfile resources, render the game, or run player/weapon/actor gameplay. Physical ARM64 device gameplay and a playable APK remain unproven; keep PR #4 open and unmerged.
