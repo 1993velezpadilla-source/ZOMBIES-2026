@@ -26,13 +26,13 @@ struct directory_t // sizeof=0x200
     char path[256];
     char gamedir[256];
 };
-struct fileInIwd_s // sizeof=0xC
+struct fileInIwd_s // Win32 sizeof=0xC; native 64-bit layout is asserted in com_files_handle_table.cpp
 {
     uint32_t pos;
     char* name;
     fileInIwd_s* next;
 };
-struct iwd_t // sizeof=0x324
+struct iwd_t // Win32 sizeof=0x324; native 64-bit layout is asserted in com_files_handle_table.cpp
 {
     char iwdFilename[256];
     char iwdBasename[256];
@@ -50,7 +50,7 @@ struct iwd_t // sizeof=0x324
     fileInIwd_s** hashTable;
     fileInIwd_s* buildBuffer;
 };
-struct searchpath_s // sizeof=0x1C
+struct searchpath_s // Win32 sizeof=0x1C; native 64-bit layout is asserted in com_files_handle_table.cpp
 {
     searchpath_s *next;
     iwd_t *iwd;
@@ -61,17 +61,17 @@ struct searchpath_s // sizeof=0x1C
     int language;
 };
 
-union qfile_gus // sizeof=0x4
+union qfile_gus // Win32 sizeof=0x4
 {                                       // ...
     FILE *o;
     unsigned char *z;
 };
-struct qfile_us // sizeof=0x8
+struct qfile_us // Win32 sizeof=0x8
 {                                       // ...
     qfile_gus file;
     int iwdIsClone;
 };
-struct fileHandleData_t // sizeof=0x11C
+struct fileHandleData_t // Win32 sizeof=0x11C; native 64-bit layout is asserted in com_files_handle_table.cpp
 {
     qfile_us handleFiles;
     int handleSync;
