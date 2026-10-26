@@ -1390,6 +1390,11 @@ iwd_t *__cdecl FS_LoadZipFile(char *zipfile, char *basename)
         // Never index a ZIP filename that the fixed engine buffer truncated.
         if (file_info.size_filename >= sizeof(filename_inzip))
             break;
+        // The engine indexes archive names as C strings. An embedded NUL
+        // would make strlen() and later file lookups see a different name
+        // than the ZIP central directory; reject that ambiguous entry.
+        if (!file_info.size_filename || strlen(filename_inzip) != file_info.size_filename)
+            break;
         {
             const uint32_t nameBytes = (uint32_t)strlen(filename_inzip) + 1;
             if (len > UINT32_MAX - nameBytes)
@@ -1475,6 +1480,9 @@ iwd_t *__cdecl FS_LoadZipFile(char *zipfile, char *basename)
         if (unzGetCurrentFileInfo(uf, &file_info, filename_inzip, sizeof(filename_inzip), 0, 0, 0, 0) != UNZ_OK)
             break;
         if (file_info.size_filename >= sizeof(filename_inzip))
+            break;
+        // Match the sizing pass exactly: no empty or embedded-NUL names.
+        if (!file_info.size_filename || strlen(filename_inzip) != file_info.size_filename)
             break;
         if (file_info.uncompressed_size)
             fs_headerLongs[fs_numHeaderLongs++] = file_info.crc;
