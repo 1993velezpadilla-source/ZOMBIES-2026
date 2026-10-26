@@ -778,3 +778,12 @@ The path-normalization and disk-fallback test revision (code commit a9c820295111
 - Android emulator runtime workflow 40315451991: passed and emitted IW3_JNI_IWD_LOOKUP_PASS. The evidence validator reports original_fs_fopenfileread_searchpath_lookup_branch_executed=true, original_fs_read_handle_path_executed=false, arm64_device_execution_proven=false, and gameplay_proven=false. Artifact 12645814971 contains the x86_64 emulator log and evidence, not a game APK.
 
 This proves the original lookup-only branch can find an IWD member, find a real file through the directory searchpath fallback, reject a missing file and reject traversal input in the Android diagnostic process. It does not prove that a licensed game IWD/FastFile/map is mounted or that the original FS_Read handle lifecycle is integrated. PR #4 remains intentionally unmerged.
+
+
+### Phase I — preserve reopenable IWD archive paths (26 Oct 2026)
+
+A review of the original `FS_FOpenFileReadForThread()` and `unzReOpen()` uncovered a portability regression in the earlier path hardening: `FS_LoadZipFile()` removed the final `.iwd` from `iwd->iwdFilename`, but the original `unzReOpen(path, handle)` passes that stored path directly to `ZIP_fopen(path)`. Indexing could therefore succeed while the later cloned-handle open failed because it tried to open a path without the archive extension.
+
+The fix keeps the complete, already length-validated path (including `.iwd`) in the original `iwd_t` field. The JNI IWD fixture now checks that the stored name exactly matches the archive path, calls original `unzReOpen(iwd->iwdFilename, iwd->handle)`, seeks to the indexed first entry, opens it and verifies the exact payload before closing the cloned archive. The mount smoke fails if clone reopen or payload verification fails. Source regressions were updated to reject the old extension-trimming behavior.
+
+This is a concrete prerequisite for the original file-handle path, not yet the complete `FS_FOpenFileReadForThread` / `FS_Read` lifecycle. The generated lookup bridge still stops before handle allocation, and the diagnostic still uses a synthetic IWD fixture rather than licensed game assets. Validation for this correction is running through the existing native ARM64, JNI packaging and Android emulator workflows; do not call it green until their new run conclusions and logs are inspected. The emulator gate is x86_64 diagnostic-only, not ARM64 device gameplay. No playable APK is available, and PR #4 must remain unmerged.
