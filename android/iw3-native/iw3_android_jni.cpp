@@ -71,6 +71,9 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(
     __android_log_print(iwd_directory_scan_ok ? ANDROID_LOG_INFO : ANDROID_LOG_ERROR,
                         "IW3NativeGate", "IW3_JNI_IWD_DIRECTORY_SCAN_%s",
                         iwd_directory_scan_ok ? "PASS" : "FAIL");
+    __android_log_print(iwd_directory_scan_ok ? ANDROID_LOG_INFO : ANDROID_LOG_ERROR,
+                        "IW3NativeGate", "IW3_JNI_IWD_GAME_DIRECTORY_%s",
+                        iwd_directory_scan_ok ? "PASS" : "FAIL");
     // These calls resolve to the original engine's math, material and
     // configstring implementations via native_math_abi.cpp.
     const int math_ok = z2026_iw3_math_smoke();
