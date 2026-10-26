@@ -839,19 +839,25 @@ emulator configurations. The source body is extracted verbatim from
 check the native 64-bit `fileHandleData_t` layout (`sizeof == 304`,
 `zipFile` offset 32, and `name` offset 44).
 
-This is an ABI compile gate only. The archive is deliberately not linked into
-`libiw3_sp_math.so` or the JNI diagnostic APK. The ARM64 workflow records its
-undefined symbols and requires the unresolved `fsh` table and
-`FS_FileForHandle` service to remain visible. In the original engine,
-`fsh[65]` is file-local static inside `com_files.cpp`; the owning translation
-unit and complete handle lifecycle are not part of the Android runtime yet.
-Hiding those dependencies with fake callbacks would create a false-green, so
-the build keeps this boundary explicit.
+The separate archive is an ABI/dependency audit and is not linked into
+`libiw3_sp_math.so`. The same verbatim helper/read source is also compiled
+directly into the diagnostic JNI library together with
+`iw3_android_fs_read_io.cpp`, which provides a zero-initialized native-width
+`fileHandleData_t fsh[65]` table for the isolated IWD fixture. The runtime
+now executes the original `FS_Read` ZIP branch against a reopened IWD entry
+while an authentic `FS_AddSearchPath` node is present; the bytes returned by
+`unzReadCurrentFile` are compared with the fixture payload. The ARM64 archive
+audit still exposes unresolved `fsh`, because the original `fsh[65]` is
+file-local static inside upstream `com_files.cpp`. The diagnostic table is
+not the original full filesystem table, and the original
+`FS_FOpenFileReadForThread -> FS_Read -> FS_FCloseFile` handle lifecycle is
+still not integrated. No fake read routine is used, and no gameplay claim is
+made.
 
 The preceding runtime gate on commit `95aae9c` passed on Android x86_64 for
 the ZIP/IWD fixture and touch adapter only. It explicitly does not prove ARM64
-device execution, FastFiles/maps, rendering, or gameplay. After this compile
-gate, the next real integration step is to port the owning original filesystem
-translation unit or add a genuine accessor within it, then exercise
-`FS_FOpenFileReadForThread -> FS_Read -> FS_FCloseFile` against an IWD entry.
+device execution, FastFiles/maps, rendering, or gameplay. After this read-branch gate, the next real integration step is to port the
+owning original filesystem translation unit or a genuine handle-table accessor,
+then exercise the complete `FS_FOpenFileReadForThread -> FS_Read ->
+FS_FCloseFile` lifecycle against an IWD entry.
 The playable-APK gate remains closed.

@@ -1,9 +1,9 @@
 #pragma once
-// ABI audit boundary for the verbatim original KisakCOD FS_Read body.
-// This header is for a separate compile-only archive, not the JNI runtime.
-// The original com_files.cpp owns fsh as a file-local static array, so the
-// declaration below intentionally remains unresolved until that owning TU (or
-// a genuine engine accessor) is ported. Do not link this archive into the game.
+// ABI boundary for verbatim KisakCOD FS_CheckFileSystemStarted,
+// FS_FileForHandle and FS_Read bodies. The original com_files.cpp keeps its
+// fsh[65] table file-local static. The Android diagnostic defines a separate
+// native-width table solely for the IWD ZIP-branch probe; the original full
+// open/close lifecycle is still not integrated and this is not a game runtime.
 #include <cstddef>
 #include <cstdio>
 #include "iw3_android_iwd_lookup_compat.h"

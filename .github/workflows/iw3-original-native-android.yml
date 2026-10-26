@@ -176,13 +176,17 @@ jobs:
           fs_read_archive="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_fs_read.a"
           test -s "$fs_read_archive"
           llvm_nm="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm"
+          "$llvm_nm" -C --defined-only "$fs_read_archive" | tee "$RUNNER_TEMP/iw3-original-fs-read-defined.txt"
+          grep -F 'FS_CheckFileSystemStarted' "$RUNNER_TEMP/iw3-original-fs-read-defined.txt"
+          grep -F 'FS_FileForHandle' "$RUNNER_TEMP/iw3-original-fs-read-defined.txt"
+          grep -F 'FS_Read' "$RUNNER_TEMP/iw3-original-fs-read-defined.txt"
           "$llvm_nm" -u -C "$fs_read_archive" | tee "$RUNNER_TEMP/iw3-original-fs-read-undefined.txt"
-          # These unresolved dependencies are intentionally visible: the
-          # original fsh table is file-local static in com_files.cpp and this
-          # archive is not linked into the diagnostic JNI library.
+          # fsh remains unresolved in the standalone audit archive because
+          # upstream com_files.cpp keeps its table file-local static. The JNI
+          # diagnostic supplies a native-width table adapter for the IWD ZIP
+          # branch only; the full open/close lifecycle is still not linked.
           grep -F 'fsh' "$RUNNER_TEMP/iw3-original-fs-read-undefined.txt"
-          grep -F 'FS_FileForHandle' "$RUNNER_TEMP/iw3-original-fs-read-undefined.txt"
-          echo "IW3_ORIGINAL_FS_READ_AARCH64_ABI_COMPILED_NOT_RUNTIME_LINKED"
+          echo "IW3_ORIGINAL_FS_READ_AARCH64_AUDIT_ARCHIVE_SEPARATE_FROM_JNI"
           so="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_math.so"
           test -s "$so"
           elf="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
@@ -276,6 +280,7 @@ jobs:
             ${{ runner.temp }}/iw3-original-iwd-lookup.json
             ${{ runner.temp }}/iw3-original-iwd-read-lifecycle.json
             ${{ runner.temp }}/iw3-original-fs-read.json
+            ${{ runner.temp }}/iw3-original-fs-read-defined.txt
             ${{ runner.temp }}/iw3-original-fs-read-undefined.txt
             ${{ runner.temp }}/iw3-authentic-sp-frame-entity-arm64.o
             ${{ runner.temp }}/iw3-sp-frame-abi64-object-elf.txt

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Stage the exact original KisakCOD FS_Read implementation for the Android file-read port.
+"""Extract authentic file-read helpers for an Android ABI and IWD-branch probe.
 
-This deliberately does not invent a replacement read routine. It extracts the
-upstream FS_Read body and emits an ABI/dependency report. The output is a
-source-stage artifact only until the original file-handle table and open/close
-lifecycle are linked into the Android engine target.
+The emitted FS_CheckFileSystemStarted, FS_FileForHandle and FS_Read bodies are
+verbatim from KisakCOD. Android supplies a native-width fileHandleData_t table
+for the isolated ZIP-branch fixture; this is not the original complete open /
+close lifecycle and must not be described as a playable runtime.
 """
 from __future__ import annotations
 
@@ -20,6 +20,11 @@ except ModuleNotFoundError:
 
 SOURCE = Path("src/universal/com_files.cpp")
 SIGNATURE = "uint32_t __cdecl FS_Read(uint8_t *buffer, uint32_t len, int h)"
+FUNCTIONS = (
+    "void __cdecl FS_CheckFileSystemStarted()",
+    "FILE *__cdecl FS_FileForHandle(int f)",
+    SIGNATURE,
+)
 PROLOGUE = '#include "iw3_android_fs_read_compat.h"\n'
 REQUIRED = (
     "FS_CheckFileSystemStarted();",
@@ -42,15 +47,17 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
     source_path = engine.resolve() / SOURCE
     original = source_path.read_bytes()
     text = original.decode("utf-8")
-    body = function_source(text, SIGNATURE)
+    bodies = [function_source(text, signature) for signature in FUNCTIONS]
+    body = bodies[-1]
+    combined = "\n\n".join(bodies)
     for marker in REQUIRED:
-        if marker not in body:
+        if marker not in combined:
             raise ValueError("Original FS_Read contract missing: " + marker)
     for marker in FORBIDDEN:
-        if marker in body:
+        if marker in combined:
             raise ValueError("Unexpected replacement implementation marker: " + marker)
 
-    rendered = PROLOGUE + body + "\n"
+    rendered = PROLOGUE + combined + "\n"
     output = output.resolve()
     if output == source_path:
         raise ValueError("Refusing to overwrite authentic KisakCOD com_files.cpp")
@@ -62,11 +69,19 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
     evidence = {
         "source": str(SOURCE),
         "source_sha256": hashlib.sha256(original).hexdigest(),
+        "function_signatures": list(FUNCTIONS),
+        "function_body_sha256": {
+            signature: hashlib.sha256(source_body.encode("utf-8")).hexdigest()
+            for signature, source_body in zip(FUNCTIONS, bodies)
+        },
         "original_fs_read_sha256": hashlib.sha256(body.encode("utf-8")).hexdigest(),
         "staged_sha256": hashlib.sha256(rendered.encode("utf-8")).hexdigest(),
+        "original_FS_CheckFileSystemStarted_body_preserved_exactly": True,
+        "original_FS_FileForHandle_body_preserved_exactly": True,
         "original_FS_Read_body_preserved_exactly": True,
         "uses_original_zip_read_and_original_file_read_branches": True,
-        "android_file_handle_table_integrated": False,
+        "original_upstream_fsh_table_integrated": False,
+        "android_native_width_fsh_table_adapter_required": True,
         "open_close_lifecycle_integrated": False,
         "compiles_as_standalone_android_game_runtime": False,
         "fastfile_map_loading_proven": False,

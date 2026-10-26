@@ -87,10 +87,9 @@ target_compile_definitions(iw3_sp_iwd_mount PRIVATE KISAK_SP=1)
 target_compile_options(iw3_sp_iwd_mount PRIVATE
     -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
 
-# Compile the verbatim original FS_Read body against native 64-bit engine
-# structures. This archive is deliberately NOT linked into iw3_sp_math/JNI:
-# the owning upstream com_files.cpp keeps fsh[65] static, and the full file
-# handle lifecycle plus its service graph is not yet ported.
+# Compile the verbatim original read helpers into a separate ABI/dependency
+# archive. This archive is NOT linked into iw3_sp_math/JNI; its fsh reference
+# remains unresolved so the original file-local table limitation is visible.
 add_library(iw3_sp_fs_read STATIC "${IW3_EXTRACTED_FS_READ}")
 target_include_directories(iw3_sp_fs_read PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}"
@@ -102,7 +101,13 @@ target_compile_definitions(iw3_sp_fs_read PRIVATE KISAK_SP=1)
 target_compile_options(iw3_sp_fs_read PRIVATE
     -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
 
+# The diagnostic shared library also compiles the same authentic read helpers
+# with an Android-owned native-width handle table. The IWD fixture executes
+# only the original ZIP branch of FS_Read; the original open/close lifecycle
+# and complete filesystem runtime remain unported.
 add_library(iw3_sp_math SHARED
+    "${IW3_EXTRACTED_FS_READ}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_fs_read_io.cpp"
     "${IW3_EXTRACTED_MATH}"
     "${IW3_EXTRACTED_SURFACE}"
     "${IW3_EXTRACTED_CONSTANTS}"

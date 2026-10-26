@@ -3,6 +3,7 @@
 #include "iw3_android_iwd_mount_compat.h"
 #include "iw3_android_iwd_directory_compat.h"
 #include "iw3_android_iwd_lookup_compat.h"
+#include "iw3_android_fs_read_compat.h"
 #include <array>
 #include <string>
 #include <vector>
@@ -111,8 +112,43 @@ bool read_current(unzFile archive, const Entry &expected) {
            std::string(bytes.data(), static_cast<std::size_t>(got)) == expected.payload &&
            closeRc == UNZ_OK;
 }
-bool index_original_iwd(const char *path, const std::array<Entry, 2> &expected, bool *searchpath_ok) {
+bool read_via_original_fs_read(iwd_t *iwd, const Entry &expected) {
+    if (!iwd || !iwd->handle || !iwd->buildBuffer || !fs_searchpaths ||
+        expected.payload.empty()) return false;
+    unzFile reopened = unzReOpen(
+        iwd->iwdFilename, reinterpret_cast<unzFile>(iwd->handle));
+    if (!reopened) return false;
+    if (unzSetCurrentFileInfoPosition(reopened, iwd->buildBuffer[0].pos) != UNZ_OK ||
+        unzOpenCurrentFile(reopened) != UNZ_OK) {
+        unzClose(reopened);
+        return false;
+    }
+
+    // Exercise the verbatim original FS_Read ZIP branch with the original
+    // fileHandleData_t layout. The Android diagnostic owns this table because
+    // the upstream com_files.cpp translation unit (and its static fsh) is not
+    // linked into this probe. No fake read routine is used.
+    const fileHandleData_t previous = fsh[1];
+    fsh[1] = {};
+    fsh[1].zipFile = iwd;
+    fsh[1].handleFiles.file.z = reinterpret_cast<unsigned char *>(reopened);
+    std::vector<std::uint8_t> bytes(expected.payload.size());
+    const uint32_t got = FS_Read(
+        bytes.data(), static_cast<uint32_t>(bytes.size()), 1);
+    fsh[1] = previous;
+
+    const int close_current = unzCloseCurrentFile(reopened);
+    const int close_archive = unzClose(reopened);
+    const bool content_ok =
+        got == static_cast<uint32_t>(expected.payload.size()) &&
+        std::string(reinterpret_cast<const char *>(bytes.data()), bytes.size()) ==
+            expected.payload;
+    return content_ok && close_current == UNZ_OK && close_archive == UNZ_OK;
+}
+
+bool index_original_iwd(const char *path, const std::array<Entry, 2> &expected, bool *searchpath_ok, bool *fs_read_ok) {
     if (searchpath_ok) *searchpath_ok = false;
+    if (fs_read_ok) *fs_read_ok = false;
     const int old_count = fs_iwdFileCount;
     const int old_feed = fs_checksumFeed;
     fs_checksumFeed = 0;
@@ -198,6 +234,8 @@ bool index_original_iwd(const char *path, const std::array<Entry, 2> &expected, 
                 }
                 *searchpath_ok = found && fs_searchpaths == search &&
                                  search->next == previous;
+                if (fs_read_ok && *searchpath_ok)
+                    *fs_read_ok = read_via_original_fs_read(iwd, expected[0]);
                 fs_searchpaths = previous;
                 Z_Free(search, 3);
             }
@@ -209,6 +247,7 @@ bool index_original_iwd(const char *path, const std::array<Entry, 2> &expected, 
         Z_Free(iwd, 3);
         if (close_rc != UNZ_OK) ok = false;
     }
+    if (fs_read_ok) ok = ok && *fs_read_ok;
     fs_iwdFileCount = old_count;
     fs_checksumFeed = old_feed;
     return ok;
@@ -380,11 +419,12 @@ bool scan_original_iwd_directory(const char *root,
 
 } // namespace
 
-extern "C" IW3_UNZIP_EXPORT int z2026_iw3_unzip_smoke(const char *directory, int *iwd_mount_ok, int *iwd_searchpath_ok, int *iwd_directory_scan_ok, int *iwd_lookup_ok) {
+extern "C" IW3_UNZIP_EXPORT int z2026_iw3_unzip_smoke(const char *directory, int *iwd_mount_ok, int *iwd_searchpath_ok, int *iwd_directory_scan_ok, int *iwd_lookup_ok, int *iwd_fs_read_ok) {
     if (iwd_mount_ok) *iwd_mount_ok = 0;
     if (iwd_searchpath_ok) *iwd_searchpath_ok = 0;
     if (iwd_directory_scan_ok) *iwd_directory_scan_ok = 0;
     if (iwd_lookup_ok) *iwd_lookup_ok = 0;
+    if (iwd_fs_read_ok) *iwd_fs_read_ok = 0;
     static_assert(sizeof(unz_global_info) == 8, "IW3 ZIP32 global-info layout drift");
     static_assert(sizeof(unz_file_info) == 80, "IW3 ZIP32 file-info layout drift");
     static_assert(sizeof(unz_file_info_internal) == 4, "IW3 ZIP32 file offset layout drift");
@@ -451,14 +491,16 @@ extern "C" IW3_UNZIP_EXPORT int z2026_iw3_unzip_smoke(const char *directory, int
     bool ok = discovered && name_count >= 1 &&
               relative_parse_ok && absolute_parse_ok;
     bool searchpath_ok = false;
-    const bool mount_ok = index_original_iwd(path, entries, &searchpath_ok);
+    bool fs_read_ok = false;
+    const bool mount_ok = index_original_iwd(path, entries, &searchpath_ok, &fs_read_ok);
     bool lookup_ok = false;
     const bool directory_scan_ok = scan_original_iwd_directory(directory, entries, archiveBytes, &lookup_ok);
     if (iwd_lookup_ok) *iwd_lookup_ok = lookup_ok ? 1 : 0;
     if (iwd_mount_ok) *iwd_mount_ok = mount_ok ? 1 : 0;
     if (iwd_searchpath_ok) *iwd_searchpath_ok = searchpath_ok ? 1 : 0;
     if (iwd_directory_scan_ok) *iwd_directory_scan_ok = directory_scan_ok ? 1 : 0;
-    ok = ok && mount_ok && searchpath_ok && directory_scan_ok && lookup_ok;
+    if (iwd_fs_read_ok) *iwd_fs_read_ok = fs_read_ok ? 1 : 0;
+    ok = ok && mount_ok && searchpath_ok && fs_read_ok && directory_scan_ok && lookup_ok;
     if (z2026_platform_unlink_file(path) != 0) ok = false;
     return ok ? 1 : 0;
 }
