@@ -21,8 +21,9 @@ class OriginalIW3FileHandleCloseTests(unittest.TestCase):
         generator = GENERATOR.read_text(encoding="utf-8")
         self.assertIn('"void __cdecl FS_FCloseFile(int h)"', generator)
         self.assertIn('"Com_Memset((uint32_t *)&fsh[h], 0, sizeof(fsh[h]));"', generator)
-        self.assertIn('"full_open_read_close_lifecycle_integrated": True', generator)
-        self.assertIn('"original_upstream_fsh_table_integrated": False', generator)
+        self.assertIn('"full_original_open_read_close_lifecycle_compiled_into_diagnostic": True', generator)
+        self.assertIn('"engine_shared_fsh_table_source_present": True', generator)
+        self.assertIn('"full_original_com_files_translation_unit_linked": False', generator)
         compat = COMPAT.read_text(encoding="utf-8")
         self.assertIn("#define FS_FileClose z2026_iw3_fs_file_close", compat)
 

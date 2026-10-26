@@ -180,10 +180,10 @@ jobs:
           grep -F 'FS_FileForHandle' "$RUNNER_TEMP/iw3-original-fs-read-defined.txt"
           grep -F 'FS_Read' "$RUNNER_TEMP/iw3-original-fs-read-defined.txt"
           "$llvm_nm" -u -C "$fs_read_archive" | tee "$RUNNER_TEMP/iw3-original-fs-read-undefined.txt"
-          # fsh is now defined by the shared original-engine source and
-          # referenced by the verbatim open/read/close bodies. The static archive
-          # must contain both the reference and the engine-owned definition; the
-          # complete com_files.cpp translation unit is still not linked here.
+          # fsh is now defined by the shared original-engine source and is
+          # referenced by the original FS_FOpenFileReadForThread -> FS_Read -> FS_FCloseFile
+          # lifecycle. The JNI diagnostic uses this same table and exercises IWD clone
+          # plus rooted directory fallback paths; full com_files.cpp is not linked here.
           "$llvm_nm" -C "$fs_read_archive" | tee "$RUNNER_TEMP/iw3-original-fs-read-symbols.txt"
           grep -E ' [BbDd] fsh' "$RUNNER_TEMP/iw3-original-fs-read-symbols.txt"
           grep -E ' U fsh' "$RUNNER_TEMP/iw3-original-fs-read-symbols.txt"
