@@ -1230,27 +1230,18 @@ void __cdecl FS_ConvertPath(char *s)
 
 bool __cdecl FS_GameDirDomainFunc(dvar_s *dvar, DvarValue newValue)
 {
-    bool result; // al
-    int v3; // eax
-    int v4; // eax
-
     if (!dvar)
         MyAssertHandler(".\\universal\\com_files.cpp", 4241, 0, "%s", "dvar");
-    if (!*(_BYTE *)newValue.integer)
-        return 1;
+    if (!newValue.string[0])
+        return true;
     if (I_strnicmp(newValue.string, "mods", 4))
-        return 0;
-    if (strlen(newValue.string) < 6 || *(_BYTE *)(newValue.integer + 4) != 47 && *(_BYTE *)(newValue.integer + 4) != 92)
-        return 0;
-    v3 = (int)strstr((char*)newValue.integer, "..");
-    result = 0;
-    if (!v3)
-    {
-        v4 = (int)strstr((char*)newValue.integer, "::");
-        if (!v4)
-            return 1;
-    }
-    return result;
+        return false;
+    if (strlen(newValue.string) < 6
+        || (newValue.string[4] != '/' && newValue.string[4] != '\\'))
+        return false;
+    if (strstr(newValue.string, "..") || strstr(newValue.string, "::"))
+        return false;
+    return true;
 }
 
 void FS_RegisterDvars()
