@@ -1,6 +1,8 @@
 #include "iw3_android_fs_read_compat.h"
 
 #include <cstdlib>
+#include <climits>
+#include <cstdio>
 
 // This is the native-width handle table for the isolated original filesystem
 // slice. The full upstream com_files.cpp keeps its own fsh[65] file-local.
@@ -40,6 +42,16 @@ uint32_t z2026_iw3_interlocked_compare_exchange(
     __atomic_compare_exchange_n(destination, &expected, exchange, false,
                                 __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
     return expected;
+}
+
+int z2026_iw3_fs_file_get_size(FILE *stream) {
+    if (!stream) return -1;
+    const long original = std::ftell(stream);
+    if (original < 0 || std::fseek(stream, 0, SEEK_END) != 0) return -1;
+    const long end = std::ftell(stream);
+    const int restore_rc = std::fseek(stream, original, SEEK_SET);
+    if (end < 0 || end > INT_MAX || restore_rc != 0) return -1;
+    return static_cast<int>(end);
 }
 
 extern "C" void z2026_iw3_fs_file_close(FILE *stream) {
