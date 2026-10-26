@@ -22,6 +22,7 @@ SOURCE = Path("src/universal/com_files.cpp")
 SHARED_SOURCE = Path("src/universal/q_shared.cpp")
 SIGNATURE = "uint32_t __cdecl FS_Read(uint8_t *buffer, uint32_t len, int h)"
 FUNCTIONS = (
+    ("int __cdecl FS_filelength(int f)", SOURCE),
     ("int __cdecl FS_HandleForFile(FsThread thread)", SOURCE),
     ("FILE *__cdecl FS_FileForHandle(int f)", SOURCE),
     ("uint32_t __cdecl FS_FOpenFileReadForThread(const char *filename, int *file, FsThread thread)", SOURCE),
@@ -35,6 +36,7 @@ FUNCTIONS = (
 PROLOGUE = (
     '#include "iw3_android_fs_read_compat.h"\n'
     '#define FS_FileOpenReadBinary z2026_iw3_lookup_file_open_read_binary\n'
+    '#define FS_FileGetFileSize z2026_iw3_fs_file_get_size\n'
     '#define FS_CopyFile z2026_iw3_fs_copy_file\n'
     '#define SEH_SafeTranslateString z2026_iw3_safe_translate\n'
     '#define InterlockedCompareExchange z2026_iw3_interlocked_compare_exchange\n'
@@ -49,6 +51,7 @@ REQUIRED = (
     "return zfi->cur_file_info.uncompressed_size;",
     "return unzReadCurrentFile(fsh[h].handleFiles.file.z, buffer, len);",
     "FS_FileRead(buf, remaining, f)",
+    "return FS_FileGetFileSize(h);",
     "unzCloseCurrentFile(fsh[h].handleFiles.file.z);",
     "Com_Memset((uint32_t *)&fsh[h], 0, sizeof(fsh[h]));",
     "FS_FilesAreLoadedGlobally(sanitizedName)",
@@ -127,6 +130,7 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
                           for source_path, raw in source_bytes.items()},
         "function_signatures": [signature for signature, _ in FUNCTIONS],
         "function_body_sha256": hashes,
+        "original_FS_filelength_body_preserved_exactly": True,
         "original_handle_allocation_body_preserved_exactly": True,
         "original_FS_FOpenFileReadForThread_body_preserved_exactly": True,
         "original_FS_FileForHandle_body_preserved_exactly": True,
