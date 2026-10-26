@@ -90,7 +90,7 @@ class NativeRuntimeEvidenceTests(unittest.TestCase):
     def test_invalid_coordinate_is_rejected(self):
         for coord in ("nan", "inf", "-0.1", "1.1"):
             with self.subTest(coord=coord), self.assertRaises(ValueError):
-                verify(real_format_fixture().replace("coords=0.18421052,", "coords=" + coord + ","))
+                verify(real_format_fixture().replace("coords=0.08,", "coords=" + coord + ","))
 
     def test_background_and_return_are_both_required(self):
         with self.assertRaises(ValueError):
