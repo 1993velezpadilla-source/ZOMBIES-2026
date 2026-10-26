@@ -569,5 +569,14 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
         self.assertIn("iw3_iwd_read_lifecycle.cpp", workflow)
         self.assertIn("iw3-original-iwd-read-lifecycle.json", workflow)
 
+    def test_arm64_jni_workflow_archives_read_lifecycle_as_staging_only(self):
+        workflow = (ROOT / ".github/workflows/iw3-original-android-jni.yml").read_text(encoding="utf-8")
+        self.assertIn("prepare_real_engine_iwd_read.py", workflow)
+        self.assertIn("iw3_iwd_read_lifecycle.cpp", workflow)
+        self.assertIn("iw3-original-iwd-read-lifecycle.json", workflow)
+        self.assertIn("IW3_ORIGINAL_FILE_READ_LIFECYCLE_STAGED_NOT_LINKED", workflow)
+        # This workflow must not claim the extracted source is part of the APK runtime.
+        self.assertNotIn("original_fs_read_handle_path_executed=true", workflow)
+
 if __name__ == "__main__":
     unittest.main()
