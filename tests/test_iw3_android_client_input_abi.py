@@ -52,16 +52,16 @@ class OriginalClientInputAbiTests(unittest.TestCase):
         self.assertEqual(positions, sorted(positions))
         self.assertIn("#if defined(__ANDROID__)", body)
 
-    def test_arm64_build_compiles_but_does_not_claim_runtime_link(self):
+    def test_d3d_bound_client_input_is_not_misreported_as_android_runtime(self):
         cmake = CMAKE.read_text(encoding="utf-8")
-        self.assertIn('add_library(iw3_sp_client_input STATIC "${IW3_ENGINE_SOURCE_ROOT}/client/cl_input.cpp")', cmake)
-        self.assertIn("it is an audit archive, not yet linked", cmake)
-        self.assertNotIn("iw3_sp_client_input)", cmake)
         workflow = WORKFLOW.read_text(encoding="utf-8")
-        self.assertIn("libiw3_sp_client_input.a", workflow)
-        self.assertIn("CL_CreateCmd(usercmd_s*)", workflow)
-        self.assertIn("z2026_platform_apply_touch_to_usercmd", workflow)
-        self.assertIn("NOT_LINKED", workflow)
+        docs = (ROOT / "docs/IW3_ANDROID_NATIVE_PORT.md").read_text(encoding="utf-8")
+        self.assertNotIn("add_library(iw3_sp_client_input STATIC", cmake)
+        self.assertNotIn('target_sources(iw3_sp_math PRIVATE "${IW3_ENGINE_SOURCE_ROOT}/client/cl_input.cpp")', cmake)
+        self.assertNotIn("libiw3_sp_client_input.a", workflow)
+        self.assertIn("CL_CreateCmd", docs)
+        self.assertIn("d3d9.h", docs)
+        self.assertIn("not produce a playable APK", docs)
 
 
 if __name__ == "__main__":
