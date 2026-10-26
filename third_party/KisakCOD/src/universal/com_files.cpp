@@ -1624,7 +1624,15 @@ void __cdecl FS_AddIwdFilesForGameDirectory(char *path, char *pszGameFolder)
 
     FS_BuildOSPath(path, pszGameFolder, (char *)"", ospath);
     ospath[&ospath[strlen(ospath) + 1] - &ospath[1] - 1] = 0;
+    // Sys_ListFiles may fail or return no entries on Android storage errors.
+    // Never inspect an uninitialized count or dereference a null list.
+    numfiles = 0;
     list = Sys_ListFiles(ospath, "iwd", 0, &numfiles, 0);
+    if (!list || numfiles <= 0)
+    {
+        FS_FreeFileList((const char **)list);
+        return;
+    }
     if (numfiles > 1024)
     {
         Com_PrintWarning(
