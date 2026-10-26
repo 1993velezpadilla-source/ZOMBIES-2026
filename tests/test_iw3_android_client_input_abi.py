@@ -55,7 +55,7 @@ class OriginalClientInputAbiTests(unittest.TestCase):
     def test_arm64_build_compiles_but_does_not_claim_runtime_link(self):
         cmake = CMAKE.read_text(encoding="utf-8")
         self.assertIn('add_library(iw3_sp_client_input STATIC "${IW3_ENGINE_SOURCE_ROOT}/client/cl_input.cpp")', cmake)
-        self.assertIn("This is an audit archive, not yet linked", cmake)
+        self.assertIn("it is an audit archive, not yet linked", cmake)
         self.assertNotIn("iw3_sp_client_input)", cmake)
         workflow = WORKFLOW.read_text(encoding="utf-8")
         self.assertIn("libiw3_sp_client_input.a", workflow)
