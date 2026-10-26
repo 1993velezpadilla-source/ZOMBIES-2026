@@ -141,21 +141,31 @@ int open_beneath_root(int root, const char *path) {
 
 bool normalize_engine_path(const char *path, char output[1024], bool allow_root) {
     if (!path || !output || g_data_root_path.empty()) return false;
-    const char *relative = path;
-    if (path[0] == '/') {
+
+    // The original FS_BuildOSPathForThread/FS_ReplaceSeparators pair turns
+    // even the leading slash of a POSIX absolute base into a backslash. Normalize
+    // separators before checking absoluteness so that such paths are still
+    // constrained to the retained Android data root, not misread as root-relative.
+    std::string normalized_path_storage(path);
+    for (char &character : normalized_path_storage) {
+        if (character == '\\') character = '/';
+    }
+    const char *normalized_path = normalized_path_storage.c_str();
+    const char *relative = normalized_path;
+    if (normalized_path[0] == '/') {
         const std::string &root = g_data_root_path;
-        if (root == path) {
+        if (root == normalized_path) {
             if (!allow_root) return false;
             output[0] = '\0';
             return true;
         }
         if (root == "/") {
-            relative = path + 1;
+            relative = normalized_path + 1;
         } else {
             const std::size_t root_length = root.size();
-            if (std::strncmp(path, root.c_str(), root_length) != 0) return false;
-            if (path[root_length] == '/' || path[root_length] == '\\') {
-                relative = path + root_length + 1;
+            if (std::strncmp(normalized_path, root.c_str(), root_length) != 0) return false;
+            if (normalized_path[root_length] == '/') {
+                relative = normalized_path + root_length + 1;
             } else {
                 // Reject sibling-prefix attacks such as /data/app-evil.
                 return false;
@@ -167,18 +177,12 @@ bool normalize_engine_path(const char *path, char output[1024], bool allow_root)
         output[0] = '\0';
         return true;
     }
-    // FS_BuildOSPath on the original Windows engine emits backslashes.
-    // Normalize separators before rejecting dot components in the rooted
-    // open/list routines; never let a Windows-style ".." bypass traversal
-    // checks on POSIX.
-    std::string normalized(relative);
-    for (char &character : normalized) {
-        if (character == '\\') character = '/';
-    }
-    if (!valid_path(normalized.c_str())) return false;
-    const std::size_t length = normalized.size();
+    // valid_path rejects dot components after separator normalization, including
+    // Windows-style ".." paths, before any openat traversal occurs.
+    if (!valid_path(relative)) return false;
+    const std::size_t length = std::strlen(relative);
     if (length >= 1024) return false;
-    std::memcpy(output, normalized.c_str(), length + 1);
+    std::memcpy(output, relative, length + 1);
     return true;
 }
 
