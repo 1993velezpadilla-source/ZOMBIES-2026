@@ -677,4 +677,12 @@ CMake and the Android Gradle arguments now include both the verbatim `FS_LoadZip
 
 The Android native smoke extends the existing generated ZIP fixture to call the original `FS_LoadZipFile()`, then checks the returned `iwd_t`, entry count, lowercase member names, hash-bucket membership, filename-extension handling, and checksum/pure-checksum consistency. It closes the original ZIP handle and releases the original index allocations before deleting the fixture. A distinct `IW3_JNI_IWD_MOUNT_PASS` marker is required by the emulator evidence validator.
 
-**Evidence boundary:** this is an executable test of the original IWD index builder against a generated fixture, not mounting a licensed game IWD into `fs_searchpaths`. It does not load FastFiles or a BSP/map, render the game scene, link the original SP frame services, or prove touch-driven gameplay, weapons, actors or ARM64-device execution. The JNI APK remains diagnostic only. Native/Android build and emulator results for this pass must be inspected before calling this milestone CI-verified.
+**Verified evidence for this pass (26 Oct 2026):**
+
+- [Native/ARM64 workflow #203](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40280395885) succeeded. The host suite passed 8/8 in Release and 8/8 under ASAN/UBSAN; the ARM64 outputs were verified as ELF64/AArch64, and the original `FS_LoadZipFile(char*, char*)` symbol was present in the ARM64 audit archive.
+- [Android JNI build #167](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40280395813) succeeded and signed the diagnostic APK.
+- [Android emulator runtime #151](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40280395912) succeeded on an **x86_64 emulator**, not an ARM64 device. Its log contains `IW3_JNI_UNZIP_PARSER_PASS`, `IW3_JNI_IWD_MOUNT_PASS`, and touch DOWN/UP readback where `usercmd_s` attack transitions 0 → 1 → 0. The evidence validator reported `original_fs_loadzipfile_indexed_fixture_executed: true`, while `arm64_device_execution_proven` and `gameplay_proven` remained false.
+
+This is runtime evidence for the original IWD index builder on a generated fixture, **not** mounting a licensed game IWD into `fs_searchpaths`. It does not load FastFiles or a BSP/map, render the game scene, link the original SP frame services, or prove weapons/actors/gameplay. The APK remains diagnostic only.
+
+**Next portability blocker:** integrate the original `FS_AddIwdFilesForGameDirectory()` and `FS_AddSearchPath()` with the Android directory enumerator and the real `fs_searchpaths` state. That is required before claiming an original IWD is mounted for game asset lookup; FastFiles, map loading, renderer and gameplay remain later blockers.
