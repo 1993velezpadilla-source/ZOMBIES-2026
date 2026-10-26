@@ -106,7 +106,7 @@ class OriginalIW3UnzipPortTests(unittest.TestCase):
         self.assertIn("IW3_JNI_IWD_MOUNT_%s", jni)
         self.assertIn("IW3_JNI_IWD_SEARCHPATH_%s", jni)
         self.assertIn("FS_LoadZipFile", smoke)
-        self.assertIn("index_original_iwd(path, entries, &searchpath_ok)", smoke)
+        self.assertIn("index_original_iwd(path, entries, &searchpath_ok, &fs_read_ok)", smoke)
         self.assertIn("FS_AddSearchPath(search)", smoke)
         self.assertIn("IW3_JNI_IWD_SEARCHPATH_PASS", (ROOT / "tools/iw3_android/verify_runtime_evidence.py").read_text())
         self.assertIn("IW3_JNI_IWD_DIRECTORY_SCAN_PASS", (ROOT / "tools/iw3_android/verify_runtime_evidence.py").read_text())
