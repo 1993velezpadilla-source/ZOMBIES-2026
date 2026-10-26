@@ -190,3 +190,14 @@ Related commits:
 **Validation status:** the earlier Android compile failed at these exact header errors; after the fixes, a new native ARM64 build and JNI build were triggered, but their final results are not yet available. The RotU/source preflight passed on the current code. Do not count the original client-input archive as built until the latest ARM64 workflow completes successfully.
 
 **Scope boundary:** these changes address actual 32/64-bit header portability blockers but do not link the original client input into the APK or run `CL_CreateCmd` in a live Android game frame. `Com_Frame`, `FS_Startup`, FastFile/map loading, renderer output, weapons/actors in Android gameplay and physical ARM64 execution remain unproven. No playable APK is claimed; PR #4 remains open and unmerged.
+
+
+### Phase Y — boundary of the client-input compile experiment (26 Oct 2026)
+
+The next compile after the LP64 layout fixes exposed a broader dependency boundary. The original `cl_input.cpp` includes `cgame/cg_main.h` / `cg_local.h`, which in turn pull the D3D9 renderer through `gfx_d3d/r_gfx.h`. The NDK has no `d3d9.h`. Other compile errors also show that the full client/UI header graph still contains Windows-only types and pointer-width assumptions (`clientDebug_t`, `refdef_s`, `__forceinline`, `FxEffectDef`, `FxImpactTable`).
+
+I removed the experimental `iw3_sp_client_input` target and its archive audit from the default Android workflow rather than leaving the branch with a knowingly failing build or reporting a non-linked object as integration. The failed run remains visible as evidence: [ARM64 attempt 40417087767](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40417087767). The source-level command queue correction and regression test remain in place; the header portability fixes remain limited to standard alignment and explicit LP64 layouts. The D3D/client header graph is now documented as the next integration blocker.
+
+**Next actual integration requirement:** establish a renderer-neutral client header boundary and port the original client/cgame input dependencies without inventing substitute state. Only then can the original `CL_CreateCmd` be linked into the Android runtime and called from its frame loop. The current JNI diagnostic remains separate and does not call it.
+
+**Scope boundary:** this experiment did not produce a playable APK. No Android game-frame execution, real map rendering, FastFile/map load, combat, or physical ARM64 gameplay is proven. PR #4 remains open and unmerged.
