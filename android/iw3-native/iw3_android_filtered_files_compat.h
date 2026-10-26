@@ -21,6 +21,7 @@ char __cdecl FS_SanitizeFilename(const char* filename, char* sanitizedName, int 
 int __cdecl FS_ReturnPath(const char* zname, char* zpath, int* depth);
 int __cdecl FS_AddFileToList(HunkUser* user, const char* name, const char** list, int nfiles);
 BOOL __cdecl FS_UseSearchPath(const searchpath_s* pSearch);
+int __cdecl FS_IwdIsPure(iwd_t* iwd);
 char** Sys_ListFiles(const char* directory, const char* extension,
                      const char* filter, int* numfiles, int wantsubs);
 
