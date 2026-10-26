@@ -34,6 +34,11 @@ from tools.iw3_android.prepare_real_engine_iwd_names import (
     prepare as prepare_iwd_names,
 )
 
+from tools.iw3_android.prepare_real_engine_iwd_mount import (
+    SOURCE as IWD_MOUNT_SOURCE, SIGNATURE as IWD_MOUNT_SIGNATURE,
+    REQUIRED as IWD_MOUNT_REQUIRED, prepare as prepare_iwd_mount,
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 ENGINE = ROOT / "third_party/KisakCOD"
 
@@ -269,6 +274,39 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
         # This is source portability hardening only; com_files.cpp and the
         # complete search-path/gameplay runtime are not yet linked into Android.
         self.assertTrue(source_path.is_file())
+
+    def test_original_fs_loadzipfile_staged_verbatim_and_native_width_safe(self):
+        source_path = ENGINE / IWD_MOUNT_SOURCE
+        original = source_path.read_bytes()
+        original_text = original.decode("utf-8")
+        body = function_source(original_text, IWD_MOUNT_SIGNATURE)
+        with TemporaryDirectory() as temp:
+            out = Path(temp) / "stage" / "fs_load_zip.cpp"
+            report = prepare_iwd_mount(ENGINE, out)
+            staged = out.read_text(encoding="utf-8")
+            self.assertEqual(
+                staged,
+                '#include "iw3_android_iwd_mount_compat.h"\\n' + body + "\\n")
+            self.assertTrue(report["function_body_preserved_verbatim"])
+            self.assertTrue(report["native_width_index_allocation_guards"])
+            self.assertTrue(report["null_allocation_cleanup_guards"])
+            self.assertTrue(report["compiles_as_original_engine_static_module"])
+            self.assertFalse(report["linked_to_android_diagnostic_apk"])
+            self.assertFalse(report["real_iwd_searchpath_mount_proven"])
+            self.assertFalse(report["playable_apk"])
+            for marker in IWD_MOUNT_REQUIRED:
+                self.assertIn(marker, staged)
+            with self.assertRaisesRegex(ValueError, "Refusing to overwrite"):
+                prepare_iwd_mount(ENGINE, source_path)
+        self.assertEqual(source_path.read_bytes(), original)
+        self.assertIn("file_info.size_filename >= sizeof(filename_inzip)", body)
+        self.assertIn("len > (uint32_t)INT_MAX - gi.number_entry * sizeof(fileInIwd_s)", body)
+        self.assertIn("if (!buildBuffer)", body)
+        self.assertIn("if (!fs_headerLongs)", body)
+        self.assertIn("if (!iwd)", body)
+        self.assertLess(body.index("if (!buildBuffer)"), body.index("namePtr ="))
+        self.assertLess(body.index("if (!fs_headerLongs)"), body.index("for (i = 1;"))
+        self.assertLess(body.index("if (!iwd)"), body.index("iwd->hashSize = i"))
 
     def test_no_vendor_overwrite(self):
         with self.assertRaisesRegex(ValueError, "Refusing"):
