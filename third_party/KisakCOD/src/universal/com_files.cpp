@@ -1355,6 +1355,14 @@ iwd_t *__cdecl FS_LoadZipFile(char *zipfile, char *basename)
     uint32_t i; // [esp+1E8h] [ebp-Ch]
     unz_global_info_s gi; // [esp+1ECh] [ebp-8h] BYREF
 
+    // iwd_t stores both archive names in fixed-size arrays. Reject invalid
+    // or unrepresentable paths instead of silently truncating the identity
+    // later used by the engine's searchpath and pure-file checks.
+    if (!zipfile || !*zipfile || !basename || !*basename)
+        return 0;
+    if (strlen(zipfile) >= sizeof(((iwd_t *)0)->iwdFilename) ||
+        strlen(basename) >= sizeof(((iwd_t *)0)->iwdBasename))
+        return 0;
     fs_numHeaderLongs = 0;
     uf = unzOpen(zipfile);
     // Invalid or inaccessible IWDs are normal during directory scans. The
