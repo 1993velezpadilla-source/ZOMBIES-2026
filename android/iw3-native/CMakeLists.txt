@@ -35,6 +35,9 @@ endif()
 if(NOT IW3_EXTRACTED_UNZIP OR NOT EXISTS "${IW3_EXTRACTED_UNZIP}")
     message(FATAL_ERROR "Authentic original IW3 ZIP32/IWD parser source required")
 endif()
+if(NOT IW3_EXTRACTED_IWD_MOUNT OR NOT EXISTS "${IW3_EXTRACTED_IWD_MOUNT}")
+    message(FATAL_ERROR "Authentic FS_LoadZipFile source extraction required")
+endif()
 if(NOT EXISTS "${IW3_REAL_HEADER_ROOT}/pool_allocator.h")
     message(FATAL_ERROR "Authentic original IW3 pool declarations required")
 endif()
@@ -53,6 +56,19 @@ add_library(iw3_sp_frame STATIC "${IW3_ENGINE_SOURCE_ROOT}/game/g_runframe.cpp")
 target_include_directories(iw3_sp_frame PRIVATE "${IW3_ENGINE_SOURCE_ROOT}")
 target_compile_definitions(iw3_sp_frame PRIVATE KISAK_SP=1)
 target_compile_options(iw3_sp_frame PRIVATE -fsigned-char -frounding-math -fno-fast-math)
+
+# Compile the exact original FS_LoadZipFile function with native-width engine
+# structures. This archive deliberately retains unresolved allocator/checksum
+# services and is not linked into the JNI diagnostic/game target.
+add_library(iw3_sp_iwd_mount STATIC "${IW3_EXTRACTED_IWD_MOUNT}")
+target_include_directories(iw3_sp_iwd_mount PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${IW3_REAL_HEADER_ROOT}"
+    "${IW3_ENGINE_SOURCE_ROOT}"
+    "${IW3_ENGINE_SOURCE_ROOT}/qcommon")
+target_compile_definitions(iw3_sp_iwd_mount PRIVATE KISAK_SP=1)
+target_compile_options(iw3_sp_iwd_mount PRIVATE
+    -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
 
 add_library(iw3_sp_math SHARED
     "${IW3_EXTRACTED_MATH}"
