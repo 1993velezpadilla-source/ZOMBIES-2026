@@ -17,6 +17,7 @@ class NativeRuntimeEvidenceTests(unittest.TestCase):
     def test_complete_diagnostic_has_explicit_limits(self):
         result = verify(real_format_fixture())
         self.assertTrue(result["touch_down_and_up_read_back_from_native"])
+        self.assertTrue(result["original_fs_addsearchpath_inserted_fixture_executed"])
         self.assertFalse(result["arm64_device_execution_proven"])
         self.assertFalse(result["gameplay_proven"])
 
