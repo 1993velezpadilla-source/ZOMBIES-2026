@@ -307,7 +307,9 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
             self.assertTrue(report["native_width_index_allocation_guards"])
             self.assertTrue(report["null_allocation_cleanup_guards"])
             self.assertTrue(report["compiles_as_original_engine_static_module"])
-            self.assertFalse(report["linked_to_android_diagnostic_apk"])
+            self.assertTrue(report["source_staged_for_android_diagnostic_link"])
+            self.assertFalse(report["linkage_verified_by_build_ci"])
+            self.assertFalse(report["runtime_execution_proven"])
             self.assertFalse(report["real_iwd_searchpath_mount_proven"])
             self.assertFalse(report["playable_apk"])
             for marker in IWD_MOUNT_REQUIRED:
