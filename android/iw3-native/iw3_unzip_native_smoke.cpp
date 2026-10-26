@@ -279,11 +279,38 @@ bool index_original_iwd(const char *path, const std::array<Entry, 2> &expected, 
     return ok;
 }
 
+bool read_directory_file_via_original_fs(const char *name, const char *expected) {
+    if (!name || !expected || !expected[0]) return false;
+    const uint32_t expected_length = static_cast<uint32_t>(std::strlen(expected));
+    int handle = 0;
+    const uint32_t opened = FS_FOpenFileReadForThread(
+        name, &handle, FS_THREAD_MAIN);
+    if (handle <= 0 || handle >= 65 || opened != expected_length) {
+        if (handle > 0 && handle < 65 &&
+            fsh[handle].handleFiles.file.o) FS_FCloseFile(handle);
+        return false;
+    }
+
+    // This path must be a normal directory FILE*, not an IWD ZIP handle.
+    const bool disk_handle = fsh[handle].zipFile == nullptr &&
+                             fsh[handle].handleFiles.file.o != nullptr;
+    std::vector<std::uint8_t> bytes(expected_length);
+    const uint32_t got = FS_Read(bytes.data(), expected_length, handle);
+    FS_FCloseFile(handle);
+    const fileHandleData_t cleared{};
+    const bool handle_cleared =
+        std::memcmp(&fsh[handle], &cleared, sizeof(cleared)) == 0;
+    const std::string actual(reinterpret_cast<const char *>(bytes.data()), bytes.size());
+    return disk_handle && handle_cleared && got == expected_length &&
+           actual == expected;
+}
+
 bool scan_original_iwd_directory(const char *root,
                                  const std::array<Entry, 2> &expected,
                                  const Bytes &archiveBytes,
-                                 bool *lookup_ok) {
+                                 bool *lookup_ok, bool *disk_read_ok) {
     if (lookup_ok) *lookup_ok = false;
+    if (disk_read_ok) *disk_read_ok = false;
     if (!root || root[0] != '/' || std::strlen(root) > 700) return false;
 
     char subdir[48]{};
@@ -405,8 +432,12 @@ bool scan_original_iwd_directory(const char *root,
                                      lookup_disk_hit == 1 &&
                                      lookup_miss == -1 &&
                                      lookup_traversal == -1;
+            const bool disk_read_pass = disk_file_written &&
+                read_directory_file_via_original_fs(
+                    "maps/iw3_android_disk_probe.txt", disk_payload);
             if (lookup_ok) *lookup_ok = lookup_pass;
-            ok = ok && lookup_pass;
+            if (disk_read_ok) *disk_read_ok = disk_read_pass;
+            ok = ok && lookup_pass && disk_read_pass;
         }
 
         // Restore global state before freeing the fixture-owned searchpaths.
@@ -445,12 +476,13 @@ bool scan_original_iwd_directory(const char *root,
 
 } // namespace
 
-extern "C" IW3_UNZIP_EXPORT int z2026_iw3_unzip_smoke(const char *directory, int *iwd_mount_ok, int *iwd_searchpath_ok, int *iwd_directory_scan_ok, int *iwd_lookup_ok, int *iwd_fs_read_ok) {
+extern "C" IW3_UNZIP_EXPORT int z2026_iw3_unzip_smoke(const char *directory, int *iwd_mount_ok, int *iwd_searchpath_ok, int *iwd_directory_scan_ok, int *iwd_lookup_ok, int *iwd_fs_read_ok, int *iwd_fs_disk_read_ok) {
     if (iwd_mount_ok) *iwd_mount_ok = 0;
     if (iwd_searchpath_ok) *iwd_searchpath_ok = 0;
     if (iwd_directory_scan_ok) *iwd_directory_scan_ok = 0;
     if (iwd_lookup_ok) *iwd_lookup_ok = 0;
     if (iwd_fs_read_ok) *iwd_fs_read_ok = 0;
+    if (iwd_fs_disk_read_ok) *iwd_fs_disk_read_ok = 0;
     static_assert(sizeof(unz_global_info) == 8, "IW3 ZIP32 global-info layout drift");
     static_assert(sizeof(unz_file_info) == 80, "IW3 ZIP32 file-info layout drift");
     static_assert(sizeof(unz_file_info_internal) == 4, "IW3 ZIP32 file offset layout drift");
@@ -520,13 +552,17 @@ extern "C" IW3_UNZIP_EXPORT int z2026_iw3_unzip_smoke(const char *directory, int
     bool fs_read_ok = false;
     const bool mount_ok = index_original_iwd(path, entries, &searchpath_ok, &fs_read_ok);
     bool lookup_ok = false;
-    const bool directory_scan_ok = scan_original_iwd_directory(directory, entries, archiveBytes, &lookup_ok);
+    bool fs_disk_read_ok = false;
+    const bool directory_scan_ok = scan_original_iwd_directory(
+        directory, entries, archiveBytes, &lookup_ok, &fs_disk_read_ok);
     if (iwd_lookup_ok) *iwd_lookup_ok = lookup_ok ? 1 : 0;
     if (iwd_mount_ok) *iwd_mount_ok = mount_ok ? 1 : 0;
     if (iwd_searchpath_ok) *iwd_searchpath_ok = searchpath_ok ? 1 : 0;
     if (iwd_directory_scan_ok) *iwd_directory_scan_ok = directory_scan_ok ? 1 : 0;
     if (iwd_fs_read_ok) *iwd_fs_read_ok = fs_read_ok ? 1 : 0;
-    ok = ok && mount_ok && searchpath_ok && fs_read_ok && directory_scan_ok && lookup_ok;
+    if (iwd_fs_disk_read_ok) *iwd_fs_disk_read_ok = fs_disk_read_ok ? 1 : 0;
+    ok = ok && mount_ok && searchpath_ok && fs_read_ok && directory_scan_ok &&
+         lookup_ok && fs_disk_read_ok;
     if (z2026_platform_unlink_file(path) != 0) ok = false;
     return ok ? 1 : 0;
 }
