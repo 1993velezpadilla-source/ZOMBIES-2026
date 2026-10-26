@@ -44,6 +44,11 @@ from tools.iw3_android.prepare_real_engine_iwd_services import (
     prepare as prepare_iwd_services,
 )
 
+from tools.iw3_android.prepare_real_engine_iwd_searchpath import (
+    SOURCE as IWD_SEARCHPATH_SOURCE, SIGNATURE as IWD_SEARCHPATH_SIGNATURE,
+    REQUIRED as IWD_SEARCHPATH_REQUIRED, prepare as prepare_iwd_searchpath,
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 ENGINE = ROOT / "third_party/KisakCOD"
 
@@ -282,6 +287,9 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
         self.assertNotIn("qsort(s0, numfiles, 4u,", add_iwd)
         self.assertNotIn('Z_Malloc(28, "FS_AddIwdFilesForGameDirectory"', source)
         self.assertNotIn('Z_Malloc(28, "FS_AddGameDirectory"', source)
+        add_search = function_source(source, "void __cdecl FS_AddSearchPath(searchpath_s *search)")
+        self.assertIn("pSearch = &(*pSearch)->next;", add_search)
+        self.assertNotIn("pSearch = (searchpath_s **)*pSearch;", add_search)
 
         header = (ENGINE / "src/universal/com_files.h").read_text(encoding="utf-8")
         self.assertIn("searchpath_s *next;", header)
@@ -334,6 +342,36 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
         self.assertLess(body.index("if (!buildBuffer)"), body.index("namePtr ="))
         self.assertLess(body.index("if (!fs_headerLongs)"), body.index("for (i = 1;"))
         self.assertLess(body.index("if (!iwd)"), body.index("iwd->hashSize = i"))
+
+
+    def test_original_iwd_searchpath_source_is_staged_and_exercised(self):
+        source_path = ENGINE / IWD_SEARCHPATH_SOURCE
+        original = source_path.read_bytes()
+        body = function_source(original.decode("utf-8"), IWD_SEARCHPATH_SIGNATURE)
+        for marker in IWD_SEARCHPATH_REQUIRED:
+            self.assertIn(marker, body)
+        self.assertNotIn("pSearch = (searchpath_s **)*pSearch;", body)
+        with TemporaryDirectory() as temp:
+            out = Path(temp) / "stage" / "iw3_iwd_searchpath.cpp"
+            report = prepare_iwd_searchpath(ENGINE, out)
+            staged = out.read_text(encoding="utf-8")
+            expected = ('#include "iw3_android_iwd_mount_compat.h"\n'
+                        'searchpath_s *fs_searchpaths = nullptr;\n\n' + body + "\n")
+            self.assertEqual(staged, expected)
+            self.assertTrue(report["function_body_preserved_verbatim_from_vendored_source"])
+            self.assertTrue(report["pointer_traversal_uses_next_member_address"])
+            self.assertTrue(report["original_localized_insertion_order_preserved"])
+            self.assertFalse(report["real_game_iwd_mounted"])
+            self.assertFalse(report["playable_apk"])
+            with self.assertRaisesRegex(ValueError, "Refusing to overwrite"):
+                prepare_iwd_searchpath(ENGINE, source_path)
+        self.assertEqual(source_path.read_bytes(), original)
+        smoke = (ROOT / "android/iw3-native/iw3_unzip_native_smoke.cpp").read_text(encoding="utf-8")
+        self.assertIn("FS_AddSearchPath(search);", smoke)
+        self.assertIn("fs_searchpaths == search", smoke)
+        self.assertIn("search->iwd == iwd", smoke)
+        jni = (ROOT / "android/iw3-native/iw3_android_jni.cpp").read_text(encoding="utf-8")
+        self.assertIn("IW3_JNI_IWD_SEARCHPATH_%s", jni)
 
     def test_no_vendor_overwrite(self):
         with self.assertRaisesRegex(ValueError, "Refusing"):
