@@ -2,6 +2,7 @@
 #include "iw3_android_platform.h"
 #include "iw3_android_iwd_mount_compat.h"
 #include "iw3_android_iwd_directory_compat.h"
+#include "iw3_android_iwd_lookup_compat.h"
 #include <array>
 #include <string>
 #include <vector>
@@ -190,7 +191,9 @@ bool index_original_iwd(const char *path, const std::array<Entry, 2> &expected, 
 
 bool scan_original_iwd_directory(const char *root,
                                  const std::array<Entry, 2> &expected,
-                                 const Bytes &archiveBytes) {
+                                 const Bytes &archiveBytes,
+                                 bool *lookup_ok) {
+    if (lookup_ok) *lookup_ok = false;
     if (!root || root[0] != '/' || std::strlen(root) > 700) return false;
 
     char subdir[48]{};
@@ -273,6 +276,22 @@ bool scan_original_iwd_directory(const char *root,
                 }
                 if (!found) ok = false;
             }
+
+            // Exercise the original FS_FOpenFileReadForThread lookup-only
+            // branch against the live original searchpath list. This verifies
+            // IWD hit, miss, and traversal rejection; it does not allocate a
+            // handle or claim that the original FS_Read path is ported.
+            const int lookup_hit = z2026_iw3_original_searchpath_lookup(
+                expected[0].name.c_str(), nullptr, FS_THREAD_MAIN);
+            const int lookup_miss = z2026_iw3_original_searchpath_lookup(
+                "maps/iw3_android_missing.txt", nullptr, FS_THREAD_MAIN);
+            const int lookup_traversal = z2026_iw3_original_searchpath_lookup(
+                "../maps/iw3_android_probe.txt", nullptr, FS_THREAD_MAIN);
+            const bool lookup_pass = lookup_hit == 1 &&
+                                     lookup_miss == -1 &&
+                                     lookup_traversal == -1;
+            if (lookup_ok) *lookup_ok = lookup_pass;
+            ok = ok && lookup_pass;
         }
 
         // Restore global state before freeing the fixture-owned searchpaths.
@@ -306,10 +325,11 @@ bool scan_original_iwd_directory(const char *root,
 
 } // namespace
 
-extern "C" IW3_UNZIP_EXPORT int z2026_iw3_unzip_smoke(const char *directory, int *iwd_mount_ok, int *iwd_searchpath_ok, int *iwd_directory_scan_ok) {
+extern "C" IW3_UNZIP_EXPORT int z2026_iw3_unzip_smoke(const char *directory, int *iwd_mount_ok, int *iwd_searchpath_ok, int *iwd_directory_scan_ok, int *iwd_lookup_ok) {
     if (iwd_mount_ok) *iwd_mount_ok = 0;
     if (iwd_searchpath_ok) *iwd_searchpath_ok = 0;
     if (iwd_directory_scan_ok) *iwd_directory_scan_ok = 0;
+    if (iwd_lookup_ok) *iwd_lookup_ok = 0;
     static_assert(sizeof(unz_global_info) == 8, "IW3 ZIP32 global-info layout drift");
     static_assert(sizeof(unz_file_info) == 80, "IW3 ZIP32 file-info layout drift");
     static_assert(sizeof(unz_file_info_internal) == 4, "IW3 ZIP32 file offset layout drift");
@@ -377,11 +397,13 @@ extern "C" IW3_UNZIP_EXPORT int z2026_iw3_unzip_smoke(const char *directory, int
               relative_parse_ok && absolute_parse_ok;
     bool searchpath_ok = false;
     const bool mount_ok = index_original_iwd(path, entries, &searchpath_ok);
-    const bool directory_scan_ok = scan_original_iwd_directory(directory, entries, archiveBytes);
+    bool lookup_ok = false;
+    const bool directory_scan_ok = scan_original_iwd_directory(directory, entries, archiveBytes, &lookup_ok);
+    if (iwd_lookup_ok) *iwd_lookup_ok = lookup_ok ? 1 : 0;
     if (iwd_mount_ok) *iwd_mount_ok = mount_ok ? 1 : 0;
     if (iwd_searchpath_ok) *iwd_searchpath_ok = searchpath_ok ? 1 : 0;
     if (iwd_directory_scan_ok) *iwd_directory_scan_ok = directory_scan_ok ? 1 : 0;
-    ok = ok && mount_ok && searchpath_ok && directory_scan_ok;
+    ok = ok && mount_ok && searchpath_ok && directory_scan_ok && lookup_ok;
     if (z2026_platform_unlink_file(path) != 0) ok = false;
     return ok ? 1 : 0;
 }
