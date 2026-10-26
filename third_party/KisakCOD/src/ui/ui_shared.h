@@ -667,7 +667,11 @@ struct operator_s // sizeof=0x14
     operator_s *prev;
     operator_s *next;
 };
-struct alignas(8) token_s // sizeof=0x430
+#if defined(__LP64__)
+struct alignas(16) token_s
+#else
+struct alignas(8) token_s
+#endif // sizeof=0x430
 {                                       // ...
     char string[1024];                  // ...
     int type;                           // ...
@@ -688,7 +692,11 @@ struct alignas(8) token_s // sizeof=0x430
     // padding byte
     // padding byte
 };
-struct alignas(8) value_s // sizeof=0x20
+#if defined(__LP64__)
+struct alignas(16) value_s
+#else
+struct alignas(8) value_s
+#endif // sizeof=0x20
 {                                       // ...
     int intvalue;
     // padding byte
@@ -704,7 +712,11 @@ struct alignas(8) value_s // sizeof=0x20
     // padding byte
     // padding byte
 };
-struct alignas(8) script_s // sizeof=0x4B0
+#if defined(__LP64__)
+struct alignas(16) script_s
+#else
+struct alignas(8) script_s
+#endif // sizeof=0x4B0
 {
     char filename[64];
     char *buffer;
@@ -1400,6 +1412,7 @@ void __cdecl bitwiseOr(Operand *leftSide, Operand *rightSide, Operand *result);
 
 // ui_shared_obj
 // KISAKTODO: Rewrite the functions to actually use these templated versions. (There aren't a ton so they were just pasted in)
+#if !defined(__ANDROID__) // Unused, incomplete legacy template; Android uses no KeywordHashEntry instantiation.
 template<typename T, int useless, int HASH_SEED>
 struct KeywordHashEntry
 {
@@ -1430,6 +1443,7 @@ struct KeywordHashEntry
     const char *keyword;
     int(__cdecl *func)(T *, int);
 };
+#endif
 int __cdecl PC_CheckTokenString(source_s *source, const char *string);
 EvalValue *__cdecl Eval_Solve(EvalValue *result, Eval *eval);
 bool __cdecl Eval_AnyMissingOperands(const Eval *eval);
