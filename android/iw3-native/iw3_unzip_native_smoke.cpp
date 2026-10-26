@@ -224,18 +224,27 @@ bool scan_original_iwd_directory(const char *root,
         const int old_count = fs_iwdFileCount;
         const int old_feed = fs_checksumFeed;
         searchpath_s *const previous = fs_searchpaths;
+        char previous_gamedir[sizeof(fs_gamedir)]{};
+        std::memcpy(previous_gamedir, fs_gamedir, sizeof(previous_gamedir));
         fs_checksumFeed = 0;
 
-        // Execute the ORIGINAL directory scanner end-to-end: Sys_ListFiles
-        // enumerates the rooted fixture directory, the original scanner sorts
-        // and opens the .iwd, FS_LoadZipFile builds its index, and the original
-        // FS_AddSearchPath inserts the resulting searchpath node.
-        FS_AddIwdFilesForGameDirectory(root_copy, game_copy);
+        // Execute the ORIGINAL game-directory registration path, not only its
+        // child IWD scanner. The engine first registers directory_t, then scans
+        // the same rooted folder and prepends the indexed IWD searchpath.
+        FS_AddGameDirectory(root_copy, game_copy, 0, 0);
 
         searchpath_s *const inserted = fs_searchpaths;
-        if (inserted && inserted != previous && inserted->next == previous &&
-            inserted->iwd && inserted->iwd->numfiles == static_cast<int>(expected.size()) &&
+        searchpath_s *const directory_node = inserted ? inserted->next : nullptr;
+        if (inserted && inserted != previous && directory_node &&
+            directory_node != previous && directory_node->next == previous &&
+            inserted->iwd && !inserted->dir && directory_node->dir &&
+            !directory_node->iwd &&
+            std::strcmp(directory_node->dir->path, root_copy) == 0 &&
+            std::strcmp(directory_node->dir->gamedir, game_copy) == 0 &&
+            std::strcmp(fs_gamedir, game_copy) == 0 &&
+            inserted->iwd->numfiles == static_cast<int>(expected.size()) &&
             inserted->bLocalized == 0 && inserted->language == 0 &&
+            directory_node->bLocalized == 0 && directory_node->language == 0 &&
             inserted->iwd->checksum == inserted->iwd->pure_checksum &&
             fs_iwdFileCount == old_count + static_cast<int>(expected.size()) &&
             std::strcmp(inserted->iwd->iwdBasename, basename) == 0 &&
@@ -279,11 +288,13 @@ bool scan_original_iwd_directory(const char *root,
                 if (iwd->buildBuffer) Z_Free(iwd->buildBuffer, 3);
                 Z_Free(iwd, 3);
             }
+            if (cursor->dir) Z_Free(cursor->dir, 3);
             Z_Free(cursor, 3);
             cursor = next;
             ++released;
         }
         if (cursor != previous) ok = false;
+        std::memcpy(fs_gamedir, previous_gamedir, sizeof(previous_gamedir));
         fs_iwdFileCount = old_count;
         fs_checksumFeed = old_feed;
     }
