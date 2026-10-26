@@ -81,6 +81,11 @@ jobs:
             --engine third_party/KisakCOD \
             --output "$RUNNER_TEMP/iw3-source/iw3_iwd_lookup.cpp" \
             --report "$RUNNER_TEMP/iw3-original-iwd-lookup.json"
+          python3 tools/iw3_android/prepare_real_engine_iwd_read.py \
+            --engine third_party/KisakCOD \
+            --output "$RUNNER_TEMP/iw3-source/iw3_iwd_read_lifecycle.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-iwd-read-lifecycle.json"
+          echo "IW3_ORIGINAL_FILE_READ_LIFECYCLE_STAGED_NOT_LINKED"
           echo "IW3_ACTUAL_SOURCE_USED_FROM_KISAKCOD"
 
       - name: Compile and EXECUTE original KisakCOD aim math on host
@@ -251,6 +256,8 @@ jobs:
             ${{ runner.temp }}/iw3-original-iwd-mount.json
             ${{ runner.temp }}/iw3-original-iwd-services.json
             ${{ runner.temp }}/iw3-original-iwd-directory.json
+            ${{ runner.temp }}/iw3-original-iwd-lookup.json
+            ${{ runner.temp }}/iw3-original-iwd-read-lifecycle.json
             ${{ runner.temp }}/iw3-authentic-sp-frame-entity-arm64.o
             ${{ runner.temp }}/iw3-sp-frame-abi64-object-elf.txt
             ${{ runner.temp }}/iw3-arm64-elf.txt
