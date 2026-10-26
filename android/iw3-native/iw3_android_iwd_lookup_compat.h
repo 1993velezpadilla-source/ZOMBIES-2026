@@ -17,5 +17,8 @@ void __cdecl FS_BuildOSPathForThread(const char *base, const char *game,
 int __cdecl FS_FilenameCompare(const char *s1, const char *s2);
 extern const dvar_s *fs_ignoreLocalized;
 
+FILE *z2026_iw3_lookup_file_open_read_binary(const char *path);
+void z2026_iw3_lookup_file_close_binary(FILE *stream);
+
 extern "C" int z2026_iw3_original_searchpath_lookup(
     const char *filename, int *file, FsThread thread);
