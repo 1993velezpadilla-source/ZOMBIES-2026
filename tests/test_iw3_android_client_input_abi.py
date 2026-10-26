@@ -52,6 +52,25 @@ class OriginalClientInputAbiTests(unittest.TestCase):
         self.assertEqual(positions, sorted(positions))
         self.assertIn("#if defined(__ANDROID__)", body)
 
+    def test_native_layout_guards_preserve_win32_and_lp64(self):
+        bg = (ROOT / "third_party/KisakCOD/src/bgame/bg_local.h").read_text(encoding="utf-8")
+        memtree = (ROOT / "third_party/KisakCOD/src/script/scr_memorytree.h").read_text(encoding="utf-8")
+        stringlist = (ROOT / "third_party/KisakCOD/src/script/scr_stringlist.h").read_text(encoding="utf-8")
+        ui = (ROOT / "third_party/KisakCOD/src/ui/ui_shared.h").read_text(encoding="utf-8")
+        font = (ROOT / "third_party/KisakCOD/src/gfx_d3d/r_font.h").read_text(encoding="utf-8")
+        self.assertIn("static_assert(sizeof(struct scr_anim_s) == 0x8);", bg)
+        self.assertIn("static_assert(sizeof(struct scr_anim_s) == 0x4);", bg)
+        self.assertIn("static_assert(sizeof(animScriptCommand_t) == 0x18);", bg)
+        self.assertIn("static_assert(sizeof(animScriptCommand_t) == 0x10);", bg)
+        self.assertIn("struct alignas(8) animation_s", bg)
+        self.assertIn("struct alignas(128) scrMemTreeGlob_t", memtree)
+        self.assertIn("struct alignas(128) scrStringGlob_t", stringlist)
+        self.assertIn("struct alignas(16) token_s", ui)
+        self.assertIn("struct alignas(16) value_s", ui)
+        self.assertIn("struct alignas(16) script_s", ui)
+        self.assertIn("static_assert(sizeof(Font_s) == 40);", font)
+        self.assertIn("static_assert(sizeof(Font_s) == 24);", font)
+
     def test_d3d_bound_client_input_is_not_misreported_as_android_runtime(self):
         cmake = CMAKE.read_text(encoding="utf-8")
         workflow = WORKFLOW.read_text(encoding="utf-8")
