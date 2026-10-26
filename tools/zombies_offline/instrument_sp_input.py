@@ -36,11 +36,11 @@ AIM_CODE = r"""
     static bool z2026_test_aim_logged = false;
     static bool z2026_no_aim_target_logged = false;
     if ((result->buttons & BUTTON_ATTACK) &&
+        g_entities[0].client &&
         g_entities[0].client->ps.weapon > 0 &&
         z2026_test_aim_cmds < 12 &&
         level.num_entities > 1 &&
-        g_entities[0].r.inuse &&
-        g_entities[0].client)
+        g_entities[0].r.inuse)
     {
         gentity_s *z2026_target = nullptr;
         float z2026_best_distance_squared = 1.0e30f;
