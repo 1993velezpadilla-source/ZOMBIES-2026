@@ -145,3 +145,23 @@ Final verification on code commit `88b1383ac9aff85528a573bcb5fa44df179afc0e`:
 - Source preflight [40408861841](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40408861841): passed.
 
 **Interpretation limit:** this proves Android touch coordinates reach the native adapter and produce the expected original-layout command bits. It does not prove that a live original client frame consumes them: `cl_input.cpp` is still absent from the Android shared-library target, and the JNI activity does not run `CL_CreateCmd`/`Com_Frame`. The stock engine's slide gameplay is also not implemented merely by emitting the sprint+crouch chord. No real FastFile/map, renderer, weapon/actor combat, or physical ARM64 gameplay is proven. PR #4 remains open and unmerged.
+
+
+### Phase W — native-width client command queue and original input TU on Android (26 Oct 2026; CI pending)
+
+The next client-side portability seam is the original `CL_CreateNewCommands()` path. It copied each `usercmd_s` through a hard-coded `_BYTE v1[56]` stack buffer, then copied that buffer into the command ring. The command record is a typed engine structure; the temporary Win32-sized byte array is unnecessary and can silently truncate a future/native-width layout.
+
+The authentic `third_party/KisakCOD/src/client/cl_input.cpp` now constructs the command in a `usercmd_s` object and copies `sizeof(command)` into the selected original `clients[0].cmds` slot under the existing client-command critical section. The command index is evaluated once into `nextCommand`. This preserves the original command creation, ring index, and lock ordering while removing the fixed 56-byte intermediate copy.
+
+The Android CMake build now compiles the original SP `cl_input.cpp` as `libiw3_sp_client_input.a` with the NDK ABI. The ARM64 workflow audits that the archive defines `CL_CreateCmd(usercmd_s*)` and `CL_CreateNewCommands()`, and that the original `CL_CreateCmd` still references the Android touch boundary `z2026_platform_apply_touch_to_usercmd`. This archive is deliberately not linked into the JNI diagnostic yet: the real client state, server lifecycle and remaining client services still need integration.
+
+Regression coverage in `tests/test_iw3_android_client_input_abi.py` checks the native-size queue copy, original call ordering, and build/audit scope boundary.
+
+- Engine fix: `58ff84f2658c1ce21dd9d5719dd3cdf04a260ff7`.
+- Android CMake client-input target: `0db9a79eac3e67a998bd66b42ac08802969510f7`.
+- ARM64 symbol-audit workflow: `bcbedfa66cc061f45599f6f77190b1929a6f7baf`.
+- Regression test: `c41d1f684e6ec2e01f4a9ae8b2de439008f01087`.
+
+**Validation status at documentation time:** the ARM64 source workflow, JNI build and emulator diagnostic have been triggered for the new head; their final conclusions have not yet been inspected. Do not count this phase as green until those runs complete.
+
+**Scope boundary:** compiling the original client input translation unit and correcting the command queue's typed copy does not make the touch bridge live in the APK. The archive is not linked into the diagnostic, and this phase does not execute `CL_CreateCmd` from an Android game frame. Full `Com_Frame`, `FS_Startup`, licensed FastFile/map loading, renderer output, weapon/actor gameplay and physical ARM64 execution remain unproven. No playable APK is claimed; PR #4 remains open and unmerged.
