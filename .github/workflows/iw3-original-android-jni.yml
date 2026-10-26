@@ -99,6 +99,10 @@ jobs:
             --engine third_party/KisakCOD \
             --output "$folder/fs_load_zip.cpp" \
             --report "$RUNNER_TEMP/iw3-original-iwd-mount.json"
+          python3 tools/iw3_android/prepare_real_engine_iwd_services.py \
+            --engine third_party/KisakCOD \
+            --output "$folder/iw3_iwd_services.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-iwd-services.json"
           echo 'IW3_REAL_SOURCE_DIAGNOSTIC_INCLUDES_ONLY'
 
       - name: Compile JNI Activity with real KisakCOD source for Android ARM64
@@ -161,6 +165,7 @@ jobs:
             ${{ runner.temp }}/iw3-original-iwd-names.json
             ${{ runner.temp }}/iw3-original-unzip-abi.json
             ${{ runner.temp }}/iw3-original-iwd-mount.json
+            ${{ runner.temp }}/iw3-original-iwd-services.json
             ${{ runner.temp }}/iw3-jni-elf.txt
             ${{ runner.temp }}/iw3-jni-symbols.txt
             ${{ runner.temp }}/iw3-diagnostic-apk-sha256.txt
