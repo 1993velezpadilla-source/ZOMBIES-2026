@@ -29,6 +29,7 @@ REQUIRED = (
     "if (!uf)",
     "if (unzGetGlobalInfo(uf, &gi))",
     "file_info.size_filename >= sizeof(filename_inzip)",
+    "if (!file_info.size_filename || strlen(filename_inzip) != file_info.size_filename)",
     "gi.number_entry > (uint32_t)(INT_MAX / sizeof(fileInIwd_s))",
     "len > (uint32_t)INT_MAX - gi.number_entry * sizeof(fileInIwd_s)",
     "const uint32_t buildBytes",
