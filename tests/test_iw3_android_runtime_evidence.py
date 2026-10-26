@@ -19,6 +19,7 @@ class NativeRuntimeEvidenceTests(unittest.TestCase):
         self.assertTrue(result["touch_down_and_up_read_back_from_native"])
         self.assertTrue(result["original_fs_addsearchpath_inserted_fixture_executed"])
         self.assertTrue(result["original_fs_addiwdfiles_directory_scan_executed"])
+        self.assertTrue(result["original_fs_add_game_directory_registered_fixture_executed"])
         self.assertFalse(result["arm64_device_execution_proven"])
         self.assertFalse(result["gameplay_proven"])
 
