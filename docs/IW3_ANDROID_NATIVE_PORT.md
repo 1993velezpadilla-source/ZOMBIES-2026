@@ -495,9 +495,16 @@ explicitly **not linked into the JNI APK**. The Android ARM64 JNI build also
 completed successfully in [run 40247741699](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40247741699),
 including APK signature, AArch64 ELF, JNI symbol and package checks; artifact
 [12619771079](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40247741699/artifacts/12619771079)
-is the diagnostic-only package and provenance bundle. The separate x86_64
-emulator boot/runtime probe is still in progress. Neither success proves a
-real map, renderer, client/gameplay linkage, or physical ARM64 execution.
+is the diagnostic-only package and provenance bundle. The separate x86_64 emulator runtime probe then completed successfully in
+[run 40247741674](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40247741674):
+the Android Activity/JNI ran the original ZIP32 stored/deflate parser,
+sandboxed file operations, original IWD-name functions, touch DOWN/UP
+readback, the native usercmd adapter, and pause/resume. Its proof report
+explicitly records `arm64_device_execution_proven: false` and
+`gameplay_proven: false`. Artifact
+[12619940202](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40247741674/artifacts/12619940202)
+contains the runtime log/proof. Neither success proves a real map, renderer,
+client/gameplay linkage, or physical ARM64 execution.
 
 Remaining gates are unchanged: wire the module to the actual engine allocator,
 checksum/string services and Android file-searchpath startup; mount a real
