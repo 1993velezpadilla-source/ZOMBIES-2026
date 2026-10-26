@@ -65,6 +65,15 @@ int main() {
     assert(windows_path_fd >= 0);
     close(windows_path_fd);
     assert(z2026_platform_open_engine_path_fd("main\\..\\sample.txt") == -1);
+    // FS_ReplaceSeparators also converts the leading slash of an absolute
+    // original-engine path. It must still be recognized as absolute and rooted.
+    const std::string windows_rooted_engine_path =
+        std::string("\\") + std::string(root).substr(1) + "\\sample.txt";
+    int windows_rooted_fd =
+        z2026_platform_open_engine_path_fd(windows_rooted_engine_path.c_str());
+    assert(windows_rooted_fd >= 0);
+    close(windows_rooted_fd);
+    assert(z2026_platform_open_engine_path_fd("\\etc\\passwd") == -1);
     assert(z2026_platform_write_file("../escape.bin", "bad", 3) == -1);
     assert(z2026_platform_write_file("/absolute.bin", "bad", 3) == -1);
     assert(z2026_platform_write_file("generated.iwd", "IWD", 3) == 3);
