@@ -53,5 +53,20 @@ class OriginalFSReadStageTests(unittest.TestCase):
             self.assertEqual((ENGINE / source_path).read_bytes(), original)
 
 
+    def test_directory_fallback_uses_original_handle_lifecycle(self):
+        smoke = (ROOT / "android/iw3-native/iw3_unzip_native_smoke.cpp").read_text(encoding="utf-8")
+        jni = (ROOT / "android/iw3-native/iw3_android_jni.cpp").read_text(encoding="utf-8")
+        verifier = (ROOT / "tools/iw3_android/verify_runtime_evidence.py").read_text(encoding="utf-8")
+        adapter = (ROOT / "android/iw3-native/iw3_android_fs_read_io.cpp").read_text(encoding="utf-8")
+        self.assertIn("read_directory_file_via_original_fs", smoke)
+        self.assertIn("FS_FOpenFileReadForThread(", smoke)
+        self.assertIn("FS_Read(bytes.data(), expected_length, handle)", smoke)
+        self.assertIn("FS_FCloseFile(handle);", smoke)
+        self.assertIn("z2026_iw3_fs_file_get_size", adapter)
+        self.assertIn("IW3_JNI_FS_DIRECTORY_OPEN_READ_CLOSE_PASS", verifier)
+        self.assertIn('"original_fs_directory_fallback_read_executed": True', verifier)
+        self.assertIn("iwd_fs_disk_read_ok && math_ok", jni)
+
+
 if __name__ == "__main__":
     unittest.main()
