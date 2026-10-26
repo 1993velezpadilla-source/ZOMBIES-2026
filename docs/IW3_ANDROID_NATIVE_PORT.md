@@ -554,3 +554,35 @@ and [20fac77](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/20f
 CI for the fix must pass the Windows SP build before any runtime hit/damage
 result can be interpreted. This is a test-harness compile fix only; it is not
 Android engine linkage, not an IWD mount, and not evidence of playable gameplay.
+
+
+## Offline SP aim probe: compensate snapshot delta angles (2026-10-26)
+
+The completed Windows SP runtime probe now builds and runs, but its latest evidence
+still reports `weapon_fired_verified: true` and
+`aimed_weapon_damage_verified: false`. The original `FireWeapon` and
+`Bullet_Fire` callbacks ran, and the test aimed at an existing actor; neither
+fact proves that the authoritative shot intersected that actor. The run's
+metadata-only report is [40257038556](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40257038556),
+artifact [12623062805](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40257038556/artifacts/12623062805).
+
+A source review found a concrete input-probe error: the disposable
+`CL_CreateCmd` hook wrote world-space target angles directly into the client's
+command-space `viewangles`. `CL_FinishMove` packs those angles into the
+usercmd, while the server reconstructs the authoritative view by adding the
+snapshot's `delta_angles`. The probe therefore could systematically miss even
+when its target-angle calculation was correct.
+
+The disposable probe now subtracts each snapshot `delta_angles` component
+from the desired world-space pitch/yaw/roll before `CL_FinishMove` packs the
+command. A regression test requires all three compensations. This change is
+confined to the temporary Windows-only diagnostic copy; vendored KisakCOD
+gameplay source remains untouched. The next runtime CI result must show whether
+this removes the aim offset. Damage/death remain unverified until the report
+observes the original `G_Damage` callback on an actor.
+
+This is not Android client linkage, not a map-rendering milestone, and not a
+playable APK. The IWD indexer remains a separate static module with unresolved
+allocator/checksum services; the native Android library still does not mount
+real IWD searchpaths, load FastFiles/maps, or run the original client/game loop.
+Keep PR #4 open and unmerged.
