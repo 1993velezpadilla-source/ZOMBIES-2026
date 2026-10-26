@@ -11,6 +11,7 @@ REQUIRED = (
     "IW3_JNI_LIFECYCLE_1",
     "IW3_JNI_DATA_ROOT_READY",
     "IW3_JNI_UNZIP_PARSER_PASS",
+    "IW3_JNI_IWD_MOUNT_PASS",
     "IW3_JNI_SNAP_FLOAT_PASS",
     "IW3_JNI_IWD_NAMES_PASS",
     "IW3_JNI_SANDBOX_IO_PASS",
@@ -21,7 +22,7 @@ REQUIRED = (
 ERRORS = (
     "JNI_NATIVE_ENGINE_PROBE_FAIL", "IW3_JNI_ACTIVITY_FAILED",
     "IW3_JNI_ACTIVITY_STARTED FAIL", "IW3_JNI_DATA_ROOT_FAIL",
-    "IW3_JNI_UNZIP_PARSER_FAIL", "IW3_JNI_SNAP_FLOAT_FAIL",
+    "IW3_JNI_UNZIP_PARSER_FAIL", "IW3_JNI_IWD_MOUNT_FAIL", "IW3_JNI_SNAP_FLOAT_FAIL",
     "IW3_JNI_IWD_NAMES_FAIL", "IW3_JNI_SANDBOX_IO_FAIL",
     "IW3_JNI_USERCMD_ADAPTER_FAIL", "IW3_JNI_USERCMD_SNAPSHOT_FAILED",
     "IW3_JNI_TOUCH_FAILED", "TOUCH_NATIVE_REJECTED",
@@ -86,6 +87,7 @@ def verify(log: str) -> dict:
     return {
         "android_jni_components_executed": True,
         "original_iw3_zip32_stored_and_deflate_parser_executed": True,
+        "original_fs_loadzipfile_indexed_fixture_executed": True,
         "touch_down_and_up_read_back_from_native": True,
         "touch_translated_to_original_iw3_usercmd_s": True,
         "android_pause_and_resume_observed": True,
