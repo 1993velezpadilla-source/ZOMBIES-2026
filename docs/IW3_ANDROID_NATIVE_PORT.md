@@ -877,4 +877,15 @@ Current head before this pass, 599ddff, passed the three Android CI gates:
 - [ARM64 JNI diagnostic package — 40349187705](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40349187705)
 - [Android x86_64 emulator runtime — 40349187759](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40349187759), whose log emitted IW3_JNI_IWD_FS_READ_PASS.
 
-Those results verify the original ZIP-branch FS_Read() on a synthetic IWD fixture; they do not verify the full FS_FOpenFileReadForThread -> FS_Read -> FS_FCloseFile lifecycle, real game assets, FastFiles/maps, rendering, physical ARM64 execution or gameplay. The new close-path checks must pass on the new head before this pass is called green. PR #4 remains intentionally open and unmerged.
+Those results verify the original ZIP-branch FS_Read() on a synthetic IWD fixture; they do not verify the full FS_FOpenFileReadForThread -> FS_Read -> FS_FCloseFile lifecycle, real game assets, FastFiles/maps, rendering, physical ARM64 execution or gameplay. Validation on head bdee1dfd2da8a38bb549e2cfa704991a3db6bbfa completed on 26 Oct 2026:
+
+- Preflight 40351532999: PASS, including the new native-width close regression tests.
+- Native ARM64 build 40351524350: PASS. The compiled AArch64 audit archive defines FS_FCloseFile(int); artifact 12663543782 is a native-module bundle, not an APK.
+- JNI package 40351524380: PASS. Artifact 12663658623 is the signed diagnostic APK, not the game.
+- Android emulator runtime 40351524407: PASS. Logcat emitted IW3_JNI_IWD_FS_READ_PASS; in this revision that result requires the authentic FS_Read ZIP branch to return the exact fixture payload, the authentic FS_FCloseFile path to close the cloned archive, and all bytes in the 304-byte native-width handle record to be zero. Artifact 12663418140 is an x86_64 emulator log/evidence bundle, not a game APK.
+- Original Windows SP build 40351532826: PASS.
+- Windows killhouse runtime 40351532859: the process remained alive at 40 seconds, the killhouse map was requested, a registered bullet weapon was equipped, and actor AI think executed. The evidence still reports actual weapon-fire, damage, pain and death callbacks as false; this is not proof of a complete combat loop. Artifact 12664166888 contains metadata evidence only.
+
+The first ARM64 attempt (40351393823) failed at the new source-regression step because the generator did not yet require the native-size marker. The generator contract was corrected in bdee1df and the rerun above passed.
+
+The next blocker is still the complete original FS_FOpenFileReadForThread -> handle allocation -> FS_Read -> FS_FCloseFile lifecycle using the engine-owned handle table, followed by real FastFiles/map loading, renderer output, touch consumption by CL_CreateCmd/player simulation, and observed ARM64 gameplay. The current fixture uses a generated IWD and an Android x86_64 emulator. No licensed game assets, real map render, physical ARM64 execution, or playable APK are proven. PR #4 remains intentionally open and unmerged.
