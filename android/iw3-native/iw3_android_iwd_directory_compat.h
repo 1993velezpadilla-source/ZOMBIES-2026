@@ -20,3 +20,7 @@ char *__cdecl IwdFileLanguage(const char *pszIwdFileName);
 int __cdecl FS_PathCmp(const char *s1, const char *s2);
 int __cdecl iwdsort(const char **a, char **b);
 void __cdecl FS_AddIwdFilesForGameDirectory(char *path, char *pszGameFolder);
+void __cdecl FS_AddGameDirectory(char *path, char *dir, int bLanguageDirectory, int iLanguage);
+extern char fs_gamedir[256];
+int __cdecl Sys_DirectoryHasContents(const char *directory);
+void __cdecl MyAssertHandler(const char *filename, int line, int type, const char *format, ...);
