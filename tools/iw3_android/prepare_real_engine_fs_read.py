@@ -50,7 +50,7 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
     original = source_path.read_bytes()
     text = original.decode("utf-8")
     bodies = [function_source(text, signature) for signature in FUNCTIONS]
-    body = bodies[-1]
+    body = bodies[FUNCTIONS.index(SIGNATURE)]
     combined = "\n\n".join(bodies)
     for marker in REQUIRED:
         if marker not in combined:
