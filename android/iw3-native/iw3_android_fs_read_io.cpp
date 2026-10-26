@@ -27,8 +27,8 @@ int fs_fakeChkSum = 0;
 // closed for unsupported database/fastfile scheduling and copy-file behavior.
 bool z2026_iw3_is_fastfile_load() { return false; }
 bool z2026_iw3_is_database_thread() { return false; }
-const char *z2026_iw3_safe_translate(const char *text) {
-    return text ? text : "";
+char *z2026_iw3_safe_translate(char *text) {
+    return text ? text : const_cast<char *>("");
 }
 void z2026_iw3_fs_copy_file(char *, char *) {
     std::abort();
