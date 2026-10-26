@@ -22,6 +22,9 @@ SOURCE = "src/universal/com_files.cpp"
 SIGNATURE = "iwd_t *__cdecl FS_LoadZipFile(char *zipfile, char *basename)"
 OUTPUT_HEADER = '#include "iw3_android_iwd_mount_compat.h"\n'
 REQUIRED = (
+    "if (!zipfile || !*zipfile || !basename || !*basename)",
+    "strlen(zipfile) >= sizeof(((iwd_t *)0)->iwdFilename)",
+    "strlen(basename) >= sizeof(((iwd_t *)0)->iwdBasename)",
     "uf = unzOpen(zipfile);",
     "if (!uf)",
     "if (unzGetGlobalInfo(uf, &gi))",
