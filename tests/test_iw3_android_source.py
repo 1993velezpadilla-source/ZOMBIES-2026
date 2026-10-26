@@ -53,6 +53,13 @@ from tools.iw3_android.prepare_real_engine_iwd_searchpath import (
     SOURCE as IWD_SEARCHPATH_SOURCE, SIGNATURE as IWD_SEARCHPATH_SIGNATURE,
     REQUIRED as IWD_SEARCHPATH_REQUIRED, prepare as prepare_iwd_searchpath,
 )
+from tools.iw3_android.prepare_real_engine_iwd_lookup import (
+    OPEN_SIGNATURE as IWD_LOOKUP_OPEN_SIGNATURE,
+    PREFIX_START as IWD_LOOKUP_PREFIX_START,
+    PREFIX_END as IWD_LOOKUP_PREFIX_END,
+    REQUIRED as IWD_LOOKUP_REQUIRED,
+    prepare as prepare_iwd_lookup,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 ENGINE = ROOT / "third_party/KisakCOD"
@@ -474,6 +481,53 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
                 prepare_iwd_services(ENGINE, ENGINE / Path("src/universal/com_files.cpp"))
         for path, raw in original_files.items():
             self.assertEqual((ENGINE / path).read_bytes(), raw)
+
+    def test_original_file_lookup_branch_is_preserved_without_claiming_fs_read(self):
+        source_path = ENGINE / "src/universal/com_files.cpp"
+        original = source_path.read_bytes()
+        original_text = original.decode("utf-8")
+        full_open = function_source(original_text, IWD_LOOKUP_OPEN_SIGNATURE)
+        start = full_open.index(IWD_LOOKUP_PREFIX_START)
+        end = full_open.index(IWD_LOOKUP_PREFIX_END, start)
+        expected_prefix = full_open[start:end]
+        with TemporaryDirectory() as temp:
+            output = Path(temp) / "stage" / "iw3_iwd_lookup.cpp"
+            evidence = prepare_iwd_lookup(ENGINE, output)
+            staged = output.read_text(encoding="utf-8")
+            self.assertTrue(evidence["original_searchpath_lookup_prefix_preserved_verbatim"])
+            self.assertTrue(evidence["original_filename_sanitizer_preserved"])
+            self.assertTrue(evidence["original_iwd_hash_and_filename_compare_used"])
+            self.assertFalse(evidence["file_handle_allocation_ported"])
+            self.assertFalse(evidence["original_FS_Read_ported"])
+            self.assertFalse(evidence["playable_apk"])
+            self.assertIn(expected_prefix, staged)
+            self.assertIn("z2026_iw3_original_searchpath_lookup", staged)
+            self.assertNotIn("FS_HandleForFile(thread)", staged)
+            for marker in IWD_LOOKUP_REQUIRED:
+                self.assertIn(marker, staged)
+        self.assertEqual(source_path.read_bytes(), original)
+
+    def test_lookup_probe_is_wired_to_ci_but_keeps_read_path_explicitly_pending(self):
+        cmake = (ROOT / "android/iw3-native/CMakeLists.txt").read_text(encoding="utf-8")
+        smoke = (ROOT / "android/iw3-native/iw3_unzip_native_smoke.cpp").read_text(encoding="utf-8")
+        jni = (ROOT / "android/iw3-native/iw3_android_jni.cpp").read_text(encoding="utf-8")
+        validator = (ROOT / "tools/iw3_android/verify_runtime_evidence.py").read_text(encoding="utf-8")
+        self.assertIn("IW3_EXTRACTED_IWD_LOOKUP", cmake)
+        self.assertIn("iw3_android_iwd_lookup_io.cpp", cmake)
+        self.assertIn("z2026_iw3_original_searchpath_lookup", smoke)
+        self.assertIn("maps/iw3_android_missing.txt", smoke)
+        self.assertIn("../maps/iw3_android_probe.txt", smoke)
+        self.assertIn("IW3_JNI_IWD_LOOKUP_%s", jni)
+        self.assertIn("IW3_JNI_IWD_LOOKUP_PASS", validator)
+        self.assertIn("original_fs_read_handle_path_executed", validator)
+        for workflow in (
+            ".github/workflows/iw3-original-android-jni.yml",
+            ".github/workflows/iw3-original-android-emulator-jni.yml",
+            ".github/workflows/iw3-original-native-android.yml",
+        ):
+            content = (ROOT / workflow).read_text(encoding="utf-8")
+            self.assertIn("prepare_real_engine_iwd_lookup.py", content)
+            self.assertIn("iw3_iwd_lookup.cpp", content)
 
 if __name__ == "__main__":
     unittest.main()
