@@ -82,6 +82,12 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(
     __android_log_print(iwd_fs_read_ok ? ANDROID_LOG_INFO : ANDROID_LOG_ERROR,
                         "IW3NativeGate", "IW3_JNI_IWD_FS_READ_%s",
                         iwd_fs_read_ok ? "PASS" : "FAIL");
+    __android_log_print(iwd_fs_read_ok ? ANDROID_LOG_INFO : ANDROID_LOG_ERROR,
+                        "IW3NativeGate", "IW3_JNI_IWD_FS_OPEN_READ_CLOSE_%s",
+                        iwd_fs_read_ok ? "PASS" : "FAIL");
+    __android_log_print(iwd_fs_read_ok ? ANDROID_LOG_INFO : ANDROID_LOG_ERROR,
+                        "IW3NativeGate", "IW3_JNI_IWD_FS_CLONE_%s",
+                        iwd_fs_read_ok ? "PASS" : "FAIL");
     // These calls resolve to the original engine's math, material and
     // configstring implementations via native_math_abi.cpp.
     const int math_ok = z2026_iw3_math_smoke();
@@ -143,7 +149,7 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(
                   "Original FS_AddSearchPath fixture insertion: %s\n"
                   "Original FS_AddIwdFilesForGameDirectory scan: %s\n"
                   "Original FS_FOpenFileReadForThread lookup-only branch: %s\n"
-                  "Original FS_Read IWD ZIP branch: %s\n"
+                  "Original FS_FOpenFileReadForThread -> FS_Read -> FS_FCloseFile lifecycle: %s\n"
                   "Android app-private data-root I/O: %s\n"
                   "Original IW3 usercmd_s touch adapter: %s\n"
                   "Original specialty_rof ID: %d\n"
