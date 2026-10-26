@@ -8,7 +8,9 @@
 #include <qcommon/msg.h>
 #include <universal/memfile.h>
 #endif
+#if !defined(__ANDROID__)
 #include <gfx_d3d/r_debug.h>
+#endif
 
 struct snd_alias_t;
 
