@@ -11,7 +11,12 @@ import hashlib
 import json
 from pathlib import Path
 
-from tools.iw3_android.prepare_g_runframe_prereqs import function_source
+try:
+    from tools.iw3_android.prepare_g_runframe_prereqs import function_source
+except ModuleNotFoundError:
+    # Direct CLI execution puts this script's directory, not repository root,
+    # on sys.path; the sibling module is the same source helper.
+    from prepare_g_runframe_prereqs import function_source
 
 SOURCE = "src/universal/com_files.cpp"
 SIGNATURE = "iwd_t *__cdecl FS_LoadZipFile(char *zipfile, char *basename)"
