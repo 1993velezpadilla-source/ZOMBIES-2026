@@ -58,7 +58,7 @@ class OriginalFilesystemStringDvarABITests(unittest.TestCase):
         start = self.source.index(
             "bool __cdecl FS_GameDirDomainFunc(dvar_s *dvar, DvarValue newValue)"
         )
-        end = self.source.index("\\nvoid FS_RegisterDvars()", start)
+        end = self.source.index("\nvoid FS_RegisterDvars()", start)
         body = self.source[start:end]
         self.assertIn("if (!newValue.string[0])", body)
         self.assertIn("newValue.string[4] != '/'", body)
