@@ -126,7 +126,9 @@ The Android touch adapter previously had no touch role that emitted the original
 Both `z2026_platform_usercmd_snapshot()` and `z2026_platform_apply_touch_to_usercmd()` now map these roles to the original `usercmd_s` bits. The host C++ platform test now verifies simultaneous sprint/slide/jump, verifies that releasing slide leaves a still-held sprint active, and exercises the actual original-layout `usercmd_s` mutation path rather than only reading the side snapshot.
 
 - Adapter change: `55d7d6d11a3ac2b81d9f853e740e1b93cbf5f6cf`.
-- Host regression: `29c7c31aebc3ca9d68e32be970c446a75021a205`.
-- Validation was triggered for native ARM64, JNI ARM64, and the x86_64 Android emulator; results are pending at the time of this note.
+- Host regression and final touch-release assertion: `6fdd4270a4b883cf4dcff405eb8f3c2181424e88`.
+- Native ARM64 workflow [40407719927](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40407719927) passed source preflight, host CTest, ASan/UBSan and AArch64 source/archive checks. Its artifact [12691831689](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40407719927/artifacts/12691831689) is a compiled native module, **not an APK**.
+- JNI ARM64 compile/package/signature workflow [40407720076](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40407720076) passed. Its artifact [12690894283](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40407720076/artifacts/12690894283) is the **diagnostic APK, not a playable game**.
+- Android x86_64 emulator runtime workflow [40407719931](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40407719931) passed; runtime logs are in artifact [12692016585](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40407719931/artifacts/12692016585). This proves execution on an x86_64 emulator only, not ARM64 device gameplay.
 
 **Scope boundary:** the touch bridge is still not called by a live game frame in the Android APK. The vendored original `cl_input.cpp` hook is not yet integrated into the Android shared-library target; the current APK remains a JNI diagnostic. This change does not prove `FS_Startup()`, FastFile/map loading, rendering, weapons/actors in gameplay, or physical ARM64 gameplay. PR #4 remains open and unmerged.
