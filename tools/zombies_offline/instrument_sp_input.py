@@ -36,7 +36,7 @@ AIM_CODE = r"""
     static bool z2026_test_aim_logged = false;
     static bool z2026_no_aim_target_logged = false;
     if ((result->buttons & BUTTON_ATTACK) &&
-        clients[0].snap.ps.weapon > 0 &&
+        g_entities[0].client->ps.weapon > 0 &&
         z2026_test_aim_cmds < 12 &&
         level.num_entities > 1 &&
         g_entities[0].r.inuse &&
@@ -76,18 +76,18 @@ AIM_CODE = r"""
             const float z2026_dz = z2026_target_z - z2026_eye_z;
             const float z2026_horizontal = std::sqrt(z2026_dx * z2026_dx + z2026_dy * z2026_dy);
             const float z2026_degrees = 57.29577951308232f;
-            // CL_FinishMove packs viewangles, and the server adds snapshot
-            // delta_angles back to the command. Compensate here so the resulting
-            // authoritative player view points at the world-space target.
+            // CL_FinishMove packs client viewangles; the SP server reconstructs
+            // the command with the live playerState delta_angles. Use that
+            // authoritative state rather than a possibly empty client snapshot.
             const float z2026_target_pitch =
                 -std::atan2(z2026_dz, z2026_horizontal) * z2026_degrees;
             const float z2026_target_yaw =
                 std::atan2(z2026_dy, z2026_dx) * z2026_degrees;
             clients[0].viewangles[0] =
-                z2026_target_pitch - clients[0].snap.ps.delta_angles[0];
+                z2026_target_pitch - g_entities[0].client->ps.delta_angles[0];
             clients[0].viewangles[1] =
-                z2026_target_yaw - clients[0].snap.ps.delta_angles[1];
-            clients[0].viewangles[2] = -clients[0].snap.ps.delta_angles[2];
+                z2026_target_yaw - g_entities[0].client->ps.delta_angles[1];
+            clients[0].viewangles[2] = -g_entities[0].client->ps.delta_angles[2];
             ++z2026_test_aim_cmds;
             if (!z2026_test_aim_logged)
             {
@@ -106,16 +106,32 @@ AIM_CODE = r"""
 
 CODE = """
 #if defined(KISAK_SP)
-        // Test-only, finite attack input; first require a loaded weapon.
+        // Distinguish an inactive client command path from a failed weapon gate.
+        static bool z2026_test_cl_createcmd_logged = false;
+        static bool z2026_test_server_weapon_seen_logged = false;
         static unsigned int z2026_test_attack_cmds = 0;
         static unsigned int z2026_test_weapon_warmup_cmds = 0;
         static bool z2026_test_weapon_warmup_logged = false;
-        if (clients[0].snap.ps.weapon > 0 && z2026_test_attack_cmds < 12)
+        if (!z2026_test_cl_createcmd_logged)
         {
-            // The test loadout is granted by the real SP APIs. Do not spend
-            // the finite attack budget while the original raise/switch state
-            // is still settling; wait 120 client commands, then inject at most
-            // 12 real attack usercmds through the normal client path.
+            z2026_test_cl_createcmd_logged = true;
+            Z2026_TestInputTrace("TEST_CL_CREATECMD_REACHED");
+        }
+        // The offline bootstrap confirmed the real server-side player weapon,
+        // while the client snapshot stayed empty. Gate this test-only input on
+        // the live SP playerState; the command itself still uses the normal
+        // CL_CreateCmd/usercmd path and never calls combat functions directly.
+        if (g_entities[0].client &&
+            g_entities[0].client->ps.weapon > 0 &&
+            z2026_test_attack_cmds < 12)
+        {
+            if (!z2026_test_server_weapon_seen_logged)
+            {
+                z2026_test_server_weapon_seen_logged = true;
+                Z2026_TestInputTrace("TEST_SERVER_PLAYER_WEAPON_READY");
+            }
+            // Let the original raise/switch state settle before spending the
+            // finite attack budget; inject at most 12 real attack usercmds.
             if (z2026_test_weapon_warmup_cmds < 120)
             {
                 ++z2026_test_weapon_warmup_cmds;
@@ -148,8 +164,8 @@ def apply(copy: Path) -> dict:
         raise ValueError("Client input diagnostic already applied")
     if data.count(FN) != 1 or data.count(ANCHOR) != 1 or data.count(AIM_ANCHOR) != 1:
         raise ValueError("Missing/duplicate native client input anchors")
-    if "BUTTON_ATTACK" not in data or "clients[0].snap.ps" not in data:
-        raise ValueError("Missing genuine IW3 client button/snapshot contract")
+    if "BUTTON_ATTACK" not in data or "CL_CmdButtons(result);" not in data:
+        raise ValueError("Missing genuine IW3 client button/usercmd contract")
     data = data.replace("#include <universal/q_shared.h>",
                         "#include <cstdio>\n#include <cmath>\n#include <game/g_level.h>\n#include <universal/q_shared.h>", 1)
     idx = data.index(FN)
@@ -162,7 +178,8 @@ def apply(copy: Path) -> dict:
         "client_commands_limited_to": 12,
         "warmup_client_commands_before_attack": 120,
         "weapon_raise_window_is_respected": True,
-        "requires_player_snapshot_weapon": True,
+        "requires_authoritative_server_weapon_state": True,
+        "traces_client_command_hook_entry": True,
         "fireweapon_called_directly": False,
         "game_assets_modified": False,
         "multiplayer_auth_changed": False,

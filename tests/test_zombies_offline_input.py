@@ -23,7 +23,8 @@ class OfflineSPInputTests(unittest.TestCase):
             self.assertEqual(report["client_commands_limited_to"], 12)
             self.assertEqual(report["warmup_client_commands_before_attack"], 120)
             self.assertTrue(report["weapon_raise_window_is_respected"])
-            self.assertTrue(report["requires_player_snapshot_weapon"])
+            self.assertTrue(report["requires_authoritative_server_weapon_state"])
+            self.assertTrue(report["traces_client_command_hook_entry"])
             self.assertTrue(report["aims_at_existing_damageable_actor"])
             self.assertEqual(report["aim_commands_limited_to"], 12)
             self.assertFalse(report["injects_actor_or_damage"])
@@ -31,7 +32,10 @@ class OfflineSPInputTests(unittest.TestCase):
             self.assertFalse(report["multiplayer_auth_changed"])
             patched = path.read_text(encoding="utf-8")
             self.assertIn("#include <game/g_level.h>", patched)
-            self.assertIn("clients[0].snap.ps.weapon > 0", patched)
+            self.assertIn("g_entities[0].client->ps.weapon > 0", patched)
+            self.assertNotIn("clients[0].snap.ps.weapon > 0", patched)
+            self.assertIn('Z2026_TestInputTrace("TEST_CL_CREATECMD_REACHED")', patched)
+            self.assertIn('Z2026_TestInputTrace("TEST_SERVER_PLAYER_WEAPON_READY")', patched)
             self.assertIn("result->buttons |= BUTTON_ATTACK", patched)
             self.assertIn("z2026_test_attack_cmds < 12", patched)
             self.assertIn("z2026_test_weapon_warmup_cmds < 120", patched)
@@ -43,11 +47,10 @@ class OfflineSPInputTests(unittest.TestCase):
             self.assertIn("z2026_candidate->takedamage", patched)
             self.assertIn("z2026_test_aim_cmds < 12", patched)
             self.assertIn("std::atan2", patched)
-            # CL_FinishMove packs client angles and the authoritative server
-            # adds snapshot delta_angles; the probe must compensate before pack.
-            self.assertIn("z2026_target_pitch - clients[0].snap.ps.delta_angles[0]", patched)
-            self.assertIn("z2026_target_yaw - clients[0].snap.ps.delta_angles[1]", patched)
-            self.assertIn("clients[0].viewangles[2] = -clients[0].snap.ps.delta_angles[2];", patched)
+            # The probe compensates against the live authoritative SP playerState.
+            self.assertIn("z2026_target_pitch - g_entities[0].client->ps.delta_angles[0]", patched)
+            self.assertIn("z2026_target_yaw - g_entities[0].client->ps.delta_angles[1]", patched)
+            self.assertIn("clients[0].viewangles[2] = -g_entities[0].client->ps.delta_angles[2];", patched)
             self.assertIn("CL_FinishMove(result);", patched)
             self.assertNotIn("FireWeapon(", patched)
             self.assertNotIn("G_Damage(", patched)
@@ -57,6 +60,9 @@ class OfflineSPInputTests(unittest.TestCase):
 
     def test_runtime_report_does_not_confuse_aim_with_damage(self):
         report = PROBE.read_text(encoding="utf-8")
+        self.assertIn("test_client_createcmd_hook_reached", report)
+        self.assertIn("test_server_player_weapon_ready", report)
+        self.assertIn("test_weapon_warmup_complete", report)
         self.assertIn("test_aimed_at_existing_actor", report)
         self.assertIn("aimed_weapon_damage_verified", report)
         self.assertIn("$report.actor_damage_callback", report)

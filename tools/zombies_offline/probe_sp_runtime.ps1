@@ -35,6 +35,9 @@ $report=[ordered]@{
   test_ammo_initialized=$false
   test_weapon_switch_requested=$false
   test_no_compatible_registered_weapon=$false
+  test_client_createcmd_hook_reached=$false
+  test_server_player_weapon_ready=$false
+  test_weapon_warmup_complete=$false
   test_client_attack_button_injected=$false
   test_aimed_at_existing_actor=$false
   test_no_aimable_actor_found=$false
@@ -148,6 +151,9 @@ finally {
   }
   if(Test-Path $inputTrace) {
     $report.input_trace=@(Get-Content $inputTrace -TotalCount 10 -ErrorAction SilentlyContinue)
+    $report.test_client_createcmd_hook_reached=('TEST_CL_CREATECMD_REACHED' -in $report.input_trace)
+    $report.test_server_player_weapon_ready=('TEST_SERVER_PLAYER_WEAPON_READY' -in $report.input_trace)
+    $report.test_weapon_warmup_complete=('TEST_WEAPON_WARMUP_COMPLETE' -in $report.input_trace)
     $report.test_client_attack_button_injected=('TEST_ATTACK_BUTTON_INJECTED' -in $report.input_trace)
     $report.test_aimed_at_existing_actor=('TEST_AIMED_AT_EXISTING_ACTOR' -in $report.input_trace)
     $report.test_no_aimable_actor_found=('TEST_NO_AIMABLE_ACTOR' -in $report.input_trace)
