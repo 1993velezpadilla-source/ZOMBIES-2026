@@ -326,6 +326,7 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
             self.assertTrue(report["function_body_preserved_verbatim"])
             self.assertTrue(report["native_width_index_allocation_guards"])
             self.assertTrue(report["null_allocation_cleanup_guards"])
+            self.assertTrue(report["iwd_archive_path_keeps_extension_for_unz_reopen"])
             self.assertTrue(report["compiles_as_original_engine_static_module"])
             self.assertTrue(report["source_staged_for_android_diagnostic_link"])
             self.assertFalse(report["linkage_verified_by_build_ci"])
