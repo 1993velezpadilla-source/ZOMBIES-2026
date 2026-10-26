@@ -39,6 +39,11 @@ class OfflineSPInputTests(unittest.TestCase):
             self.assertIn("z2026_candidate->takedamage", patched)
             self.assertIn("z2026_test_aim_cmds < 12", patched)
             self.assertIn("std::atan2", patched)
+            # CL_FinishMove packs client angles and the authoritative server
+            # adds snapshot delta_angles; the probe must compensate before pack.
+            self.assertIn("z2026_target_pitch - clients[0].snap.ps.delta_angles[0]", patched)
+            self.assertIn("z2026_target_yaw - clients[0].snap.ps.delta_angles[1]", patched)
+            self.assertIn("clients[0].viewangles[2] = -clients[0].snap.ps.delta_angles[2];", patched)
             self.assertIn("CL_FinishMove(result);", patched)
             self.assertNotIn("FireWeapon(", patched)
             self.assertNotIn("G_Damage(", patched)
