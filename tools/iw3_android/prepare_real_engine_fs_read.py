@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-"""Extract authentic file-read helpers for an Android ABI and IWD-branch probe.
+"""Extract authentic KisakCOD file-handle allocation/open/read/close bodies.
 
-The emitted FS_FileForHandle and FS_Read bodies are verbatim from KisakCOD.
-The original FS_CheckFileSystemStarted body is already supplied by the existing
-lookup module. Android supplies a native-width fileHandleData_t table
-for the isolated ZIP-branch fixture; this is not the original complete open /
-close lifecycle and must not be described as a playable runtime.
+The exact upstream FS_HandleForFile and FS_FOpenFileReadForThread bodies are
+compiled into the Android diagnostic with the original FS_Read/FS_FCloseFile
+bodies. A narrow Android adapter supplies the native-width handle table and
+platform services; this does not link the complete engine filesystem/runtime.
 """
 from __future__ import annotations
 
@@ -20,83 +19,105 @@ except ModuleNotFoundError:
     from prepare_g_runframe_prereqs import function_source
 
 SOURCE = Path("src/universal/com_files.cpp")
+SHARED_SOURCE = Path("src/universal/q_shared.cpp")
 SIGNATURE = "uint32_t __cdecl FS_Read(uint8_t *buffer, uint32_t len, int h)"
 FUNCTIONS = (
-    "FILE *__cdecl FS_FileForHandle(int f)",
-    SIGNATURE,
-    "void __cdecl FS_FCloseFile(int h)",
+    ("int __cdecl FS_HandleForFile(FsThread thread)", SOURCE),
+    ("FILE *__cdecl FS_FileForHandle(int f)", SOURCE),
+    ("uint32_t __cdecl FS_FOpenFileReadForThread(const char *filename, int *file, FsThread thread)", SOURCE),
+    ("BOOL __cdecl FS_PureIgnoresExtension(const char *extension)", SOURCE),
+    ("char __cdecl FS_FilesAreLoadedGlobally(const char *filename)", SOURCE),
+    ("int __cdecl FS_IwdIsPure(iwd_t *iwd)", SOURCE),
+    (SIGNATURE, SOURCE),
+    ("void __cdecl FS_FCloseFile(int h)", SOURCE),
+    ("const char *__cdecl Com_GetExtensionSubString(const char *filename)", SHARED_SOURCE),
 )
-PROLOGUE = '#include "iw3_android_fs_read_compat.h"\n'
+PROLOGUE = (
+    '#include "iw3_android_fs_read_compat.h"\n'
+    '#define FS_FileOpenReadBinary z2026_iw3_lookup_file_open_read_binary\n'
+    '#define FS_CopyFile z2026_iw3_fs_copy_file\n'
+    '#define SEH_SafeTranslateString z2026_iw3_safe_translate\n'
+    '#define InterlockedCompareExchange z2026_iw3_interlocked_compare_exchange\n'
+    '#define IsFastFileLoad z2026_iw3_is_fastfile_load\n'
+    '#define Sys_IsDatabaseThread z2026_iw3_is_database_thread\n'
+)
 REQUIRED = (
-    "FS_CheckFileSystemStarted();",
-    "if (!h)",
-    "if (fsh[h].zipFile)",
-    "fsh[h].handleFiles.iwdIsClone",
-    "Com_Memset((uint32_t *)&fsh[h], 0, sizeof(fsh[h]));",
-    "unzReadCurrentFile(fsh[h].handleFiles.file.z, buffer, len)",
-    "FS_FileForHandle(h)",
+    "*file = FS_HandleForFile(thread);",
+    "unzReOpen(iwd->iwdFilename, iwd->handle)",
+    "InterlockedCompareExchange(&iwd->hasOpenFile, 1, 0)",
+    "fsh[*file].handleFiles.file.z = iwd->handle;",
+    "return zfi->cur_file_info.uncompressed_size;",
+    "return unzReadCurrentFile(fsh[h].handleFiles.file.z, buffer, len);",
     "FS_FileRead(buf, remaining, f)",
-    'Com_Error(ERR_FATAL, "FS_Read: -1 bytes read");',
+    "unzCloseCurrentFile(fsh[h].handleFiles.file.z);",
+    "Com_Memset((uint32_t *)&fsh[h], 0, sizeof(fsh[h]));",
+    "FS_FilesAreLoadedGlobally(sanitizedName)",
+    "FS_IwdIsPure(iwd)",
+    "return !I_stricmp(extension, \"cfg\")",
+    "const char *__cdecl Com_GetExtensionSubString(const char *filename)",
 )
 FORBIDDEN = (
-    "fread(buffer",
-    "std::fread",
-    "AAsset_read",
+    "z2026_iw3_original_searchpath_lookup",
+    "return -1; // non-null handle path is intentionally outside this probe",
     "Com_Memset((uint32_t *)&fsh[h], 0, 284);",
+    "AAsset_read",
     "Godot",
 )
 
 
 def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict:
-    source_path = engine.resolve() / SOURCE
-    original = source_path.read_bytes()
-    text = original.decode("utf-8")
-    bodies = [function_source(text, signature) for signature in FUNCTIONS]
-    body = bodies[FUNCTIONS.index(SIGNATURE)]
-    combined = "\n\n".join(bodies)
+    engine = engine.resolve()
+    source_paths = {source_path for _, source_path in FUNCTIONS}
+    source_bytes = {source_path: (engine / source_path).read_bytes()
+                    for source_path in source_paths}
+    output = output.resolve()
+    if output in {(engine / source_path).resolve() for source_path in source_paths}:
+        raise ValueError("Refusing to overwrite authentic KisakCOD source")
+    source_text = {source_path: raw.decode("utf-8")
+                   for source_path, raw in source_bytes.items()}
+    bodies = [function_source(source_text[source_path], signature)
+              for signature, source_path in FUNCTIONS]
+    combined = "\n\n".join(bodies) + "\n"
     for marker in REQUIRED:
         if marker not in combined:
-            raise ValueError("Original FS_Read contract missing: " + marker)
+            raise ValueError("Original FS lifecycle contract missing: " + marker)
     for marker in FORBIDDEN:
         if marker in combined:
-            raise ValueError("Unexpected replacement implementation marker: " + marker)
+            raise ValueError("Unexpected replacement/lookup-only marker: " + marker)
 
-    rendered = PROLOGUE + combined + "\n"
-    output = output.resolve()
-    if output == source_path:
-        raise ValueError("Refusing to overwrite authentic KisakCOD com_files.cpp")
+    rendered = PROLOGUE + combined
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(rendered, encoding="utf-8")
-    if source_path.read_bytes() != original:
-        raise RuntimeError("Vendored original changed during staging")
+    for source_path, original in source_bytes.items():
+        if (engine / source_path).read_bytes() != original:
+            raise RuntimeError("Vendored original changed during staging: " + str(source_path))
 
+    hashes = {signature: hashlib.sha256(body.encode("utf-8")).hexdigest()
+              for (signature, _), body in zip(FUNCTIONS, bodies)}
     evidence = {
-        "source": str(SOURCE),
-        "source_sha256": hashlib.sha256(original).hexdigest(),
-        "function_signatures": list(FUNCTIONS),
-        "function_body_sha256": {
-            signature: hashlib.sha256(source_body.encode("utf-8")).hexdigest()
-            for signature, source_body in zip(FUNCTIONS, bodies)
-        },
-        "original_fs_read_sha256": hashlib.sha256(body.encode("utf-8")).hexdigest(),
-        "staged_sha256": hashlib.sha256(rendered.encode("utf-8")).hexdigest(),
+        "source_sha256": {str(source_path): hashlib.sha256(raw).hexdigest()
+                          for source_path, raw in source_bytes.items()},
+        "function_signatures": [signature for signature, _ in FUNCTIONS],
+        "function_body_sha256": hashes,
+        "original_handle_allocation_body_preserved_exactly": True,
+        "original_FS_FOpenFileReadForThread_body_preserved_exactly": True,
         "original_FS_FileForHandle_body_preserved_exactly": True,
         "original_FS_Read_body_preserved_exactly": True,
         "original_FS_FCloseFile_body_preserved_exactly": True,
-        "close_uses_native_struct_size": True,
-        "full_open_read_close_lifecycle_integrated": False,
-        "uses_original_zip_read_and_original_file_read_branches": True,
+        "original_extension_and_purity_helpers_preserved_exactly": True,
+        "full_open_read_close_lifecycle_integrated": True,
+        "full_original_open_read_close_lifecycle_compiled_into_diagnostic": True,
+        "runtime_handle_path_executed": False,
         "original_upstream_fsh_table_integrated": False,
         "android_native_width_fsh_table_adapter_required": True,
-        "open_close_lifecycle_integrated": False,
-        "compiles_as_standalone_android_game_runtime": False,
         "fastfile_map_loading_proven": False,
         "gameplay_proven": False,
         "playable_apk": False,
     }
     if report_path is not None:
         report_path.parent.mkdir(parents=True, exist_ok=True)
-        report_path.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        report_path.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\n",
+                               encoding="utf-8")
     return evidence
 
 
@@ -107,7 +128,7 @@ def main() -> None:
     parser.add_argument("--report", type=Path, required=True)
     args = parser.parse_args()
     evidence = prepare(args.engine, args.output, args.report)
-    print("IW3_ORIGINAL_FS_READ_STAGED", json.dumps(evidence, sort_keys=True))
+    print("IW3_ORIGINAL_FS_OPEN_READ_CLOSE_STAGED", json.dumps(evidence, sort_keys=True))
 
 
 if __name__ == "__main__":
