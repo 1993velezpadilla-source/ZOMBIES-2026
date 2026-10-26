@@ -76,9 +76,18 @@ AIM_CODE = r"""
             const float z2026_dz = z2026_target_z - z2026_eye_z;
             const float z2026_horizontal = std::sqrt(z2026_dx * z2026_dx + z2026_dy * z2026_dy);
             const float z2026_degrees = 57.29577951308232f;
-            clients[0].viewangles[0] = -std::atan2(z2026_dz, z2026_horizontal) * z2026_degrees;
-            clients[0].viewangles[1] = std::atan2(z2026_dy, z2026_dx) * z2026_degrees;
-            clients[0].viewangles[2] = 0.0f;
+            // CL_FinishMove packs viewangles, and the server adds snapshot
+            // delta_angles back to the command. Compensate here so the resulting
+            // authoritative player view points at the world-space target.
+            const float z2026_target_pitch =
+                -std::atan2(z2026_dz, z2026_horizontal) * z2026_degrees;
+            const float z2026_target_yaw =
+                std::atan2(z2026_dy, z2026_dx) * z2026_degrees;
+            clients[0].viewangles[0] =
+                z2026_target_pitch - clients[0].snap.ps.delta_angles[0];
+            clients[0].viewangles[1] =
+                z2026_target_yaw - clients[0].snap.ps.delta_angles[1];
+            clients[0].viewangles[2] = -clients[0].snap.ps.delta_angles[2];
             ++z2026_test_aim_cmds;
             if (!z2026_test_aim_logged)
             {
