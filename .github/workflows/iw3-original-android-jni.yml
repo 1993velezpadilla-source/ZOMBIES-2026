@@ -111,6 +111,10 @@ jobs:
             --engine third_party/KisakCOD \
             --output "$folder/iw3_iwd_directory.cpp" \
             --report "$RUNNER_TEMP/iw3-original-iwd-directory.json"
+          python3 tools/iw3_android/prepare_real_engine_iwd_lookup.py \
+            --engine third_party/KisakCOD \
+            --output "$folder/iw3_iwd_lookup.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-iwd-lookup.json"
           echo 'IW3_REAL_SOURCE_DIAGNOSTIC_INCLUDES_ONLY'
 
       - name: Compile JNI Activity with real KisakCOD source for Android ARM64
