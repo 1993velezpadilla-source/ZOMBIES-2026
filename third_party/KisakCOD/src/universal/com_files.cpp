@@ -2683,12 +2683,12 @@ const char **__cdecl FS_ListFilteredFilesInLocation(
         {
             if (locationSearchPath)
             {
-                locationSearch->next = (searchpath_s *)Hunk_UserAlloc(user, 0x1Cu, 4);
+                locationSearch->next = (searchpath_s *)Hunk_UserAlloc(user, sizeof(searchpath_s), static_cast<int>(alignof(searchpath_s)));
                 locationSearch = locationSearch->next;
             }
             else
             {
-                locationSearchPath = (searchpath_s *)Hunk_UserAlloc(user, 0x1Cu, 4);
+                locationSearchPath = (searchpath_s *)Hunk_UserAlloc(user, sizeof(searchpath_s), static_cast<int>(alignof(searchpath_s)));
                 locationSearch = locationSearchPath;
             }
             locationSearch->next = 0;
