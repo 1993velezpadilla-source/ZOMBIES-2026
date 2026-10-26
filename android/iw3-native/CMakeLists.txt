@@ -101,10 +101,12 @@ target_compile_definitions(iw3_sp_fs_read PRIVATE KISAK_SP=1)
 target_compile_options(iw3_sp_fs_read PRIVATE
     -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
 
-# The diagnostic shared library also compiles the same authentic read helpers
-# with an Android-owned native-width handle table. The IWD fixture executes
-# only the original ZIP branch of FS_Read; the original open/close lifecycle
-# and complete filesystem runtime remain unported.
+# The diagnostic shared library compiles the exact original handle allocator,
+# FS_FOpenFileReadForThread, FS_Read and FS_FCloseFile bodies against an
+# Android-owned native-width table. The IWD fixture exercises primary and
+# cloned ZIP handles through the real open/read/close bodies. This table is
+# not the upstream file-local fsh, and the complete engine filesystem remains
+# unported.
 add_library(iw3_sp_math SHARED
     "${IW3_EXTRACTED_FS_READ}"
     "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_fs_read_io.cpp"
