@@ -501,6 +501,8 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
             self.assertFalse(evidence["original_FS_Read_ported"])
             self.assertFalse(evidence["playable_apk"])
             self.assertIn(expected_prefix, staged)
+            self.assertIn("void __cdecl FS_ReplaceSeparators(char *path)", staged)
+            self.assertIn("FS_ReplaceSeparators(ospath);", staged)
             self.assertIn("z2026_iw3_original_searchpath_lookup", staged)
             self.assertNotIn("FS_HandleForFile(thread)", staged)
             for marker in IWD_LOOKUP_REQUIRED:
