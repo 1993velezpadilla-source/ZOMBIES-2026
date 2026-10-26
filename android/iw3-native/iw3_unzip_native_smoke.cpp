@@ -127,9 +127,34 @@ bool index_original_iwd(const char *path, const std::array<Entry, 2> &expected, 
              iwd->checksum == iwd->pure_checksum &&
              fs_iwdFileCount == old_count + static_cast<int>(expected.size()) &&
              std::strcmp(iwd->iwdBasename, path) == 0 &&
-             path_length >= 4 && stored_length + 4 == path_length &&
-             std::memcmp(iwd->iwdFilename, path, stored_length) == 0 &&
+             path_length >= 4 && stored_length == path_length &&
+             std::strcmp(iwd->iwdFilename, path) == 0 &&
              std::strcmp(path + path_length - 4, ".iwd") == 0;
+
+        // The real FS_FOpenFileReadForThread path clones an IWD archive by
+        // reopening iwdFilename. Verify the stored path is directly usable,
+        // then read the indexed member through the original ZIP implementation.
+        bool cloned_handle_reopen_read_ok = false;
+        unzFile reopened = unzReOpen(
+            iwd->iwdFilename, reinterpret_cast<unzFile>(iwd->handle));
+        if (reopened) {
+            if (unzSetCurrentFileInfoPosition(reopened, iwd->buildBuffer[0].pos) == UNZ_OK &&
+                unzOpenCurrentFile(reopened) == UNZ_OK) {
+                std::vector<char> reopened_bytes(expected[0].payload.size() + 1, '\\0');
+                const int got = unzReadCurrentFile(
+                    reopened, reopened_bytes.data(),
+                    static_cast<unsigned>(reopened_bytes.size()));
+                const int close_current = unzCloseCurrentFile(reopened);
+                cloned_handle_reopen_read_ok =
+                    got == static_cast<int>(expected[0].payload.size()) &&
+                    std::string(reopened_bytes.data(), static_cast<std::size_t>(got)) ==
+                        expected[0].payload &&
+                    close_current == UNZ_OK;
+            }
+            if (unzClose(reopened) != UNZ_OK)
+                cloned_handle_reopen_read_ok = false;
+        }
+        ok = ok && cloned_handle_reopen_read_ok;
 
         for (std::size_t i = 0; ok && i < expected.size(); ++i) {
             fileInIwd_s *indexed = &iwd->buildBuffer[i];
