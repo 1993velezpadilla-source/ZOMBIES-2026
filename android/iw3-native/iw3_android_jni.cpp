@@ -138,6 +138,7 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(
                   "Original FS_LoadZipFile IWD index: %s\n"
                   "Original FS_AddSearchPath fixture insertion: %s\n"
                   "Original FS_AddIwdFilesForGameDirectory scan: %s\n"
+                  "Original FS_FOpenFileReadForThread lookup-only branch: %s\n"
                   "Android app-private data-root I/O: %s\n"
                   "Original IW3 usercmd_s touch adapter: %s\n"
                   "Original specialty_rof ID: %d\n"
