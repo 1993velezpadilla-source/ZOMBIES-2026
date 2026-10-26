@@ -679,9 +679,11 @@ The Android native smoke extends the existing generated ZIP fixture to call the 
 
 **Verified evidence for this pass (26 Oct 2026):**
 
-- [Native/ARM64 workflow #203](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40280395885) succeeded. The host suite passed 8/8 in Release and 8/8 under ASAN/UBSAN; the ARM64 outputs were verified as ELF64/AArch64, and the original `FS_LoadZipFile(char*, char*)` symbol was present in the ARM64 audit archive.
-- [Android JNI build #167](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40280395813) succeeded and signed the diagnostic APK.
-- [Android emulator runtime #151](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40280395912) succeeded on an **x86_64 emulator**, not an ARM64 device. Its log contains `IW3_JNI_UNZIP_PARSER_PASS`, `IW3_JNI_IWD_MOUNT_PASS`, and touch DOWN/UP readback where `usercmd_s` attack transitions 0 → 1 → 0. The evidence validator reported `original_fs_loadzipfile_indexed_fixture_executed: true`, while `arm64_device_execution_proven` and `gameplay_proven` remained false.
+- [Native/ARM64 workflow #205](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40280873913) succeeded. The host suite passed 8/8 in Release and 8/8 under ASAN/UBSAN; the ARM64 outputs were verified as ELF64/AArch64, and the original `FS_LoadZipFile(char*, char*)` symbol was present in the ARM64 audit archive.
+- [Android JNI build #169](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40280873914) succeeded and signed the diagnostic APK.
+- [Android emulator runtime #153](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40280873921) succeeded on an **x86_64 emulator**, not an ARM64 device. Its log contains `IW3_JNI_UNZIP_PARSER_PASS`, `IW3_JNI_IWD_MOUNT_PASS`, and touch DOWN/UP readback where `usercmd_s` attack transitions 0 → 1 → 0. The evidence validator reported `original_fs_loadzipfile_indexed_fixture_executed: true`, while `arm64_device_execution_proven` and `gameplay_proven` remained false.
+
+Artifacts: [ARM64 native modules — NOT an APK](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40280873913/artifacts/12631614602); [signed JNI diagnostic APK — NOT the game](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40280873914/artifacts/12631584994); [Android emulator runtime log — NOT the game](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40280873921/artifacts/12632118691).
 
 This is runtime evidence for the original IWD index builder on a generated fixture, **not** mounting a licensed game IWD into `fs_searchpaths`. It does not load FastFiles or a BSP/map, render the game scene, link the original SP frame services, or prove weapons/actors/gameplay. The APK remains diagnostic only.
 
