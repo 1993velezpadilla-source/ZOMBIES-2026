@@ -22,7 +22,7 @@ class OriginalFSReadStageTests(unittest.TestCase):
             report_path = Path(temp) / "evidence.json"
             report = prepare(ENGINE, output, report_path)
             staged = output.read_text(encoding="utf-8")
-            self.assertEqual(staged, '#include "iw3_android_fs_read_compat.h"\\n' + body + "\\n")
+            self.assertEqual(staged, '#include "iw3_android_fs_read_compat.h"\n' + body + "\n")
             self.assertTrue(report["original_FS_Read_body_preserved_exactly"])
             self.assertTrue(report["uses_original_zip_read_and_original_file_read_branches"])
             self.assertFalse(report["android_file_handle_table_integrated"])
