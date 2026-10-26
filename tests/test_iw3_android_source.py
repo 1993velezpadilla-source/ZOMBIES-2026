@@ -374,6 +374,19 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
         jni = (ROOT / "android/iw3-native/iw3_android_jni.cpp").read_text(encoding="utf-8")
         self.assertIn("IW3_JNI_IWD_SEARCHPATH_%s", jni)
 
+    def test_iwd_localized_prefix_clear_is_arm64_safe(self):
+        source = (ENGINE / "src/universal/com_files.cpp").read_text(encoding="utf-8")
+        scan = function_source(
+            source,
+            "void __cdecl FS_AddIwdFilesForGameDirectory(char *path, char *pszGameFolder)",
+        )
+        self.assertIn('qmemcpy(v2, "          ", 10);', scan)
+        self.assertIn("same 10-byte result on ARM64", scan)
+        self.assertNotIn("*(_DWORD *)v2", scan)
+        self.assertNotIn("*((_DWORD *)v2 + 1)", scan)
+        self.assertNotIn("*((_WORD *)v2 + 4)", scan)
+        self.assertIn("qsort(s0, numfiles, sizeof(s0[0]),", scan)
+
     def test_no_vendor_overwrite(self):
         with self.assertRaisesRegex(ValueError, "Refusing"):
             prepare(ENGINE, ENGINE / ENGINE_FILE)
