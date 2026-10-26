@@ -33,7 +33,7 @@ class OfflineSPInputTests(unittest.TestCase):
             patched = path.read_text(encoding="utf-8")
             self.assertIn("#include <game/g_level.h>", patched)
             self.assertIn("g_entities[0].client->ps.weapon > 0", patched)
-            self.assertIn("if ((result->buttons & BUTTON_ATTACK) &&\\n        g_entities[0].client &&\\n        g_entities[0].client->ps.weapon > 0", patched)
+            self.assertIn("if ((result->buttons & BUTTON_ATTACK) &&\n        g_entities[0].client &&\n        g_entities[0].client->ps.weapon > 0", patched)
             self.assertNotIn("clients[0].snap.ps.weapon > 0", patched)
             self.assertIn('Z2026_TestInputTrace("TEST_CL_CREATECMD_REACHED")', patched)
             self.assertIn('Z2026_TestInputTrace("TEST_SERVER_PLAYER_WEAPON_READY")', patched)
