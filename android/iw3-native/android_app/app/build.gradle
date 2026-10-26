@@ -35,6 +35,7 @@ android {
                           "-DIW3_EXTRACTED_IWD_MOUNT=${new File(sourceDir, 'fs_load_zip.cpp').absolutePath}",
                           "-DIW3_EXTRACTED_IWD_SERVICES=${new File(sourceDir, 'iw3_iwd_services.cpp').absolutePath}",
                           "-DIW3_EXTRACTED_IWD_SEARCHPATH=${new File(sourceDir, 'iw3_iwd_searchpath.cpp').absolutePath}",
+                          "-DIW3_EXTRACTED_IWD_DIRECTORY=${new File(sourceDir, 'iw3_iwd_directory.cpp').absolutePath}",
                           "-DIW3_REAL_HEADER_ROOT=${originalHeaders.absolutePath}",
                           "-DIW3_EMULATOR_DIAGNOSTIC_ONLY=${emulatorProbe ? 'ON' : 'OFF'}"
             }
