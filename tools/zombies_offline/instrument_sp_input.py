@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-"""Exercise original single-player firing from actual client-generated usercmd.
+"""Exercise original single-player firing through bounded client usercmds.
 
-This inserts a *test-only* finite attack-button input into the disposable
-KisakCOD-sp source clone. Only after the client snapshot reports a nonzero
-weapon, CL_CreateCmd builds genuine usercmd packets with BUTTON_ATTACK.
-No direct calls to FireWeapon, Bullet_Fire or G_Damage; success is measured
-downstream by separate passive callbacks. The checked-in engine is untouched.
+The disposable KisakCOD-sp clone injects at most 12 attack-button commands after
+the client snapshot reports a real weapon and aims them at the nearest already
+existing live damageable actor. No actor is spawned and no weapon/damage callback
+is called directly. The checked-in engine source is never modified.
 """
 from __future__ import annotations
 import argparse

@@ -95,7 +95,9 @@ try {
 
   # The only game process launched is source-built *single player*.
   # No network address, connect, dedicated, Steam session or user credential.
-  $argsLine='+set fs_basepath "'+$root+'" +set fs_homepath "'+$root+'" +set r_fullscreen 0 +set r_mode 4 +set com_introPlayed 1 +map killhouse +attack'
+  # Attack is injected by instrument_sp_input.py for at most 12 real usercmds.
+  # Do not hold +attack on the command line: that would defeat the finite-input gate.
+  $argsLine='+set fs_basepath "'+$root+'" +set fs_homepath "'+$root+'" +set r_fullscreen 0 +set r_mode 4 +set com_introPlayed 1 +map killhouse'
   $report.attack_command_requested=$true
   Write-Host 'Launching KisakCOD-sp, direct offline map killhouse; no multiplayer.'
   $stdout=Join-Path $ReportDir 'sp-stdout.txt'

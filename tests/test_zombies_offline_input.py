@@ -51,6 +51,8 @@ class OfflineSPInputTests(unittest.TestCase):
         self.assertIn("aimed_weapon_damage_verified", report)
         self.assertIn("$report.actor_damage_callback", report)
         self.assertIn("$report.actor_death_verified=$report.actor_death_callback", report)
+        self.assertIn("Attack is injected by instrument_sp_input.py for at most 12 real usercmds.", report)
+        self.assertNotIn("+map killhouse +attack", report)
 
     def test_missing_original_symbol_fails_closed(self):
         with TemporaryDirectory() as tmp:
