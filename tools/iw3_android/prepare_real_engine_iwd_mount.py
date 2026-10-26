@@ -35,7 +35,13 @@ REQUIRED = (
     "if (!iwd)",
     "unzGetCurrentFileInfoPosition(uf, &buildBuffer[i].pos)",
     "Com_BlockChecksumKey32",
+    "const size_t iwdFilenameLength = strlen(iwd->iwdFilename);",
+    "iwd->iwdFilename + iwdFilenameLength - 4",
+    "iwd->iwdFilename[iwdFilenameLength - 4] = 0;",
     "iwd->buildBuffer = buildBuffer;",
+)
+FORBIDDEN = (
+    "strlen(iwd->iwdBasename) + 252",
 )
 
 def prepare(engine: Path, output: Path) -> dict:
@@ -52,6 +58,9 @@ def prepare(engine: Path, output: Path) -> dict:
     for marker in REQUIRED:
         if marker not in body:
             raise ValueError("Original IWD index safety contract missing: " + marker)
+    for marker in FORBIDDEN:
+        if marker in body:
+            raise ValueError("Unsafe IWD filename indexing remains: " + marker)
     staged = OUTPUT_HEADER + body + "\n"
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(staged, encoding="utf-8")
