@@ -1641,10 +1641,11 @@ void __cdecl FS_AddIwdFilesForGameDirectory(char *path, char *pszGameFolder)
         s0[i] = list[i];
         if (!I_strncmp(s0[i], "localized_", 10))
         {
+            // Clear the localized prefix using the engine's byte-copy helper.
+            // The decompiled DWORD/WORD stores relied on x86 alignment and
+            // aliasing assumptions; keep the same 10-byte result on ARM64.
             v2 = s0[i];
-            *(_DWORD *)v2 = *(_DWORD *)"          ";
-            *((_DWORD *)v2 + 1) = 538976288;    
-            *((_WORD *)v2 + 4) = 8224;
+            qmemcpy(v2, "          ", 10);
         }
     }
     // s0 is an array of char*; the original 4-byte element size is only
