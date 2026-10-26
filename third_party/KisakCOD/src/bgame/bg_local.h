@@ -238,7 +238,11 @@ struct scr_anim_s // sizeof=0x4
         const char* linkPointer;
     };
 };
+#if defined(__LP64__)
+static_assert(sizeof(struct scr_anim_s) == 0x8);
+#else
 static_assert(sizeof(struct scr_anim_s) == 0x4);
+#endif
 
 struct loadAnim_t // sizeof=0x48
 {
@@ -246,7 +250,11 @@ struct loadAnim_t // sizeof=0x48
     int32_t iNameHash;
     char szAnimName[64];
 };
+#if defined(__LP64__)
+static_assert((sizeof(struct loadAnim_t) * 512) == 40960);
+#else
 static_assert((sizeof(struct loadAnim_t) * 512) == 36864);
+#endif
 
 struct pml_t // sizeof=0x80
 {                                       // ...
@@ -263,14 +271,22 @@ struct pml_t // sizeof=0x80
     float previous_origin[3];           // ...
     float previous_velocity[3];         // ...
 };
+#if defined(__LP64__)
+static_assert(sizeof(pml_t) == 0x88);
+#else
 static_assert(sizeof(pml_t) == 0x80);
+#endif
 
 struct animStringItem_t // sizeof=0x8
 {                                       // ...
     const char *string;                 // ...
     int32_t hash;                           // ...
 };
+#if defined(__LP64__)
+static_assert(sizeof(animStringItem_t) == 0x10);
+#else
 static_assert(sizeof(animStringItem_t) == 0x8);
+#endif
 
 struct controller_info_t // sizeof=0x60
 {                                       // ...
@@ -285,7 +301,11 @@ struct animConditionTable_t // sizeof=0x8
     animScriptConditionTypes_t type;    // ...
     animStringItem_t *values;           // ...
 };
+#if defined(__LP64__)
+static_assert(sizeof(animConditionTable_t) == 0x10);
+#else
 static_assert(sizeof(animConditionTable_t) == 0x8);
+#endif
 
 struct viewDamage_t // sizeof=0xC
 {                                       // ...
@@ -377,9 +397,13 @@ struct shellshock_t // sizeof=0x20
     float viewDelta[2];
     int32_t hasSavedScreen;
 };
+#if defined(__LP64__)
+static_assert(sizeof(shellshock_t) == 0x28);
+#else
 static_assert(sizeof(shellshock_t) == 0x20);
+#endif
 
-struct __declspec(align(8)) animation_s // sizeof=0x68
+struct alignas(8) animation_s // sizeof=0x68
 {                                       // ...
     char name[64];
     int32_t initialLerp;
@@ -415,7 +439,11 @@ struct animScriptCommand_t // sizeof=0x10
     int16_t animDuration[2];
     snd_alias_list_t* soundAlias;
 };
+#if defined(__LP64__)
+static_assert(sizeof(animScriptCommand_t) == 0x18);
+#else
 static_assert(sizeof(animScriptCommand_t) == 0x10);
+#endif
 
 enum animScriptParseMode_t : __int32
 {                                       // ...
@@ -453,7 +481,7 @@ struct scr_animtree_t // sizeof=0x4
 };
 static_assert(sizeof(scr_animtree_t) == 0x4);
 
-struct __declspec(align(8)) animScriptData_t // sizeof=0x9A9D0
+struct alignas(8) animScriptData_t // sizeof=0x9A9D0
 {                                       // ...
     animation_s animations[512];
     uint32_t numAnimations;
