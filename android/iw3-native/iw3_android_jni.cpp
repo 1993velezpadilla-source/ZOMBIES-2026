@@ -20,7 +20,7 @@ extern "C" int z2026_iw3_real_pool_smoke();
 extern "C" int z2026_iw3_snap_float_smoke();
 extern "C" int z2026_iw3_hitloc_copy_smoke();
 extern "C" int z2026_iw3_iwd_names_smoke();
-extern "C" int z2026_iw3_unzip_smoke(const char *directory);
+extern "C" int z2026_iw3_unzip_smoke(const char *directory, int *iwd_mount_ok);
 extern "C" int z2026_iw3_configstring_num(const char*);
 extern "C" int z2026_iw3_math_source_abi_version();
 
@@ -49,16 +49,20 @@ IW3_JNI_EXPORT jstring JNICALL
 Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(
         JNIEnv *env, jclass, jstring writableDirectory) {
     int unzip_ok = 0;
+    int iwd_mount_ok = 0;
     if (writableDirectory) {
         const char *directory = env->GetStringUTFChars(writableDirectory, nullptr);
         if (directory) {
-            unzip_ok = z2026_iw3_unzip_smoke(directory);
+            unzip_ok = z2026_iw3_unzip_smoke(directory, &iwd_mount_ok);
             env->ReleaseStringUTFChars(writableDirectory, directory);
         }
     }
     __android_log_print(unzip_ok ? ANDROID_LOG_INFO : ANDROID_LOG_ERROR,
                         "IW3NativeGate", "IW3_JNI_UNZIP_PARSER_%s",
                         unzip_ok ? "PASS" : "FAIL");
+    __android_log_print(iwd_mount_ok ? ANDROID_LOG_INFO : ANDROID_LOG_ERROR,
+                        "IW3NativeGate", "IW3_JNI_IWD_MOUNT_%s",
+                        iwd_mount_ok ? "PASS" : "FAIL");
     // These calls resolve to the original engine's math, material and
     // configstring implementations via native_math_abi.cpp.
     const int math_ok = z2026_iw3_math_smoke();
@@ -101,7 +105,7 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(
                         usercmd_ok ? "READY" : "FAIL");
     const int perk_index = z2026_iw3_configstring_num("specialty_rof");
     const std::uint64_t monotonic_time = z2026_platform_monotonic_ns();
-    const int success = unzip_ok && math_ok && surface_ok && config_ok && frame_copy_ok && pool_ok && snap_ok && hitloc_ok && iwd_names_ok && file_ok && usercmd_ok &&
+    const int success = unzip_ok && iwd_mount_ok && math_ok && surface_ok && config_ok && frame_copy_ok && pool_ok && snap_ok && hitloc_ok && iwd_names_ok && file_ok && usercmd_ok &&
                         perk_index == 2034 && monotonic_time > 0;
     char report[1024];
     std::snprintf(report, sizeof(report),
@@ -133,6 +137,7 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(
                   hitloc_ok ? "PASS" : "FAIL",
                   iwd_names_ok ? "PASS" : "FAIL",
                   unzip_ok ? "PASS" : "FAIL",
+                  iwd_mount_ok ? "PASS" : "FAIL",
                   file_ok ? "PASS" : "FAIL",
                   usercmd_ok ? "PASS" : "FAIL",
                   perk_index, monotonic_time ? "PASS" : "FAIL",
