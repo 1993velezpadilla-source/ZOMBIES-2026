@@ -688,3 +688,27 @@ Artifacts: [ARM64 native modules — NOT an APK](https://github.com/1993velezpad
 This is runtime evidence for the original IWD index builder on a generated fixture, **not** mounting a licensed game IWD into `fs_searchpaths`. It does not load FastFiles or a BSP/map, render the game scene, link the original SP frame services, or prove weapons/actors/gameplay. The APK remains diagnostic only.
 
 **Next portability blocker:** integrate the original `FS_AddIwdFilesForGameDirectory()` and `FS_AddSearchPath()` with the Android directory enumerator and the real `fs_searchpaths` state. That is required before claiming an original IWD is mounted for game asset lookup; FastFiles, map loading, renderer and gameplay remain later blockers.
+
+
+## Phase G — original searchpath insertion on Android diagnostic (26 Oct 2026)
+
+This pass integrates the original \`FS_AddSearchPath()\` body into the native
+diagnostic target and calls it with the \`iwd_t\` produced by original
+\`FS_LoadZipFile()\` on the generated ZIP/IWD fixture. The smoke verifies that
+the returned \`searchpath_s\` node is linked into \`fs_searchpaths\`, points at
+that indexed IWD, and is unlinked before the test frees the archive/index
+allocations.
+
+A 64-bit portability issue in the original list traversal was corrected in
+\`third_party/KisakCOD/src/universal/com_files.cpp\`: the decompiled cast
+\`pSearch = (searchpath_s **)*pSearch\` is now
+\`pSearch = &(*pSearch)->next\`. Localized/nonlocalized insertion order remains
+unchanged. The staging gate extracts the original function from the vendored
+source and rejects the unsafe cast. CI must prove the source tests, host
+sanitizers, Android link and emulator marker before this pass is verified.
+
+This still mounts only a generated fixture, not a licensed game IWD discovered
+from the actual game directory. The full \`FS_AddIwdFilesForGameDirectory()\`
+scan, real asset lookup through \`FS_OpenFile\`, FastFiles/maps, renderer,
+client frame loop, physical ARM64 execution and gameplay remain unproven.
+The diagnostic APK is not a playable game; keep PR #4 open and unmerged.
