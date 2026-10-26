@@ -118,6 +118,8 @@ class OriginalIW3UnzipPortTests(unittest.TestCase):
         self.assertIn("z2026_iw3_original_searchpath_lookup", smoke)
         self.assertIn("iwd_directory_scan_ok != 1", host_test)
         self.assertIn("iwd_lookup_ok != 1", host_test)
+        self.assertIn("iwd_fs_read_ok != 1", host_test)
+        self.assertIn("IW3_ORIGINAL_FS_READ_HOST_GREEN", host_test)
         workflow = (ROOT / ".github/workflows/iw3-original-native-android.yml").read_text(encoding="utf-8")
         arm64_config = workflow.split('cmake -S android/iw3-native -B "$RUNNER_TEMP/iw3-build-arm64"', 1)[1].split("cmake --build", 1)[0]
         self.assertIn('-DIW3_EXTRACTED_IWD_DIRECTORY="$RUNNER_TEMP/iw3-source/iw3_iwd_directory.cpp"', arm64_config)
