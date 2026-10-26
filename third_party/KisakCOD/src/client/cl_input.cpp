@@ -1631,9 +1631,7 @@ void __cdecl CL_CreateCmd(usercmd_s *result)
 
 void CL_CreateNewCommands()
 {
-    usercmd_s *v0; // r3
-    _BYTE v1[56]; // [sp+50h] [-80h] BYREF
-    usercmd_s v2; // [sp+90h] [-40h] BYREF
+    usercmd_s command; // native-width command object
 
     if (clientUIActives[0].connectionState != CA_ACTIVE)
         MyAssertHandler(
@@ -1646,13 +1644,12 @@ void CL_CreateNewCommands()
     if ((unsigned int)(com_frameTime - old_com_frameTime) > 0xC8)
         frame_msec = 200;
     old_com_frameTime = com_frameTime;
-    CL_CreateCmd(&v2);
-    memcpy(v1, &v2, sizeof(v1));
+    CL_CreateCmd(&command);
     Sys_EnterCriticalSection(CRITSECT_CLIENT_CMD);
-    memcpy(&clients[0].cmds[++clients[0].cmdNumber & 0x3F], v1, sizeof(clients[0].cmds[++clients[0].cmdNumber & 0x3F]));
+    const unsigned int nextCommand = (++clients[0].cmdNumber) & 0x3F;
+    memcpy(&clients[0].cmds[nextCommand], &command, sizeof(command));
     Sys_LeaveCriticalSection(CRITSECT_CLIENT_CMD);
 }
-
 void __cdecl CL_WritePacket()
 {
     int reliableAcknowledge; // r11
