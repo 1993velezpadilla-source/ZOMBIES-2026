@@ -179,6 +179,20 @@ jobs:
             -DIW3_ENTITY_LOOP_INC="$RUNNER_TEMP/iw3-source/iw3_g_runframe_entity_loop.inc" \
             -DIW3_REAL_HEADER_ROOT="$GITHUB_WORKSPACE/third_party/KisakCOD/src/universal"
           cmake --build "$RUNNER_TEMP/iw3-build-arm64" -j 2
+
+          # Compile the real original client command generator with AArch64
+          # headers, then verify that its Android touch hook remains the exact
+          # unresolved platform boundary. It is not yet linked into the APK.
+          client_input_archive="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_client_input.a"
+          test -s "$client_input_archive"
+          llvm_nm="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm"
+          "$llvm_nm" -C --defined-only "$client_input_archive" | tee "$RUNNER_TEMP/iw3-original-client-input-defined.txt"
+          grep -F 'CL_CreateCmd(usercmd_s*)' "$RUNNER_TEMP/iw3-original-client-input-defined.txt"
+          grep -F 'CL_CreateNewCommands()' "$RUNNER_TEMP/iw3-original-client-input-defined.txt"
+          "$llvm_nm" -u -C "$client_input_archive" | tee "$RUNNER_TEMP/iw3-original-client-input-undefined.txt"
+          grep -F 'z2026_platform_apply_touch_to_usercmd' "$RUNNER_TEMP/iw3-original-client-input-undefined.txt"
+          echo "IW3_ORIGINAL_CL_CREATECMD_AARCH64_COMPILED_TOUCH_BOUNDARY_AUDITED_NOT_LINKED"
+
           fs_read_archive="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_fs_read.a"
           test -s "$fs_read_archive"
           llvm_nm="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm"
