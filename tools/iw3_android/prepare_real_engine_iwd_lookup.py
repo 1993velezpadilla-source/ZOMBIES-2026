@@ -29,6 +29,7 @@ FUNCTIONS = (
     ("char __cdecl FS_SanitizeFilename(const char *filename, char *sanitizedName, int sanitizedNameSize)", SOURCE),
     ("BOOL __cdecl FS_UseSearchPath(const searchpath_s *pSearch)", SOURCE),
     ("void __cdecl FS_BuildOSPathForThread(const char *base, const char *game, const char *qpath, char *ospath, FsThread thread)", SOURCE),
+    ("void __cdecl FS_ReplaceSeparators(char *path)", SOURCE),
 )
 HEADER = (
     '#include "iw3_android_iwd_lookup_compat.h"\n'
