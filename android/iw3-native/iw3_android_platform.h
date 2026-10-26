@@ -35,6 +35,9 @@ IW3_ANDROID_EXPORT int z2026_platform_open_engine_path_fd(const char *path);
 IW3_ANDROID_EXPORT int z2026_platform_list_iwd_files(
     const char *directory, char *output, std::size_t output_capacity,
     std::size_t *entry_count);
+// Match original Sys_DirectoryHasContents semantics within the retained root.
+// Returns 1 when contents exist, 0 when empty, and -1 on invalid/unreadable paths.
+IW3_ANDROID_EXPORT int z2026_platform_directory_has_contents(const char *directory);
 IW3_ANDROID_EXPORT int z2026_platform_write_file(
     const char *relative_path, const void *source, std::size_t length);
 IW3_ANDROID_EXPORT int z2026_platform_unlink_file(const char *relative_path);
