@@ -31,6 +31,8 @@ REQUIRED = (
     "FS_CheckFileSystemStarted();",
     "if (!h)",
     "if (fsh[h].zipFile)",
+    "fsh[h].handleFiles.iwdIsClone",
+    "Com_Memset((uint32_t *)&fsh[h], 0, sizeof(fsh[h]));",
     "unzReadCurrentFile(fsh[h].handleFiles.file.z, buffer, len)",
     "FS_FileForHandle(h)",
     "FS_FileRead(buf, remaining, f)",
