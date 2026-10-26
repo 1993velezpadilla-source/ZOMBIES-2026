@@ -85,7 +85,11 @@ jobs:
             --engine third_party/KisakCOD \
             --output "$RUNNER_TEMP/iw3-source/iw3_iwd_read_lifecycle.cpp" \
             --report "$RUNNER_TEMP/iw3-original-iwd-read-lifecycle.json"
-          echo "IW3_ORIGINAL_FILE_READ_LIFECYCLE_STAGED_NOT_LINKED"
+          python3 tools/iw3_android/prepare_real_engine_fs_read.py \
+            --engine third_party/KisakCOD \
+            --output "$RUNNER_TEMP/iw3-source/iw3_fs_read.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-fs-read.json"
+          echo "IW3_ORIGINAL_FS_READ_ABI_AUDIT_SOURCE_STAGED"
           echo "IW3_ACTUAL_SOURCE_USED_FROM_KISAKCOD"
 
       - name: Compile and EXECUTE original KisakCOD aim math on host
@@ -107,6 +111,7 @@ jobs:
             -DIW3_EXTRACTED_IWD_SEARCHPATH="$RUNNER_TEMP/iw3-source/iw3_iwd_searchpath.cpp" \
             -DIW3_EXTRACTED_IWD_DIRECTORY="$RUNNER_TEMP/iw3-source/iw3_iwd_directory.cpp" \
             -DIW3_EXTRACTED_IWD_LOOKUP="$RUNNER_TEMP/iw3-source/iw3_iwd_lookup.cpp" \
+            -DIW3_EXTRACTED_FS_READ="$RUNNER_TEMP/iw3-source/iw3_fs_read.cpp" \
             -DIW3_ENTITY_LOOP_INC="$RUNNER_TEMP/iw3-source/iw3_g_runframe_entity_loop.inc" \
             -DIW3_REAL_HEADER_ROOT="$GITHUB_WORKSPACE/third_party/KisakCOD/src/universal"
           cmake --build "$RUNNER_TEMP/iw3-build-host" -j 2
@@ -163,9 +168,20 @@ jobs:
             -DIW3_EXTRACTED_IWD_SEARCHPATH="$RUNNER_TEMP/iw3-source/iw3_iwd_searchpath.cpp" \
             -DIW3_EXTRACTED_IWD_DIRECTORY="$RUNNER_TEMP/iw3-source/iw3_iwd_directory.cpp" \
             -DIW3_EXTRACTED_IWD_LOOKUP="$RUNNER_TEMP/iw3-source/iw3_iwd_lookup.cpp" \
+            -DIW3_EXTRACTED_FS_READ="$RUNNER_TEMP/iw3-source/iw3_fs_read.cpp" \
             -DIW3_ENTITY_LOOP_INC="$RUNNER_TEMP/iw3-source/iw3_g_runframe_entity_loop.inc" \
             -DIW3_REAL_HEADER_ROOT="$GITHUB_WORKSPACE/third_party/KisakCOD/src/universal"
           cmake --build "$RUNNER_TEMP/iw3-build-arm64" -j 2
+          fs_read_archive="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_fs_read.a"
+          test -s "$fs_read_archive"
+          llvm_nm="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm"
+          "$llvm_nm" -u -C "$fs_read_archive" | tee "$RUNNER_TEMP/iw3-original-fs-read-undefined.txt"
+          # These unresolved dependencies are intentionally visible: the
+          # original fsh table is file-local static in com_files.cpp and this
+          # archive is not linked into the diagnostic JNI library.
+          grep -F 'fsh' "$RUNNER_TEMP/iw3-original-fs-read-undefined.txt"
+          grep -F 'FS_FileForHandle' "$RUNNER_TEMP/iw3-original-fs-read-undefined.txt"
+          echo "IW3_ORIGINAL_FS_READ_AARCH64_ABI_COMPILED_NOT_RUNTIME_LINKED"
           so="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_math.so"
           test -s "$so"
           elf="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
@@ -258,6 +274,8 @@ jobs:
             ${{ runner.temp }}/iw3-original-iwd-directory.json
             ${{ runner.temp }}/iw3-original-iwd-lookup.json
             ${{ runner.temp }}/iw3-original-iwd-read-lifecycle.json
+            ${{ runner.temp }}/iw3-original-fs-read.json
+            ${{ runner.temp }}/iw3-original-fs-read-undefined.txt
             ${{ runner.temp }}/iw3-authentic-sp-frame-entity-arm64.o
             ${{ runner.temp }}/iw3-sp-frame-abi64-object-elf.txt
             ${{ runner.temp }}/iw3-arm64-elf.txt

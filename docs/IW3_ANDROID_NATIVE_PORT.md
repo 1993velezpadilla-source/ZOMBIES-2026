@@ -827,3 +827,31 @@ This is a CI/provenance correction, not a runtime port of `FS_HandleForFile`, `F
 The source-only audit for `FS_HandleForFile`, `FS_FOpenFileReadForThread`, `FS_Read`, and `FS_FCloseFile` is now generated and archived by the emulator diagnostic, the ARM64 JNI package gate, and the native ARM64 module workflow. Regression tests require each workflow to run `prepare_real_engine_iwd_read.py` and retain `iw3-original-iwd-read-lifecycle.json`. Each workflow labels it `STAGED_NOT_LINKED` so the evidence cannot be mistaken for runtime execution.
 
 This closes a CI coverage gap: a previous ARM64 JNI integration run failed because the lifecycle generator was not invoked by that workflow, even though the emulator workflow had the staging step. The staging source is now consistently audited on the AArch64 build gate as well. The report intentionally keeps `android_abi_and_service_linkage_proven=false`, `runtime_handle_path_executed=false`, and `playable_apk=false`. No original file-handle lifecycle is yet linked into the JNI runtime. Next work remains the actual native ABI/service integration and runtime test against the registered IWD fixture, followed by real FastFiles/map loading and renderer/gameplay integration.
+
+
+## 2026-10-26 — compile-time ABI gate for the original FS_Read body
+
+The previous pass only staged the upstream `FS_Read` body and recorded its
+source hash; it did not compile that function. This pass adds a separate
+`iw3_sp_fs_read` static archive built by the host, Android ARM64, and Android
+emulator configurations. The source body is extracted verbatim from
+`third_party/KisakCOD/src/universal/com_files.cpp`. Compile-time assertions
+check the native 64-bit `fileHandleData_t` layout (`sizeof == 304`,
+`zipFile` offset 32, and `name` offset 44).
+
+This is an ABI compile gate only. The archive is deliberately not linked into
+`libiw3_sp_math.so` or the JNI diagnostic APK. The ARM64 workflow records its
+undefined symbols and requires the unresolved `fsh` table and
+`FS_FileForHandle` service to remain visible. In the original engine,
+`fsh[65]` is file-local static inside `com_files.cpp`; the owning translation
+unit and complete handle lifecycle are not part of the Android runtime yet.
+Hiding those dependencies with fake callbacks would create a false-green, so
+the build keeps this boundary explicit.
+
+The preceding runtime gate on commit `95aae9c` passed on Android x86_64 for
+the ZIP/IWD fixture and touch adapter only. It explicitly does not prove ARM64
+device execution, FastFiles/maps, rendering, or gameplay. After this compile
+gate, the next real integration step is to port the owning original filesystem
+translation unit or add a genuine accessor within it, then exercise
+`FS_FOpenFileReadForThread -> FS_Read -> FS_FCloseFile` against an IWD entry.
+The playable-APK gate remains closed.

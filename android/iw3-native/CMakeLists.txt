@@ -50,6 +50,10 @@ endif()
 if(NOT IW3_EXTRACTED_IWD_LOOKUP OR NOT EXISTS "${IW3_EXTRACTED_IWD_LOOKUP}")
     message(FATAL_ERROR "Original FS_FOpenFileReadForThread lookup-prefix extraction required")
 endif()
+
+if(NOT IW3_EXTRACTED_FS_READ OR NOT EXISTS "${IW3_EXTRACTED_FS_READ}")
+    message(FATAL_ERROR "Verbatim original FS_Read source required for the 64-bit ABI compile gate")
+endif()
 if(NOT EXISTS "${IW3_REAL_HEADER_ROOT}/pool_allocator.h")
     message(FATAL_ERROR "Authentic original IW3 pool declarations required")
 endif()
@@ -81,6 +85,21 @@ target_include_directories(iw3_sp_iwd_mount PRIVATE
     "${IW3_ENGINE_SOURCE_ROOT}/../deps")
 target_compile_definitions(iw3_sp_iwd_mount PRIVATE KISAK_SP=1)
 target_compile_options(iw3_sp_iwd_mount PRIVATE
+    -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
+
+# Compile the verbatim original FS_Read body against native 64-bit engine
+# structures. This archive is deliberately NOT linked into iw3_sp_math/JNI:
+# the owning upstream com_files.cpp keeps fsh[65] static, and the full file
+# handle lifecycle plus its service graph is not yet ported.
+add_library(iw3_sp_fs_read STATIC "${IW3_EXTRACTED_FS_READ}")
+target_include_directories(iw3_sp_fs_read PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${IW3_REAL_HEADER_ROOT}"
+    "${IW3_ENGINE_SOURCE_ROOT}"
+    "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+    "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+target_compile_definitions(iw3_sp_fs_read PRIVATE KISAK_SP=1)
+target_compile_options(iw3_sp_fs_read PRIVATE
     -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
 
 add_library(iw3_sp_math SHARED
