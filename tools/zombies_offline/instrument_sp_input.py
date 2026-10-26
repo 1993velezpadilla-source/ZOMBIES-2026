@@ -124,7 +124,7 @@ def apply(copy: Path) -> dict:
     if "BUTTON_ATTACK" not in data or "clients[0].snap.ps" not in data:
         raise ValueError("Missing genuine IW3 client button/snapshot contract")
     data = data.replace("#include <universal/q_shared.h>",
-                        "#include <cstdio>\n#include <cmath>\n#include <universal/q_shared.h>", 1)
+                        "#include <cstdio>\n#include <cmath>\n#include <game/g_level.h>\n#include <universal/q_shared.h>", 1)
     idx = data.index(FN)
     data = data[:idx] + HELPER + "\n" + data[idx:]
     data = data.replace(ANCHOR, ANCHOR + "\n" + CODE, 1)
