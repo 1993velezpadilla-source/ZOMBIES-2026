@@ -46,7 +46,6 @@ REQUIRED = (
 )
 LIST_REQUIRED = (
     LIST_ALLOCATION,
-    "if (nfiles == 0x1FFF)",
     "*list++ = (const char *)user;",
     "list[nfiles] = 0;",
 )
@@ -97,6 +96,9 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
     source_text = original.decode("utf-8")
     location_body = function_source(source_text, SIGNATURE)
     list_body = definition_source(source_text, LIST_SIGNATURE)
+    capacity_body = function_source(source_text, "int __cdecl FS_AddFileToList(")
+    if "if (nfiles == 0x1FFF)" not in capacity_body:
+        raise ValueError("Original FS_AddFileToList result-cap guard is missing")
     for marker in REQUIRED:
         if marker not in location_body:
             raise ValueError("Original location-filter contract missing: " + marker)
@@ -130,6 +132,8 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
         "native_pointer_array_allocations": 1,
         "native_pointer_array_slots": 8193,
         "native_pointer_array_allocation_expression": LIST_ALLOCATION,
+        "original_list_capacity_guard_preserved": True,
+        "original_list_capacity_limit": 0x1FFF,
         "win32_fixed_size_allocations": 0,
         "source_staged_for_host_and_arm64_compile": True,
         "runtime_execution_proven": False,

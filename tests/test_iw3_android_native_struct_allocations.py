@@ -34,7 +34,7 @@ class OriginalFilesystemNativeAllocationTests(unittest.TestCase):
         body = definition_source(source, LIST_SIGNATURE)
         self.assertEqual(body.count(LIST_ALLOCATION), 1)
         self.assertNotIn("Hunk_UserAlloc(user, 0x8004u, 4)", body)
-        self.assertIn("if (nfiles == 0x1FFF)", body)
+        self.assertIn("if (nfiles == 0x1FFF)", source)
         self.assertIn("alignof(const char *)", body)
         self.assertEqual((0x1FFF + 2) * 4, 0x8004)
         self.assertEqual((0x1FFF + 2) * 8, 0x10008)

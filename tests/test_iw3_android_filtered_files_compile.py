@@ -38,6 +38,8 @@ class OriginalFilteredFilesCompileTests(unittest.TestCase):
             self.assertTrue(evidence["original_function_body_preserved_verbatim"])
             self.assertTrue(evidence["original_list_function_body_preserved_verbatim"])
             self.assertEqual(evidence["native_pointer_array_slots"], 8193)
+            self.assertTrue(evidence["original_list_capacity_guard_preserved"])
+            self.assertEqual(evidence["original_list_capacity_limit"], 0x1FFF)
             self.assertFalse(evidence["runtime_execution_proven"])
             self.assertFalse(evidence["playable_apk"])
             self.assertEqual(json.loads(report.read_text())["win32_fixed_size_allocations"], 0)
