@@ -28,6 +28,7 @@ class OfflineSPInputTests(unittest.TestCase):
             self.assertFalse(report["fireweapon_called_directly"])
             self.assertFalse(report["multiplayer_auth_changed"])
             patched = path.read_text(encoding="utf-8")
+            self.assertIn("#include <game/g_level.h>", patched)
             self.assertIn("clients[0].snap.ps.weapon > 0", patched)
             self.assertIn("result->buttons |= BUTTON_ATTACK", patched)
             self.assertIn("z2026_test_attack_cmds < 12", patched)
