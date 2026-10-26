@@ -2,7 +2,7 @@
 #include <string>
 #include <filesystem>
 
-extern "C" int z2026_iw3_unzip_smoke(const char *directory, int *iwd_mount_ok);
+extern "C" int z2026_iw3_unzip_smoke(const char *directory, int *iwd_mount_ok, int *iwd_searchpath_ok);
 
 int main() {
     const std::string directory = std::filesystem::temp_directory_path().string();
@@ -14,5 +14,6 @@ int main() {
         return 1;
     }
     std::puts("IW3_ORIGINAL_FS_LOADZIPFILE_INDEX_HOST_GREEN");
+    std::puts("IW3_ORIGINAL_FS_ADDSSEARCHPATH_HOST_GREEN");
     return 0;
 }
