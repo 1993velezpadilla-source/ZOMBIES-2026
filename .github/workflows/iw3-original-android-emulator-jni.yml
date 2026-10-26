@@ -109,6 +109,10 @@ jobs:
             --engine third_party/KisakCOD \
             --output "$folder/iw3_iwd_directory.cpp" \
             --report "$RUNNER_TEMP/iw3-original-iwd-directory.json"
+          python3 tools/iw3_android/prepare_real_engine_iwd_lookup.py \
+            --engine third_party/KisakCOD \
+            --output "$folder/iw3_iwd_lookup.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-iwd-lookup.json"
 
       - name: Compile original IW3 native JNI for real x86 Android emulator (not ARM64 proof)
         shell: bash
