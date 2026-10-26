@@ -61,6 +61,7 @@ class OriginalIW3UnzipPortTests(unittest.TestCase):
     def test_original_zip_reader_uses_root_confined_android_file_handles(self):
         adapter = (ROOT / "android/iw3-native/iw3_android_unzip_io.cpp").read_text(encoding="utf-8")
         smoke = (ROOT / "android/iw3-native/iw3_unzip_native_smoke.cpp").read_text(encoding="utf-8")
+        host_test = (ROOT / "android/iw3-native/iw3_unzip_host_test.cpp").read_text(encoding="utf-8")
         platform = (ROOT / "android/iw3-native/iw3_android_platform.cpp").read_text(encoding="utf-8")
         platform_test = (ROOT / "android/iw3-native/platform_native_test.cpp").read_text(encoding="utf-8")
         activity = (ROOT / "android/iw3-native/android_app/app/src/main/java/org/z2026/iw3nativeprobe/MainActivity.java").read_text(encoding="utf-8")
@@ -102,6 +103,8 @@ class OriginalIW3UnzipPortTests(unittest.TestCase):
         self.assertIn("IW3_JNI_IWD_MOUNT_%s", jni)
         self.assertIn("FS_LoadZipFile", smoke)
         self.assertIn("index_original_iwd(path, entries)", smoke)
+        self.assertIn("iwd_mount_ok != 1", host_test)
+        self.assertIn("IW3_ORIGINAL_FS_LOADZIPFILE_INDEX_HOST_GREEN", host_test)
         self.assertIn("IW3_JNI_UNZIP_PARSER_PASS", 
                       (ROOT / "tools/iw3_android/verify_runtime_evidence.py").read_text())
 
