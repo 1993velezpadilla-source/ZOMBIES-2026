@@ -6,6 +6,7 @@ import android.os.SystemClock;
 import android.graphics.Color;
 import android.util.Log;
 import android.view.MotionEvent;
+import android.view.View;
 import android.widget.TextView;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -30,6 +31,13 @@ public final class MainActivity extends Activity {
         label.setTextSize(17);
         label.setPadding(32, 25, 32, 25);
         label.setBackgroundColor(Color.rgb(10, 18, 28));
+        // Keep the real touch surface discoverable to UIAutomator. A touch
+        // listener alone does not guarantee that a TextView is exposed as an
+        // accessibility node on every Android emulator image.
+        label.setContentDescription("IW3 native diagnostic touch surface");
+        label.setFocusable(true);
+        label.setClickable(true);
+        label.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
         // The TextView occupies the whole screen and can consume touches.
         // Bind touch directly on that actual view, rather than relying on
         // Activity.onTouchEvent to receive unhandled events.

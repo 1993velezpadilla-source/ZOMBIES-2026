@@ -44,7 +44,8 @@ import xml.etree.ElementTree as ET
 root = ET.parse(sys.argv[1]).getroot()
 for node in root.iter('node'):
     if (node.get('package') == 'org.z2026.iw3nativeprobe'
-            and node.get('class') == 'android.widget.TextView'):
+            and (node.get('class') == 'android.widget.TextView'
+                 or node.get('content-desc') == 'IW3 native diagnostic touch surface')):
         match = re.fullmatch(r'\[(\d+),(\d+)\]\[(\d+),(\d+)\]', node.get('bounds', ''))
         if match:
             x0, y0, x1, y1 = map(int, match.groups())
