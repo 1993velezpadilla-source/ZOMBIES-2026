@@ -109,7 +109,8 @@ bool read_current(unzFile archive, const Entry &expected) {
            std::string(bytes.data(), static_cast<std::size_t>(got)) == expected.payload &&
            closeRc == UNZ_OK;
 }
-bool index_original_iwd(const char *path, const std::array<Entry, 2> &expected) {
+bool index_original_iwd(const char *path, const std::array<Entry, 2> &expected, bool *searchpath_ok) {
+    if (searchpath_ok) *searchpath_ok = false;
     const int old_count = fs_iwdFileCount;
     const int old_feed = fs_checksumFeed;
     fs_checksumFeed = 0;
