@@ -1,6 +1,5 @@
 """Regression tests for 64-bit string dvar pointers in original KisakCOD FS."""
 from pathlib import Path
-import re
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
