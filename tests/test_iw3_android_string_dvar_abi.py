@@ -22,7 +22,7 @@ class OriginalFilesystemStringDvarABITests(unittest.TestCase):
         for name in STRING_DVARS:
             with self.subTest(dvar=name):
                 self.assertNotRegex(
-                    self.source, rf"\b{name}->current\.integer\b"
+                    self.source, rf"\b{name}->(?:current|reset)\.integer\b"
                 )
                 self.assertIn(f"{name}->current.string", self.source)
 
@@ -49,6 +49,10 @@ class OriginalFilesystemStringDvarABITests(unittest.TestCase):
         init_body = self.source[init_start:init_end]
         self.assertIn("lastValidBase, (char *)fs_basepath->current.string", init_body)
         self.assertIn("lastValidGame, (char *)fs_gameDirVar->current.string", init_body)
+
+    def test_homepath_default_uses_native_width_reset_string_pointer(self):
+        self.assertIn("homePath = (char *)fs_basepath->reset.string;", self.source)
+        self.assertNotIn("fs_basepath->reset.integer", self.source)
 
     def test_numeric_debug_dvar_stays_numeric(self):
         self.assertIn("fs_debug->current.integer", self.source)
