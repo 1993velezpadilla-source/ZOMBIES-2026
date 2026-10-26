@@ -349,7 +349,7 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
 
     def test_original_iwd_runtime_services_are_verbatim_and_safe_to_stage(self):
         source_paths = {path for _, path in IWD_SERVICE_FUNCTIONS}
-        source_paths.add(IWD_MOUNT_SOURCE.parent / "com_files.cpp" if False else Path("src/universal/com_files.cpp"))
+        source_paths.add(IWD_MOUNT_SOURCE)
         original_files = {path: (ENGINE / path).read_bytes() for path in source_paths}
         with TemporaryDirectory() as temp:
             out = Path(temp) / "stage" / "iw3_iwd_services.cpp"
