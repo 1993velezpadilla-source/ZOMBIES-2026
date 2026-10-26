@@ -38,6 +38,8 @@ IW3_ANDROID_EXPORT int z2026_platform_list_iwd_files(
 IW3_ANDROID_EXPORT int z2026_platform_write_file(
     const char *relative_path, const void *source, std::size_t length);
 IW3_ANDROID_EXPORT int z2026_platform_unlink_file(const char *relative_path);
+IW3_ANDROID_EXPORT int z2026_platform_mkdir(const char *relative_path);
+IW3_ANDROID_EXPORT int z2026_platform_rmdir(const char *relative_path);
 
 // Android touch state plus a native adapter to original usercmd_s layout.
 // CL_CreateCmd/game-frame consumption remains pending.
