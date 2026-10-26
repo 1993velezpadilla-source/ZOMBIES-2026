@@ -862,3 +862,19 @@ owning original filesystem translation unit or a genuine handle-table accessor,
 then exercise the complete `FS_FOpenFileReadForThread -> FS_Read ->
 FS_FCloseFile` lifecycle against an IWD entry.
 The playable-APK gate remains closed.
+
+
+### Phase K — original file-handle close uses the native record size (26 Oct 2026)
+
+Review of the authentic FS_FCloseFile() body found a 32-bit portability assumption: it cleared exactly 284 bytes, which is the Win32 fileHandleData_t size, while the current 64-bit ABI overlay asserts a 304-byte record. On ARM64, that left the final 20 bytes of the record uncleared. The original close routine now clears sizeof(fsh[h]); on Win32 this remains 284 bytes, while 64-bit builds clear the complete native record.
+
+The same exact FS_FCloseFile() body is now extracted by prepare_real_engine_fs_read.py and compiled in the existing native/ARM64 audit archive and JNI diagnostic library. The only boundary adaptation maps the original FS_FileClose(FILE*) call to a POSIX fclose wrapper; ZIP close behavior remains in the original function.
+
+The Android IWD fixture now routes the cloned ZIP handle through original FS_Read() and then original FS_FCloseFile(), checking that the payload matches and that all sizeof(fileHandleData_t) bytes are zero after close. This exercises the original close path on the current native-width fixture table, not the full original open/handle-allocation lifecycle.
+
+Current head before this pass, 599ddff, passed the three Android CI gates:
+- [Native ARM64 build and ABI archives — 40349187895](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40349187895)
+- [ARM64 JNI diagnostic package — 40349187705](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40349187705)
+- [Android x86_64 emulator runtime — 40349187759](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40349187759), whose log emitted IW3_JNI_IWD_FS_READ_PASS.
+
+Those results verify the original ZIP-branch FS_Read() on a synthetic IWD fixture; they do not verify the full FS_FOpenFileReadForThread -> FS_Read -> FS_FCloseFile lifecycle, real game assets, FastFiles/maps, rendering, physical ARM64 execution or gameplay. The new close-path checks must pass on the new head before this pass is called green. PR #4 remains intentionally open and unmerged.

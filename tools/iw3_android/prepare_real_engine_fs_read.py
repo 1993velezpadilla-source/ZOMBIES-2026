@@ -24,6 +24,7 @@ SIGNATURE = "uint32_t __cdecl FS_Read(uint8_t *buffer, uint32_t len, int h)"
 FUNCTIONS = (
     "FILE *__cdecl FS_FileForHandle(int f)",
     SIGNATURE,
+    "void __cdecl FS_FCloseFile(int h)",
 )
 PROLOGUE = '#include "iw3_android_fs_read_compat.h"\n'
 REQUIRED = (
@@ -39,6 +40,7 @@ FORBIDDEN = (
     "fread(buffer",
     "std::fread",
     "AAsset_read",
+    "Com_Memset((uint32_t *)&fsh[h], 0, 284);",
     "Godot",
 )
 
@@ -78,6 +80,9 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
         "staged_sha256": hashlib.sha256(rendered.encode("utf-8")).hexdigest(),
         "original_FS_FileForHandle_body_preserved_exactly": True,
         "original_FS_Read_body_preserved_exactly": True,
+        "original_FS_FCloseFile_body_preserved_exactly": True,
+        "close_uses_native_struct_size": True,
+        "full_open_read_close_lifecycle_integrated": False,
         "uses_original_zip_read_and_original_file_read_branches": True,
         "original_upstream_fsh_table_integrated": False,
         "android_native_width_fsh_table_adapter_required": True,

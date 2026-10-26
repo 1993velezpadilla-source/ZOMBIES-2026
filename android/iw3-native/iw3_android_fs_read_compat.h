@@ -19,4 +19,7 @@ static_assert(offsetof(fileHandleData_t, name) == 44,
               "Unexpected native 64-bit fileHandleData_t::name offset");
 
 extern fileHandleData_t fsh[65];
+extern "C" void z2026_iw3_fs_file_close(FILE *stream);
+// The original FS_FCloseFile body is preserved; only the FILE* platform boundary is adapted.
+#define FS_FileClose z2026_iw3_fs_file_close
 FILE *__cdecl FS_FileForHandle(int f);

@@ -505,7 +505,7 @@ void __cdecl FS_FCloseFile(int h)
         f = FS_FileForHandle(h);
         FS_FileClose(f);
     }
-    Com_Memset((uint32_t *)&fsh[h], 0, 284);
+    Com_Memset((uint32_t *)&fsh[h], 0, sizeof(fsh[h]));
 }
 
 void __cdecl FS_FCloseLogFile(int h)

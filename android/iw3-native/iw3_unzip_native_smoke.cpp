@@ -132,18 +132,25 @@ bool read_via_original_fs_read(iwd_t *iwd, const Entry &expected) {
     fsh[1] = {};
     fsh[1].zipFile = iwd;
     fsh[1].handleFiles.file.z = reinterpret_cast<unsigned char *>(reopened);
+    fsh[1].handleFiles.iwdIsClone = 1;
     std::vector<std::uint8_t> bytes(expected.payload.size());
     const uint32_t got = FS_Read(
         bytes.data(), static_cast<uint32_t>(bytes.size()), 1);
+
+    // Close the cloned archive through the ORIGINAL engine close routine.
+    // Its memset must clear the entire native-width record, not the old Win32
+    // constant of 284 bytes (the 64-bit record is 304 bytes).
+    FS_FCloseFile(1);
+    const fileHandleData_t cleared{};
+    const bool handle_cleared =
+        std::memcmp(&fsh[1], &cleared, sizeof(cleared)) == 0;
     fsh[1] = previous;
 
-    const int close_current = unzCloseCurrentFile(reopened);
-    const int close_archive = unzClose(reopened);
     const bool content_ok =
         got == static_cast<uint32_t>(expected.payload.size()) &&
         std::string(reinterpret_cast<const char *>(bytes.data()), bytes.size()) ==
             expected.payload;
-    return content_ok && close_current == UNZ_OK && close_archive == UNZ_OK;
+    return content_ok && handle_cleared;
 }
 
 bool index_original_iwd(const char *path, const std::array<Entry, 2> &expected, bool *searchpath_ok, bool *fs_read_ok) {
