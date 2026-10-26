@@ -39,13 +39,13 @@ REQUIRED = (
     "if (!iwd)",
     "unzGetCurrentFileInfoPosition(uf, &buildBuffer[i].pos)",
     "Com_BlockChecksumKey32",
-    "const size_t iwdFilenameLength = strlen(iwd->iwdFilename);",
-    "iwd->iwdFilename + iwdFilenameLength - 4",
-    "iwd->iwdFilename[iwdFilenameLength - 4] = 0;",
+    "I_strncpyz(iwd->iwdFilename, zipfile, 256);",
+    'Keep the complete archive path, including ".iwd".',
     "iwd->buildBuffer = buildBuffer;",
 )
 FORBIDDEN = (
     "strlen(iwd->iwdBasename) + 252",
+    "iwd->iwdFilename[iwdFilenameLength - 4] = 0;",
 )
 
 def prepare(engine: Path, output: Path) -> dict:
@@ -78,6 +78,7 @@ def prepare(engine: Path, output: Path) -> dict:
         "function_body_preserved_verbatim": staged == OUTPUT_HEADER + body + "\n",
         "native_width_index_allocation_guards": True,
         "null_allocation_cleanup_guards": True,
+        "iwd_archive_path_keeps_extension_for_unz_reopen": True,
         "compiles_as_original_engine_static_module": True,
         "source_staged_for_android_diagnostic_link": True,
         "linkage_verified_by_build_ci": False,
