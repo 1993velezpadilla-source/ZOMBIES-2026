@@ -29,7 +29,7 @@ int g_data_root_fd = -1;
 std::string g_data_root_path;
 std::mutex g_touch_mutex;
 enum class TouchRole : std::uint8_t {
-    None, Move, Look, Attack, Ads, Jump, Reload, Use, Melee, Crouch, Prone
+    None, Move, Look, Attack, Ads, Jump, Reload, Use, Melee, Crouch, Prone, Sprint, Slide
 };
 struct Touch {
     bool down = false;
@@ -48,6 +48,10 @@ float g_pending_yaw_degrees = 0.0f;
 float g_pending_pitch_degrees = 0.0f;
 
 TouchRole classify_touch(float x, float y) {
+    // Dedicated lower-left buttons keep sprint and slide distinct from the
+    // left-thumb movement zone. Slide is the engine's sprint+crouch chord.
+    if (x < 0.18f && y >= 0.76f) return TouchRole::Sprint;
+    if (x >= 0.18f && x < 0.38f && y >= 0.76f) return TouchRole::Slide;
     if (x >= 0.82f && y >= 0.76f) return TouchRole::Attack;
     if (x >= 0.60f && x < 0.82f && y >= 0.76f) return TouchRole::Ads;
     if (x >= 0.60f && x < 0.82f && y >= 0.58f && y < 0.76f) return TouchRole::Jump;
@@ -609,6 +613,8 @@ extern "C" IW3_ANDROID_EXPORT int z2026_platform_usercmd_snapshot(
                 movement_claimed = true;
             }
             break;
+        case TouchRole::Sprint: command.buttons |= BUTTON_SPRINT; break;
+        case TouchRole::Slide: command.buttons |= BUTTON_SPRINT | BUTTON_CROUCH; break;
         case TouchRole::Attack: command.buttons |= BUTTON_ATTACK; break;
         case TouchRole::Ads: command.buttons |= BUTTON_ADS; break;
         case TouchRole::Jump: command.buttons |= BUTTON_JUMP; break;
@@ -664,6 +670,11 @@ extern "C" IW3_ANDROID_EXPORT void z2026_platform_apply_touch_to_usercmd(
                 command->rightmove = static_cast<char>(std::clamp(current_right + right, -127, 127));
                 movement_claimed = true;
             }
+            break;
+        case TouchRole::Sprint: command->buttons |= BUTTON_SPRINT; break;
+        case TouchRole::Slide:
+            command->buttons |= BUTTON_SPRINT;
+            want_crouch = true;
             break;
         case TouchRole::Attack: command->buttons |= BUTTON_ATTACK; break;
         case TouchRole::Ads: command->buttons |= BUTTON_ADS; break;
