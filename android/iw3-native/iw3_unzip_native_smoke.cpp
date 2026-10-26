@@ -201,6 +201,11 @@ bool scan_original_iwd_directory(const char *root,
     char relative_archive[128]{};
     char root_copy[1024]{};
     char game_copy[48]{};
+    char disk_dir[96]{};
+    char disk_relative[128]{};
+    const char disk_payload[] = "KISAKCOD_ORIGINAL_DIRECTORY_FALLBACK";
+    bool disk_dir_created = false;
+    bool disk_file_written = false;
     const long pid = static_cast<long>(::getpid());
     const int subdir_length = std::snprintf(subdir, sizeof(subdir), "iw3-scan-%ld", pid);
     const int basename_length = std::snprintf(
@@ -224,6 +229,22 @@ bool scan_original_iwd_directory(const char *root,
     bool ok = false;
 
     if (wrote) {
+        const int disk_dir_length = std::snprintf(
+            disk_dir, sizeof(disk_dir), "%s/maps", subdir);
+        const int disk_relative_length = std::snprintf(
+            disk_relative, sizeof(disk_relative),
+            "%s/maps/iw3_android_disk_probe.txt", subdir);
+        if (disk_dir_length > 0 &&
+            static_cast<std::size_t>(disk_dir_length) < sizeof(disk_dir) &&
+            disk_relative_length > 0 &&
+            static_cast<std::size_t>(disk_relative_length) < sizeof(disk_relative)) {
+            disk_dir_created = z2026_platform_mkdir(disk_dir) == 0;
+            if (disk_dir_created) {
+                disk_file_written = z2026_platform_write_file(
+                    disk_relative, disk_payload, sizeof(disk_payload) - 1) ==
+                    static_cast<int>(sizeof(disk_payload) - 1);
+            }
+        }
         const int old_count = fs_iwdFileCount;
         const int old_feed = fs_checksumFeed;
         searchpath_s *const previous = fs_searchpaths;
@@ -285,9 +306,13 @@ bool scan_original_iwd_directory(const char *root,
                 expected[0].name.c_str(), nullptr, FS_THREAD_MAIN);
             const int lookup_miss = z2026_iw3_original_searchpath_lookup(
                 "maps/iw3_android_missing.txt", nullptr, FS_THREAD_MAIN);
+            const int lookup_disk_hit = z2026_iw3_original_searchpath_lookup(
+                "maps/iw3_android_disk_probe.txt", nullptr, FS_THREAD_MAIN);
             const int lookup_traversal = z2026_iw3_original_searchpath_lookup(
                 "../maps/iw3_android_probe.txt", nullptr, FS_THREAD_MAIN);
             const bool lookup_pass = lookup_hit == 1 &&
+                                     disk_file_written &&
+                                     lookup_disk_hit == 1 &&
                                      lookup_miss == -1 &&
                                      lookup_traversal == -1;
             if (lookup_ok) *lookup_ok = lookup_pass;
@@ -318,6 +343,11 @@ bool scan_original_iwd_directory(const char *root,
         fs_checksumFeed = old_feed;
     }
 
+    if (disk_dir_created) {
+        const int disk_unlink = z2026_platform_unlink_file(disk_relative);
+        if (disk_file_written && disk_unlink != 0) ok = false;
+        if (z2026_platform_rmdir(disk_dir) != 0) ok = false;
+    }
     if (wrote && z2026_platform_unlink_file(relative_archive) != 0) ok = false;
     if (z2026_platform_rmdir(subdir) != 0) ok = false;
     return ok;
