@@ -420,6 +420,35 @@ extern "C" IW3_ANDROID_EXPORT int z2026_platform_list_iwd_files(
     return static_cast<int>(needed);
 }
 
+extern "C" IW3_ANDROID_EXPORT int z2026_platform_mkdir(const char *relative) {
+    if (!valid_path(relative)) return -1;
+    std::lock_guard<std::mutex> lock(g_data_mutex);
+    if (g_data_root_fd < 0) return -1;
+    char leaf[256]{};
+    const int parent = open_parent_beneath_root(g_data_root_fd, relative, leaf);
+    if (parent < 0) return -1;
+    int rc = mkdirat(parent, leaf, 0700);
+    if (rc != 0 && errno == EEXIST) {
+        struct stat st{};
+        if (fstatat(parent, leaf, &st, AT_SYMLINK_NOFOLLOW) == 0 &&
+            S_ISDIR(st.st_mode)) rc = 0;
+    }
+    close(parent);
+    return rc;
+}
+
+extern "C" IW3_ANDROID_EXPORT int z2026_platform_rmdir(const char *relative) {
+    if (!valid_path(relative)) return -1;
+    std::lock_guard<std::mutex> lock(g_data_mutex);
+    if (g_data_root_fd < 0) return -1;
+    char leaf[256]{};
+    const int parent = open_parent_beneath_root(g_data_root_fd, relative, leaf);
+    if (parent < 0) return -1;
+    const int rc = unlinkat(parent, leaf, AT_REMOVEDIR);
+    close(parent);
+    return rc;
+}
+
 extern "C" IW3_ANDROID_EXPORT int z2026_platform_write_file(
     const char *relative, const void *source, std::size_t length) {
     if (!valid_path(relative) || (!source && length) ||
