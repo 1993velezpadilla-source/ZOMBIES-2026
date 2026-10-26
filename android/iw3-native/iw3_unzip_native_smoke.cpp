@@ -140,7 +140,7 @@ bool index_original_iwd(const char *path, const std::array<Entry, 2> &expected, 
         if (reopened) {
             if (unzSetCurrentFileInfoPosition(reopened, iwd->buildBuffer[0].pos) == UNZ_OK &&
                 unzOpenCurrentFile(reopened) == UNZ_OK) {
-                std::vector<char> reopened_bytes(expected[0].payload.size() + 1, '\\0');
+                std::vector<char> reopened_bytes(expected[0].payload.size() + 1, '\0');
                 const int got = unzReadCurrentFile(
                     reopened, reopened_bytes.data(),
                     static_cast<unsigned>(reopened_bytes.size()));
