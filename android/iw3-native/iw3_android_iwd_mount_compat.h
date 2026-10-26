@@ -11,9 +11,11 @@
 #define __cdecl
 #endif
 
-void *Z_Malloc(int size, const char *name, int type);
-void Z_Free(void *ptr, int type);
-int Com_BlockChecksumKey32(const unsigned char *data, int length, int key);
+void *Z_Malloc(int32_t size, const char *name, int32_t type);
+void Z_Free(void *ptr, int32_t type);
+int __cdecl Com_BlockChecksumKey32(const uint8_t *data, uint32_t length, uint32_t initialCrc);
+iwd_t *__cdecl FS_LoadZipFile(char *zipfile, char *basename);
+int __cdecl FS_HashFileName(const char *fname, int hashSize);
 
 extern int fs_iwdFileCount;
 extern int fs_checksumFeed;
