@@ -1,6 +1,8 @@
 #include "iw3_android_iwd_directory_compat.h"
 
 #include <algorithm>
+#include <cstdarg>
+#include <cstdlib>
 #include <cstdio>
 #include <cstring>
 #include <limits>
@@ -107,4 +109,37 @@ void __cdecl Com_PrintWarning(int, const char *format, ...) {
 }
 void __cdecl Com_Printf(int, const char *format, ...) {
     if (format) std::fputs(format, stderr);
+}
+
+int __cdecl Sys_DirectoryHasContents(const char *directory) {
+    // The original engine treats a missing/unreadable directory as empty.
+    // The platform service itself returns -1 on error; do not let -1 become
+    // truthy and register an inaccessible language directory.
+    return z2026_platform_directory_has_contents(directory) > 0 ? 1 : 0;
+}
+
+int Com_sprintf(char *dest, uint32_t size, const char *format, ...) {
+    if (!dest || size == 0 || !format) return -1;
+    va_list args;
+    va_start(args, format);
+    const int written = std::vsnprintf(dest, static_cast<std::size_t>(size),
+                                       format, args);
+    va_end(args);
+    dest[size - 1] = '\\0';
+    if (written < 0) dest[0] = '\\0';
+    return written;
+}
+
+void __cdecl MyAssertHandler(const char *filename, int line, int type,
+                             const char *format, ...) {
+    std::fprintf(stderr, "IW3 assertion failed at %s:%d (type %d): ",
+                 filename ? filename : "<unknown>", line, type);
+    if (format) {
+        va_list args;
+        va_start(args, format);
+        std::vfprintf(stderr, format, args);
+        va_end(args);
+    }
+    std::fputc('\\n', stderr);
+    std::abort();
 }
