@@ -87,6 +87,7 @@ add_library(iw3_sp_math SHARED
     "${IW3_EXTRACTED_IWD_NAMES}"
     "${IW3_EXTRACTED_IWD_SERVICES}"
     "${IW3_EXTRACTED_IWD_MOUNT}"
+    "${IW3_EXTRACTED_IWD_SEARCHPATH}"
     "${IW3_EXTRACTED_UNZIP}"
     "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_unzip_io.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/iw3_unzip_native_smoke.cpp"
