@@ -153,7 +153,7 @@ The next client-side portability seam is the original `CL_CreateNewCommands()` p
 
 The authentic `third_party/KisakCOD/src/client/cl_input.cpp` now constructs the command in a `usercmd_s` object and copies `sizeof(command)` into the selected original `clients[0].cmds` slot under the existing client-command critical section. The command index is evaluated once into `nextCommand`. This preserves the original command creation, ring index, and lock ordering while removing the fixed 56-byte intermediate copy.
 
-The Android CMake build now compiles the original SP `cl_input.cpp` as `libiw3_sp_client_input.a` with the NDK ABI. The ARM64 workflow audits that the archive defines `CL_CreateCmd(usercmd_s*)` and `CL_CreateNewCommands()`, and that the original `CL_CreateCmd` still references the Android touch boundary `z2026_platform_apply_touch_to_usercmd`. This archive is deliberately not linked into the JNI diagnostic yet: the real client state, server lifecycle and remaining client services still need integration.
+An experimental Android CMake target was added to compile the original SP `cl_input.cpp` as `libiw3_sp_client_input.a` with the NDK ABI and audit the `CL_CreateCmd(usercmd_s*)` / `CL_CreateNewCommands()` symbols. The experiment exposed the Win32/D3D header boundary described in Phases X–Y; the target and archive audit were subsequently removed from the default Android workflow rather than leave CI red. The current workflow does not claim this translation unit is built or linked.
 
 Regression coverage in `tests/test_iw3_android_client_input_abi.py` checks the native-size queue copy, original call ordering, and build/audit scope boundary.
 
@@ -177,7 +177,7 @@ The first Android NDK compile of the original `client/cl_input.cpp` did not reac
 Corrections made in the authentic KisakCOD headers:
 - Replaced the affected alignment spellings with standard C++ `alignas`, preserving the required 8-byte/128-byte alignment.
 - Kept the original Win32 layout assertions on 32-bit builds and added explicit LP64 assertions for the pointer-bearing layouts measured by the Android compiler. These checks do not change the 32-bit game layout.
-- The Android target still compiles the actual original `cl_input.cpp`; no replacement input or game loop was added.
+- During this experiment the temporary Android target attempted to compile the actual original `cl_input.cpp`; it was later removed after the D3D/client-header dependencies proved to require a broader port. No replacement input or game loop was added.
 
 Related commits:
 - `6599d6be1e777b1dd8d037589549e6ac758571cb` — standard alignment for script memory tree.
