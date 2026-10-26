@@ -114,7 +114,7 @@ class OriginalIW3UnzipPortTests(unittest.TestCase):
         self.assertIn("IW3_JNI_IWD_LOOKUP_PASS", (ROOT / "tools/iw3_android/verify_runtime_evidence.py").read_text())
         self.assertIn("FS_AddGameDirectory(root_copy, game_copy, 0, 0)", smoke)
         self.assertIn("directory_node->dir->gamedir", smoke)
-        self.assertIn("scan_original_iwd_directory(\\n        directory, entries, archiveBytes, &lookup_ok, &fs_disk_read_ok)", smoke)
+        self.assertIn("scan_original_iwd_directory(\n        directory, entries, archiveBytes, &lookup_ok, &fs_disk_read_ok)", smoke)
         self.assertIn("z2026_iw3_original_searchpath_lookup", smoke)
         self.assertIn("iwd_directory_scan_ok != 1", host_test)
         self.assertIn("iwd_lookup_ok != 1", host_test)
