@@ -4,6 +4,10 @@
 #include "iw3_android_iwd_directory_compat.h"
 #include <cstdio>
 
+#ifndef BOOL
+typedef int BOOL;
+#endif
+
 #ifndef __cdecl
 #define __cdecl
 #endif
