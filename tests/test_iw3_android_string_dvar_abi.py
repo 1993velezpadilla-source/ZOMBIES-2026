@@ -22,7 +22,7 @@ class OriginalFilesystemStringDvarABITests(unittest.TestCase):
         for name in STRING_DVARS:
             with self.subTest(dvar=name):
                 self.assertNotRegex(
-                    self.source, rf"\\b{name}->current\\.integer\\b"
+                    self.source, rf"\b{name}->current\.integer\b"
                 )
                 self.assertIn(f"{name}->current.string", self.source)
 
@@ -30,8 +30,8 @@ class OriginalFilesystemStringDvarABITests(unittest.TestCase):
         startup_start = self.source.index("void __cdecl FS_Startup(char *gameName)")
         startup_end = self.source.index("void __cdecl FS_InitFilesystem()", startup_start)
         startup = self.source[startup_start:startup_end]
-        self.assertIn("fs_basepath->current.string[0] != '\\0'", startup)
-        self.assertIn("fs_homepath->current.string[0] != '\\0'", startup)
+        self.assertIn("fs_basepath->current.string[0] != '\0'", startup)
+        self.assertIn("fs_homepath->current.string[0] != '\0'", startup)
         self.assertIn("FS_AddLocalizedGameDirectory((char *)fs_basepath->current.string", startup)
         self.assertNotIn("current.integer", startup)
 
@@ -39,7 +39,7 @@ class OriginalFilesystemStringDvarABITests(unittest.TestCase):
         open_start = self.source.index(
             "uint32_t __cdecl FS_FOpenFileReadForThread("
         )
-        open_end = self.source.index("\\n}\\n", open_start) + 3
+        open_end = self.source.index("\n}\n", open_start) + 3
         open_body = self.source[open_start:open_end]
         self.assertIn("FS_BuildOSPathForThread((char*)fs_basepath->current.string", open_body)
         self.assertNotIn("fs_basepath->current.integer", open_body)
