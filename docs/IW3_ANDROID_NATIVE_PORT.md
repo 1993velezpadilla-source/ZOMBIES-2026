@@ -648,3 +648,21 @@ milestone. The next Windows runtime must first show the hook/weapon/warm-up
 markers; then it must show the original weapon callbacks before any damage
 claim is valid. The Android target still does not link the original IWD mount
 module or run the client/frame/render/map stack. Keep PR #4 open and unmerged.
+
+
+## IWD central-directory name integrity — 26 Oct 2026
+
+The original `FS_LoadZipFile()` now rejects empty ZIP entry names and names
+whose C-string length differs from the central-directory `size_filename`.
+That difference indicates an embedded NUL: without this guard, the indexer
+could size one archive name but hash/copy only its prefix, making a different
+ZIP entry appear under the truncated engine path. The check runs in both the
+initial allocation-sizing pass and the second hash-index construction pass,
+so the two passes cannot disagree about accepted names.
+
+The source-staging gate requires this exact guard and the source regression
+checks that it appears twice and precedes both name-buffer sizing and CRC /
+hash-index insertion. This is a correctness hardening change to the authentic
+KisakCOD IWD indexer; it does **not** mount a real game IWD in the Android
+searchpath, load FastFiles/maps, or establish gameplay. CI must pass on the
+resulting commit before this source-level guard is considered verified.
