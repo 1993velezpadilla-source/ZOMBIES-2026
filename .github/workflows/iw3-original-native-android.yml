@@ -194,6 +194,20 @@ jobs:
           grep -E ' [BbDd] fsh' "$RUNNER_TEMP/iw3-original-fs-read-symbols.txt"
           grep -E ' U fsh' "$RUNNER_TEMP/iw3-original-fs-read-symbols.txt"
           echo "IW3_ENGINE_SHARED_FSH_TABLE_AARCH64_AUDIT_GREEN"
+
+          # Do not let the filtered-files source silently become an optional,
+          # unverified compile. Audit its actual AArch64 archive and preserve
+          # unresolved engine services as evidence that this is not falsely
+          # reported as a linked filesystem runtime.
+          filtered_archive="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_filtered_files.a"
+          test -s "$filtered_archive"
+          "$llvm_nm" -C --defined-only "$filtered_archive" | tee "$RUNNER_TEMP/iw3-filtered-files-defined.txt"
+          grep -F 'FS_ListFilteredFilesInLocation' "$RUNNER_TEMP/iw3-filtered-files-defined.txt"
+          "$llvm_nm" -u -C "$filtered_archive" | tee "$RUNNER_TEMP/iw3-filtered-files-undefined.txt"
+          grep -F 'Hunk_UserCreate' "$RUNNER_TEMP/iw3-filtered-files-undefined.txt"
+          grep -F 'Hunk_UserAlloc' "$RUNNER_TEMP/iw3-filtered-files-undefined.txt"
+          grep -F 'FS_ListFilteredFiles' "$RUNNER_TEMP/iw3-filtered-files-undefined.txt"
+          echo "IW3_ORIGINAL_FILTERED_FILES_AARCH64_SYMBOL_AND_SERVICE_AUDIT_GREEN"
           so="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_math.so"
           test -s "$so"
           elf="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
