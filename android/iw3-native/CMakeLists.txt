@@ -73,23 +73,6 @@ target_include_directories(iw3_sp_frame PRIVATE "${IW3_ENGINE_SOURCE_ROOT}")
 target_compile_definitions(iw3_sp_frame PRIVATE KISAK_SP=1)
 target_compile_options(iw3_sp_frame PRIVATE -fsigned-char -frounding-math -fno-fast-math)
 
-# Compile the original SP client-input translation unit with the Android ABI.
-# This keeps the genuine CL_CreateCmd/CL_CreateNewCommands code available for
-# the next runtime integration step; it is an audit archive, not yet linked
-# into the JNI diagnostic/game target because its client/server dependencies
-# are not fully integrated.
-if(ANDROID)
-    add_library(iw3_sp_client_input STATIC "${IW3_ENGINE_SOURCE_ROOT}/client/cl_input.cpp")
-    target_include_directories(iw3_sp_client_input PRIVATE
-        "${IW3_ENGINE_SOURCE_ROOT}"
-        "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
-        "${IW3_ENGINE_SOURCE_ROOT}/../deps")
-    target_compile_definitions(iw3_sp_client_input PRIVATE KISAK_SP=1)
-    target_compile_options(iw3_sp_client_input PRIVATE
-        -ffunction-sections -fdata-sections -Wall -Wextra -fsigned-char
-        -frounding-math -fno-fast-math)
-endif()
-
 # Compile the exact original FS_LoadZipFile function with native-width engine
 # structures. This archive deliberately retains unresolved allocator/checksum
 # services and is not linked into the JNI diagnostic/game target.
