@@ -787,3 +787,16 @@ A review of the original `FS_FOpenFileReadForThread()` and `unzReOpen()` uncover
 The fix keeps the complete, already length-validated path (including `.iwd`) in the original `iwd_t` field. The JNI IWD fixture now checks that the stored name exactly matches the archive path, calls original `unzReOpen(iwd->iwdFilename, iwd->handle)`, seeks to the indexed first entry, opens it and verifies the exact payload before closing the cloned archive. The mount smoke fails if clone reopen or payload verification fails. Source regressions were updated to reject the old extension-trimming behavior.
 
 This is a concrete prerequisite for the original file-handle path, not yet the complete `FS_FOpenFileReadForThread` / `FS_Read` lifecycle. The generated lookup bridge still stops before handle allocation, and the diagnostic still uses a synthetic IWD fixture rather than licensed game assets. Validation for this correction is running through the existing native ARM64, JNI packaging and Android emulator workflows; do not call it green until their new run conclusions and logs are inspected. The emulator gate is x86_64 diagnostic-only, not ARM64 device gameplay. No playable APK is available, and PR #4 must remain unmerged.
+
+
+#### Phase I CI update — 26 Oct 2026
+
+The source regression and generator contract were corrected after the first native gate exposed stale expectations for the removed extension-trimming behavior. On head `449ea041608d6f64757abc3c238574d70522539e`:
+
+- Preflight `40317221172`: **PASS**.
+- Native ARM64 workflow `40317213185`: **PASS**. Source/provenance checks, host build/tests, sanitizer build/tests, Android NDK setup, ARM64 ELF link, original frame compile, IWD archive compile/symbol audit and artifact upload all completed successfully. Artifact `12647606725` is a native-module bundle, explicitly **not an APK**.
+- JNI Android integration `40317213202`: still running at this checkpoint.
+- Android emulator runtime `40317213167`: still running at this checkpoint; this gate uses Android x86_64 and cannot prove physical ARM64 execution.
+- Windows SP build/runtime regression checks `40317221188` and `40317221216`: still running at this checkpoint.
+
+Thus the corrected source and native ARM64 module compile are verified, but the new cloned-IWD reopen/read smoke has not yet received its final Android runtime result. The original file-handle allocation plus `FS_Read` lifecycle remains unported, as do FastFiles/maps, renderer integration and real gameplay. There is still no playable APK; keep PR #4 unmerged.
