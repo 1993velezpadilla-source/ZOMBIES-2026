@@ -167,7 +167,8 @@ jobs:
             ${{ runner.temp }}/iw3-original-iwd-names.json
             ${{ runner.temp }}/iw3-original-unzip-abi.json
             ${{ runner.temp }}/iw3-original-iwd-mount.json
-            ${{ runner.temp }}/iw3-original-iwd-services.json\n            ${{ runner.temp }}/iw3-original-fs-read.json
+            ${{ runner.temp }}/iw3-original-iwd-services.json
+            ${{ runner.temp }}/iw3-original-fs-read.json
             ${{ runner.temp }}/iw3-original-iwd-read-lifecycle.json
           if-no-files-found: warn
           retention-days: 14
