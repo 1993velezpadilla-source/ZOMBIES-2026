@@ -120,6 +120,7 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(
                   "Real IW3 SP hit-location byte copy: %s\n"
                   "Original IW3 IWD name lookup: %s\n"
                   "Original IW3 ZIP32 stored/deflate parser: %s\n"
+                  "Original FS_LoadZipFile IWD index: %s\n"
                   "Android app-private data-root I/O: %s\n"
                   "Original IW3 usercmd_s touch adapter: %s\n"
                   "Original specialty_rof ID: %d\n"
