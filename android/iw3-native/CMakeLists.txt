@@ -65,7 +65,8 @@ target_include_directories(iw3_sp_iwd_mount PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}"
     "${IW3_REAL_HEADER_ROOT}"
     "${IW3_ENGINE_SOURCE_ROOT}"
-    "${IW3_ENGINE_SOURCE_ROOT}/qcommon")
+    "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+    "${IW3_ENGINE_SOURCE_ROOT}/../deps")
 target_compile_definitions(iw3_sp_iwd_mount PRIVATE KISAK_SP=1)
 target_compile_options(iw3_sp_iwd_mount PRIVATE
     -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
