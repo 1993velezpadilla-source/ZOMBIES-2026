@@ -21,3 +21,14 @@ The original engine source now reads these values through `current.string`; star
 **Validation status at documentation time:** the new regression and the platform build workflows have been triggered by the branch updates; their final results have not yet been inspected. Do not count this pass as CI-green until the relevant Actions runs finish.
 
 **Scope boundary:** this fixes pointer-width correctness in the authentic filesystem source, but it does not itself execute `FS_Startup` in the Android runtime. The JNI app still stages selected original function bodies with narrow platform adapters; it does not link the full original `com_files.cpp`, load licensed FastFiles/maps, render a game scene, or execute complete player/weapon/actor gameplay. No playable APK is claimed; PR #4 remains open and unmerged.
+
+### Phase Q — preserve the filesystem base-path reset string on 64-bit Android (26 Oct 2026; CI pending)
+
+A follow-up audit after Phase P found one remaining pointer-width defect in the original `FS_InitFilesystem`/dvar-registration path: `homePath = (char *)fs_basepath->reset.integer;`. Unlike the already-corrected `current.string` accesses, this cast reads the reset value through the 32-bit integer union member. On a 64-bit ABI it can truncate the default base path before `fs_homepath` is registered. The original engine now reads `fs_basepath->reset.string`; no replacement filesystem path logic was added.
+
+- Engine fix: commit 8300729462798cc9ff5dfd006ac753e1b0e24784.
+- Regression extension: commit 2d5391e6dfeef04cd52364e8717f1bf879375d6f; the ABI test now rejects both `current.integer` and `reset.integer` pointer reads for the five string-valued filesystem dvars, and explicitly asserts that the home-path default uses `reset.string`.
+
+**Validation status:** this commit has just been pushed and the Android source, ARM64 compile, JNI packaging, and emulator workflows must be inspected before this pass can be called CI-green. Previous baseline on `85c16a7b9d2b19856fae6acf09942cfd686464aa` had source preflight, original Windows SP build/runtime and the offline RotU source audit passing; those results do not validate this new change. The Android emulator remains x86_64 and diagnostic-only.
+
+**Scope boundary:** the pointer fix is in the authentic KisakCOD source, but `FS_Startup`/the full `com_files.cpp` is still not linked into the Android game runtime. No real FastFiles/map load, renderer scene, touch-driven player combat, or physical ARM64 gameplay is proven. Keep PR #4 open and unmerged.
