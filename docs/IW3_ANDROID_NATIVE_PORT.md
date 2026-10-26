@@ -530,3 +530,27 @@ probe changes. This remains a Windows SP diagnostic only; it does not prove
 Android client linkage, graphics, map rendering, ARM64-device execution, or a
 playable Android APK. The next CI result must determine whether real traces
 actually hit the existing actor; if not, preserve that failure as a blocker.
+
+## Offline SP combat probe compile regression (2026-10-26)
+
+The first bounded-aim runtime workflow after adding the target-selection hook failed at
+the **Windows-only disposable source build**, not in Android. Compiler errors
+C2065 reported `level` and `g_entities` were undeclared in the
+temporarily instrumented `client/cl_input.cpp`. That translation unit includes
+`game/g_local.h`, but that header does not expose the shared level/entity
+globals declared by `game/g_level.h`.
+
+Fixed the disposable instrumentation generator to add the explicit
+`#include <game/g_level.h>` to its temporary copy before compiling the
+test-only actor-aim code. The checked-in KisakCOD source remains untouched by
+the probe. Added a regression assertion that the generated copy includes this
+declaration header; the existing test still compares the vendored input source
+before/after and rejects modifying it.
+
+Failure evidence: [offline SP runtime run 40250674916](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40250674916),
+job log showed C2065 at the injected `level` / `g_entities` references.
+Fix commits: [0febe32](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/0febe32faa1957fe2eaaeb270cb63bca7ed538a3)
+and [20fac77](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/20fac77c4059caaea6fb46b1968639e18a306e3f).
+CI for the fix must pass the Windows SP build before any runtime hit/damage
+result can be interpreted. This is a test-harness compile fix only; it is not
+Android engine linkage, not an IWD mount, and not evidence of playable gameplay.
