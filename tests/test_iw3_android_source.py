@@ -44,6 +44,11 @@ from tools.iw3_android.prepare_real_engine_iwd_services import (
     prepare as prepare_iwd_services,
 )
 
+from tools.iw3_android.prepare_real_engine_iwd_directory import (
+    REQUIRED as IWD_DIRECTORY_REQUIRED,
+    prepare as prepare_iwd_directory,
+)
+
 from tools.iw3_android.prepare_real_engine_iwd_searchpath import (
     SOURCE as IWD_SEARCHPATH_SOURCE, SIGNATURE as IWD_SEARCHPATH_SIGNATURE,
     REQUIRED as IWD_SEARCHPATH_REQUIRED, prepare as prepare_iwd_searchpath,
@@ -373,6 +378,30 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
         self.assertIn("cursor->iwd == iwd", smoke)
         jni = (ROOT / "android/iw3-native/iw3_android_jni.cpp").read_text(encoding="utf-8")
         self.assertIn("IW3_JNI_IWD_SEARCHPATH_%s", jni)
+
+    def test_original_iwd_directory_scanner_is_staged_and_fails_closed(self):
+        source = (ENGINE / "src/universal/com_files.cpp").read_text(encoding="utf-8")
+        scanner = function_source(
+            source,
+            "void __cdecl FS_AddIwdFilesForGameDirectory(char *path, char *pszGameFolder)",
+        )
+        self.assertLess(scanner.index("numfiles = 0;"),
+                        scanner.index('list = Sys_ListFiles(ospath, "iwd", 0, &numfiles, 0);'))
+        self.assertIn("if (!list || numfiles <= 0)", scanner)
+        self.assertIn("qsort(s0, numfiles, sizeof(s0[0]),", scanner)
+        self.assertNotIn("qsort(s0, numfiles, 4u,", scanner)
+        with TemporaryDirectory() as tmp:
+            output = Path(tmp) / "iw3_iwd_directory.cpp"
+            evidence = prepare_iwd_directory(ENGINE, output)
+            staged = output.read_text(encoding="utf-8")
+            self.assertTrue(evidence["original_directory_scanner_preserved_from_vendored_source"])
+            self.assertTrue(evidence["null_or_failed_directory_listing_fails_closed"])
+            self.assertTrue(evidence["native_pointer_width_qsort"])
+            self.assertFalse(evidence["real_game_iwd_mounted"])
+            for marker in IWD_DIRECTORY_REQUIRED:
+                self.assertIn(marker, staged)
+        self.assertEqual((ENGINE / "src/universal/com_files.cpp").read_text(encoding="utf-8"),
+                         source)
 
     def test_iwd_localized_prefix_clear_is_arm64_safe(self):
         source = (ENGINE / "src/universal/com_files.cpp").read_text(encoding="utf-8")
