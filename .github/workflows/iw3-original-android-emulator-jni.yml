@@ -7,6 +7,8 @@ on:
       - feature/iw3-native-android-arm64-20261025
     paths:
       - .github/workflows/iw3-original-android-emulator-jni.yml
+      - .github/workflows/iw3-original-native-android.yml
+      - .github/workflows/iw3-original-android-jni.yml
       - android/iw3-native/**
       - tools/iw3_android/**
       - third_party/KisakCOD/src/**
