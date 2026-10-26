@@ -834,9 +834,10 @@ This closes a CI coverage gap: a previous ARM64 JNI integration run failed becau
 The previous pass only staged the upstream `FS_Read` body and recorded its
 source hash; it did not compile that function. This pass adds a separate
 `iw3_sp_fs_read` static archive built by the host, Android ARM64, and Android
-emulator configurations. The source body is extracted verbatim from
-`third_party/KisakCOD/src/universal/com_files.cpp`. Compile-time assertions
-check the native 64-bit `fileHandleData_t` layout (`sizeof == 304`,
+emulator configurations. The `FS_FileForHandle` and `FS_Read` bodies are extracted verbatim from
+`third_party/KisakCOD/src/universal/com_files.cpp`; the existing original
+lookup module already supplies `FS_CheckFileSystemStarted`. Compile-time
+assertions check the native 64-bit `fileHandleData_t` layout (`sizeof == 304`,
 `zipFile` offset 32, and `name` offset 44).
 
 The separate archive is an ABI/dependency audit and is not linked into

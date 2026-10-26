@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Extract authentic file-read helpers for an Android ABI and IWD-branch probe.
 
-The emitted FS_CheckFileSystemStarted, FS_FileForHandle and FS_Read bodies are
-verbatim from KisakCOD. Android supplies a native-width fileHandleData_t table
+The emitted FS_FileForHandle and FS_Read bodies are verbatim from KisakCOD.
+The original FS_CheckFileSystemStarted body is already supplied by the existing
+lookup module. Android supplies a native-width fileHandleData_t table
 for the isolated ZIP-branch fixture; this is not the original complete open /
 close lifecycle and must not be described as a playable runtime.
 """
@@ -21,7 +22,6 @@ except ModuleNotFoundError:
 SOURCE = Path("src/universal/com_files.cpp")
 SIGNATURE = "uint32_t __cdecl FS_Read(uint8_t *buffer, uint32_t len, int h)"
 FUNCTIONS = (
-    "void __cdecl FS_CheckFileSystemStarted()",
     "FILE *__cdecl FS_FileForHandle(int f)",
     SIGNATURE,
 )
@@ -76,7 +76,6 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
         },
         "original_fs_read_sha256": hashlib.sha256(body.encode("utf-8")).hexdigest(),
         "staged_sha256": hashlib.sha256(rendered.encode("utf-8")).hexdigest(),
-        "original_FS_CheckFileSystemStarted_body_preserved_exactly": True,
         "original_FS_FileForHandle_body_preserved_exactly": True,
         "original_FS_Read_body_preserved_exactly": True,
         "uses_original_zip_read_and_original_file_read_branches": True,

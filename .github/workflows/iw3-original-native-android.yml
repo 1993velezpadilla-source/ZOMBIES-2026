@@ -177,7 +177,6 @@ jobs:
           test -s "$fs_read_archive"
           llvm_nm="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm"
           "$llvm_nm" -C --defined-only "$fs_read_archive" | tee "$RUNNER_TEMP/iw3-original-fs-read-defined.txt"
-          grep -F 'FS_CheckFileSystemStarted' "$RUNNER_TEMP/iw3-original-fs-read-defined.txt"
           grep -F 'FS_FileForHandle' "$RUNNER_TEMP/iw3-original-fs-read-defined.txt"
           grep -F 'FS_Read' "$RUNNER_TEMP/iw3-original-fs-read-defined.txt"
           "$llvm_nm" -u -C "$fs_read_archive" | tee "$RUNNER_TEMP/iw3-original-fs-read-undefined.txt"

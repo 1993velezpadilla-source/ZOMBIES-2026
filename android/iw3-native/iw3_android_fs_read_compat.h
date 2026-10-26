@@ -1,7 +1,8 @@
 #pragma once
-// ABI boundary for verbatim KisakCOD FS_CheckFileSystemStarted,
-// FS_FileForHandle and FS_Read bodies. The original com_files.cpp keeps its
-// fsh[65] table file-local static. The Android diagnostic defines a separate
+// ABI boundary for verbatim KisakCOD FS_FileForHandle and FS_Read bodies.
+// The original FS_CheckFileSystemStarted body is supplied by the original
+// lookup module. com_files.cpp keeps fsh[65] file-local static; the Android
+// diagnostic defines a separate
 // native-width table solely for the IWD ZIP-branch probe; the original full
 // open/close lifecycle is still not integrated and this is not a game runtime.
 #include <cstddef>

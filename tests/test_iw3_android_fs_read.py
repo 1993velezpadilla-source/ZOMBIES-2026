@@ -25,7 +25,6 @@ class OriginalFSReadStageTests(unittest.TestCase):
             report = prepare(ENGINE, output, report_path)
             staged = output.read_text(encoding="utf-8")
             self.assertEqual(staged, PROLOGUE + combined + "\n")
-            self.assertTrue(report["original_FS_CheckFileSystemStarted_body_preserved_exactly"])
             self.assertTrue(report["original_FS_FileForHandle_body_preserved_exactly"])
             self.assertTrue(report["original_FS_Read_body_preserved_exactly"])
             self.assertTrue(report["uses_original_zip_read_and_original_file_read_branches"])
