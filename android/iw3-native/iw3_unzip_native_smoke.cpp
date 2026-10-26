@@ -147,6 +147,35 @@ bool index_original_iwd(const char *path, const std::array<Entry, 2> &expected, 
             if (!found) ok = false;
         }
 
+        // Exercise the original list insertion with the indexed fixture.
+        if (ok && searchpath_ok) {
+            searchpath_s *const previous = fs_searchpaths;
+            auto *search = static_cast<searchpath_s *>(
+                Z_Malloc(static_cast<int32_t>(sizeof(searchpath_s)),
+                         "FS_AddIwdFilesForGameDirectory", 3));
+            if (search) {
+                search->next = nullptr;
+                search->iwd = iwd;
+                search->dir = nullptr;
+                search->bLocalized = 0;
+                search->ignore = 0;
+                search->ignorePureCheck = 0;
+                search->language = 0;
+                FS_AddSearchPath(search);
+                bool found = false;
+                for (searchpath_s *cursor = fs_searchpaths; cursor; cursor = cursor->next) {
+                    if (cursor == search && cursor->iwd == iwd) {
+                        found = true;
+                        break;
+                    }
+                }
+                *searchpath_ok = found && fs_searchpaths == search &&
+                                 search->next == previous;
+                fs_searchpaths = previous;
+                Z_Free(search, 3);
+            }
+        }
+
         const int close_rc = unzClose(reinterpret_cast<unzFile>(iwd->handle));
         fileInIwd_s *build_buffer = iwd->buildBuffer;
         Z_Free(build_buffer, 3);
