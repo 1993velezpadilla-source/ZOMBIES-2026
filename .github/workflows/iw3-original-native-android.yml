@@ -203,11 +203,13 @@ jobs:
           test -s "$filtered_archive"
           "$llvm_nm" -C --defined-only "$filtered_archive" | tee "$RUNNER_TEMP/iw3-filtered-files-defined.txt"
           grep -F 'FS_ListFilteredFilesInLocation' "$RUNNER_TEMP/iw3-filtered-files-defined.txt"
+          grep -F 'FS_ListFilteredFiles(' "$RUNNER_TEMP/iw3-filtered-files-defined.txt"
           "$llvm_nm" -u -C "$filtered_archive" | tee "$RUNNER_TEMP/iw3-filtered-files-undefined.txt"
-          grep -F 'Hunk_UserCreate' "$RUNNER_TEMP/iw3-filtered-files-undefined.txt"
-          grep -F 'Hunk_UserAlloc' "$RUNNER_TEMP/iw3-filtered-files-undefined.txt"
-          grep -F 'FS_ListFilteredFiles' "$RUNNER_TEMP/iw3-filtered-files-undefined.txt"
+          for symbol in Hunk_UserCreate Hunk_UserAlloc Hunk_UserDestroy FS_CheckLocation FS_AddFileToList FS_ReturnPath FS_SanitizeFilename Sys_ListFiles MyAssertHandler; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-filtered-files-undefined.txt"
+          done
           echo "IW3_ORIGINAL_FILTERED_FILES_AARCH64_SYMBOL_AND_SERVICE_AUDIT_GREEN"
+          echo "IW3_ORIGINAL_FILTERED_FILE_LIST_NATIVE_POINTER_ARRAY_AARCH64_COMPILE_GREEN"
           so="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_math.so"
           test -s "$so"
           elf="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
@@ -262,7 +264,7 @@ jobs:
           echo "IW3_ORIGINAL_FS_LOADZIPFILE_AARCH64_ARCHIVE_COMPILED_GREEN"
           # This static archive is deliberately not linked into the JNI APK.
 
-      - name: Compile original FS_ListFilteredFilesInLocation for ARM64 and inspect real service dependencies
+      - name: Compile original filtered-file list and location functions for ARM64 and inspect real service dependencies
         shell: bash
         run: |
           set -euo pipefail
@@ -271,11 +273,13 @@ jobs:
           test -s "$archive"
           "$ndk/llvm-nm" -C --defined-only "$archive" | tee "$RUNNER_TEMP/iw3-filtered-files-defined.txt"
           grep -F "FS_ListFilteredFilesInLocation" "$RUNNER_TEMP/iw3-filtered-files-defined.txt"
+          grep -F "FS_ListFilteredFiles(" "$RUNNER_TEMP/iw3-filtered-files-defined.txt"
           "$ndk/llvm-nm" -u -C "$archive" | tee "$RUNNER_TEMP/iw3-filtered-files-undefined.txt"
-          for symbol in Hunk_UserCreate Hunk_UserAlloc Hunk_UserDestroy FS_CheckLocation FS_ListFilteredFiles MyAssertHandler; do
+          for symbol in Hunk_UserCreate Hunk_UserAlloc Hunk_UserDestroy FS_CheckLocation FS_AddFileToList FS_ReturnPath FS_SanitizeFilename Sys_ListFiles MyAssertHandler; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-filtered-files-undefined.txt"
           done
           echo "IW3_ORIGINAL_FILTERED_FILES_LOCATION_AARCH64_COMPILE_GREEN"
+          echo "IW3_ORIGINAL_FILTERED_FILE_LIST_NATIVE_POINTER_ARRAY_AARCH64_COMPILE_GREEN"
           # Unresolved original services are intentional; this is a compile/dependency
           # audit, not a linked filesystem runtime or gameplay proof.
 

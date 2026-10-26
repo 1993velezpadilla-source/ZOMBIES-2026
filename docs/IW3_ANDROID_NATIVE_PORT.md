@@ -102,3 +102,18 @@ The original callback now consistently uses `newValue.string` for its first-char
 - Regression coverage rejects any `newValue.integer` access or `(int)strstr` narrowing in this callback and checks that the staging generator preserves it: `a04170e71c12ce7a1191410e5efb417349ba016a`, `0d6742e769860feeb957a526101dee669a4984a4`.
 
 **Validation status:** the source, extraction generator and regression tests have been pushed; fresh CI results still need inspection. The generated function is compiled into the native diagnostic library, but the callback has not been runtime-executed by this probe. This does not integrate full `FS_Startup()` or `com_files.cpp`, load real FastFiles/maps, render a scene, or prove player/weapon/actor gameplay on physical ARM64. The JNI APK remains diagnostic only. PR #4 stays open and unmerged.
+
+
+### Phase V — native-width allocation for the original filtered-file pointer list (26 Oct 2026; CI pending)
+
+The next filesystem blocker was a hard-coded allocation in the authentic \`FS_ListFilteredFiles()\`: \`Hunk_UserAlloc(user, 0x8004u, 4)\`. The value \`0x8004\` reserves 8193 four-byte pointer slots, matching the original \`0x1FFF\` result cap plus the sentinel and final null entry. On ARM64, those slots require 8193 eight-byte pointers (65544 bytes, \`0x10008\`), with pointer alignment. Leaving the Win32 byte count unchanged would let the real file-list builder overrun its allocation.
+
+The original function now computes the same slot count using \`(0x1FFFu + 2u) * sizeof(*list)\` and \`alignof(const char *)\`. On Win32 this retains the original \`0x8004\` allocation; on ARM64 it grows to \`0x10008\`. The result cap and original duplicate-filtering/list behavior are unchanged.
+
+The filtered-files ARM64 audit now compiles both original \`FS_ListFilteredFiles()\` and \`FS_ListFilteredFilesInLocation()\` from the vendored source into the same static audit archive. The fail-closed symbol audit expects the list function to be defined in that archive and checks that its real Hunk, filename-sanitization, path-return, and OS-directory-listing services remain unresolved. The archive is still deliberately not linked into JNI.
+
+Regression coverage:
+- \`tests/test_iw3_android_native_struct_allocations.py\` checks the native allocation expression and proves the old result capacity maps to 32772 bytes on 32-bit and 65544 bytes on 64-bit.
+- \`tests/test_iw3_android_filtered_files_compile.py\` checks that both original function bodies are preserved in the generated source, that the new pointer-array allocation is present exactly once, and that the fixed \`0x8004u\` allocation is absent.
+
+**Validation status:** the changes are staged for the next native ARM64/host/ASAN build and JNI/emulator workflow pass. Do not count the pass as green until those workflows finish. This still does not execute the real list function against a mounted game filesystem or integrate full \`FS_Startup()\`, FastFile/map loading, renderer, touch-driven gameplay or physical ARM64 execution. No playable APK is claimed; PR #4 remains open and unmerged.

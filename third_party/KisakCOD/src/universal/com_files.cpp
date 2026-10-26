@@ -2515,7 +2515,8 @@ const char **__cdecl FS_ListFilteredFiles(
     if (sanitizedPath[0])
         ++pathDepth;
     user = Hunk_UserCreate(0x20000, "FS_ListFilteredFiles", 0, 0, 3);
-    list = (const char **)Hunk_UserAlloc(user, 0x8004u, 4);
+    // Preserve the Win32 8193-slot capacity while sizing pointer slots for the native ABI.
+    list = (const char **)Hunk_UserAlloc(user, (0x1FFFu + 2u) * sizeof(*list), static_cast<int>(alignof(const char *)));
     *list++ = (const char *)user;
     for (search = searchPath; search; search = search->next)
     {

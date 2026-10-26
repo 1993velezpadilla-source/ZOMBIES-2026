@@ -2,6 +2,12 @@
 from pathlib import Path
 import unittest
 
+from tools.iw3_android.prepare_real_engine_filtered_files import (
+    LIST_ALLOCATION,
+    LIST_SIGNATURE,
+    definition_source,
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 ENGINE = ROOT / "third_party/KisakCOD/src/universal"
 
@@ -22,6 +28,16 @@ class OriginalFilesystemNativeAllocationTests(unittest.TestCase):
         self.assertEqual(body.count(allocation), 2)
         self.assertNotIn("Hunk_UserAlloc(user, 0x1Cu, 4)", body)
         self.assertNotIn("Hunk_UserAlloc(user, 0x1C, 4)", body)
+
+    def test_filtered_file_pointer_array_uses_native_width_and_keeps_original_capacity(self):
+        source = (ENGINE / "com_files.cpp").read_text(encoding="utf-8")
+        body = definition_source(source, LIST_SIGNATURE)
+        self.assertEqual(body.count(LIST_ALLOCATION), 1)
+        self.assertNotIn("Hunk_UserAlloc(user, 0x8004u, 4)", body)
+        self.assertIn("if (nfiles == 0x1FFF)", body)
+        self.assertIn("alignof(const char *)", body)
+        self.assertEqual((0x1FFF + 2) * 4, 0x8004)
+        self.assertEqual((0x1FFF + 2) * 8, 0x10008)
 
     def test_pointer_bearing_iwd_structures_have_explicit_32_and_64_bit_layout_gates(self):
         source = (ENGINE / "com_files_handle_table.cpp").read_text(encoding="utf-8")
