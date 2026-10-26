@@ -481,12 +481,19 @@ services and is **not linked into the JNI APK**. This gate proves the actual
 function's C++/ABI compatibility only; it does not yet mount an IWD or prove
 an asset lookup. The parser's generated test ZIP is still only a fixture.
 
-The regression suite now verifies exact function-body preservation, source
+The regression suite verifies exact function-body preservation, source
 non-mutation, native-width allocation guards, null-allocation cleanup, and the
-explicit not-a-game/not-mounted status. Android ARM64 build, JNI package, and
-emulator workflows now stage this module so CI compiles it on all target
-builds. Do not claim success until these latest workflow runs finish and their
-logs are inspected.
+explicit not-a-game/not-mounted status. The ARM64 source-module gate completed
+successfully in [run 40247789995](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40247789995):
+27 Python tests passed; CTest passed 8/8; ASAN/UBSAN/leak checks passed; the
+original `FS_LoadZipFile(char*, char*)` symbol was found in
+`libiw3_sp_iwd_mount.a` built with the Android NDK AArch64 toolchain; and the
+original frame ABI object passed the ELF64/AArch64 checks. The artifact
+[12619201727](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40247789995/artifacts/12619201727)
+contains the static module and source provenance reports. The archive is
+explicitly **not linked into the JNI APK**. Android JNI package and emulator
+workflows were still running when this note was written; their results must be
+inspected separately before claiming those gates passed.
 
 Remaining gates are unchanged: wire the module to the actual engine allocator,
 checksum/string services and Android file-searchpath startup; mount a real
