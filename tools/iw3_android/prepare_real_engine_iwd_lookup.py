@@ -30,7 +30,11 @@ FUNCTIONS = (
     ("BOOL __cdecl FS_UseSearchPath(const searchpath_s *pSearch)", SOURCE),
     ("void __cdecl FS_BuildOSPathForThread(const char *base, const char *game, const char *qpath, char *ospath, FsThread thread)", SOURCE),
 )
-HEADER = '#include "iw3_android_iwd_lookup_compat.h"\n'
+HEADER = (
+    '#include "iw3_android_iwd_lookup_compat.h"\n'
+    '#define FS_FileOpenReadBinary z2026_iw3_lookup_file_open_read_binary\n'
+    '#define FS_FileClose z2026_iw3_lookup_file_close_binary\n'
+)
 GLOBALS = (
     "static dvar_s g_z2026_fs_ignore_localized{};\n"
     "const dvar_s *fs_ignoreLocalized = &g_z2026_fs_ignore_localized;\n"
