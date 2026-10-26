@@ -38,6 +38,9 @@ endif()
 if(NOT IW3_EXTRACTED_IWD_MOUNT OR NOT EXISTS "${IW3_EXTRACTED_IWD_MOUNT}")
     message(FATAL_ERROR "Authentic FS_LoadZipFile source extraction required")
 endif()
+if(NOT IW3_EXTRACTED_IWD_SERVICES OR NOT EXISTS "${IW3_EXTRACTED_IWD_SERVICES}")
+    message(FATAL_ERROR "Authentic IWD allocator/checksum/string service extraction required")
+endif()
 if(NOT EXISTS "${IW3_REAL_HEADER_ROOT}/pool_allocator.h")
     message(FATAL_ERROR "Authentic original IW3 pool declarations required")
 endif()
@@ -79,6 +82,8 @@ add_library(iw3_sp_math SHARED
     "${IW3_EXTRACTED_POOL}"
     "${IW3_EXTRACTED_HITLOC}"
     "${IW3_EXTRACTED_IWD_NAMES}"
+    "${IW3_EXTRACTED_IWD_SERVICES}"
+    "${IW3_EXTRACTED_IWD_MOUNT}"
     "${IW3_EXTRACTED_UNZIP}"
     "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_unzip_io.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/iw3_unzip_native_smoke.cpp"
