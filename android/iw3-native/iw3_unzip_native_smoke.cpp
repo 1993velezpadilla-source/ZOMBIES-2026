@@ -1,5 +1,6 @@
 #include "iw3_android_unzip_compat.h"
 #include "iw3_android_platform.h"
+#include "iw3_android_iwd_mount_compat.h"
 #include "unzip.h"
 #include <array>
 #include <string>
@@ -109,9 +110,57 @@ bool read_current(unzFile archive, const Entry &expected) {
            std::string(bytes.data(), static_cast<std::size_t>(got)) == expected.payload &&
            closeRc == UNZ_OK;
 }
+bool index_original_iwd(const char *path, const std::array<Entry, 2> &expected) {
+    const int old_count = fs_iwdFileCount;
+    const int old_feed = fs_checksumFeed;
+    fs_checksumFeed = 0;
+    iwd_t *iwd = FS_LoadZipFile(const_cast<char *>(path), const_cast<char *>(path));
+    bool ok = iwd != nullptr;
+    if (iwd) {
+        const std::size_t path_length = std::strlen(path);
+        const std::size_t stored_length = std::strlen(iwd->iwdFilename);
+        ok = ok && iwd->numfiles == static_cast<int>(expected.size()) &&
+             iwd->buildBuffer != nullptr && iwd->hashTable != nullptr &&
+             iwd->hashSize != 0 && (iwd->hashSize & (iwd->hashSize - 1)) == 0 &&
+             iwd->checksum == iwd->pure_checksum &&
+             fs_iwdFileCount == old_count + static_cast<int>(expected.size()) &&
+             std::strcmp(iwd->iwdBasename, path) == 0 &&
+             path_length >= 4 && stored_length + 4 == path_length &&
+             std::memcmp(iwd->iwdFilename, path, stored_length) == 0 &&
+             std::strcmp(path + path_length - 4, ".iwd") == 0;
+
+        for (std::size_t i = 0; ok && i < expected.size(); ++i) {
+            fileInIwd_s *indexed = &iwd->buildBuffer[i];
+            if (!indexed->name || std::strcmp(indexed->name, expected[i].name.c_str()) != 0) {
+                ok = false;
+                break;
+            }
+            const int bucket = FS_HashFileName(indexed->name, static_cast<int>(iwd->hashSize));
+            bool found = false;
+            fileInIwd_s *cursor = iwd->hashTable[bucket];
+            for (std::size_t step = 0; cursor && step < expected.size(); ++step, cursor = cursor->next) {
+                if (cursor == indexed) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) ok = false;
+        }
+
+        const int close_rc = unzClose(reinterpret_cast<unzFile>(iwd->handle));
+        fileInIwd_s *build_buffer = iwd->buildBuffer;
+        Z_Free(build_buffer, 3);
+        Z_Free(iwd, 3);
+        if (close_rc != UNZ_OK) ok = false;
+    }
+    fs_iwdFileCount = old_count;
+    fs_checksumFeed = old_feed;
+    return ok;
+}
 } // namespace
 
-extern "C" IW3_UNZIP_EXPORT int z2026_iw3_unzip_smoke(const char *directory) {
+extern "C" IW3_UNZIP_EXPORT int z2026_iw3_unzip_smoke(const char *directory, int *iwd_mount_ok) {
+    if (iwd_mount_ok) *iwd_mount_ok = 0;
     static_assert(sizeof(unz_global_info) == 8, "IW3 ZIP32 global-info layout drift");
     static_assert(sizeof(unz_file_info) == 80, "IW3 ZIP32 file-info layout drift");
     static_assert(sizeof(unz_file_info_internal) == 4, "IW3 ZIP32 file offset layout drift");
@@ -177,6 +226,8 @@ extern "C" IW3_UNZIP_EXPORT int z2026_iw3_unzip_smoke(const char *directory) {
     const bool absolute_parse_ok = parse_original_iwd(absolute_path);
     bool ok = discovered && name_count >= 1 &&
               relative_parse_ok && absolute_parse_ok;
+    const bool mount_ok = index_original_iwd(path, entries);
+    if (iwd_mount_ok) *iwd_mount_ok = mount_ok ? 1 : 0;
     if (z2026_platform_unlink_file(path) != 0) ok = false;
     return ok ? 1 : 0;
 }
