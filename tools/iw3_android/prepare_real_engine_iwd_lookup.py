@@ -57,6 +57,34 @@ FORBIDDEN = (
 )
 
 
+def definition_source(source: str, signature: str) -> str:
+    """Use the shared brace parser after removing declaration-only occurrences."""
+    positions = []
+    cursor = 0
+    while True:
+        position = source.find(signature, cursor)
+        if position < 0:
+            break
+        positions.append(position)
+        cursor = position + len(signature)
+    definitions = []
+    prototypes = []
+    for position in positions:
+        after = position + len(signature)
+        while after < len(source) and source[after].isspace():
+            after += 1
+        if after < len(source) and source[after] == "{":
+            definitions.append(position)
+        elif after < len(source) and source[after] == ";":
+            prototypes.append(position)
+    if len(definitions) != 1:
+        raise ValueError("Expected one original IW3 definition for " + signature)
+    filtered = source
+    for position in reversed(prototypes):
+        filtered = filtered[:position] + filtered[position + len(signature):]
+    return function_source(filtered, signature)
+
+
 def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict:
     engine = engine.resolve()
     source_path = engine / SOURCE
@@ -78,7 +106,7 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
         if marker in prefix:
             raise ValueError("Lookup-only extraction crossed into handle/read path: " + marker)
 
-    bodies = [function_source(text, signature) for signature, _ in FUNCTIONS]
+    bodies = [definition_source(text, signature) for signature, _ in FUNCTIONS]
     rendered = (
         HEADER + GLOBALS + "\n\n".join(bodies) + "\n\n"
         "extern \"C\" int z2026_iw3_original_searchpath_lookup(\n"
