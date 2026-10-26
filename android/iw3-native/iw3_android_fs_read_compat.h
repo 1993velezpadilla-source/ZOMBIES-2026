@@ -21,6 +21,7 @@ static_assert(offsetof(fileHandleData_t, name) == 44,
 extern fileHandleData_t fsh[65];
 extern int fs_fakeChkSum;
 extern "C" void z2026_iw3_fs_file_close(FILE *stream);
+int z2026_iw3_fs_file_get_size(FILE *stream);
 bool z2026_iw3_is_fastfile_load();
 bool z2026_iw3_is_database_thread();
 char *z2026_iw3_safe_translate(char *text);
