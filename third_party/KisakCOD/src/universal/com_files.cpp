@@ -13,6 +13,7 @@
 #include <qcommon/cmd.h>
 #include <qcommon/files.h>
 #include <io.h>
+#include <limits.h>
 
 const dvar_t *fs_remotePCDirectory;
 const dvar_t *fs_remotePCName;
@@ -1378,7 +1379,15 @@ iwd_t *__cdecl FS_LoadZipFile(char *zipfile, char *basename)
     {
         if (unzGetCurrentFileInfo(uf, &file_info, filename_inzip, sizeof(filename_inzip), 0, 0, 0, 0) != UNZ_OK)
             break;
-        len += &filename_inzip[strlen(filename_inzip) + 1] - &filename_inzip[1] + 1;
+        // Never index a ZIP filename that the fixed engine buffer truncated.
+        if (file_info.size_filename >= sizeof(filename_inzip))
+            break;
+        {
+            const uint32_t nameBytes = (uint32_t)strlen(filename_inzip) + 1;
+            if (len > UINT32_MAX - nameBytes)
+                break;
+            len += nameBytes;
+        }
         if (i + 1 < gi.number_entry && unzGoToNextFile(uf) != UNZ_OK)
             break;
     }
@@ -1387,15 +1396,45 @@ iwd_t *__cdecl FS_LoadZipFile(char *zipfile, char *basename)
         unzClose(uf);
         return 0;
     }
+    // Z_Malloc accepts a signed int byte count. Reject archives whose index
+    // cannot be represented before multiplying or adding attacker-controlled
+    // ZIP entry counts and filename lengths.
+    if (gi.number_entry > (uint32_t)(INT_MAX / sizeof(fileInIwd_s)) ||
+        gi.number_entry > (uint32_t)(INT_MAX / sizeof(int)) ||
+        len > (uint32_t)INT_MAX - gi.number_entry * sizeof(fileInIwd_s))
+    {
+        unzClose(uf);
+        return 0;
+    }
+    const uint32_t buildBytes = gi.number_entry * sizeof(fileInIwd_s) + len;
+    const uint32_t checksumBytes = gi.number_entry * sizeof(int);
     //buildBuffer = (fileInIwd_s*)Z_Malloc(len + 12 * gi.number_entry, "FS_LoadZipFile1", 3);
-    buildBuffer = (fileInIwd_s*)Z_Malloc(gi.number_entry * sizeof(fileInIwd_s) + len, "FS_LoadZipFile1", 3);
+    buildBuffer = (fileInIwd_s*)Z_Malloc(buildBytes, "FS_LoadZipFile1", 3);
+    if (!buildBuffer)
+    {
+        unzClose(uf);
+        return 0;
+    }
     namePtr = (char*)&buildBuffer[gi.number_entry];
     //fs_headerLongs = (int*)Z_Malloc(4 * gi.number_entry, "FS_LoadZipFile2", 3);
-    fs_headerLongs = (int*)Z_Malloc(gi.number_entry * sizeof(int), "FS_LoadZipFile2", 3);
+    fs_headerLongs = (int*)Z_Malloc(checksumBytes, "FS_LoadZipFile2", 3);
+    if (!fs_headerLongs)
+    {
+        Z_Free(buildBuffer, 3);
+        unzClose(uf);
+        return 0;
+    }
     for (i = 1; i <= 0x400 && i <= gi.number_entry; i *= 2)
         ;
     //iwd = (iwd_t*) Z_Malloc(4 * i + 0x324, "FS_LoadZipFile3", 3);
     iwd = (iwd_t*) Z_Malloc(sizeof(iwd_t) + i * sizeof(fileInIwd_s *), "FS_LoadZipFile3", 3);
+    if (!iwd)
+    {
+        Z_Free(fs_headerLongs, 3);
+        Z_Free(buildBuffer, 3);
+        unzClose(uf);
+        return 0;
+    }
     iwd->hashSize = i;
     //iwd->hashTable = &iwd[1];
     iwd->hashTable = (fileInIwd_s**)(((char *)iwd) + sizeof(iwd_t));
@@ -1419,6 +1458,8 @@ iwd_t *__cdecl FS_LoadZipFile(char *zipfile, char *basename)
     for (i = 0; i < gi.number_entry; ++i)
     {
         if (unzGetCurrentFileInfo(uf, &file_info, filename_inzip, sizeof(filename_inzip), 0, 0, 0, 0) != UNZ_OK)
+            break;
+        if (file_info.size_filename >= sizeof(filename_inzip))
             break;
         if (file_info.uncompressed_size)
             fs_headerLongs[fs_numHeaderLongs++] = file_info.crc;
