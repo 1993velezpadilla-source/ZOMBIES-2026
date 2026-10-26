@@ -760,3 +760,11 @@ The first compile attempt exposed a real header-boundary mismatch: this source s
 The native smoke, JNI report, emulator evidence validator and regression tests now require IW3_JNI_IWD_LOOKUP_PASS. The evidence schema explicitly keeps original_fs_read_handle_path_executed: false.
 
 Scope limit: this is only the original lookup branch, not the complete public FS_FOpenFileReadForThread() implementation. It does not allocate an engine file handle, execute the original FS_Read(), mount licensed game assets, load FastFiles/maps, render a game scene or prove gameplay. It is not a playable APK. The post-adapter CI runs on the current head must finish before this pass is called green; see the branch Actions runs for native host/ASAN, ARM64 compilation, JNI package and x86_64 emulator evidence.
+
+### Phase H follow-up — original absolute path semantics
+
+Inspection of the authentic FS_BuildOSPathForThread() and FS_ReplaceSeparators() bodies revealed an additional portability defect: they convert the leading slash of a POSIX filesDir path into a leading backslash. The previous rooted adapter only recognized paths beginning with '/', so a directory fallback could falsely report a disk resource missing.
+
+The Android path normalizer now converts backslashes before its absolute-path/root-boundary check. A new native regression verifies that a leading-backslash absolute path beneath the configured data root opens successfully, while a leading-backslash /etc/passwd path is rejected. The JNI smoke also creates a real file under the registered game directory and requires the original lookup branch to find it through the directory fallback, in addition to an IWD-member hit, an absent-file miss, and traversal rejection.
+
+The current-head native workflow has passed the host compile/CTest stage and the ASAN/UBSAN stage, then advanced to Android NDK setup. The ARM64 ELF build, JNI packaging, and x86_64 emulator execution are still running; do not treat those as green until their run conclusions and runtime evidence are available. This is still a lookup-only test, not FS_Read or a playable APK.
