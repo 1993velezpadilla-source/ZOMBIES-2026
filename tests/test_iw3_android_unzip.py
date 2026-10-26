@@ -91,10 +91,16 @@ class OriginalIW3UnzipPortTests(unittest.TestCase):
         gradle = (ROOT / "android/iw3-native/android_app/app/build.gradle").read_text(encoding="utf-8")
         jni = (ROOT / "android/iw3-native/iw3_android_jni.cpp").read_text(encoding="utf-8")
         self.assertIn("IW3_EXTRACTED_UNZIP", cmake)
+        self.assertIn("IW3_EXTRACTED_IWD_SERVICES", cmake)
+        self.assertIn("\"${IW3_EXTRACTED_IWD_MOUNT}\"", cmake)
         self.assertIn("iw3_android_unzip_io.cpp", cmake)
         self.assertIn("iw3_unzip_native_smoke.cpp", cmake)
         self.assertIn("IW3_EXTRACTED_UNZIP", gradle)
+        self.assertIn("IW3_EXTRACTED_IWD_SERVICES", gradle)
         self.assertIn("z2026_iw3_unzip_smoke", jni)
+        self.assertIn("IW3_JNI_IWD_MOUNT_%s", jni)
+        self.assertIn("FS_LoadZipFile", smoke)
+        self.assertIn("index_original_iwd(path, entries)", smoke)
         self.assertIn("IW3_JNI_UNZIP_PARSER_PASS", 
                       (ROOT / "tools/iw3_android/verify_runtime_evidence.py").read_text())
 
