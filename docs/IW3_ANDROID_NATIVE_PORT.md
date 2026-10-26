@@ -460,3 +460,36 @@ index and close the ZIP handle. These changes are covered by the source gate
 and the Android/Windows build workflows triggered by the latest branch commits.
 They remain portability hardening of original code, not proof that the real
 IWD searchpath is linked or that a map/game is running on Android.
+
+## Native-width IWD indexer hardening and compile gate (2026-10-25)
+
+A fresh audit of the original `FS_LoadZipFile` found that its fixed 256-byte
+filename buffer was not checking `unz_file_info_s::size_filename`, and that
+untrusted ZIP entry counts/name bytes flowed into signed-int `Z_Malloc` sizes.
+The authentic function now rejects truncated names, guards entry-count and
+name-buffer arithmetic before allocation, and handles failures from each of
+the three index allocations by releasing earlier allocations and closing the
+archive. It still builds the original `iwd_t` hash table and CRC checksum
+array; the function was hardened in place rather than replaced.
+
+`tools/iw3_android/prepare_real_engine_iwd_mount.py` stages the original
+`FS_LoadZipFile` function body verbatim with only an include adapter.
+`android/iw3-native/CMakeLists.txt` now compiles that translation unit into
+an isolated static archive, `iw3_sp_iwd_mount`, for both host and Android
+ABIs. The archive intentionally retains unresolved allocator/checksum
+services and is **not linked into the JNI APK**. This gate proves the actual
+function's C++/ABI compatibility only; it does not yet mount an IWD or prove
+an asset lookup. The parser's generated test ZIP is still only a fixture.
+
+The regression suite now verifies exact function-body preservation, source
+non-mutation, native-width allocation guards, null-allocation cleanup, and the
+explicit not-a-game/not-mounted status. Android ARM64 build, JNI package, and
+emulator workflows now stage this module so CI compiles it on all target
+builds. Do not claim success until these latest workflow runs finish and their
+logs are inspected.
+
+Remaining gates are unchanged: wire the module to the actual engine allocator,
+checksum/string services and Android file-searchpath startup; mount a real
+user-supplied IWD and verify an original asset lookup; then integrate FastFiles,
+map loading, the original renderer, real client commands, and gameplay. Keep
+PR #4 open and unmerged.
