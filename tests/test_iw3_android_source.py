@@ -584,6 +584,8 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
         self.assertIn("iw3_iwd_read_lifecycle.cpp", workflow)
         self.assertIn("iw3-original-iwd-read-lifecycle.json", workflow)
         self.assertIn("IW3_ORIGINAL_FILE_READ_LIFECYCLE_STAGED_NOT_LINKED", workflow)
+        self.assertIn("FS_FOpenFileReadForThread -> FS_Read -> FS_FCloseFile", workflow)
+        self.assertIn("rooted directory fallback paths", workflow)
 
 if __name__ == "__main__":
     unittest.main()
