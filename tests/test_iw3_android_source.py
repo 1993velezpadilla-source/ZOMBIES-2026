@@ -286,7 +286,7 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
             staged = out.read_text(encoding="utf-8")
             self.assertEqual(
                 staged,
-                '#include "iw3_android_iwd_mount_compat.h"\\n' + body + "\\n")
+                '#include "iw3_android_iwd_mount_compat.h"\n' + body + "\n")
             self.assertTrue(report["function_body_preserved_verbatim"])
             self.assertTrue(report["native_width_index_allocation_guards"])
             self.assertTrue(report["null_allocation_cleanup_guards"])
