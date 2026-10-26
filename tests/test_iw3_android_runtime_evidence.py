@@ -28,7 +28,7 @@ class NativeRuntimeEvidenceTests(unittest.TestCase):
     def test_any_runtime_failure_overrides_passing_markers(self):
         for failure in ("TOUCH_NATIVE_REJECTED", "JNI_RESUME_FAILED",
                         "Fatal signal", "IW3_JNI_UNZIP_PARSER_FAIL",
-                        "JNI_NATIVE_ENGINE_PROBE_FAIL"):
+                        "IW3_JNI_IWD_MOUNT_FAIL", "JNI_NATIVE_ENGINE_PROBE_FAIL"):
             with self.subTest(failure=failure), self.assertRaises(ValueError):
                 verify(real_format_fixture() + "\n" + failure)
 
