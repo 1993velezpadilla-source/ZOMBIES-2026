@@ -256,8 +256,11 @@ extern "C" IW3_UNZIP_EXPORT int z2026_iw3_unzip_smoke(const char *directory, int
     const bool absolute_parse_ok = parse_original_iwd(absolute_path);
     bool ok = discovered && name_count >= 1 &&
               relative_parse_ok && absolute_parse_ok;
-    const bool mount_ok = index_original_iwd(path, entries);
+    bool searchpath_ok = false;
+    const bool mount_ok = index_original_iwd(path, entries, &searchpath_ok);
     if (iwd_mount_ok) *iwd_mount_ok = mount_ok ? 1 : 0;
+    if (iwd_searchpath_ok) *iwd_searchpath_ok = searchpath_ok ? 1 : 0;
+    ok = ok && mount_ok && searchpath_ok;
     if (z2026_platform_unlink_file(path) != 0) ok = false;
     return ok ? 1 : 0;
 }
