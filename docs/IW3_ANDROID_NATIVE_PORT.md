@@ -165,3 +165,28 @@ Regression coverage in `tests/test_iw3_android_client_input_abi.py` checks the n
 **Validation status at documentation time:** the ARM64 source workflow, JNI build and emulator diagnostic have been triggered for the new head; their final conclusions have not yet been inspected. Do not count this phase as green until those runs complete.
 
 **Scope boundary:** compiling the original client input translation unit and correcting the command queue's typed copy does not make the touch bridge live in the APK. The archive is not linked into the diagnostic, and this phase does not execute `CL_CreateCmd` from an Android game frame. Full `Com_Frame`, `FS_Startup`, licensed FastFile/map loading, renderer output, weapon/actor gameplay and physical ARM64 execution remain unproven. No playable APK is claimed; PR #4 remains open and unmerged.
+
+
+### Phase X — first native-layout blockers exposed by compiling original client input (26 Oct 2026; ARM64 CI pending)
+
+The first Android NDK compile of the original `client/cl_input.cpp` did not reach the symbol audit. It exposed real Win32-only assumptions in headers that the client module pulls in:
+
+- MSVC-only `__declspec(align(...))` declarations in script-memory, script-string and UI parser structures prevented Clang/NDK parsing.
+- Several engine structures that contain native pointers still asserted their 32-bit Win32 sizes. The compiler reported the actual 64-bit sizes for animation/script and combat/view structures, including `scr_anim_s`, `loadAnim_t`, `animStringItem_t`, `animConditionTable_t`, `shellshock_t`, `animScriptCommand_t`, `CEntPlayerInfo`, `CEntFx`, `BulletTraceResults`, `viewState_t`, and `weaponState_t`.
+
+Corrections made in the authentic KisakCOD headers:
+- Replaced the affected alignment spellings with standard C++ `alignas`, preserving the required 8-byte/128-byte alignment.
+- Kept the original Win32 layout assertions on 32-bit builds and added explicit LP64 assertions for the pointer-bearing layouts measured by the Android compiler. These checks do not change the 32-bit game layout.
+- The Android target still compiles the actual original `cl_input.cpp`; no replacement input or game loop was added.
+
+Related commits:
+- `6599d6be1e777b1dd8d037589549e6ac758571cb` — standard alignment for script memory tree.
+- `9e40adf6c236c553d2a39393164d744ae8fbe43b` — standard alignment for script string table.
+- `f976be672b418ec49f23b67a352e6ffc18d250df` and `901c5bb950c1039242b8eb08a325b352bb357e84` — LP64 animation/script layout assertions.
+- `b8bb2bda311f576c247f7384d6918a3d233f4bad` — LP64 entity/weapon result layouts.
+- `696fbc7cef24110ffcd8512fc20715e3bc131ff0` — LP64 font pointer layout.
+- `29794fc46586dc0110d3e855a505d0c0f15b1f9f` — standard alignment for UI parser structures.
+
+**Validation status:** the earlier Android compile failed at these exact header errors; after the fixes, a new native ARM64 build and JNI build were triggered, but their final results are not yet available. The RotU/source preflight passed on the current code. Do not count the original client-input archive as built until the latest ARM64 workflow completes successfully.
+
+**Scope boundary:** these changes address actual 32/64-bit header portability blockers but do not link the original client input into the APK or run `CL_CreateCmd` in a live Android game frame. `Com_Frame`, `FS_Startup`, FastFile/map loading, renderer output, weapons/actors in Android gameplay and physical ARM64 execution remain unproven. No playable APK is claimed; PR #4 remains open and unmerged.
