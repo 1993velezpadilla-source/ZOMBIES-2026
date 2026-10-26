@@ -1455,15 +1455,10 @@ iwd_t *__cdecl FS_LoadZipFile(char *zipfile, char *basename)
         iwd->hashTable[i] = 0;
     I_strncpyz(iwd->iwdFilename, zipfile, 256);
     I_strncpyz(iwd->iwdBasename, basename, 256);
-    // The decompiled Win32 expression used basenameLength + 252 as an
-    // index into a 256-byte field. On ARM64, and for ordinary names such as
-    // "pak0.iwd", that reads and may write beyond iwdFilename. Trim the
-    // extension from the copied full path using its own checked length.
-    const size_t iwdFilenameLength = strlen(iwd->iwdFilename);
-    const size_t iwdBasenameLength = strlen(iwd->iwdBasename);
-    if (iwdBasenameLength > 4 && iwdFilenameLength >= 4 &&
-        !I_stricmp(iwd->iwdFilename + iwdFilenameLength - 4, ".iwd"))
-        iwd->iwdFilename[iwdFilenameLength - 4] = 0;
+    // Keep the complete archive path, including ".iwd". The original
+    // FS_FOpenFileReadForThread clone path calls unzReOpen(iwdFilename, handle),
+    // and unzReOpen passes that path directly to ZIP_fopen. Stripping the
+    // extension makes every cloned archive handle fail to reopen.
     iwd->handle = uf;
     iwd->numfiles = gi.number_entry;
     iwd->hasOpenFile = 0;
