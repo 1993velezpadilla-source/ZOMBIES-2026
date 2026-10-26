@@ -225,6 +225,11 @@ int main() {
     assert((sprint_slide_command.buttons & BUTTON_CROUCH) != 0);
     assert((sprint_slide_command.buttons & BUTTON_JUMP) != 0);
     assert(z2026_platform_touch_event(1, .27f, .88f, 0) == 0);
+    int sprint_only_fields[10]{};
+    assert(z2026_platform_usercmd_snapshot(5001, sprint_only_fields, 10) == 0);
+    assert((sprint_only_fields[1] & BUTTON_SPRINT) != 0);
+    assert((sprint_only_fields[1] & BUTTON_CROUCH) == 0);
+    assert((sprint_only_fields[1] & BUTTON_JUMP) != 0);
     usercmd_s sprint_only_command{};
     z2026_platform_apply_touch_to_usercmd(&sprint_only_command, sprint_slide_angles);
     assert((sprint_only_command.buttons & BUTTON_SPRINT) != 0);
