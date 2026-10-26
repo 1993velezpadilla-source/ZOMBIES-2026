@@ -21,15 +21,18 @@ class OriginalIW3FileHandleCloseTests(unittest.TestCase):
         generator = GENERATOR.read_text(encoding="utf-8")
         self.assertIn('"void __cdecl FS_FCloseFile(int h)"', generator)
         self.assertIn('"Com_Memset((uint32_t *)&fsh[h], 0, sizeof(fsh[h]));"', generator)
-        self.assertIn('"full_open_read_close_lifecycle_integrated": False', generator)
+        self.assertIn('"full_open_read_close_lifecycle_integrated": True', generator)
+        self.assertIn('"original_upstream_fsh_table_integrated": False', generator)
         compat = COMPAT.read_text(encoding="utf-8")
         self.assertIn("#define FS_FileClose z2026_iw3_fs_file_close", compat)
 
     def test_android_fixture_calls_original_close_and_checks_full_record(self):
         smoke = SMOKE.read_text(encoding="utf-8")
-        self.assertIn("FS_FCloseFile(1);", smoke)
-        self.assertIn("std::memcmp(&fsh[1], &cleared, sizeof(cleared)) == 0", smoke)
-        self.assertIn("fsh[1].handleFiles.iwdIsClone = 1;", smoke)
+        self.assertIn("FS_FOpenFileReadForThread(", smoke)
+        self.assertIn("FS_FCloseFile(primary_handle);", smoke)
+        self.assertIn("FS_FCloseFile(clone_handle);", smoke)
+        self.assertIn("fsh[clone_handle].handleFiles.iwdIsClone == 1", smoke)
+        self.assertIn("std::memcmp(&fsh[clone_handle], &cleared, sizeof(cleared)) == 0", smoke)
 
 
 if __name__ == "__main__":
