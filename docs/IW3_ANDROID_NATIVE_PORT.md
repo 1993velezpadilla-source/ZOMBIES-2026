@@ -666,3 +666,15 @@ hash-index insertion. This is a correctness hardening change to the authentic
 KisakCOD IWD indexer; it does **not** mount a real game IWD in the Android
 searchpath, load FastFiles/maps, or establish gameplay. CI must pass on the
 resulting commit before this source-level guard is considered verified.
+
+## Phase F — execute the original IWD indexer in the Android JNI diagnostic (26 Oct 2026)
+
+The next concrete portability blocker was not another parser-only test: the exact `FS_LoadZipFile()` body existed in an ARM64 static audit archive but was not linked to the Android JNI library, because its original string, allocation, zeroing and checksum services were unresolved.
+
+This pass adds `tools/iw3_android/prepare_real_engine_iwd_services.py`. It extracts the original KisakCOD bodies for `I_strncpyz`, `I_stricmp`, `I_strnicmp`, `I_strlwr`, `I_isupper`, `_copyDWord`, `Com_Memset`, `Z_TryMallocGarbage`, `Z_TryMalloc`, `Z_Malloc`, `Z_Free`, and `Com_BlockChecksumKey32` from their original translation units. The staged translation unit uses a standard `assert` adapter for the isolated string-helper assertions; it does not invent an allocator or checksum algorithm. The original `fs_iwdFileCount` and `fs_checksumFeed` globals are emitted as the state used by the authentic indexer.
+
+CMake and the Android Gradle arguments now include both the verbatim `FS_LoadZipFile()` body and these services in `libiw3_sp_math.so`. The separate `libiw3_sp_iwd_mount.a` remains available as a source/ABI audit artifact; it is not mistaken for a game.
+
+The Android native smoke extends the existing generated ZIP fixture to call the original `FS_LoadZipFile()`, then checks the returned `iwd_t`, entry count, lowercase member names, hash-bucket membership, filename-extension handling, and checksum/pure-checksum consistency. It closes the original ZIP handle and releases the original index allocations before deleting the fixture. A distinct `IW3_JNI_IWD_MOUNT_PASS` marker is required by the emulator evidence validator.
+
+**Evidence boundary:** this is an executable test of the original IWD index builder against a generated fixture, not mounting a licensed game IWD into `fs_searchpaths`. It does not load FastFiles or a BSP/map, render the game scene, link the original SP frame services, or prove touch-driven gameplay, weapons, actors or ARM64-device execution. The JNI APK remains diagnostic only. Native/Android build and emulator results for this pass must be inspected before calling this milestone CI-verified.
