@@ -491,9 +491,13 @@ original `FS_LoadZipFile(char*, char*)` symbol was found in
 original frame ABI object passed the ELF64/AArch64 checks. The artifact
 [12619201727](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40247789995/artifacts/12619201727)
 contains the static module and source provenance reports. The archive is
-explicitly **not linked into the JNI APK**. Android JNI package and emulator
-workflows were still running when this note was written; their results must be
-inspected separately before claiming those gates passed.
+explicitly **not linked into the JNI APK**. The Android ARM64 JNI build also
+completed successfully in [run 40247741699](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40247741699),
+including APK signature, AArch64 ELF, JNI symbol and package checks; artifact
+[12619771079](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40247741699/artifacts/12619771079)
+is the diagnostic-only package and provenance bundle. The separate x86_64
+emulator boot/runtime probe is still in progress. Neither success proves a
+real map, renderer, client/gameplay linkage, or physical ARM64 execution.
 
 Remaining gates are unchanged: wire the module to the actual engine allocator,
 checksum/string services and Android file-searchpath startup; mount a real
