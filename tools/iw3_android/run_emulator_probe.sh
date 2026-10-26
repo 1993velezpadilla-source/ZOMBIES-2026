@@ -27,6 +27,7 @@ adb exec-out screencap -p > "$proof_dir/screen-before-touch.png"
 adb logcat -d -s IW3NativeGate:I AndroidRuntime:E DEBUG:E '*:S' \
     > "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
 grep -F 'IW3_JNI_UNZIP_PARSER_PASS' "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
+grep -F 'IW3_JNI_IWD_SEARCHPATH_PASS' "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
 grep -F 'JNI_NATIVE_ENGINE_PROBE_PASS' "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
 grep -F 'IW3_JNI_ACTIVITY_STARTED PASS' "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
 
