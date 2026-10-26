@@ -19,3 +19,5 @@ int __cdecl FS_HashFileName(const char *fname, int hashSize);
 
 extern int fs_iwdFileCount;
 extern int fs_checksumFeed;
+extern searchpath_s *fs_searchpaths;
+void __cdecl FS_AddSearchPath(searchpath_s *search);
