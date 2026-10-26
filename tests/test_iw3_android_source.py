@@ -240,6 +240,11 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
         source = source_path.read_text(encoding="utf-8")
         load_zip = function_source(
             source, "iwd_t *__cdecl FS_LoadZipFile(char *zipfile, char *basename)")
+        # Invalid paths and names that cannot fit the real iwd_t fields must
+        # be rejected before opening, rather than silently truncated.
+        self.assertIn("if (!zipfile || !*zipfile || !basename || !*basename)", load_zip)
+        self.assertIn("strlen(zipfile) >= sizeof(((iwd_t *)0)->iwdFilename)", load_zip)
+        self.assertIn("strlen(basename) >= sizeof(((iwd_t *)0)->iwdBasename)", load_zip)
         # Invalid/unreadable archives must not pass a null handle into the
         # authentic ZIP parser; partially indexed archives must not be published.
         self.assertIn("uf = unzOpen(zipfile);", load_zip)
