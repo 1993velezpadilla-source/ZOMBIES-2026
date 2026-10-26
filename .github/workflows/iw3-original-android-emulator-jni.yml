@@ -113,6 +113,13 @@ jobs:
             --engine third_party/KisakCOD \
             --output "$folder/iw3_iwd_lookup.cpp" \
             --report "$RUNNER_TEMP/iw3-original-iwd-lookup.json"
+
+          # Stage the exact original FS_Read implementation and preserve an
+          # explicit gate: this does not yet link the original handle lifecycle.
+          python3 tools/iw3_android/prepare_real_engine_fs_read.py \
+            --engine third_party/KisakCOD \
+            --output "$folder/iw3_fs_read.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-fs-read.json"
           python3 tools/iw3_android/prepare_real_engine_iwd_read.py \
             --engine third_party/KisakCOD \
             --output "$folder/iw3_iwd_read_lifecycle.cpp" \
@@ -160,7 +167,7 @@ jobs:
             ${{ runner.temp }}/iw3-original-iwd-names.json
             ${{ runner.temp }}/iw3-original-unzip-abi.json
             ${{ runner.temp }}/iw3-original-iwd-mount.json
-            ${{ runner.temp }}/iw3-original-iwd-services.json
+            ${{ runner.temp }}/iw3-original-iwd-services.json\n            ${{ runner.temp }}/iw3-original-fs-read.json
             ${{ runner.temp }}/iw3-original-iwd-read-lifecycle.json
           if-no-files-found: warn
           retention-days: 14
