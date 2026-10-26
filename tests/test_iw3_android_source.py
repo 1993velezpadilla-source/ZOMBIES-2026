@@ -535,5 +535,39 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
             self.assertIn("prepare_real_engine_iwd_lookup.py", content)
             self.assertIn("iw3_iwd_lookup.cpp", content)
 
+
+    def test_original_iwd_read_handle_lifecycle_is_staged_verbatim(self):
+        from tools.iw3_android.prepare_real_engine_iwd_read import (
+            FUNCTIONS as READ_FUNCTIONS, REQUIRED as READ_REQUIRED,
+            prepare as prepare_iwd_read,
+        )
+        source_path = ENGINE / "src/universal/com_files.cpp"
+        original = source_path.read_bytes()
+        original_text = original.decode("utf-8")
+        expected = [function_source(original_text, signature)
+                    for signature in READ_FUNCTIONS]
+        with TemporaryDirectory() as temp:
+            output = Path(temp) / "stage" / "iw3_iwd_read_lifecycle.cpp"
+            report = prepare_iwd_read(ENGINE, output)
+            staged = output.read_text(encoding="utf-8")
+            self.assertTrue(report["original_handle_allocation_body_staged_verbatim"])
+            self.assertTrue(report["original_FS_FOpenFileReadForThread_body_staged_verbatim"])
+            self.assertTrue(report["original_FS_Read_body_staged_verbatim"])
+            self.assertTrue(report["original_FS_FCloseFile_body_staged_verbatim"])
+            self.assertFalse(report["android_abi_and_service_linkage_proven"])
+            self.assertFalse(report["runtime_handle_path_executed"])
+            self.assertFalse(report["playable_apk"])
+            for body in expected:
+                self.assertIn(body, staged)
+            for marker in READ_REQUIRED:
+                self.assertIn(marker, staged)
+        self.assertEqual(source_path.read_bytes(), original)
+
+    def test_android_emulator_workflow_stages_original_read_lifecycle_without_claiming_runtime(self):
+        workflow = (ROOT / ".github/workflows/iw3-original-android-emulator-jni.yml").read_text(encoding="utf-8")
+        self.assertIn("prepare_real_engine_iwd_read.py", workflow)
+        self.assertIn("iw3_iwd_read_lifecycle.cpp", workflow)
+        self.assertIn("iw3-original-iwd-read-lifecycle.json", workflow)
+
 if __name__ == "__main__":
     unittest.main()
