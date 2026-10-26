@@ -23,7 +23,7 @@ extern int fs_fakeChkSum;
 extern "C" void z2026_iw3_fs_file_close(FILE *stream);
 bool z2026_iw3_is_fastfile_load();
 bool z2026_iw3_is_database_thread();
-const char *z2026_iw3_safe_translate(const char *text);
+char *z2026_iw3_safe_translate(char *text);
 void z2026_iw3_fs_copy_file(char *from, char *to);
 uint32_t z2026_iw3_interlocked_compare_exchange(
     volatile uint32_t *destination, uint32_t exchange, uint32_t comparand);
@@ -32,3 +32,6 @@ uint32_t z2026_iw3_interlocked_compare_exchange(
 #define FS_FileClose z2026_iw3_fs_file_close
 FILE *__cdecl FS_FileForHandle(int f);
 int __cdecl FS_HandleForFile(FsThread thread);
+BOOL __cdecl FS_PureIgnoresExtension(const char *extension);
+char __cdecl FS_FilesAreLoadedGlobally(const char *filename);
+int __cdecl FS_IwdIsPure(iwd_t *iwd);
