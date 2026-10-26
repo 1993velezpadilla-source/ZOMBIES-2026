@@ -187,7 +187,12 @@ Related commits:
 - `696fbc7cef24110ffcd8512fc20715e3bc131ff0` — LP64 font pointer layout.
 - `29794fc46586dc0110d3e855a505d0c0f15b1f9f` — standard alignment for UI parser structures.
 
-**Validation status:** the earlier Android compile failed at these exact header errors; after the fixes, a new native ARM64 build and JNI build were triggered, but their final results are not yet available. The RotU/source preflight passed on the current code. Do not count the original client-input archive as built until the latest ARM64 workflow completes successfully.
+**Validation update (26 Oct 2026; code commit `c835c01aed938525d791054064e81578e0286623`):**
+- Native ARM64 source workflow [40418049229](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40418049229) passed: 71 Python tests, CTest 8/8 in Release, CTest 8/8 under ASan/UBSan, ARM64 filesystem/IWD symbol audits, and the original `G_RunFrame` entity block compile. Artifact [12697265311](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40418049229/artifacts/12697265311) is a native-module/evidence archive, **not an APK**.
+- JNI packaging workflow [40418049373](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40418049373) passed 71 tests and Gradle build. Artifact [12697345288](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40418049373/artifacts/12697345288) is explicitly diagnostic, **not a game**.
+- Android x86_64 emulator proof [40418049246](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40418049246) passed. Its report confirms original IWD/filesystem fixture functions executed and touch reached the original `usercmd_s` adapter, but also records `original_upstream_fsh_table_integrated=false`, `arm64_device_execution_proven=false`, and `gameplay_proven=false`. Evidence artifact [12696755465](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40418049246/artifacts/12696755465) is a runtime log/evidence archive, **not a game**.
+
+These green runs do not compile or link the full `cl_input.cpp` translation unit: that experiment was removed from the default build after exposing the D3D/client-header boundary. No original client-input archive is claimed.
 
 **Scope boundary:** these changes address actual 32/64-bit header portability blockers but do not link the original client input into the APK or run `CL_CreateCmd` in a live Android game frame. `Com_Frame`, `FS_Startup`, FastFile/map loading, renderer output, weapons/actors in Android gameplay and physical ARM64 execution remain unproven. No playable APK is claimed; PR #4 remains open and unmerged.
 
