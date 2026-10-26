@@ -207,6 +207,31 @@ int main() {
     assert(cmd[1] == 0 && cmd[2] == 0 && cmd[3] == 0);
     assert(cmd[5] == 0 && cmd[6] == 0);
 
+    // Sprint and slide are independent touch roles. Slide must reach the
+    // original usercmd as the sprint+crouch chord and may coexist with jump.
+    z2026_platform_touch_reset();
+    assert(z2026_platform_touch_event(0, .08f, .88f, 1) == 0); // sprint
+    assert(z2026_platform_touch_event(1, .27f, .88f, 1) == 0); // slide
+    assert(z2026_platform_touch_event(2, .70f, .65f, 1) == 0); // jump
+    int sprint_slide_fields[10]{};
+    assert(z2026_platform_usercmd_snapshot(5000, sprint_slide_fields, 10) == 0);
+    assert((sprint_slide_fields[1] & BUTTON_SPRINT) != 0);
+    assert((sprint_slide_fields[1] & BUTTON_CROUCH) != 0);
+    assert((sprint_slide_fields[1] & BUTTON_JUMP) != 0);
+    usercmd_s sprint_slide_command{};
+    float sprint_slide_angles[3] = {};
+    z2026_platform_apply_touch_to_usercmd(&sprint_slide_command, sprint_slide_angles);
+    assert((sprint_slide_command.buttons & BUTTON_SPRINT) != 0);
+    assert((sprint_slide_command.buttons & BUTTON_CROUCH) != 0);
+    assert((sprint_slide_command.buttons & BUTTON_JUMP) != 0);
+    assert(z2026_platform_touch_event(1, .27f, .88f, 0) == 0);
+    usercmd_s sprint_only_command{};
+    z2026_platform_apply_touch_to_usercmd(&sprint_only_command, sprint_slide_angles);
+    assert((sprint_only_command.buttons & BUTTON_SPRINT) != 0);
+    assert((sprint_only_command.buttons & BUTTON_CROUCH) == 0);
+    assert(z2026_platform_touch_event(0, .08f, .88f, 0) == 0);
+    z2026_platform_touch_reset();
+
     // Prove the bridge mutates an actual original usercmd_s exactly where
     // CL_CreateCmd will call it, rather than merely returning a side snapshot.
     z2026_platform_touch_reset();
