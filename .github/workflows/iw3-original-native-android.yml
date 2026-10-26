@@ -89,6 +89,7 @@ jobs:
             --engine third_party/KisakCOD \
             --output "$RUNNER_TEMP/iw3-source/iw3_fs_read.cpp" \
             --report "$RUNNER_TEMP/iw3-original-fs-read.json"
+          echo "IW3_ORIGINAL_FILE_READ_LIFECYCLE_STAGED_NOT_LINKED"
           echo "IW3_ORIGINAL_FS_READ_ABI_AUDIT_SOURCE_STAGED"
           echo "IW3_ACTUAL_SOURCE_USED_FROM_KISAKCOD"
 
