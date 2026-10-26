@@ -90,6 +90,7 @@ class OriginalIW3UnzipPortTests(unittest.TestCase):
         cmake = (ROOT / "android/iw3-native/CMakeLists.txt").read_text(encoding="utf-8")
         gradle = (ROOT / "android/iw3-native/android_app/app/build.gradle").read_text(encoding="utf-8")
         jni = (ROOT / "android/iw3-native/iw3_android_jni.cpp").read_text(encoding="utf-8")
+        smoke = (ROOT / "android/iw3-native/iw3_unzip_native_smoke.cpp").read_text(encoding="utf-8")
         self.assertIn("IW3_EXTRACTED_UNZIP", cmake)
         self.assertIn("IW3_EXTRACTED_IWD_SERVICES", cmake)
         self.assertIn("\"${IW3_EXTRACTED_IWD_MOUNT}\"", cmake)
