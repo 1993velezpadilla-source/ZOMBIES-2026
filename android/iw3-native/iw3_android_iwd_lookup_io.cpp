@@ -1,8 +1,26 @@
 #include "iw3_android_iwd_lookup_compat.h"
+#include "iw3_android_platform.h"
 
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
+#include <unistd.h>
+
+// Root-confined FILE adapters for the original directory fallback branch.
+// They preserve FS_FileOpenReadBinary/FS_FileClose semantics without
+// colliding with this source snapshot's iobuf-typed public declarations.
+FILE *z2026_iw3_lookup_file_open_read_binary(const char *path) {
+    if (!path) return nullptr;
+    const int fd = z2026_platform_open_engine_path_fd(path);
+    if (fd < 0) return nullptr;
+    FILE *stream = ::fdopen(fd, "rb");
+    if (!stream) ::close(fd);
+    return stream;
+}
+
+void z2026_iw3_lookup_file_close_binary(FILE *stream) {
+    if (stream) std::fclose(stream);
+}
 
 // The authentic lookup path only consults this when a localized searchpath is
 // selected. This diagnostic registers nonlocalized English fixtures only.
