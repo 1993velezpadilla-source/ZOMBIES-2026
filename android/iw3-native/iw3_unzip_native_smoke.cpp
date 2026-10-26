@@ -115,42 +115,61 @@ bool read_current(unzFile archive, const Entry &expected) {
 bool read_via_original_fs_read(iwd_t *iwd, const Entry &expected) {
     if (!iwd || !iwd->handle || !iwd->buildBuffer || !fs_searchpaths ||
         expected.payload.empty()) return false;
-    unzFile reopened = unzReOpen(
-        iwd->iwdFilename, reinterpret_cast<unzFile>(iwd->handle));
-    if (!reopened) return false;
-    if (unzSetCurrentFileInfoPosition(reopened, iwd->buildBuffer[0].pos) != UNZ_OK ||
-        unzOpenCurrentFile(reopened) != UNZ_OK) {
-        unzClose(reopened);
+
+    // Exercise the authentic public open path, its original handle allocator,
+    // the original FS_Read body and the original close body. Open the same IWD
+    // member twice while the primary archive is busy so the second open must
+    // use the upstream unzReOpen clone path.
+    int primary_handle = 0;
+    const uint32_t expected_length = static_cast<uint32_t>(expected.payload.size());
+    const uint32_t primary_length = FS_FOpenFileReadForThread(
+        expected.name.c_str(), &primary_handle, FS_THREAD_MAIN);
+    if (primary_handle <= 0 || primary_handle >= 65 ||
+        primary_length != expected_length) {
+        if (primary_handle > 0 && primary_handle < 65 &&
+            fsh[primary_handle].handleFiles.file.o) FS_FCloseFile(primary_handle);
         return false;
     }
 
-    // Exercise the verbatim original FS_Read ZIP branch with the original
-    // fileHandleData_t layout. The Android diagnostic owns this table because
-    // the upstream com_files.cpp translation unit (and its static fsh) is not
-    // linked into this probe. No fake read routine is used.
-    const fileHandleData_t previous = fsh[1];
-    fsh[1] = {};
-    fsh[1].zipFile = iwd;
-    fsh[1].handleFiles.file.z = reinterpret_cast<unsigned char *>(reopened);
-    fsh[1].handleFiles.iwdIsClone = 1;
-    std::vector<std::uint8_t> bytes(expected.payload.size());
-    const uint32_t got = FS_Read(
-        bytes.data(), static_cast<uint32_t>(bytes.size()), 1);
+    int clone_handle = 0;
+    const uint32_t clone_length = FS_FOpenFileReadForThread(
+        expected.name.c_str(), &clone_handle, FS_THREAD_MAIN);
+    if (clone_handle <= 0 || clone_handle >= 65 ||
+        clone_handle == primary_handle || clone_length != expected_length) {
+        if (clone_handle > 0 && clone_handle < 65 &&
+            fsh[clone_handle].handleFiles.file.o) FS_FCloseFile(clone_handle);
+        if (fsh[primary_handle].handleFiles.file.o) FS_FCloseFile(primary_handle);
+        return false;
+    }
 
-    // Close the cloned archive through the ORIGINAL engine close routine.
-    // Its memset must clear the entire native-width record, not the old Win32
-    // constant of 284 bytes (the 64-bit record is 304 bytes).
-    FS_FCloseFile(1);
+    const bool roles_ok =
+        fsh[primary_handle].zipFile == iwd &&
+        fsh[primary_handle].handleFiles.iwdIsClone == 0 &&
+        fsh[clone_handle].zipFile == iwd &&
+        fsh[clone_handle].handleFiles.iwdIsClone == 1;
+    std::vector<std::uint8_t> primary_bytes(expected.payload.size());
+    std::vector<std::uint8_t> clone_bytes(expected.payload.size());
+    const uint32_t primary_got = FS_Read(
+        primary_bytes.data(), expected_length, primary_handle);
+    const uint32_t clone_got = FS_Read(
+        clone_bytes.data(), expected_length, clone_handle);
+
+    // Both closes execute the authentic engine body. The primary close releases
+    // iwd->hasOpenFile; the clone close closes its own ZIP handle.
+    FS_FCloseFile(primary_handle);
+    FS_FCloseFile(clone_handle);
     const fileHandleData_t cleared{};
-    const bool handle_cleared =
-        std::memcmp(&fsh[1], &cleared, sizeof(cleared)) == 0;
-    fsh[1] = previous;
-
-    const bool content_ok =
-        got == static_cast<uint32_t>(expected.payload.size()) &&
-        std::string(reinterpret_cast<const char *>(bytes.data()), bytes.size()) ==
-            expected.payload;
-    return content_ok && handle_cleared;
+    const bool handles_cleared =
+        std::memcmp(&fsh[primary_handle], &cleared, sizeof(cleared)) == 0 &&
+        std::memcmp(&fsh[clone_handle], &cleared, sizeof(cleared)) == 0 &&
+        iwd->hasOpenFile == 0;
+    const std::string primary_text(
+        reinterpret_cast<const char *>(primary_bytes.data()), primary_bytes.size());
+    const std::string clone_text(
+        reinterpret_cast<const char *>(clone_bytes.data()), clone_bytes.size());
+    return roles_ok && handles_cleared &&
+           primary_got == expected_length && clone_got == expected_length &&
+           primary_text == expected.payload && clone_text == expected.payload;
 }
 
 bool index_original_iwd(const char *path, const std::array<Entry, 2> &expected, bool *searchpath_ok, bool *fs_read_ok) {
