@@ -1331,7 +1331,7 @@ void __cdecl FS_AddSearchPath(searchpath_s *search)
     if (search->bLocalized)
     {
         while (*pSearch && !(*pSearch)->bLocalized)
-            pSearch = (searchpath_s **)*pSearch;
+            pSearch = &(*pSearch)->next;
     }
     search->next = *pSearch;
     *pSearch = search;
