@@ -811,3 +811,12 @@ The latest completed runtime evidence on the prior code is Android x86_64 diagno
 
 No game map, renderer, full client/server frame linkage or playable APK has been proven. The generated IWD remains a synthetic fixture, the emulator is x86_64, and PR #4 remains intentionally unmerged.
 
+
+
+### Phase J — wire original file-read lifecycle source audit into ARM64 JNI CI (26 Oct 2026)
+
+The latest branch head `cae083c` passed the Android x86_64 JNI runtime diagnostic, including the original ZIP32 parser, IWD indexing, searchpath insertion, game-directory registration, lookup-only branch, native touch DOWN/UP readback, and Activity pause/resume. Its evidence still explicitly records `original_fs_read_handle_path_executed=false`, `arm64_device_execution_proven=false`, and `gameplay_proven=false`. This is diagnostic evidence only.
+
+A prior JNI integration run failed its source-test step because the newly added `prepare_real_engine_iwd_read.py` staging gate was present in the emulator workflow but absent from the separate ARM64 JNI integration workflow. The ARM64 workflow now runs the same generator, writes `iw3-original-iwd-read-lifecycle.json`, and archives that report alongside the diagnostic APK and provenance. A regression test requires the workflow to label this output `STAGED_NOT_LINKED` and rejects any claim that the original read-handle path is already executing.
+
+This is a CI/provenance correction, not a runtime port of `FS_HandleForFile`, `FS_FOpenFileReadForThread`, `FS_Read`, or `FS_FCloseFile`. The extracted translation unit remains an audit artifact and is not linked into the APK. The next actual engine task remains resolving the native ABI/global/service dependencies and exercising the original handle allocation/read/close path against the registered IWD fixture. FastFiles/maps, renderer, complete frame/service linkage, physical ARM64 execution, and playable gameplay remain open. Keep PR #4 unmerged.
