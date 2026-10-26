@@ -1,4 +1,4 @@
-"""Ensure the original FS_Read body is ABI-compiled but not misreported as runtime-linked."""
+"""Ensure the original file lifecycle is linked into the diagnostic, not misreported as the full engine."""
 from pathlib import Path
 import unittest
 
@@ -40,7 +40,10 @@ class OriginalFSReadAbiGateTests(unittest.TestCase):
 
     def test_fs_read_generator_preserves_original_body_and_declines_runtime_claim(self):
         generator = (ROOT / "tools/iw3_android/prepare_real_engine_fs_read.py").read_text(encoding="utf-8")
+        self.assertIn("FS_HandleForFile(FsThread thread)", generator)
+        self.assertIn("FS_FOpenFileReadForThread(const char *filename, int *file, FsThread thread)", generator)
         self.assertIn("FS_Read(uint8_t *buffer, uint32_t len, int h)", generator)
+        self.assertIn('"full_open_read_close_lifecycle_integrated": True', generator)
         self.assertIn('"original_upstream_fsh_table_integrated": False', generator)
         self.assertIn('"playable_apk": False', generator)
 
