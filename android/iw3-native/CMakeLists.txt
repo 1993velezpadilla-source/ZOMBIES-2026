@@ -47,6 +47,9 @@ endif()
 if(NOT IW3_EXTRACTED_IWD_DIRECTORY OR NOT EXISTS "${IW3_EXTRACTED_IWD_DIRECTORY}")
     message(FATAL_ERROR "Original FS_AddIwdFilesForGameDirectory source extraction required")
 endif()
+if(NOT IW3_EXTRACTED_IWD_LOOKUP OR NOT EXISTS "${IW3_EXTRACTED_IWD_LOOKUP}")
+    message(FATAL_ERROR "Original FS_FOpenFileReadForThread lookup-prefix extraction required")
+endif()
 if(NOT EXISTS "${IW3_REAL_HEADER_ROOT}/pool_allocator.h")
     message(FATAL_ERROR "Authentic original IW3 pool declarations required")
 endif()
@@ -92,9 +95,11 @@ add_library(iw3_sp_math SHARED
     "${IW3_EXTRACTED_IWD_MOUNT}"
     "${IW3_EXTRACTED_IWD_SEARCHPATH}"
     "${IW3_EXTRACTED_IWD_DIRECTORY}"
+    "${IW3_EXTRACTED_IWD_LOOKUP}"
     "${IW3_EXTRACTED_UNZIP}"
     "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_unzip_io.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_iwd_directory_io.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_iwd_lookup_io.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/iw3_unzip_native_smoke.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/native_math_abi.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_platform.cpp"
