@@ -1,7 +1,7 @@
 #pragma once
-// Include adapter for a compile-only module containing the verbatim original
-// KisakCOD FS_LoadZipFile function. Engine data structures come from the
-// original com_files.h; this header declares only service/global dependencies.
+// ABI adapter for the verbatim original KisakCOD FS_LoadZipFile function.
+// It is compiled into an audit archive and exercised by the JNI IWD-index smoke;
+// neither use is a complete game runtime. Engine structures remain original.
 #include <climits>
 #include <cstdint>
 #include "com_files.h"
