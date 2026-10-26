@@ -90,3 +90,15 @@ The native ARM64 workflow now requires the archive to exist, verifies that it de
 
 **Scope boundary:** this change adds no gameplay implementation and does not link `FS_Startup()`, the full `com_files.cpp`, FastFile/map loading, renderer output, or player/weapon/actor simulation into Android. It only strengthens verification of the original filtered-files function's AArch64 object archive. The diagnostic APK remains not a game; PR #4 remains open and unmerged.
 
+
+### Phase U — preserve native-width pointers in the original game-directory validator (26 Oct 2026; CI pending)
+
+A further 64-bit defect was found in the authentic `FS_GameDirDomainFunc()` callback in `src/universal/com_files.cpp`. It read the string-valued `DvarValue` through `newValue.integer`, dereferenced the pointer via the 32-bit integer member, and cast `strstr()` results back to `int`. On Android ARM64 those operations can truncate a valid path pointer and misclassify a game-directory value.
+
+The original callback now consistently uses `newValue.string` for its first-character check, separator validation, and traversal-token checks. The `strstr()` results are tested as pointers, not narrowed integers. The existing validation policy is preserved: an empty value is allowed; non-empty values must start with `mods`, contain a slash or backslash after the prefix, and contain neither `..` nor `::`. No replacement validator was added.
+
+- Engine fix: commit `0605df9ff811905330bee3fcb705db0812dd958f`.
+- The original callback body is now included in the exact-source extraction used by the Android native build, so it is compiled with the 64-bit Android ABI alongside the original file lifecycle helpers: `34676d682ee63830e90bc4f95f105cca6f067ced`.
+- Regression coverage rejects any `newValue.integer` access or `(int)strstr` narrowing in this callback and checks that the staging generator preserves it: `a04170e71c12ce7a1191410e5efb417349ba016a`, `0d6742e769860feeb957a526101dee669a4984a4`.
+
+**Validation status:** the source, extraction generator and regression tests have been pushed; fresh CI results still need inspection. The generated function is compiled into the native diagnostic library, but the callback has not been runtime-executed by this probe. This does not integrate full `FS_Startup()` or `com_files.cpp`, load real FastFiles/maps, render a scene, or prove player/weapon/actor gameplay on physical ARM64. The JNI APK remains diagnostic only. PR #4 stays open and unmerged.
