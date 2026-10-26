@@ -71,6 +71,16 @@ width, height = struct.unpack(">II", header[16:24])
 print(width, height)
 PY
 )
+sprint_x=$((screen_w * 8 / 100))
+sprint_y=$((screen_h * 88 / 100))
+printf 'ADB_REAL_SPRINT_TOUCH x=%s y=%s framebuffer=%sx%s\n' "$sprint_x" "$sprint_y" "$screen_w" "$screen_h"
+adb shell input touchscreen tap "$sprint_x" "$sprint_y"
+sleep 0.5
+slide_x=$((screen_w * 27 / 100))
+slide_y=$((screen_h * 88 / 100))
+printf 'ADB_REAL_SLIDE_TOUCH x=%s y=%s framebuffer=%sx%s\n' "$slide_x" "$slide_y" "$screen_w" "$screen_h"
+adb shell input touchscreen tap "$slide_x" "$slide_y"
+sleep 0.5
 attack_x=$((screen_w * 90 / 100))
 attack_y=$((screen_h * 85 / 100))
 printf 'ADB_REAL_ATTACK_TOUCH x=%s y=%s framebuffer=%sx%s\n' "$attack_x" "$attack_y" "$screen_w" "$screen_h"
@@ -79,6 +89,10 @@ sleep 1
 adb logcat -d -s IW3NativeGate:I AndroidRuntime:E DEBUG:E '*:S' \
     > "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
 grep -F 'IW3_JNI_USERCMD attack=1' "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
+grep -E 'IW3_JNI_USERCMD attack=0 buttons=2 ' "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
+echo 'IW3_JNI_SPRINT_USERCMD_PASS'
+grep -E 'IW3_JNI_USERCMD attack=0 buttons=514 ' "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
+echo 'IW3_JNI_SLIDE_CHORD_USERCMD_PASS'
 adb exec-out screencap -p > "$proof_dir/screen-after-touch.png"
 adb shell input keyevent KEYCODE_HOME
 sleep 2
