@@ -318,3 +318,15 @@ The original `FS_AddGameDirectory` now returns early when a localized language n
 - Regression test: [2aa2e6b](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/2aa2e6bcde3671b84965dcb0ef8b43bd7dcb4ca4).
 
 This is a source/runtime-correctness fix for search-path setup, not proof that `FS_Startup` executes in Android. The full dvar registry, complete filesystem service graph, licensed FastFile/map load, renderer, client input loop, weapon/actor gameplay, and physical ARM64 execution remain open gates. No playable APK is claimed; keep PR #4 unmerged.
+
+### Phase AF — execute original localized search-path setup under a host regression harness (27 Oct 2026)
+
+The previous source-only guard is now exercised by a native CTest harness that compiles and calls the extracted original `FS_AddLocalizedGameDirectory`, `FS_AddGameDirectory`, and `FS_AddSearchPath` bodies. Only narrow platform services are test doubles; path selection, directory-record allocation, search-path insertion, and the unsupported-language early return are the original engine code.
+
+The regression calls `FS_AddLocalizedGameDirectory("/private/iw3", "main")` while the Android language adapter exposes English at index 0 and empty names for unsupported indices. It verifies that the original code probes only `/private/iw3/main/english`, inserts exactly one localized entry (`main/english`) plus the normal non-localized `main` entry, and invokes IWD scanning only for those two valid directories—not once per unsupported language. This test failed to exist before the fix; it now executes the actual extracted function bodies instead of only searching source text.
+
+- Native source workflow: [40454969282](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40454969282) — PASS on the code/test HEAD before this documentation-only commit. Python suite: 76/76; CTest Release: 10/10 including `iw3_original_fs_localized_paths_fail_closed`; ASan/UBSan CTest: 10/10; ARM64 compile and symbol/dependency audits passed.
+- Artifact [12711544286](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40454969282/artifacts/12711544286) contains native modules and audit evidence, **not an APK**.
+- Engine fix [f274d41](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/f274d41554e54f6bbcf5f3ace6f0f6375e34e5d1); host harness [521296b](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/521296bc6c6df2814a8572072e289e945cf7e4a6); CMake test registration [b8832fa](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/b8832fa9c8b94bfcb6ed0d73047442177b00ee60).
+
+The native harness does not call `FS_Startup` or mount real game archives. The real dvar registry and full filesystem service graph are still not linked into Android; licensed FastFile/map loading, original renderer output, client input loop, weapon/actor gameplay, and physical ARM64 execution remain unproven. Keep PR #4 open and unmerged.
