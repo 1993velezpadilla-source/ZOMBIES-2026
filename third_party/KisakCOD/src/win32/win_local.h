@@ -19,6 +19,7 @@
 #include <wsipx.h>
 #endif
 #include <qcommon/qcommon.h>
+#include <qcommon/fast_critical_section.h>
 #ifdef KISAK_MP
 #include <qcommon/net_chan_mp.h>
 #elif KISAK_SP
@@ -305,17 +306,9 @@ struct sysEvent_t // sizeof=0x18
 	void *evPtr;                        // ...
 };
 
-struct FastCriticalSection
-{
-	volatile uint32_t readCount;
-	volatile uint32_t writeCount;
-};
-
 void Sys_InitializeCriticalSections();
 void Sys_EnterCriticalSection(int critSect);
 void Sys_LeaveCriticalSection(int critSect);
-void Sys_LockWrite(FastCriticalSection* critSect);
-void Sys_UnlockWrite(FastCriticalSection* critSect);
 
 int Sys_InterlockedIncrement(uint *addend);
 int Sys_InterlockedDecrement(uint *addend);
