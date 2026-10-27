@@ -582,3 +582,23 @@ Validation:
 - Earlier run [40562418740](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40562418740) failed only in the new Python assertion because it rejected an explanatory comment; that test was corrected and the succeeding preflight and ARM64 run passed.
 
 Remaining dependency evidence: the relocatable dvar link still reports `Vec4Compare(float const*, float const*)` as an unresolved original engine service. The archive is not linked into the JNI diagnostic or a full runtime. Real dvar startup, `FS_Startup`/ `FS_InitFilesystem`, licensed IWD/FastFile/map loading, original rendering, and gameplay remain unproven. The emulator/JNI workflows are separate diagnostics and do not establish ARM64 device gameplay.
+
+## Phase AR — original Vec4Compare provider for the full dvar archive (2026-10-27)
+
+The Phase AQ ARM64 relocatable-link report exposed `Vec4Compare(float const*, float const*)` as a remaining dependency of the complete original `dvar.cpp`. The function is defined in the vendored KisakCOD `src/universal/com_math.cpp` and compares all four float components with the original exact-equality semantics.
+
+Implemented on the Android branch:
+- `7a49b35`: added `prepare_real_engine_dvar_vec4.py`, which extracts the exact function body from original `com_math.cpp`, records the source/body hashes, and refuses to overwrite the vendored source.
+- `cd5fb39`: added Python source-contract and CI wiring tests.
+- `5a0010e` / `3a304f8`: added a native regression for equal vectors, signed zero, each component mismatch and NaN.
+- `2b42ff2`: added the generated original provider to the full-dvar archive and a host CTest when the generated source is supplied.
+- `c5c45da`: updated the ARM64 relocatable-link audit to require `NET_Sleep` and `Vec4Compare` to resolve, while checking that `Com_Printf` remains visible as an unported engine dependency.
+- `109234f`: corrected the sleep regression's expected marker after the combined audit name changed.
+- `c8b9b12`: included the dvar archive, generated provider, report and symbol evidence in the native artifact.
+
+Validation at the time of this update:
+- [Source preflight, run 40563082679](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40563082679) — PASS, including the new source extraction regression.
+- [ARM64 native source/ABI gate, run 40563082516](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40563082516) — in progress; the host compile/test step was still running. Do not count the ARM64 provider link as passed yet.
+- Earlier [run 40562989463](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40562989463) failed before native compilation because a Python test expected the previous audit marker; the marker assertion was corrected and the current preflight is green.
+
+This provider is an incremental dependency fix, not a complete runtime. `Com_Printf` and other original engine services remain unresolved; the dvar archive is not linked into the JNI app. No FS startup, licensed IWD/FastFile/map load, original rendering, or playable Android ARM64 gameplay is claimed.
