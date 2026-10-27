@@ -70,26 +70,27 @@ if(NOT EXISTS "${IW3_ENGINE_SOURCE_ROOT}/game/g_runframe.cpp")
     message(FATAL_ERROR "Complete original IW3 SP frame source required")
 endif()
 
-# Compile the authentic filesystem startup functions as a separate dependency
-# audit. They are not linked into the JNI diagnostic until the original dvar
-# registry and full engine service graph are available.
-if(IW3_EXTRACTED_FS_STARTUP)
-    if(NOT EXISTS "${IW3_EXTRACTED_FS_STARTUP}")
-        message(FATAL_ERROR "Original FS_RegisterDvars/FS_Startup/FS_InitFilesystem source required")
-    endif()
-    add_library(iw3_sp_fs_startup STATIC
-        "${IW3_EXTRACTED_FS_STARTUP}"
-        "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_fs_startup_io.cpp")
-    target_include_directories(iw3_sp_fs_startup PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}"
-        "${IW3_REAL_HEADER_ROOT}"
-        "${IW3_ENGINE_SOURCE_ROOT}"
-        "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
-        "${IW3_ENGINE_SOURCE_ROOT}/../deps")
-    target_compile_definitions(iw3_sp_fs_startup PRIVATE KISAK_SP=1)
-    target_compile_options(iw3_sp_fs_startup PRIVATE
-        -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
+# Compile the authentic filesystem startup functions on every configured
+# build. Silently omitting this target made it too easy for an ABI gate to pass
+# without even compiling FS_RegisterDvars/FS_Startup/FS_InitFilesystem.
+# This is still a dependency-audit archive: it does NOT claim startup is invoked
+# or link the unresolved engine service graph into the diagnostic APK.
+if(NOT IW3_EXTRACTED_FS_STARTUP OR NOT EXISTS "${IW3_EXTRACTED_FS_STARTUP}")
+    message(FATAL_ERROR
+        "Original FS_RegisterDvars/FS_Startup/FS_InitFilesystem source required; refusing to skip the filesystem startup compile gate")
 endif()
+add_library(iw3_sp_fs_startup STATIC
+    "${IW3_EXTRACTED_FS_STARTUP}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_fs_startup_io.cpp")
+target_include_directories(iw3_sp_fs_startup PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${IW3_REAL_HEADER_ROOT}"
+    "${IW3_ENGINE_SOURCE_ROOT}"
+    "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+    "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+target_compile_definitions(iw3_sp_fs_startup PRIVATE KISAK_SP=1)
+target_compile_options(iw3_sp_fs_startup PRIVATE
+    -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
 add_library(iw3_sp_frame STATIC "${IW3_ENGINE_SOURCE_ROOT}/game/g_runframe.cpp")
 target_include_directories(iw3_sp_frame PRIVATE "${IW3_ENGINE_SOURCE_ROOT}")
 target_compile_definitions(iw3_sp_frame PRIVATE KISAK_SP=1)
