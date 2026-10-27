@@ -251,8 +251,34 @@ int main() {
     assert(z2026_platform_touch_event(0, 0.25f, 0.75f, 0) == 0);
     assert(z2026_platform_touch_snapshot(0, &x, &y) == 0);
     assert(z2026_platform_touch_event(99, .5f, .5f, 1) == -1);
+    assert(z2026_platform_touch_event(32, .5f, .5f, 1) == -1);
     assert(z2026_platform_touch_event(0, 1.01f, .5f, 1) == -1);
     assert(z2026_platform_touch_event(0, NAN, .5f, 1) == -1);
+
+    // MotionEvent pointer IDs are not guaranteed to be 0..9. ID 31 must map
+    // to an available native slot and remain independent from pointer ID 4.
+    z2026_platform_touch_reset();
+    x = y = 4.0f;
+    assert(z2026_platform_touch_snapshot(31, &x, &y) == 0);
+    assert(x == 0.0f && y == 0.0f);
+    assert(z2026_platform_touch_event(31, .90f, .85f, 1) == 0); // attack
+    assert(z2026_platform_touch_event(4, .08f, .88f, 1) == 0); // sprint
+    assert(z2026_platform_touch_snapshot(31, &x, &y) == 1);
+    assert(std::fabs(x - .90f) < .001f && std::fabs(y - .85f) < .001f);
+    assert(z2026_platform_touch_snapshot(4, &x, &y) == 1);
+    int sparse_pointer_cmd[10]{};
+    assert(z2026_platform_usercmd_snapshot(1200, sparse_pointer_cmd, 10) == 0);
+    assert((sparse_pointer_cmd[1] & BUTTON_ATTACK) != 0);
+    assert((sparse_pointer_cmd[1] & BUTTON_SPRINT) != 0);
+    assert(z2026_platform_touch_event(31, .90f, .85f, 0) == 0);
+    assert(z2026_platform_touch_snapshot(31, &x, &y) == 0);
+    assert(z2026_platform_touch_snapshot(4, &x, &y) == 1);
+    int sparse_pointer_release_cmd[10]{};
+    assert(z2026_platform_usercmd_snapshot(1201, sparse_pointer_release_cmd, 10) == 0);
+    assert((sparse_pointer_release_cmd[1] & BUTTON_ATTACK) == 0);
+    assert((sparse_pointer_release_cmd[1] & BUTTON_SPRINT) != 0);
+    assert(z2026_platform_touch_event(4, .08f, .88f, 0) == 0);
+    z2026_platform_touch_reset();
 
     // Use the actual IW3 SP usercmd_s ABI from qcommon/msg.h.
     z2026_platform_touch_reset();
