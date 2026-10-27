@@ -270,6 +270,26 @@ jobs:
           echo "IW3_ORIGINAL_DVAR_REGISTER_VARIANT_AARCH64_DEFINED_WITH_REAL_DEPENDENCIES_VISIBLE"
           echo "IW3_ORIGINAL_DVAR_LP64_POINTER_ABI_AARCH64_COMPILE_GREEN"
 
+          # Audit the full original dvar.cpp together with its real POSIX
+          # NET_Sleep provider. A relocatable link must resolve NET_Sleep while
+          # leaving unrelated engine services unresolved and visible.
+          dvar_full_archive="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_dvar_android.a"
+          test -s "$dvar_full_archive"
+          "$llvm_nm" -C --defined-only "$dvar_full_archive" | tee "$RUNNER_TEMP/iw3-full-dvar-defined.txt"
+          grep -F 'NET_Sleep(int)' "$RUNNER_TEMP/iw3-full-dvar-defined.txt"
+          grep -F 'Dvar_RegisterString' "$RUNNER_TEMP/iw3-full-dvar-defined.txt"
+          "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/ld.lld" \
+            -m aarch64linux -r --whole-archive "$dvar_full_archive" \
+            --no-whole-archive -o "$RUNNER_TEMP/iw3-full-dvar-combined.o"
+          "$llvm_nm" -u -C "$RUNNER_TEMP/iw3-full-dvar-combined.o" | tee "$RUNNER_TEMP/iw3-full-dvar-unresolved.txt"
+          if grep -F 'NET_Sleep(int)' "$RUNNER_TEMP/iw3-full-dvar-unresolved.txt"; then
+            echo "Android NET_Sleep provider failed to resolve the original dvar dependency" >&2
+            exit 1
+          fi
+          # This remains a dependency audit, not a complete dvar runtime link.
+          grep -F 'Vec4Compare' "$RUNNER_TEMP/iw3-full-dvar-unresolved.txt"
+          echo "IW3_ORIGINAL_DVAR_ANDROID_SLEEP_SERVICE_RESOLVED_REMAINING_ENGINE_SERVICES_VISIBLE"
+
           so="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_math.so"
           test -s "$so"
           elf="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
