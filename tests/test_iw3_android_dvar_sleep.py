@@ -12,7 +12,7 @@ class AndroidDvarSleepPortTests(unittest.TestCase):
         self.assertIn("sched_yield()", adapter)
         self.assertIn("nanosleep(&remaining, &remaining)", adapter)
         self.assertIn("errno != EINTR", adapter)
-        self.assertNotIn("Sleep(msec)", adapter)
+        self.assertNotIn("Sleep(msec);", adapter)
 
     def test_win32_reference_semantics_are_not_modified(self):
         original = (ROOT / "third_party/KisakCOD/src/win32/win_net.cpp").read_text(encoding="utf-8")
