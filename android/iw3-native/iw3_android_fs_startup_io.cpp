@@ -20,6 +20,14 @@ char *Sys_DefaultCDPath() {
     return empty_path;
 }
 
+// Preserve the original Sys_DirectoryHasContents contract while routing absolute
+// FS_BuildOSPath results through the retained app-private root. Platform errors
+// fail closed so an unreadable localized folder is never treated as present.
+int Sys_DirectoryHasContents(const char *directory) {
+    if (!directory || !*directory) return 0;
+    return z2026_platform_directory_has_contents(directory) > 0;
+}
+
 extern "C" IW3_ANDROID_EXPORT int z2026_iw3_fs_startup_path_smoke() {
     char path[1024]{};
     if (z2026_platform_copy_data_root(path, sizeof(path)) < 0) return 0;
