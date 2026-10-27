@@ -344,3 +344,16 @@ The adapter now retains only the first 1024 valid `.iwd` names in native `readdi
 **Validation status:** the preceding HEAD `0a06d27` had green source-preflight, native ARM64, JNI diagnostic and Android x86_64 emulator runs ([40455246401](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40455246401), [40455246410](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40455246410), [40455246471](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40455246471)). Those results predate this fix and do not validate the new head; CI for the new commits must finish before this phase is marked green.
 
 This corrects archive selection semantics but does not complete the filesystem runtime. `FS_Startup`/`FS_InitFilesystem` are still not invoked by the Android JNI app; no licensed FastFile or real map is loaded, no original renderer scene or weapon/actor gameplay is proven, and no physical ARM64 gameplay has been observed. The JNI APK remains diagnostic only. Keep PR #4 open and unmerged.
+
+
+### Phase AH — original Dvar_RegisterVariant dependency step and zero-capacity rooted read fix (27 Oct 2026; CI pending)
+
+The next startup blocker was the dvar registration boundary: the ARM64 audit compiled string/enum helpers and wrappers, but left the authentic `Dvar_RegisterVariant` entry point itself unresolved. The generator now extracts that exact upstream body from `third_party/KisakCOD/src/universal/dvar.cpp` into the same ARM64 audit translation unit. The audit requires the function to be defined and keeps its actual dependencies visible: `Dvar_FindMalleableVar`, `Dvar_RegisterNew`, and `Dvar_Reregister`. The first is private/static in the upstream translation unit, so this is a dependency-graph step, not a linked registry. No duplicate dvar state or no-op registry is introduced.
+
+The Android rooted file API also had a contract bug: `z2026_platform_read_file` documented zero-capacity reads for empty files, but rejected every null output pointer before it could test the file. It now permits a null output only when capacity is zero. A native regression verifies that an empty file returns 0, a nonempty file with zero capacity fails closed, and a null output with nonzero capacity is rejected.
+
+- Changed platform adapter: `android/iw3-native/iw3_android_platform.cpp`.
+- Regression: `android/iw3-native/platform_native_test.cpp`.
+- Original dvar source extraction and symbol gate: `tools/iw3_android/prepare_real_engine_dvar_pointer_abi.py`, `tests/test_iw3_android_dvar_pointer_abi.py`, and `.github/workflows/iw3-original-native-android.yml`.
+
+**Validation status:** the new HEAD still requires CI. This pass does not invoke `FS_Startup`/ `FS_InitFilesystem`, mount licensed IWDs through a complete runtime, load a FastFile/map, render a scene, or run weapon/actor gameplay. The JNI APK remains diagnostic; physical ARM64 gameplay is not proven. Keep PR #4 open and unmerged.
