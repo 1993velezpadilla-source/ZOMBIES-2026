@@ -28,6 +28,7 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
                 self.assertIn(body, staged)
             self.assertEqual(report["source_sha256"],
                              hashlib.sha256(original).hexdigest())
+            self.assertTrue(report["original_FS_AddSearchPath_body_staged_verbatim"])
             self.assertTrue(report["original_FS_AddGameDirectory_body_staged_verbatim"])
             self.assertTrue(report["original_FS_AddLocalizedGameDirectory_body_staged_verbatim"])
             self.assertTrue(report["directory_allocation_uses_native_sizeof"])
@@ -54,6 +55,12 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
 
     def test_original_game_directory_setup_uses_native_allocation_size(self):
         source = (ENGINE / SOURCE).read_text(encoding="utf-8")
+        add_searchpath = function_source(
+            source,
+            "void __cdecl FS_AddSearchPath(searchpath_s *search)",
+        )
+        self.assertIn("pSearch = &fs_searchpaths;", add_searchpath)
+        self.assertIn("*pSearch = search;", add_searchpath)
         add_directory = function_source(
             source,
             "void __cdecl FS_AddGameDirectory(char *path, char *dir, int bLanguageDirectory, int iLanguage)",
@@ -84,6 +91,9 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
         self.assertIn("char *Sys_Cwd()", adapter)
         self.assertIn("z2026_platform_copy_data_root", adapter)
         self.assertIn("Sys_DefaultCDPath()", adapter)
+        self.assertIn("int Sys_DirectoryHasContents(const char *directory)", adapter)
+        self.assertIn("z2026_platform_directory_has_contents(directory) > 0", adapter)
+        self.assertIn("int Sys_DirectoryHasContents(const char *directory);", compat)
         self.assertIn("typedef int BOOL;", compat)
         self.assertIn("FS_GameDirDomainFunc", compat)
         self.assertIn("z2026_platform_copy_data_root", native_test)
