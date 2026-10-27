@@ -732,3 +732,18 @@ Validation:
 - At the time of this entry, the rerun on current head `40cfb8c` was still in progress: [native ARM64 40592729547](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40592729547), [JNI diagnostic 40592729529](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40592729529), and [emulator runtime proof 40592729545](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40592729545). These are not counted as passed here.
 
 This is a real dependency-link improvement, but it is still a relocatable audit object. `FS_Startup`/`FS_InitFilesystem` have not been invoked in the Android app; no licensed IWD/FastFile/map was loaded; the original renderer is not showing a scene; and touch-driven weapons/actors on physical ARM64 remain unproven. The JNI APK remains diagnostic only. Keep PR #4 open and unmerged.
+
+
+## Phase AY — stage original IWD enumeration in the filesystem-startup dependency archive (2026-10-27; validation pending)
+
+The latest combined AArch64 startup/Dvar link still reported `FS_AddIwdFilesForGameDirectory` as an unresolved symbol. That function is called by the original `FS_AddGameDirectory` body, and its authentic implementation was already staged separately for the diagnostic IWD path. The startup archive had not yet included that body, so the audit stopped one edge before directory scanning.
+
+Implemented on `feature/iw3-native-android-arm64-20261025`:
+
+- [`3e79df0`](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/3e79df08eb6a018533ea124324f17be49f845677): `prepare_real_engine_fs_startup.py` now stages the original `FS_AddIwdFilesForGameDirectory` body from vendored `com_files.cpp` into the existing startup audit source. It retains the upstream null/empty directory-list guard, `sizeof(s0[0])` qsort element size, original `FS_LoadZipFile` call and original search-path insertion.
+- [`029a05b`](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/029a05b8174394b5d1fa0c2cba0206458ab84861): regression coverage now checks that the extracted body and its 64-bit-safe list/sort contracts are present, and that the runtime is still explicitly unproven.
+- [`288b4e8`](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/288b4e8b70ce13c1ad05cb5d6cac753867e15b12): the AArch64 workflow requires `FS_AddIwdFilesForGameDirectory` to be defined in the startup archive and absent from the combined startup/Dvar undefined-symbol list. It also keeps the real follow-on edges visible: `FS_LoadZipFile`, `Sys_ListFiles`, `FS_FreeFileList`, `IwdFileLanguage`, `iwdsort`, `I_strncmp`, `SEH_GetLanguageIndexForName`, `Com_PrintWarning`, plus the existing allocator/language/file-read services.
+
+The fresh preflight, native ARM64 source/ABI, JNI diagnostic and emulator workflows were triggered by the branch updates; their final results have not yet been inspected. Do not count this pass as CI-green until the run for the latest code completes.
+
+**Scope boundary:** this closes a real function-definition edge in a dependency-audit archive; it does not execute `FS_Startup` or `FS_InitFilesystem` in the Android app. The remaining original IWD enumeration/mount services are intentionally unresolved rather than stubbed. No licensed FastFile/map load, original renderer scene, touch-driven weapon/actor gameplay, or physical ARM64 gameplay is proven. The JNI APK remains diagnostic only. Keep PR #4 open and unmerged.
