@@ -252,8 +252,27 @@ int main() {
     assert(z2026_platform_touch_snapshot(0, &x, &y) == 0);
     assert(z2026_platform_touch_event(99, .5f, .5f, 1) == -1);
     assert(z2026_platform_touch_event(32, .5f, .5f, 1) == -1);
-    assert(z2026_platform_touch_event(0, 1.01f, .5f, 1) == -1);
+    // Finite coordinates may legitimately leave the view while Android
+    // still owns the pointer. Clamp them; do not drop the event.
+    assert(z2026_platform_touch_event(0, 1.01f, .5f, 1) == 0);
+    assert(z2026_platform_touch_snapshot(0, &x, &y) == 1);
+    assert(std::fabs(x - 1.0f) < .001f && std::fabs(y - .5f) < .001f);
+    assert(z2026_platform_touch_event(0, 1.25f, .5f, 0) == 0);
+    assert(z2026_platform_touch_snapshot(0, &x, &y) == 0);
     assert(z2026_platform_touch_event(0, NAN, .5f, 1) == -1);
+
+    // Releasing an attack pointer outside the screen must not leave ATTACK
+    // stuck in subsequent original-layout usercmd snapshots.
+    z2026_platform_touch_reset();
+    assert(z2026_platform_touch_event(6, .90f, .85f, 1) == 0);
+    assert(z2026_platform_touch_event(6, 1.25f, .85f, 1) == 0);
+    assert(z2026_platform_touch_snapshot(6, &x, &y) == 1);
+    assert(std::fabs(x - 1.0f) < .001f && std::fabs(y - .85f) < .001f);
+    assert(z2026_platform_touch_event(6, 1.25f, .85f, 0) == 0);
+    assert(z2026_platform_touch_snapshot(6, &x, &y) == 0);
+    int off_view_release_cmd[10]{};
+    assert(z2026_platform_usercmd_snapshot(1202, off_view_release_cmd, 10) == 0);
+    assert((off_view_release_cmd[1] & BUTTON_ATTACK) == 0);
 
     // MotionEvent pointer IDs are not guaranteed to be 0..9. ID 31 must map
     // to an available native slot and remain independent from pointer ID 4.
