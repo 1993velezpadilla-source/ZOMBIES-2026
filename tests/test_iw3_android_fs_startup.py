@@ -53,6 +53,7 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
         platform = (ROOT / "android/iw3-native/iw3_android_platform.cpp").read_text(encoding="utf-8")
         header = (ROOT / "android/iw3-native/iw3_android_platform.h").read_text(encoding="utf-8")
         adapter = (ROOT / "android/iw3-native/iw3_android_fs_startup_io.cpp").read_text(encoding="utf-8")
+        compat = (ROOT / "android/iw3-native/iw3_android_fs_startup_compat.h").read_text(encoding="utf-8")
         native_test = (ROOT / "android/iw3-native/platform_native_test.cpp").read_text(encoding="utf-8")
         jni = (ROOT / "android/iw3-native/iw3_android_jni.cpp").read_text(encoding="utf-8")
         self.assertIn("z2026_platform_copy_data_root", platform)
@@ -60,6 +61,8 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
         self.assertIn("char *Sys_Cwd()", adapter)
         self.assertIn("z2026_platform_copy_data_root", adapter)
         self.assertIn("Sys_DefaultCDPath()", adapter)
+        self.assertIn("typedef int BOOL;", compat)
+        self.assertIn("FS_GameDirDomainFunc", compat)
         self.assertIn("z2026_platform_copy_data_root", native_test)
         self.assertIn("IW3_JNI_FS_STARTUP_PATH_%s", jni)
 
