@@ -89,6 +89,10 @@ jobs:
             --engine third_party/KisakCOD \
             --output "$RUNNER_TEMP/iw3-source/iw3_fs_read.cpp" \
             --report "$RUNNER_TEMP/iw3-original-fs-read.json"
+          python3 tools/iw3_android/prepare_real_engine_fs_startup.py \
+            --engine third_party/KisakCOD \
+            --output "$RUNNER_TEMP/iw3-source/iw3_fs_startup.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-fs-startup.json"
           python3 tools/iw3_android/prepare_real_engine_filtered_files.py \
             --engine third_party/KisakCOD \
             --output "$RUNNER_TEMP/iw3-source/iw3_filtered_files_location.cpp" \
@@ -117,6 +121,7 @@ jobs:
             -DIW3_EXTRACTED_IWD_DIRECTORY="$RUNNER_TEMP/iw3-source/iw3_iwd_directory.cpp" \
             -DIW3_EXTRACTED_IWD_LOOKUP="$RUNNER_TEMP/iw3-source/iw3_iwd_lookup.cpp" \
             -DIW3_EXTRACTED_FS_READ="$RUNNER_TEMP/iw3-source/iw3_fs_read.cpp" \
+            -DIW3_EXTRACTED_FS_STARTUP="$RUNNER_TEMP/iw3-source/iw3_fs_startup.cpp" \
             -DIW3_EXTRACTED_FILTERED_FILES="$RUNNER_TEMP/iw3-source/iw3_filtered_files_location.cpp" \
             -DIW3_ENTITY_LOOP_INC="$RUNNER_TEMP/iw3-source/iw3_g_runframe_entity_loop.inc" \
             -DIW3_REAL_HEADER_ROOT="$GITHUB_WORKSPACE/third_party/KisakCOD/src/universal"
@@ -175,6 +180,7 @@ jobs:
             -DIW3_EXTRACTED_IWD_DIRECTORY="$RUNNER_TEMP/iw3-source/iw3_iwd_directory.cpp" \
             -DIW3_EXTRACTED_IWD_LOOKUP="$RUNNER_TEMP/iw3-source/iw3_iwd_lookup.cpp" \
             -DIW3_EXTRACTED_FS_READ="$RUNNER_TEMP/iw3-source/iw3_fs_read.cpp" \
+            -DIW3_EXTRACTED_FS_STARTUP="$RUNNER_TEMP/iw3-source/iw3_fs_startup.cpp" \
             -DIW3_EXTRACTED_FILTERED_FILES="$RUNNER_TEMP/iw3-source/iw3_filtered_files_location.cpp" \
             -DIW3_ENTITY_LOOP_INC="$RUNNER_TEMP/iw3-source/iw3_g_runframe_entity_loop.inc" \
             -DIW3_REAL_HEADER_ROOT="$GITHUB_WORKSPACE/third_party/KisakCOD/src/universal"
@@ -211,6 +217,21 @@ jobs:
           done
           echo "IW3_ORIGINAL_FILTERED_FILES_AARCH64_SYMBOL_AND_SERVICE_AUDIT_GREEN"
           echo "IW3_ORIGINAL_FILTERED_FILE_LIST_NATIVE_POINTER_ARRAY_AARCH64_COMPILE_GREEN"
+
+          # The authentic startup functions are now compiled from the original
+          # source. Keep the real dvar, file-read and language dependencies
+          # visible rather than pretending this archive is a running filesystem.
+          startup_archive="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_fs_startup.a"
+          test -s "$startup_archive"
+          "$llvm_nm" -C --defined-only "$startup_archive" | tee "$RUNNER_TEMP/iw3-fs-startup-defined.txt"
+          for symbol in FS_RegisterDvars FS_Startup FS_SetRestrictions FS_IsBasePathValid FS_InitFilesystem Sys_Cwd Sys_DefaultCDPath; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-startup-defined.txt"
+          done
+          "$llvm_nm" -u -C "$startup_archive" | tee "$RUNNER_TEMP/iw3-fs-startup-undefined.txt"
+          for symbol in Dvar_RegisterString Dvar_RegisterBool FS_AddLocalizedGameDirectory FS_ReadFile SEH_InitLanguage; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-startup-undefined.txt"
+          done
+          echo "IW3_ORIGINAL_FS_STARTUP_AARCH64_DEPENDENCY_AUDIT_GREEN"
           so="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_math.so"
           test -s "$so"
           elf="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
@@ -311,6 +332,10 @@ jobs:
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_frame.a
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_iwd_mount.a
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_filtered_files.a
+            ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_fs_startup.a
+            ${{ runner.temp }}/iw3-original-fs-startup.json
+            ${{ runner.temp }}/iw3-fs-startup-defined.txt
+            ${{ runner.temp }}/iw3-fs-startup-undefined.txt
             ${{ runner.temp }}/iw3-original-filtered-files-location.json
             ${{ runner.temp }}/iw3-complete-frame-arm64.json
             ${{ runner.temp }}/iw3-native-source.json
