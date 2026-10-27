@@ -26,9 +26,9 @@ int main() {
     assert(std::strcmp(IwdFileLanguage(englishIwdName), "english") == 0);
     const char highBitLanguageName[] = {
         '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-        static_cast<char>(0xFE), 'a', '.', 'i', 'w', 'd', '\\0'
+        static_cast<char>(0xFE), 'a', '.', 'i', 'w', 'd', '\0'
     };
-    assert(IwdFileLanguage(highBitLanguageName)[0] == '\\0');
+    assert(IwdFileLanguage(highBitLanguageName)[0] == '\0');
     assert(FS_FilenameCompare("maps/mp/mp_crash.d3dbsp",
                               "MAPS\\MP\\MP_CRASH.D3DBSP") == 0);
     assert(FS_FilenameCompare("weapons:mp40", "WEAPONS/mp40") == 0);
