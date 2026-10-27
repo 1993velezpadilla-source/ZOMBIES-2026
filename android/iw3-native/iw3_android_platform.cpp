@@ -603,8 +603,12 @@ extern "C" IW3_ANDROID_EXPORT int z2026_platform_touch_event(
     int id, float x, float y, int down) {
     if (id < 0 || id >= kAndroidPointerIdCount ||
         !std::isfinite(x) || !std::isfinite(y) ||
-        x < 0.0f || x > 1.0f || y < 0.0f || y > 1.0f ||
         (down != 0 && down != 1)) return -1;
+    // Android can continue delivering a captured pointer after it leaves the
+    // view. Clamp finite coordinates instead of dropping MOVE/UP: rejecting an
+    // out-of-bounds UP would leave its button role held in the next usercmd.
+    x = std::clamp(x, 0.0f, 1.0f);
+    y = std::clamp(y, 0.0f, 1.0f);
     std::lock_guard<std::mutex> lock(g_touch_mutex);
     Touch *touch = find_touch_by_pointer_id(id);
     if (down == 1) {
