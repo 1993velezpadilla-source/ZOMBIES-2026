@@ -27,6 +27,8 @@ extern char lastValidBase[256];
 extern char lastValidGame[256];
 
 void FS_RegisterDvars();
+void __cdecl Com_ReadCDKey();
+BOOL __cdecl FS_UseSearchPath(const searchpath_s *pSearch);
 void FS_AddLocalizedGameDirectory(char *path, char *dir);
 void FS_AddCommands();
 void FS_Path_f();
