@@ -357,3 +357,6 @@ The Android rooted file API also had a contract bug: `z2026_platform_read_file` 
 - Original dvar source extraction and symbol gate: `tools/iw3_android/prepare_real_engine_dvar_pointer_abi.py`, `tests/test_iw3_android_dvar_pointer_abi.py`, and `.github/workflows/iw3-original-native-android.yml`.
 
 **Validation status:** the new HEAD still requires CI. This pass does not invoke `FS_Startup`/ `FS_InitFilesystem`, mount licensed IWDs through a complete runtime, load a FastFile/map, render a scene, or run weapon/actor gameplay. The JNI APK remains diagnostic; physical ARM64 gameplay is not proven. Keep PR #4 open and unmerged.
+
+
+Phase AH follow-up: the extracted `Dvar_RegisterVariant` compilation unit now declares the exact upstream signatures for `Dvar_RegisterNew`, `Dvar_Reregister`, and the private `Dvar_FindMalleableVar` boundary. These declarations exist only so the compiler can type-check the authentic body in isolation; the ARM64 symbol audit still requires all three to remain unresolved, so this does not pretend the registry is linked.
