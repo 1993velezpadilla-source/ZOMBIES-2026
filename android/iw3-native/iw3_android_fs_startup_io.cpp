@@ -1,4 +1,4 @@
-#include "iw3_android_fs_startup_compat.h"
+#include "iw3_android_platform.h"
 
 #include <cstring>
 
