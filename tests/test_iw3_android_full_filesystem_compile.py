@@ -52,6 +52,11 @@ class OriginalFilesystemAndroidPortTests(unittest.TestCase):
         self.assertIn("GetFileAttributesA(ospath)", windows)
         self.assertIn("SetFileAttributesA(ospath, attributes)", windows)
 
+    def test_filesystem_tu_does_not_import_unused_bsp_renderer_dependency(self):
+        source = SOURCE.read_text(encoding="utf-8")
+        self.assertNotIn("#include <qcommon/com_bsp.h>", source)
+        self.assertIn("void __cdecl Com_GetBspFilename(char *filename, uint32_t size, const char *mapname)", source)
+
     def test_thread_context_abi_is_shared_without_win32_or_d3d_headers(self):
         threads = (ROOT / "third_party/KisakCOD/src/qcommon/threads.h").read_text(encoding="utf-8")
         backend = (ROOT / "third_party/KisakCOD/src/gfx_d3d/rb_backend.h").read_text(encoding="utf-8")
