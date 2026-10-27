@@ -48,6 +48,7 @@ def prepare(engine: Path, output: Path) -> dict:
     if output in originals.values():
         raise ValueError("Never overwrite authentic KisakCOD source")
     raw = {path: origin.read_bytes() for path, origin in originals.items()}
+    source_text = {path: data.decode("utf-8") for path, data in raw.items()}
     bodies = []
     for signature, path in FUNCTIONS:
         body = function_source(raw[path].decode("utf-8"), signature)
