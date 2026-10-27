@@ -92,7 +92,7 @@ int main() {
     char stringValue[] = "filesDir/main";
     assert(reinterpret_cast<std::uintptr_t>(stringValue) > UINT32_MAX);
     const dvar_s *registered = Dvar_RegisterString(
-        "fs_homepath", stringValue, DVAR_NOFLAG, "Android app-private path");
+        "fs_homepath", stringValue, 0, "Android app-private path");
     assert(registered == &g_registered);
     assert(g_last_type == DVAR_TYPE_STRING);
     assert(g_last_value.string == stringValue);
@@ -102,7 +102,7 @@ int main() {
     const char *names[] = {"alpha", "beta", "gamma", nullptr};
     assert(reinterpret_cast<std::uintptr_t>(names) > UINT32_MAX);
     registered = Dvar_RegisterEnum(
-        "test_enum", names, 1, DVAR_NOFLAG, "pointer-width enum table");
+        "test_enum", names, 1, 0, "pointer-width enum table");
     assert(registered == &g_registered);
     assert(g_last_type == DVAR_TYPE_ENUM);
     assert(g_last_domain.enumeration.stringCount == 3);
