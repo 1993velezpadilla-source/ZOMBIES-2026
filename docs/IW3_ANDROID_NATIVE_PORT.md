@@ -391,3 +391,16 @@ The exact-source extraction gate now requires the length guard and rejects the p
 - Windows SP weapon/killhouse and dedicated compile workflows were still in progress when this note was written; they are not counted as passed.
 
 **Scope boundary:** this fixes one real UB bug in the original filesystem policy and executes its regression, but the complete filesystem runtime is still not linked into Android. The original dvar registry dependencies (`Dvar_FindMalleableVar`, `Dvar_RegisterNew`, `Dvar_Reregister`) remain unresolved at the integration boundary; `FS_Startup`/ `FS_InitFilesystem` are not run by the complete game runtime. No licensed FastFile/map load, original renderer output, touch-driven player movement/weapon/actor gameplay, or physical ARM64 gameplay is proven. The JNI APK remains diagnostic only. Keep PR #4 open and unmerged.
+
+
+### Phase AK — signed-char-safe original IWD filename hashing (27 Oct 2026; CI pending)
+
+The newest source review found one remaining C character-classification hazard on the active IWD indexing path: original `FS_HashFileName()` called `tolower(fname[i])` with a plain `char`. On Android's signed-char ABI, bytes such as `0xFE` promote to a negative integer outside the C `tolower()` contract. The result can corrupt the hash bucket for a member name and invokes undefined behavior.
+
+The authentic `third_party/KisakCOD/src/universal/com_files.cpp` now uses `tolower(static_cast<unsigned char>(fname[i]))`. ASCII hashing, extension cutoff, separator normalization, and the original hash formula remain unchanged. The extraction gate now requires the safe call and rejects the old expression. The native IWD-name test adds a high-bit filename regression with a deterministic C-locale hash value of 930; a new Python regression verifies the exact original body and generated source.
+
+- Code + test commit: [3e9774f](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/3e9774f9b1d847370748c0f7834aa46fd1a613ca).
+- A standalone GCC C++20 reproducer compiled with `-fsigned-char -fsanitize=address,undefined` and passed the ASCII known-answer cases plus the `0xFE` regression. This is a local focused reproducer, **not** a run of the repository's full test suite.
+- The branch's last completed GitHub Actions runs are still for the previous HEAD `6b4818b`; no workflow run/check suite has appeared for `3e9774f` yet after the Git ref update. The new repo regression and Android ARM64 build therefore remain **CI-pending**, not green.
+
+**Scope boundary:** this fixes an authentic filename-hash portability defect and adds executable regression coverage. It does not load a licensed IWD or FastFile, invoke the complete `FS_Startup`/`FS_InitFilesystem` runtime, render a map, or prove touch-driven gameplay on physical ARM64. The JNI package remains diagnostic only; PR #4 stays open and unmerged.
