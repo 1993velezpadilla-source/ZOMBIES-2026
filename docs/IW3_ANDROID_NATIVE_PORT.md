@@ -562,3 +562,23 @@ Validation is pending for this new code. The previous HEAD `dfe26bc` had success
 
 Scope boundary: this fixes a real native-width IWD state-copy defect and strengthens regression coverage, but it does not link or invoke the complete filesystem startup in the Android app. No licensed FastFile/map load, original renderer scene, touch-driven player/weapon/actor combat, or physical ARM64 gameplay is proven. The JNI APK remains diagnostic only; keep PR #4 open and unmerged.
 
+## Phase AQ — original dvar sleep service on Android (2026-10-27)
+
+The latest source/CI review found that the full original `third_party/KisakCOD/src/universal/dvar.cpp` now compiles as an Android ARM64 object, but its Win32 `NET_Sleep` service was only declared by the Android compatibility header. The original `win32/win_net.cpp` implementation is `NET_Sleep(int msec) { Sleep(msec); }`; dvar readers use `NET_Sleep(0)` to yield while the original critical-section counters change and use a short positive delay in the dvar sorter.
+
+Implemented on `feature/iw3-native-android-arm64-20261025`:
+- `7ca4a6f`: added `android/iw3-native/iw3_android_dvar_io.cpp`, mapping zero/non-positive waits to POSIX `sched_yield()` and positive millisecond waits to `nanosleep()`, retrying interrupted sleeps. This is a platform service for the original dvar code, not a registry replacement.
+- `db09cb6`: added a native regression for zero-yield and positive-delay behavior.
+- `a119921`: archived the untouched full `dvar.cpp` object with the Android sleep provider as `libiw3_sp_dvar_android.a`; added the host CTest.
+- `1be48b0`: added an ARM64 relocatable-link audit that verifies the provider resolves `NET_Sleep` while preserving unrelated engine service dependencies as visible.
+- `a75732d`: added Python regression coverage for source semantics, CMake wiring and the link audit.
+- `ad585b4`: switched to the POSIX `<time.h>` declarations.
+- `8ac1bef`: corrected a test assertion that incorrectly matched the explanatory comment `Sleep(msec)`; the check now rejects an actual call expression instead.
+
+Validation:
+- [ARM64 native source/ABI gate, run 40562531162](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40562531162) — PASS on `8ac1bef`. Host Release CTest: 11/11; ASan/UBSan CTest: 11/11; full original `dvar.cpp` and the POSIX provider compiled; `ld.lld -r` resolved `NET_Sleep` in the combined archive.
+- [Source preflight, run 40562531176](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40562531176) — PASS; the new Python regression passed.
+- [ARM64 audit artifact 12761622670](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40562531162/artifacts/12761622670) — native modules and audit reports only, **NOT an APK or game**.
+- Earlier run [40562418740](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40562418740) failed only in the new Python assertion because it rejected an explanatory comment; that test was corrected and the succeeding preflight and ARM64 run passed.
+
+Remaining dependency evidence: the relocatable dvar link still reports `Vec4Compare(float const*, float const*)` as an unresolved original engine service. The archive is not linked into the JNI diagnostic or a full runtime. Real dvar startup, `FS_Startup`/ `FS_InitFilesystem`, licensed IWD/FastFile/map loading, original rendering, and gameplay remain unproven. The emulator/JNI workflows are separate diagnostics and do not establish ARM64 device gameplay.
