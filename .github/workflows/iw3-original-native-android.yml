@@ -256,11 +256,18 @@ jobs:
           dvar_archive="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_dvar_pointer_abi.a"
           test -s "$dvar_archive"
           "$llvm_nm" -C --defined-only "$dvar_archive" | tee "$RUNNER_TEMP/iw3-dvar-pointer-defined.txt"
-          for symbol in Dvar_RegisterString Dvar_RegisterEnum Dvar_StringToEnum Dvar_UpdateEnumDomain Dvar_SetVariant Dvar_SetDomainFunc Dvar_SetStringFromSource Dvar_ClampValueToDomain Dvar_ClampVectorToDomain; do
+          for symbol in Dvar_RegisterVariant Dvar_RegisterString Dvar_RegisterEnum Dvar_StringToEnum Dvar_UpdateEnumDomain Dvar_SetVariant Dvar_SetDomainFunc Dvar_SetStringFromSource Dvar_ClampValueToDomain Dvar_ClampVectorToDomain; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-dvar-pointer-defined.txt"
           done
           "$llvm_nm" -u -C "$dvar_archive" | tee "$RUNNER_TEMP/iw3-dvar-pointer-undefined.txt"
-          grep -F "Dvar_RegisterVariant" "$RUNNER_TEMP/iw3-dvar-pointer-undefined.txt"
+          for symbol in Dvar_FindMalleableVar Dvar_RegisterNew Dvar_Reregister; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-dvar-pointer-undefined.txt"
+          done
+          if grep -F "Dvar_RegisterVariant" "$RUNNER_TEMP/iw3-dvar-pointer-undefined.txt"; then
+            echo "Dvar_RegisterVariant must be defined by the extracted original source" >&2
+            exit 1
+          fi
+          echo "IW3_ORIGINAL_DVAR_REGISTER_VARIANT_AARCH64_DEFINED_WITH_REAL_DEPENDENCIES_VISIBLE"
           echo "IW3_ORIGINAL_DVAR_LP64_POINTER_ABI_AARCH64_COMPILE_GREEN"
 
           so="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_math.so"
