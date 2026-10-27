@@ -232,6 +232,21 @@ if(ANDROID)
     target_compile_options(iw3_sp_full_filesystem PRIVATE
         -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
 
+    # Compile the complete authentic dvar translation unit for Android ARM64.
+    # This is an object-only portability gate: it is not linked into the JNI
+    # diagnostic until its original synchronization and service graph is wired.
+    add_library(iw3_sp_full_dvar OBJECT
+        "${IW3_ENGINE_SOURCE_ROOT}/universal/dvar.cpp")
+    target_include_directories(iw3_sp_full_dvar PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+        "${IW3_REAL_HEADER_ROOT}"
+        "${IW3_ENGINE_SOURCE_ROOT}"
+        "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+        "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+    target_compile_definitions(iw3_sp_full_dvar PRIVATE KISAK_SP=1)
+    target_compile_options(iw3_sp_full_dvar PRIVATE
+        -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
+
     # Java Activity JNI entry points are tied directly to the authentic
     # IW3 native C++ library; not a gameplay stand-in or second engine.
     target_sources(iw3_sp_math PRIVATE
