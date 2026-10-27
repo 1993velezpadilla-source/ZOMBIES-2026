@@ -4,8 +4,6 @@
 #include "iw3_android_platform.h"
 #include "universal/com_files.h"
 #include "qcommon/qcommon.h"
-#include "qcommon/cmd.h"
-#include "qcommon/files.h"
 #include "stringed/stringed_hooks.h"
 
 #ifndef __cdecl
