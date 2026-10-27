@@ -18,6 +18,7 @@ import java.nio.charset.StandardCharsets;
  */
 public final class MainActivity extends Activity {
     private static final String TAG = "IW3NativeGate";
+    private static final int MAX_ANDROID_POINTER_ID_COUNT = 32;
     private TextView label;
 
     private static float clamp01(float value) {
@@ -88,7 +89,9 @@ public final class MainActivity extends Activity {
 
     private void forwardTouch(MotionEvent event, int pointerIndex, boolean down) {
         final int id = event.getPointerId(pointerIndex);
-        if (id < 0 || id >= 10) return;
+        // Android pointer IDs are sparse identifiers (0..31), not indexes
+        // into the ten simultaneously active touch slots.
+        if (id < 0 || id >= MAX_ANDROID_POINTER_ID_COUNT) return;
         float x = clamp01(event.getX(pointerIndex) / Math.max(1f, label.getWidth()));
         float y = clamp01(event.getY(pointerIndex) / Math.max(1f, label.getHeight()));
         int rc = EngineBridge.nativeTouch(id, x, y, down);
