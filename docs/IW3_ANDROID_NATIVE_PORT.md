@@ -546,3 +546,19 @@ Final code validation at source commit [`c7faa09`](https://github.com/1993velezp
 - The separate offline SP weapons and killhouse workflows were still in progress at this check; their outcomes are not counted.
 
 The new milestone is limited but concrete: the full authentic dvar translation unit now compiles for Android ARM64. It is still not linked into the runtime; `Sys_LockWrite`, `Sys_UnlockWrite`, `NET_Sleep`, the dvar global state/service graph, and the FS startup call path remain unintegrated. No `FS_Startup()`, real IWD/FastFile/map load, original renderer, or real gameplay has been demonstrated. Keep PR #4 open and unmerged.
+
+### Phase AI — native-width copy of original ZIP state in IWD reads (27 Oct 2026; CI pending)
+
+Reviewing the current full `com_files.cpp` compile gate exposed one remaining Win32-size assumption in the authentic `FS_FOpenFileReadForThread()` clone path: it copied exactly 128 bytes from the original `unz_s` state into the per-handle state. `unz_s` contains native pointers (including `FILE *`, the active decompression-state pointer, and a temporary-file pointer), so the Win32 byte count is not a valid structure-size contract on LP64/Android ARM64.
+
+The original engine call now copies `sizeof(*zfi)`, while preserving the existing `file` and `pfile_in_zip_read` members around the state copy exactly as before. The original open/clone/read/close logic is unchanged; no replacement ZIP or IWD implementation was added.
+
+Regression coverage:
+- `tests/test_iw3_android_iwd_read.py` extracts the authentic `FS_FOpenFileReadForThread()` body and requires the native-sized copy while rejecting the old 128-byte expression.
+- `tools/iw3_android/prepare_real_engine_iwd_read.py` enforces the same requirement during source staging, so the exact-source audit fails closed if the old Win32 size returns.
+- The existing Android NDK gate compiles the complete original `com_files.cpp` translation unit, exercising this changed call under the ARM64 ABI.
+
+Validation is pending for this new code. The previous HEAD `dfe26bc` had successful native source, JNI packaging, Windows SP source/runtime, and offline killhouse workflow runs ([native ARM64](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40551516936), [JNI diagnostic](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40551516990), [Windows SP source](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40551516773), [offline SP runtime evidence](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40551516883)). Those runs predate this fix and do not validate it; only new runs for the updated source may be counted.
+
+Scope boundary: this fixes a real native-width IWD state-copy defect and strengthens regression coverage, but it does not link or invoke the complete filesystem startup in the Android app. No licensed FastFile/map load, original renderer scene, touch-driven player/weapon/actor combat, or physical ARM64 gameplay is proven. The JNI APK remains diagnostic only; keep PR #4 open and unmerged.
+
