@@ -32,6 +32,9 @@ enum class TouchRole : std::uint8_t {
     None, Move, Look, Attack, Ads, Jump, Reload, Use, Melee, Crouch, Prone, Sprint, Slide
 };
 struct Touch {
+    // Android MotionEvent pointer IDs are stable but not compact (0..31).
+    // Keep that external ID separate from the ten native simultaneous slots.
+    int pointer_id = -1;
     bool down = false;
     float x = 0;
     float y = 0;
@@ -61,6 +64,25 @@ TouchRole classify_touch(float x, float y) {
     if (x >= 0.60f && x < 0.82f && y >= 0.22f && y < 0.40f) return TouchRole::Crouch;
     if (x >= 0.82f && y >= 0.22f && y < 0.40f) return TouchRole::Prone;
     return x < 0.48f ? TouchRole::Move : TouchRole::Look;
+}
+
+constexpr int kAndroidPointerIdCount = 32;
+
+Touch *find_touch_by_pointer_id(int pointer_id) {
+    for (Touch &touch : g_touches) {
+        if (touch.pointer_id == pointer_id) return &touch;
+    }
+    return nullptr;
+}
+
+Touch *allocate_touch_slot(int pointer_id) {
+    for (Touch &touch : g_touches) {
+        if (!touch.down && touch.pointer_id == -1) {
+            touch.pointer_id = pointer_id;
+            return &touch;
+        }
+    }
+    return nullptr;
 }
 
 void update_touch_position(Touch &touch, float x, float y) {
@@ -579,38 +601,49 @@ extern "C" IW3_ANDROID_EXPORT int z2026_platform_unlink_file(
 
 extern "C" IW3_ANDROID_EXPORT int z2026_platform_touch_event(
     int id, float x, float y, int down) {
-    if (id < 0 || id >= static_cast<int>(g_touches.size()) ||
+    if (id < 0 || id >= kAndroidPointerIdCount ||
         !std::isfinite(x) || !std::isfinite(y) ||
         x < 0.0f || x > 1.0f || y < 0.0f || y > 1.0f ||
         (down != 0 && down != 1)) return -1;
     std::lock_guard<std::mutex> lock(g_touch_mutex);
-    Touch &touch = g_touches[static_cast<std::size_t>(id)];
+    Touch *touch = find_touch_by_pointer_id(id);
     if (down == 1) {
-        if (!touch.down) {
-            touch.down = true;
-            touch.x = touch.origin_x = touch.previous_x = x;
-            touch.y = touch.origin_y = touch.previous_y = y;
-            touch.role = classify_touch(x, y);
+        if (!touch) touch = allocate_touch_slot(id);
+        // Android pointer IDs are not array indices. Reject only when all ten
+        // simultaneous-touch slots are occupied, not merely because id >= 10.
+        if (!touch) return -1;
+        if (!touch->down) {
+            touch->pointer_id = id;
+            touch->down = true;
+            touch->x = touch->origin_x = touch->previous_x = x;
+            touch->y = touch->origin_y = touch->previous_y = y;
+            touch->role = classify_touch(x, y);
         } else {
-            update_touch_position(touch, x, y);
+            update_touch_position(*touch, x, y);
         }
-    } else {
-        if (touch.down) update_touch_position(touch, x, y);
-        else { touch.x = x; touch.y = y; }
-        touch.down = false;
-        touch.role = TouchRole::None;
+    } else if (touch) {
+        update_touch_position(*touch, x, y);
+        touch->down = false;
+        touch->role = TouchRole::None;
+        touch->pointer_id = -1;
     }
+    // An UP for an already-released/unknown ID is intentionally idempotent.
     return 0;
 }
 
 extern "C" IW3_ANDROID_EXPORT int z2026_platform_touch_snapshot(
     int id, float *x, float *y) {
-    if (id < 0 || id >= static_cast<int>(g_touches.size()) || !x || !y) return -1;
+    if (id < 0 || id >= kAndroidPointerIdCount || !x || !y) return -1;
     std::lock_guard<std::mutex> lock(g_touch_mutex);
-    const Touch state = g_touches[static_cast<std::size_t>(id)];
-    *x = state.x;
-    *y = state.y;
-    return state.down ? 1 : 0;
+    const Touch *state = find_touch_by_pointer_id(id);
+    if (!state) {
+        *x = 0.0f;
+        *y = 0.0f;
+        return 0;
+    }
+    *x = state->x;
+    *y = state->y;
+    return state->down ? 1 : 0;
 }
 
 extern "C" IW3_ANDROID_EXPORT void z2026_platform_touch_reset() {
