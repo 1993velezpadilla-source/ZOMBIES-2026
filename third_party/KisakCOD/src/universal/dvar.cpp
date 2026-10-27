@@ -13,11 +13,11 @@
 #include <stringed/stringed_hooks.h>
 #include "q_parse.h"
 #include <gfx_d3d/r_dvars.h>
-#include <win32/win_net.h>
 #if !defined(__ANDROID__)
+#include <win32/win_net.h>
 #include <devgui/devgui.h>
-#endif
 #include "com_math.h"
+#endif
 #include "memfile.h"        // Dvar_Save/LoadDvars
 
 #include <algorithm>
