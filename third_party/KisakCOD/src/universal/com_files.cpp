@@ -12,7 +12,9 @@
 #include <qcommon/com_bsp.h>
 #include <qcommon/cmd.h>
 #include <qcommon/files.h>
+#ifdef WIN32
 #include <io.h>
+#endif
 #include <limits.h>
 
 const dvar_t *fs_remotePCDirectory;
