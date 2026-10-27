@@ -115,6 +115,16 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
         self.assertIn("FS_BuildOSPath(", workflow)
         self.assertNotIn('grep -F "FS_BuildOSPath" "$RUNNER_TEMP/iw3-fs-startup-undefined.txt"', workflow)
 
+    def test_full_original_dvar_registry_resolves_fs_startup_registration_edges(self):
+        workflow = (ROOT / ".github/workflows/iw3-original-native-android.yml").read_text(encoding="utf-8")
+        self.assertIn('startup_archive="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_fs_startup.a"', workflow)
+        self.assertIn('dvar_full_archive="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_dvar_android.a"', workflow)
+        self.assertIn('"$startup_archive" "$dvar_full_archive" --no-whole-archive', workflow)
+        self.assertIn("IW3_ORIGINAL_FS_STARTUP_DVAR_REGISTRATION_AARCH64_COMBINED_LINK_GREEN", workflow)
+        self.assertIn("FS_AddIwdFilesForGameDirectory Z_Malloc SEH_GetLanguageName FS_ReadFile SEH_InitLanguage", workflow)
+        self.assertIn('echo "IW3_FS_STARTUP_RUNTIME_INVOKED=false"', workflow)
+        self.assertIn('echo "IW3_PLAYABLE_APK=false"', workflow)
+
     def test_android_path_service_uses_configured_private_root_not_process_cwd(self):
         platform = (ROOT / "android/iw3-native/iw3_android_platform.cpp").read_text(encoding="utf-8")
         header = (ROOT / "android/iw3-native/iw3_android_platform.h").read_text(encoding="utf-8")
