@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Stage the authentic KisakCOD IWD directory scanner with Android filesystem adapters.
 
-The FS_AddGameDirectory and FS_AddIwdFilesForGameDirectory, IwdFileLanguage,
-FS_PathCmp, iwdsort and I_strncmp bodies are extracted from vendored source. Only the
-OS directory enumeration/path services and language/logging boundary are
-provided by the Android adapter; this is not a replacement game runtime.
+The FS_AddGameDirectory and FS_AddIwdFilesForGameDirectory, FS_PathCmp,
+iwdsort and I_strncmp bodies are extracted from vendored source. IwdFileLanguage
+is supplied by the shared filename-helper module. Only the OS directory
+enumeration/path services and language/logging boundary are adapted.
 """
 from __future__ import annotations
 
@@ -23,7 +23,6 @@ SHARED = Path("src/universal/q_shared.cpp")
 STATE_SOURCE = Path("src/universal/com_files_state.cpp")
 FUNCTIONS = (
     ("int __cdecl I_strncmp(const char *s0, const char *s1, int n)", SHARED),
-    ("char *__cdecl IwdFileLanguage(const char *pszIwdFileName)", FILES),
     ("int __cdecl FS_PathCmp(const char *s1, const char *s2)", FILES),
     ("int __cdecl iwdsort(const char **a, char **b)", FILES),
     ("void __cdecl FS_AddIwdFilesForGameDirectory(char *path, char *pszGameFolder)", FILES),
@@ -35,18 +34,12 @@ HEADER = (
     '#include <cstdint>\n'
     '#include <cstring>\n'
 )
-GLOBALS = (
-    "char szIwdLanguageName[2][64];\n"
-    "int iString = 0;\n"
-)
 REQUIRED = (
     "int __cdecl I_strncmp(const char *s0, const char *s1, int n)",
-    "char *__cdecl IwdFileLanguage(const char *pszIwdFileName)",
     "int __cdecl FS_PathCmp(const char *s1, const char *s2)",
     "int __cdecl iwdsort(const char **a, char **b)",
     "void __cdecl FS_AddIwdFilesForGameDirectory(char *path, char *pszGameFolder)",
     "void __cdecl FS_AddGameDirectory(char *path, char *dir, int bLanguageDirectory, int iLanguage)",
-    "isalpha(static_cast<unsigned char>(pszIwdFileName[iCurrChar]))",
     "FS_AddIwdFilesForGameDirectory(path, szGameFolder);",
     "I_strncpyz(fs_gamedir, szGameFolder, 256);",
     "numfiles = 0;",
@@ -61,7 +54,6 @@ FORBIDDEN = (
     '*((_DWORD *)v2 + 1)',
     '*((_WORD *)v2 + 4)',
     'qsort(s0, numfiles, 4u,',
-    'isalpha(pszIwdFileName[iCurrChar])',
 )
 
 
@@ -78,7 +70,7 @@ def prepare(engine: Path, output: Path) -> dict:
     if "int bLanguagesListed = 0;" not in state_text or "char fs_gamedir[256] = {};" not in state_text:
         raise ValueError("Shared engine directory state is missing")
     bodies = [function_source(texts[path], signature) for signature, path in FUNCTIONS]
-    rendered = HEADER + GLOBALS + "\n\n".join(bodies) + "\n"
+    rendered = HEADER + "\n\n".join(bodies) + "\n"
     for marker in REQUIRED:
         if marker not in rendered:
             raise ValueError("Original IWD directory-scan contract missing: " + marker)
@@ -103,7 +95,6 @@ def prepare(engine: Path, output: Path) -> dict:
         "game_directory_source_staged_for_android_diagnostic": True,
         "null_or_failed_directory_listing_fails_closed": True,
         "native_pointer_width_qsort": True,
-        "iwd_language_sort_key_high_bit_safe": True,
         "android_os_directory_adapter": "rooted z2026_platform_list_iwd_files",
         "localized_language_registry": "English-only adapter; full game language registry pending",
         "fixture_directory_scan_runtime_proven": False,

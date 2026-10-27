@@ -6,11 +6,6 @@ import unittest
 from tools.iw3_android.prepare_real_engine_iwd_names import (
     FILES, REQUIRED, FORBIDDEN, prepare,
 )
-from tools.iw3_android.prepare_real_engine_iwd_directory import (
-    REQUIRED as DIRECTORY_REQUIRED,
-    FORBIDDEN as DIRECTORY_FORBIDDEN,
-    prepare as prepare_directory,
-)
 from tools.iw3_android.prepare_g_runframe_prereqs import function_source
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -34,17 +29,6 @@ class OriginalIwdHashPortabilityTests(unittest.TestCase):
         self.assertIn("static_cast<char>(0xFE)", native)
         self.assertIn("FS_HashFileName(highBitName, 1024) == 930", native)
 
-    def test_generated_original_hash_keeps_high_bit_guard(self):
-        with TemporaryDirectory() as temporary:
-            output = Path(temporary) / "iw3_iwd_names.cpp"
-            report = prepare(ENGINE, output)
-            staged = output.read_text(encoding="utf-8")
-            self.assertIn("tolower(static_cast<unsigned char>(fname[i]))", staged)
-            self.assertNotIn("tolower(fname[i])", staged)
-            self.assertTrue(report["iwd_filename_hash_high_bit_safe"])
-            self.assertFalse(report["fastfile_map_loading_ported"])
-            self.assertFalse(report["playable_apk"])
-
     def test_original_iwd_language_parser_is_unsigned_char_safe(self):
         source = (ENGINE / FILES).read_text(encoding="utf-8")
         body = function_source(
@@ -55,8 +39,8 @@ class OriginalIwdHashPortabilityTests(unittest.TestCase):
         unsafe = "isalpha(pszIwdFileName[iCurrChar])"
         self.assertIn(safe, body)
         self.assertNotIn(unsafe, body)
-        self.assertIn(safe, DIRECTORY_REQUIRED)
-        self.assertIn(unsafe, DIRECTORY_FORBIDDEN)
+        self.assertIn(safe, REQUIRED)
+        self.assertIn(unsafe, FORBIDDEN)
 
         native = (ROOT / "android/iw3-native/iwd_names_native_test.cpp").read_text(
             encoding="utf-8"
@@ -64,13 +48,24 @@ class OriginalIwdHashPortabilityTests(unittest.TestCase):
         self.assertIn("IwdFileLanguage(englishIwdName)", native)
         self.assertIn("IwdFileLanguage(highBitLanguageName)", native)
 
+    def test_generated_original_hash_and_language_helpers_keep_high_bit_guards(self):
         with TemporaryDirectory() as temporary:
-            output = Path(temporary) / "iw3_iwd_directory.cpp"
-            report = prepare_directory(ENGINE, output)
+            output = Path(temporary) / "iw3_iwd_names.cpp"
+            report = prepare(ENGINE, output)
             staged = output.read_text(encoding="utf-8")
-            self.assertIn(safe, staged)
-            self.assertNotIn(unsafe, staged)
+            self.assertIn("tolower(static_cast<unsigned char>(fname[i]))", staged)
+            self.assertNotIn("tolower(fname[i])", staged)
+            self.assertIn(
+                "isalpha(static_cast<unsigned char>(pszIwdFileName[iCurrChar]))",
+                staged,
+            )
+            self.assertNotIn("isalpha(pszIwdFileName[iCurrChar])", staged)
+            self.assertIn("char szIwdLanguageName[2][64];", staged)
+            self.assertIn("int iString = 0;", staged)
+            self.assertTrue(report["iwd_filename_hash_high_bit_safe"])
             self.assertTrue(report["iwd_language_sort_key_high_bit_safe"])
+            self.assertTrue(report["iwd_language_sort_state_staged_from_original"])
+            self.assertFalse(report["fastfile_map_loading_ported"])
             self.assertFalse(report["playable_apk"])
 
 

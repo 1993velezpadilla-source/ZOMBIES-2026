@@ -30,7 +30,7 @@ from tools.iw3_android.prepare_real_engine_hitloc import (
 
 from tools.iw3_android.prepare_real_engine_iwd_names import (
     FILES as IWD_SOURCE, SHARED as IWD_SHARED,
-    FUNCTIONS as IWD_FUNCTIONS, HEADER as IWD_HEADER,
+    FUNCTIONS as IWD_FUNCTIONS, HEADER as IWD_HEADER, GLOBALS as IWD_GLOBALS,
     prepare as prepare_iwd_names,
 )
 
@@ -221,6 +221,8 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
             report = prepare_iwd_names(ENGINE, out)
             self.assertTrue(report["source_bodies_preserved"])
             self.assertTrue(report["iwd_filename_hash_and_compare_ported"])
+            self.assertTrue(report["iwd_language_sort_key_high_bit_safe"])
+            self.assertTrue(report["iwd_language_sort_state_staged_from_original"])
             self.assertFalse(report["iwd_zip_archive_mount_ported"])
             self.assertFalse(report["fastfile_map_loading_ported"])
             self.assertFalse(report["playable_apk"])
@@ -229,7 +231,7 @@ class NativeIW3SourceBridgeTests(unittest.TestCase):
                 for signature, path in IWD_FUNCTIONS
             ]
             self.assertEqual(out.read_text(encoding="utf-8"),
-                             IWD_HEADER + "\n\n".join(expected_bodies) + "\n")
+                             IWD_HEADER + IWD_GLOBALS + "\n\n".join(expected_bodies) + "\n")
             self.assertEqual(
                 report["function_sha256"],
                 [hashlib.sha256(body.encode("utf-8")).hexdigest()
