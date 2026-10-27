@@ -14,7 +14,6 @@
 #include <limits.h>
 #include <limits>
 #include <mutex>
-#include <queue>
 #include <string>
 #include <vector>
 #include <sys/stat.h>
@@ -401,12 +400,15 @@ extern "C" IW3_ANDROID_EXPORT int z2026_platform_list_iwd_files(
         return -1;
     }
 
-    // The original IW3 scanner mounts at most 1024 archives after sorting
-    // the full list. Keep only the lexicographically smallest 1024 names while
-    // counting every eligible file. This preserves the original selection
-    // without retaining an unbounded directory listing in Android memory.
+    // The authentic FS_AddIwdFilesForGameDirectory caps the Sys_ListFiles
+    // result at 1024 entries BEFORE sorting those retained entries. Preserve
+    // that contract: retain the first 1024 valid names in native directory
+    // enumeration order, count all valid IWDs, and let the original engine
+    // sort the retained prefix. Do not silently substitute the lexicographically
+    // smallest 1024 archives; that changes which archives the engine mounts.
     constexpr std::size_t kMaxReturnedIwdFiles = 1024;
-    std::priority_queue<std::string> smallest_names;
+    std::vector<std::string> names;
+    names.reserve(kMaxReturnedIwdFiles);
     std::size_t total_count = 0;
     bool read_error = false;
     for (;;) {
@@ -428,24 +430,12 @@ extern "C" IW3_ANDROID_EXPORT int z2026_platform_list_iwd_files(
             break;
         }
         ++total_count;
-        std::string name(entry->d_name);
-        if (smallest_names.size() < kMaxReturnedIwdFiles) {
-            smallest_names.push(name);
-        } else if (name < smallest_names.top()) {
-            smallest_names.pop();
-            smallest_names.push(name);
+        if (names.size() < kMaxReturnedIwdFiles) {
+            names.emplace_back(entry->d_name);
         }
     }
     if (closedir(stream) != 0) read_error = true;
     if (read_error) return -1;
-
-    std::vector<std::string> names;
-    names.reserve(smallest_names.size());
-    while (!smallest_names.empty()) {
-        names.push_back(smallest_names.top());
-        smallest_names.pop();
-    }
-    std::sort(names.begin(), names.end());
 
     std::size_t needed = 0;
     for (const std::string &name : names) {
