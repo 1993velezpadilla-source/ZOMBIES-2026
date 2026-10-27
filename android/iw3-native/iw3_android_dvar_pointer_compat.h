@@ -21,3 +21,11 @@
 // the isolated source slice without importing Windows.h.
 void __cdecl MyAssertHandler(
     const char *filename, int line, int type, const char *format, ...);
+
+extern const dvar_s *dvar_cheats;
+extern int dvar_modifiedFlags;
+bool __cdecl Vec4Compare(const float *a, const float *b);
+
+#ifndef CLAMP
+#define CLAMP(x, low, high) ((x) < (low) ? (low) : ((x) > (high) ? (high) : (x)))
+#endif
