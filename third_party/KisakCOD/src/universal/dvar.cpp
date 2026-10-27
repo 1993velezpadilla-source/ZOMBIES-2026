@@ -376,7 +376,7 @@ const char *__cdecl Dvar_IndexStringToEnumString(const dvar_s *dvar, const char 
     v3 = strlen(indexString);
     for (indexStringIndex = 0; indexStringIndex < v3; ++indexStringIndex)
     {
-        if (!isdigit(indexString[indexStringIndex]))
+        if (!isdigit(static_cast<unsigned char>(indexString[indexStringIndex])))
             return "";
     }
     enumIndex = atoi(indexString);
