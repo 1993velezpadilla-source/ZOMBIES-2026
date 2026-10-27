@@ -237,6 +237,10 @@ if(ANDROID)
     # diagnostic until its original synchronization and service graph is wired.
     add_library(iw3_sp_full_dvar OBJECT
         "${IW3_ENGINE_SOURCE_ROOT}/universal/dvar.cpp")
+    # NET_Sleep is the one platform service used by the original dvar spin
+    # waits. Compile the POSIX equivalent beside the untouched original TU.
+    target_sources(iw3_sp_full_dvar PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_dvar_io.cpp")
     target_include_directories(iw3_sp_full_dvar PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}"
         "${IW3_REAL_HEADER_ROOT}"
@@ -246,6 +250,9 @@ if(ANDROID)
     target_compile_definitions(iw3_sp_full_dvar PRIVATE KISAK_SP=1)
     target_compile_options(iw3_sp_full_dvar PRIVATE
         -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
+    # Preserve all original dvar code and the real Android sleep provider in
+    # one archive. It is still not linked into the JNI diagnostic/game runtime.
+    add_library(iw3_sp_dvar_android STATIC $<TARGET_OBJECTS:iw3_sp_full_dvar>)
 
     # Java Activity JNI entry points are tied directly to the authentic
     # IW3 native C++ library; not a gameplay stand-in or second engine.
@@ -265,6 +272,12 @@ if(ANDROID)
     message(STATUS "IW3 original code native Android JNI enabled")
 else()
     enable_testing()
+    add_executable(iw3_dvar_sleep_host_test
+        "${CMAKE_CURRENT_SOURCE_DIR}/dvar_sleep_native_test.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_dvar_io.cpp")
+    target_compile_options(iw3_dvar_sleep_host_test PRIVATE -UNDEBUG -Wall -Wextra)
+    add_test(NAME iw3_android_dvar_net_sleep_semantics COMMAND iw3_dvar_sleep_host_test)
+
     add_executable(iw3_snap_float_host_test
         "${CMAKE_CURRENT_SOURCE_DIR}/snap_float_native_test.cpp")
     target_include_directories(iw3_snap_float_host_test PRIVATE "${IW3_REAL_HEADER_ROOT}")
