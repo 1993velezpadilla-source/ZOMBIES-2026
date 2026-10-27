@@ -315,7 +315,7 @@ int __cdecl FS_OpenFileOverwrite(char *qpath)
     if (FS_GetFileOsPath(qpath, ospath) >= 0)
     {
         if (fs_debug->current.integer)
-            Com_Printf(CON_CHANNEL_FILES, "FS_FOpenFileOverWrite: %s\\n", ospath);
+            Com_Printf(CON_CHANNEL_FILES, "FS_FOpenFileOverWrite: %s\n", ospath);
 #if defined(__ANDROID__)
         // Resolve through the retained app-data root and a no-follow descriptor
         // instead of probing an arbitrary absolute OS path. POSIX has no DOS
