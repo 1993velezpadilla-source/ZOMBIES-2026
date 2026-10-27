@@ -240,7 +240,8 @@ if(ANDROID)
     # NET_Sleep is the one platform service used by the original dvar spin
     # waits. Compile the POSIX equivalent beside the untouched original TU.
     target_sources(iw3_sp_full_dvar PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_dvar_io.cpp")
+        "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_dvar_io.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_dvar_log.cpp")
     if(IW3_EXTRACTED_DVAR_VEC4_COMPARE)
         if(NOT EXISTS "${IW3_EXTRACTED_DVAR_VEC4_COMPARE}")
             message(FATAL_ERROR "Original Vec4Compare source extraction required")
@@ -283,6 +284,17 @@ else()
         "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_dvar_io.cpp")
     target_compile_options(iw3_dvar_sleep_host_test PRIVATE -UNDEBUG -Wall -Wextra)
     add_test(NAME iw3_android_dvar_net_sleep_semantics COMMAND iw3_dvar_sleep_host_test)
+
+    # Exercise the real Android dvar log sink's formatting and channel prefix
+    # on host; the Android build routes the same formatted message to logcat.
+    add_executable(iw3_dvar_log_host_test
+        "${CMAKE_CURRENT_SOURCE_DIR}/dvar_log_native_test.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_dvar_log.cpp")
+    target_include_directories(iw3_dvar_log_host_test PRIVATE
+        "${IW3_ENGINE_SOURCE_ROOT}")
+    target_compile_options(iw3_dvar_log_host_test PRIVATE -UNDEBUG -Wall -Wextra)
+    add_test(NAME iw3_android_dvar_com_printf_format_and_channel COMMAND iw3_dvar_log_host_test)
+
     if(IW3_EXTRACTED_DVAR_VEC4_COMPARE)
         add_executable(iw3_dvar_vec4_host_test
             "${CMAKE_CURRENT_SOURCE_DIR}/dvar_vec4_native_test.cpp"

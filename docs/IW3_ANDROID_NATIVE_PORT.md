@@ -602,3 +602,16 @@ Validation at the time of this update:
 - Earlier [run 40562989463](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40562989463) failed before native compilation because a Python test expected the previous audit marker; the marker assertion was corrected and the current preflight is green.
 
 This provider is an incremental dependency fix, not a complete runtime. `Com_Printf` and other original engine services remain unresolved; the dvar archive is not linked into the JNI app. No FS startup, licensed IWD/FastFile/map load, original rendering, or playable Android ARM64 gameplay is claimed.
+
+
+## Phase AS — Android log sink for the original dvar Com_Printf dependency (2026-10-27)
+
+The last ARM64 relocatable-link audit (run [40563417130](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40563417130)) proved that the original full dvar.cpp object and its POSIX NET_Sleep / exact Vec4Compare provider compile and link together, but still reported Com_Printf(int, char const*, ...) as unresolved. The same log shows many other real engine services still unresolved; the archive is not a runtime.
+
+Implemented on the branch in this pass:
+- Added android/iw3-native/iw3_android_dvar_log.cpp: a real Android logcat sink for this one dvar archive dependency. It preserves the channel number in the output, formats variadic arguments with bounded vsnprintf, and does not suppress the message. A host-only stderr path lets the exact formatting code be regression-tested.
+- Added dvar_log_native_test.cpp and tests/test_iw3_android_dvar_log.py; the native test captures stderr and asserts the exact formatted channel/message, while Python verifies the Android logcat route and CMake/CI wiring.
+- Added the provider to iw3_sp_full_dvar / libiw3_sp_dvar_android.a. The ARM64 audit now requires Com_Printf to be defined and absent from the unresolved list, while explicitly retaining __android_log_write as an external Android platform import.
+- This provider is scoped to the dvar dependency archive only. It is not a replacement for the original Com_PrintMessage, console, or logfile subsystem and is not linked into the JNI diagnostic APK.
+
+Validation for this new pass is pending; do not infer success from the previous run. The next CI must pass the new host CTest and the AArch64 relocatable-link assertion. Remaining original dvar dependencies and all full-runtime gates remain open: Com_PrintError, Com_PrintWarning, parser/string/memory/command/file services, full FS_Startup / FS_InitFilesystem execution, real IWD/FastFile/map loading, original rendering, touch-driven gameplay and physical ARM64 execution. PR #4 remains open and unmerged; this is not a playable APK.

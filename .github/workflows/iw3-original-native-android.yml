@@ -297,8 +297,14 @@ jobs:
             exit 1
           fi
           # Other engine services must remain visible: this is not a full runtime link.
-          grep -F 'Com_Printf' "$RUNNER_TEMP/iw3-full-dvar-unresolved.txt"
-          echo "IW3_ORIGINAL_DVAR_NET_SLEEP_AND_VEC4_COMPARE_RESOLVED_REMAINING_ENGINE_SERVICES_VISIBLE"
+          grep -F 'Com_Printf(int, char const*, ...)' "$RUNNER_TEMP/iw3-full-dvar-defined.txt"
+          if grep -F 'Com_Printf' "$RUNNER_TEMP/iw3-full-dvar-unresolved.txt"; then
+            echo "Android Com_Printf log provider failed to resolve the dvar output dependency" >&2
+            exit 1
+          fi
+          # Android's system log API is intentionally the remaining platform import.
+          grep -F '__android_log_write' "$RUNNER_TEMP/iw3-full-dvar-unresolved.txt"
+          echo "IW3_ORIGINAL_DVAR_NET_SLEEP_VEC4_AND_ANDROID_LOG_PROVIDER_RESOLVED_ENGINE_SERVICES_VISIBLE"
 
           so="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_math.so"
           test -s "$so"
