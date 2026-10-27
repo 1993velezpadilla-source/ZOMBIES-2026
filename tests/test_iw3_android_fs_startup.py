@@ -76,7 +76,7 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
         )
         self.assertNotIn("Z_Malloc(512", add_directory)
         self.assertNotIn("uint32_t *v4", add_directory)
-        language_guard = "if (!pszLanguage || !pszLanguage[0])\\n            return;"
+        language_guard = "if (!pszLanguage || !pszLanguage[0])\n            return;"
         self.assertIn(language_guard, add_directory)
         self.assertLess(add_directory.index(language_guard),
                         add_directory.index('Com_sprintf(szGameFolder, 0x40u, "%s/%s", dir, pszLanguage);'))
