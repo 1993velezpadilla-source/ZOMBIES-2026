@@ -240,3 +240,19 @@ The new `prepare_real_engine_dvar_pointer_abi.py` stages corrected function bodi
 **Verification:** the first host run exposed a real failure in the original enum-prefix path: the digit parser returned `-1337` before the existing prefix-match loop could run. I corrected that branch so nonnumeric names reach the prefix lookup, and the subsequent native-source workflow passed in [run 40430328329](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40430328329). The Python suite reported **75 tests passed**. The host runtime regression passed in Release and the ASan/UBSan configuration; both CTest runs report **9/9 passed**. The same run compiled the corrected dvar ABI archive for Android AArch64 and printed `IW3_ORIGINAL_DVAR_LP64_POINTER_ABI_AARCH64_COMPILE_GREEN`. Its symbol audit intentionally still shows `Dvar_RegisterVariant` and `Dvar_ClampValueToDomain` as unresolved external services.
 
 **Scope limit:** this is a real LP64 portability repair in the original dvar source, but the complete dvar registry is not linked into Android yet. `FS_Startup`/`FS_InitFilesystem` still have unresolved real registry, localized-directory, file-read and language services; no FastFile/map load, renderer frame, actor/weapon gameplay, or playable ARM64 APK is claimed by this phase. The compiled evidence bundle is [artifact 12701607657 — NOT AN APK](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40430328329/artifacts/12701607657).
+
+
+### Phase AB — explicit native integer-domain bounds in original dvar clamp (27 Oct 2026; source CI green)
+
+The ARM64 dvar ABI audit previously left the authentic `Dvar_ClampValueToDomain` body unresolved in its archive even though the original `Dvar_MakeExplicitType` calls it. This pass stages the real `Dvar_ClampValueToDomain` and `Dvar_ClampVectorToDomain` bodies in both the AArch64 audit archive and the host runtime regression.
+
+In the vendored `src/universal/dvar.cpp`, integer-domain clamping now names `domain.integer.min` and `domain.integer.max` explicitly. This preserves the original `DvarLimits` union semantics: `DvarLimits_Enumeration::stringCount` shares the offset of `DvarLimits_Integer::min`, while the enum string-table pointer is a separate native-width field (offset 8 on LP64). The C++ smoke test has static layout assertions for those offsets and executes the authentic extracted clamp for values below, above, and inside the integer range.
+
+- Engine change: [`a23adf7`](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/a23adf7c69bfae852236879c1f761bd6e12e4a13).
+- Source audit now requires the clamp and vector clamp to be defined in the ARM64 archive; `Dvar_RegisterVariant` remains a visible unresolved registry dependency.
+- Verified run: [native ARM64 source workflow 40435233478](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40435233478). Python suite: 75 tests passed; Release CTest: 9/9; ASan/UBSan CTest: 9/9; ARM64 compile/symbol audit passed.
+- Evidence artifact: [12703686512 — source and ABI evidence, NOT AN APK](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40435233478/artifacts/12703686512).
+
+The first attempt exposed an overbroad test guard that rejected a valid union alias elsewhere in `Dvar_ValueInDomain`; the guard was narrowed and explicit LP64 layout assertions were added before the successful rerun.
+
+**Scope limit:** this does not link the full dvar registry into Android or invoke `FS_Startup`. FastFile/map loading, the original renderer, actual player/weapon/actor gameplay and physical ARM64 execution remain unproven. The JNI artifact remains diagnostic only; no playable APK is claimed.
