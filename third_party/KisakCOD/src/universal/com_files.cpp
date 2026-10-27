@@ -1522,7 +1522,7 @@ char *__cdecl IwdFileLanguage(const char *pszIwdFileName)
     {
         iCurrChar = 10;
         memset((uint8_t *)szIwdLanguageName[iString], 0, sizeof(char[64]));
-        while (iCurrChar < 64 && pszIwdFileName[iCurrChar] && isalpha(pszIwdFileName[iCurrChar]))
+        while (iCurrChar < 64 && pszIwdFileName[iCurrChar] && isalpha(static_cast<unsigned char>(pszIwdFileName[iCurrChar])))
         {
             //*(_BYTE *)((iString << 6) + iCurrChar + 230219974) = pszIwdFileName[iCurrChar];
             szIwdLanguageName[iString][iCurrChar - 10] = pszIwdFileName[iCurrChar];

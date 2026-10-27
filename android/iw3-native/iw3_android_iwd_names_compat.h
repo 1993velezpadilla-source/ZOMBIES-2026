@@ -5,3 +5,5 @@
 #if !defined(_MSC_VER) && !defined(__cdecl)
 #define __cdecl
 #endif
+
+char *__cdecl IwdFileLanguage(const char *pszIwdFileName);

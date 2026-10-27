@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Stage verbatim KisakCOD IWD filename lookup/normalization for Android.
+"""Stage verbatim KisakCOD IWD filename and language helpers for Android.
 
-Extract actual FS_HashFileName, FS_FilenameCompare and FS_ConvertPath from
-src/universal/com_files.cpp, and their real I_islower dependency from
-src/universal/q_shared.cpp. This is not an archive reader or playable game.
+Extract actual FS_HashFileName, FS_FilenameCompare, FS_ConvertPath and
+IwdFileLanguage from src/universal/com_files.cpp, plus the real I_islower
+dependency from src/universal/q_shared.cpp. This is not an archive reader or
+playable game.
 """
 from __future__ import annotations
 import argparse
@@ -22,6 +23,7 @@ FUNCTIONS = (
     ("int __cdecl FS_HashFileName(const char *fname, int hashSize)", FILES),
     ("int __cdecl FS_FilenameCompare(const char *s1, const char *s2)", FILES),
     ("void __cdecl FS_ConvertPath(char *s)", FILES),
+    ("char *__cdecl IwdFileLanguage(const char *pszIwdFileName)", FILES),
 )
 HEADER = '#include "iw3_android_iwd_names_compat.h"\n'
 REQUIRED = (
@@ -30,9 +32,11 @@ REQUIRED = (
     "if (I_islower(c1))",
     "if (c1 == '\\\\' || c1 == ':')",
     "if (*s == 92 || *s == 58)",
+    "isalpha(static_cast<unsigned char>(pszIwdFileName[iCurrChar]))",
 )
 FORBIDDEN = (
     "letter = tolower(fname[i]);",
+    "isalpha(pszIwdFileName[iCurrChar])",
 )
 
 def prepare(engine: Path, output: Path) -> dict:
@@ -65,6 +69,7 @@ def prepare(engine: Path, output: Path) -> dict:
         "source_bodies_preserved": True,
         "iwd_filename_hash_and_compare_ported": True,
         "iwd_filename_hash_high_bit_safe": True,
+        "iwd_language_sort_key_high_bit_safe": True,
         "iwd_zip_archive_mount_ported": False,
         "fastfile_map_loading_ported": False,
         "gameplay_proven": False,

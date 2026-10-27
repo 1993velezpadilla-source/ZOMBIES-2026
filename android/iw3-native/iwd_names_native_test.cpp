@@ -6,6 +6,7 @@
 int FS_HashFileName(const char*, int);
 int FS_FilenameCompare(const char*, const char*);
 void FS_ConvertPath(char*);
+char *IwdFileLanguage(const char*);
 extern "C" int z2026_iw3_iwd_names_smoke();
 
 int main() {
@@ -21,6 +22,13 @@ int main() {
     // signed char this value becomes negative and changes the original hash.
     const char highBitName[] = {static_cast<char>(0xFE), 'A', '.', 't', 'x', 't', '\0'};
     assert(FS_HashFileName(highBitName, 1024) == 930);
+    const char englishIwdName[] = "0123456789english.iwd";
+    assert(std::strcmp(IwdFileLanguage(englishIwdName), "english") == 0);
+    const char highBitLanguageName[] = {
+        '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+        static_cast<char>(0xFE), 'a', '.', 'i', 'w', 'd', '\\0'
+    };
+    assert(IwdFileLanguage(highBitLanguageName)[0] == '\\0');
     assert(FS_FilenameCompare("maps/mp/mp_crash.d3dbsp",
                               "MAPS\\MP\\MP_CRASH.D3DBSP") == 0);
     assert(FS_FilenameCompare("weapons:mp40", "WEAPONS/mp40") == 0);
