@@ -206,3 +206,19 @@ I removed the experimental `iw3_sp_client_input` target and its archive audit fr
 **Next actual integration requirement:** establish a renderer-neutral client header boundary and port the original client/cgame input dependencies without inventing substitute state. Only then can the original `CL_CreateCmd` be linked into the Android runtime and called from its frame loop. The current JNI diagnostic remains separate and does not call it.
 
 **Scope boundary:** this experiment did not produce a playable APK. No Android game-frame execution, real map rendering, FastFile/map load, combat, or physical ARM64 gameplay is proven. PR #4 remains open and unmerged.
+
+
+### Phase Z — bind original filesystem startup defaults to Android filesDir (26 Oct 2026; CI pending)
+
+The next real blocker after the IWD lookup/read fixtures is the original startup entry point. FS_RegisterDvars() obtains its base path from Sys_Cwd() and its CD path from Sys_DefaultCDPath(). A process working directory is not a valid Android game-data contract, so this pass adds a narrow POSIX service that returns the app-private filesDir configured by nativeSetDataRoot, and returns an empty CD path. The root getter fails closed when the root is unset or the destination buffer is too small; native tests check exact path round-trip and NUL termination.
+
+The same pass adds a source-provenance generator for the original FS_RegisterDvars, FS_Startup, FS_SetRestrictions, FS_IsBasePathValid, and FS_InitFilesystem bodies from third_party/KisakCOD/src/universal/com_files.cpp. The native ARM64 workflow compiles them into a separate static dependency-audit archive and checks both their definitions and the unresolved original Dvar/filesystem/language services. The JNI diagnostic now exercises the real Android path-default adapter and requires IW3_JNI_FS_STARTUP_PATH_PASS in the emulator evidence.
+
+This is deliberately NOT yet an invocation of FS_Startup. The original Dvar registry, Com_StartupVariable, language initialization, and the full com_files.cpp service graph are not linked. The archive is not linked into the JNI APK. No licensed FastFile or real map is loaded, no renderer or gameplay is running, and physical ARM64 execution remains unproven.
+
+- New source extraction: tools/iw3_android/prepare_real_engine_fs_startup.py with body hashes and explicit false runtime/gameplay fields.
+- Android path adapter: android/iw3-native/iw3_android_fs_startup_io.cpp.
+- Root getter and regression: z2026_platform_copy_data_root, platform_native_test.cpp, and tests/test_iw3_android_fs_startup.py.
+- CI audit marker: IW3_ORIGINAL_FS_STARTUP_AARCH64_DEPENDENCY_AUDIT_GREEN (pending for this head at documentation time).
+
+Scope boundary: this is a real startup prerequisite and a compile/dependency gate, not a playable APK. Keep PR #4 open and unmerged until original startup is actually called in a linked runtime, the genuine licensed assets/map load, renderer output appears, and touch drives original player/weapon/actor gameplay on ARM64.
