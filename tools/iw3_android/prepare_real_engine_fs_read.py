@@ -35,10 +35,13 @@ FUNCTIONS = (
     ("bool __cdecl FS_GameDirDomainFunc(dvar_s *dvar, DvarValue newValue)", SOURCE),
     (SIGNATURE, SOURCE),
     ("void __cdecl FS_FCloseFile(int h)", SOURCE),
+    ("const char *__cdecl I_stristr(const char *s0, const char *substr)", SHARED_SOURCE),
+    ("int __cdecl I_stricmpwild(const char *wild, const char *s)", SHARED_SOURCE),
     ("const char *__cdecl Com_GetExtensionSubString(const char *filename)", SHARED_SOURCE),
 )
 PROLOGUE = (
     '#include "iw3_android_fs_read_compat.h"\n'
+    '#include <ctype.h>\n'
     '#define FS_FileOpenReadBinary z2026_iw3_lookup_file_open_read_binary\n'
     '#define FS_FileGetFileSize z2026_iw3_fs_file_get_size\n'
     '#define FS_CopyFile z2026_iw3_fs_copy_file\n'
@@ -62,6 +65,10 @@ REQUIRED = (
     "FS_IwdIsPure(iwd)",
     "return !I_stricmp(extension, \"cfg\")",
     "const char *__cdecl Com_GetExtensionSubString(const char *filename)",
+    "v3 = tolower(static_cast<unsigned char>(s0[substrChar + s0Char]));",
+    "v3 = tolower(static_cast<unsigned char>(charWild));",
+    "delta = v3 - tolower(static_cast<unsigned char>(charRef));",
+    "tolower(static_cast<unsigned char>(substr[substrChar]))",
 )
 FORBIDDEN = (
     "z2026_iw3_original_searchpath_lookup",
@@ -69,6 +76,10 @@ FORBIDDEN = (
     "Com_Memset((uint32_t *)&fsh[h], 0, 284);",
     "AAsset_read",
     "Godot",
+    "tolower(s0[substrChar + s0Char])",
+    "tolower(substr[substrChar])",
+    "tolower(charWild)",
+    "tolower(charRef)",
 )
 
 

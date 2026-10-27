@@ -22,6 +22,7 @@ extern "C" int z2026_iw3_hitloc_copy_smoke();
 extern "C" int z2026_iw3_iwd_names_smoke();
 extern "C" int z2026_iw3_fs_startup_path_smoke();
 extern "C" int z2026_iw3_unzip_smoke(const char *directory, int *iwd_mount_ok, int *iwd_searchpath_ok, int *iwd_directory_scan_ok, int *iwd_lookup_ok, int *iwd_fs_read_ok, int *iwd_fs_disk_read_ok);
+extern "C" int z2026_iw3_casefold_smoke();
 extern "C" int z2026_iw3_configstring_num(const char*);
 extern "C" int z2026_iw3_math_source_abi_version();
 
@@ -56,6 +57,7 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(
     int iwd_lookup_ok = 0;
     int iwd_fs_read_ok = 0;
     int iwd_fs_disk_read_ok = 0;
+    const int casefold_ok = z2026_iw3_casefold_smoke();
     if (writableDirectory) {
         const char *directory = env->GetStringUTFChars(writableDirectory, nullptr);
         if (directory) {
@@ -66,6 +68,9 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(
     __android_log_print(unzip_ok ? ANDROID_LOG_INFO : ANDROID_LOG_ERROR,
                         "IW3NativeGate", "IW3_JNI_UNZIP_PARSER_%s",
                         unzip_ok ? "PASS" : "FAIL");
+    __android_log_print(casefold_ok ? ANDROID_LOG_INFO : ANDROID_LOG_ERROR,
+                        "IW3NativeGate", "IW3_JNI_Q_SHARED_CASEFOLD_%s",
+                        casefold_ok ? "PASS" : "FAIL");
     __android_log_print(iwd_mount_ok ? ANDROID_LOG_INFO : ANDROID_LOG_ERROR,
                         "IW3NativeGate", "IW3_JNI_IWD_MOUNT_%s",
                         iwd_mount_ok ? "PASS" : "FAIL");

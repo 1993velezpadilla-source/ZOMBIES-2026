@@ -53,6 +53,51 @@ class OriginalFSReadStageTests(unittest.TestCase):
             self.assertEqual((ENGINE / source_path).read_bytes(), original)
 
 
+    def test_original_q_shared_casefold_helpers_are_unsigned_char_safe(self):
+        source = (ENGINE / "src/universal/q_shared.cpp").read_text(encoding="utf-8")
+        istristr = function_source(
+            source,
+            "const char *__cdecl I_stristr(const char *s0, const char *substr)",
+        )
+        wildcard = function_source(
+            source,
+            "int __cdecl I_stricmpwild(const char *wild, const char *s)",
+        )
+        self.assertIn(
+            "tolower(static_cast<unsigned char>(s0[substrChar + s0Char]))",
+            istristr,
+        )
+        self.assertIn(
+            "tolower(static_cast<unsigned char>(substr[substrChar]))",
+            istristr,
+        )
+        self.assertIn("tolower(static_cast<unsigned char>(charWild))", wildcard)
+        self.assertIn("tolower(static_cast<unsigned char>(charRef))", wildcard)
+        for unsafe in (
+            "tolower(s0[substrChar + s0Char])",
+            "tolower(substr[substrChar])",
+            "tolower(charWild)",
+            "tolower(charRef)",
+        ):
+            self.assertNotIn(unsafe, source)
+        self.assertIn(
+            "const char *__cdecl I_stristr(const char *s0, const char *substr)",
+            [signature for signature, _ in FUNCTIONS],
+        )
+        self.assertIn(
+            "int __cdecl I_stricmpwild(const char *wild, const char *s)",
+            [signature for signature, _ in FUNCTIONS],
+        )
+
+        smoke = (ROOT / "android/iw3-native/iw3_unzip_native_smoke.cpp").read_text(encoding="utf-8")
+        host = (ROOT / "android/iw3-native/iw3_unzip_host_test.cpp").read_text(encoding="utf-8")
+        jni = (ROOT / "android/iw3-native/iw3_android_jni.cpp").read_text(encoding="utf-8")
+        verifier = (ROOT / "tools/iw3_android/verify_runtime_evidence.py").read_text(encoding="utf-8")
+        self.assertIn("z2026_iw3_casefold_smoke", smoke)
+        self.assertIn("z2026_iw3_casefold_smoke", host)
+        self.assertIn("IW3_JNI_Q_SHARED_CASEFOLD_%s", jni)
+        self.assertIn("IW3_JNI_Q_SHARED_CASEFOLD_PASS", verifier)
+
     def test_directory_fallback_uses_original_handle_lifecycle(self):
         smoke = (ROOT / "android/iw3-native/iw3_unzip_native_smoke.cpp").read_text(encoding="utf-8")
         jni = (ROOT / "android/iw3-native/iw3_android_jni.cpp").read_text(encoding="utf-8")

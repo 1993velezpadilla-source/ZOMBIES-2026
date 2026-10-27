@@ -8,6 +8,7 @@
 #include <EffectsCore/fx_system.h>
 
 #include <string.h>
+#include <ctype.h>
 #include <gfx_d3d/r_model.h>
 #include "com_sndalias.h"
 
@@ -64,8 +65,8 @@ const char *__cdecl I_stristr(const char *s0, const char *substr)
         {
             if (!substr[++substrChar])
                 return &s0[s0Char];
-            v3 = tolower(s0[substrChar + s0Char]);
-        } while (v3 == tolower(substr[substrChar]));
+            v3 = tolower(static_cast<unsigned char>(s0[substrChar + s0Char]));
+        } while (v3 == tolower(static_cast<unsigned char>(substr[substrChar])));
     }
 
     return 0;
@@ -424,8 +425,8 @@ int __cdecl I_stricmpwild(const char *wild, const char *s)
             charRef = *s++;
             if (charWild != charRef && charWild != 63)
             {
-                v3 = tolower(charWild);
-                delta = v3 - tolower(charRef);
+                v3 = tolower(static_cast<unsigned char>(charWild));
+                delta = v3 - tolower(static_cast<unsigned char>(charRef));
                 if (delta)
                     return 2 * (delta >= 0) - 1;
             }

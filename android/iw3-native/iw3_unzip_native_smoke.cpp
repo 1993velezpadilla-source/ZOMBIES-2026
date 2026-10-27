@@ -10,7 +10,11 @@
 #include <cstdio>
 #include <cstdint>
 #include <cstring>
+#include <cctype>
 #include <unistd.h>
+
+extern const char *__cdecl I_stristr(const char *s0, const char *substr);
+extern int __cdecl I_stricmpwild(const char *wild, const char *s);
 
 #if defined(__GNUC__)
 #define IW3_UNZIP_EXPORT __attribute__((visibility("default")))
@@ -475,6 +479,22 @@ bool scan_original_iwd_directory(const char *root,
 }
 
 } // namespace
+
+extern "C" IW3_UNZIP_EXPORT int z2026_iw3_casefold_smoke() {
+    // Exercise the exact upstream q_shared helpers with bytes that become
+    // negative when plain char is signed. Compute expected ordering with the
+    // defined unsigned-char ctype contract in the active C locale.
+    const char haystack[] = {static_cast<char>(0xFE), 'x', '\0'};
+    const char needle[] = {static_cast<char>(0xFE), 'X', '\0'};
+    const char pattern[] = {static_cast<char>(0xFE), '\0'};
+    const char candidate[] = {static_cast<char>(0xFD), '\0'};
+    const int delta =
+        std::tolower(static_cast<unsigned char>(pattern[0])) -
+        std::tolower(static_cast<unsigned char>(candidate[0]));
+    const int expected = delta == 0 ? 0 : (delta > 0 ? 1 : -1);
+    return I_stristr(haystack, needle) == haystack &&
+           I_stricmpwild(pattern, candidate) == expected ? 1 : 0;
+}
 
 extern "C" IW3_UNZIP_EXPORT int z2026_iw3_unzip_smoke(const char *directory, int *iwd_mount_ok, int *iwd_searchpath_ok, int *iwd_directory_scan_ok, int *iwd_lookup_ok, int *iwd_fs_read_ok, int *iwd_fs_disk_read_ok) {
     if (iwd_mount_ok) *iwd_mount_ok = 0;
