@@ -2,7 +2,15 @@ name: IW3 original C++ JNI Android Emulator Runtime Proof (NOT GAME)
 
 on:
   workflow_dispatch:
-  push:
+  pull_request:
+    paths:
+      - '.github/workflows/iw3-original-android-emulator-jni.yml'
+      - '.github/workflows/iw3-original-native-android.yml'
+      - '.github/workflows/iw3-original-android-jni.yml'
+      - 'android/iw3-native/**'
+      - 'tools/iw3_android/**'
+      - 'tests/test_iw3_android_*.py'
+      - 'third_party/KisakCOD/src/**'
     branches:
       - feature/iw3-native-android-arm64-20261025
     paths:
