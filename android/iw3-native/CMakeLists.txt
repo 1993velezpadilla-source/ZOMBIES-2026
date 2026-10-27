@@ -81,7 +81,8 @@ if(NOT IW3_EXTRACTED_FS_STARTUP OR NOT EXISTS "${IW3_EXTRACTED_FS_STARTUP}")
 endif()
 add_library(iw3_sp_fs_startup STATIC
     "${IW3_EXTRACTED_FS_STARTUP}"
-    "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_fs_startup_io.cpp")
+    "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_fs_startup_io.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_directory_has_contents.cpp")
 target_include_directories(iw3_sp_fs_startup PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}"
     "${IW3_REAL_HEADER_ROOT}"
@@ -175,6 +176,7 @@ add_library(iw3_sp_math SHARED
     "${IW3_EXTRACTED_FS_READ}"
     "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_fs_read_io.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_fs_startup_io.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_directory_has_contents.cpp"
     "${IW3_EXTRACTED_MATH}"
     "${IW3_EXTRACTED_SURFACE}"
     "${IW3_EXTRACTED_CONSTANTS}"
@@ -290,7 +292,7 @@ else()
     # fail-closed behavior using the exact platform adapter.
     add_executable(iw3_fs_startup_directory_adapter_host_test
         "${CMAKE_CURRENT_SOURCE_DIR}/fs_startup_directory_native_test.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_fs_startup_io.cpp")
+        "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_directory_has_contents.cpp")
     target_include_directories(iw3_fs_startup_directory_adapter_host_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}")
     target_compile_options(iw3_fs_startup_directory_adapter_host_test PRIVATE -UNDEBUG -Wall -Wextra)

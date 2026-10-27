@@ -111,13 +111,6 @@ void __cdecl Com_Printf(int, const char *format, ...) {
     if (format) std::fputs(format, stderr);
 }
 
-int __cdecl Sys_DirectoryHasContents(const char *directory) {
-    // The original engine treats a missing/unreadable directory as empty.
-    // The platform service itself returns -1 on error; do not let -1 become
-    // truthy and register an inaccessible language directory.
-    return z2026_platform_directory_has_contents(directory) > 0 ? 1 : 0;
-}
-
 int Com_sprintf(char *dest, uint32_t size, const char *format, ...) {
     if (!dest || size == 0 || !format) return -1;
     va_list args;
