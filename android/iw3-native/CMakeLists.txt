@@ -311,4 +311,24 @@ else()
     target_include_directories(iw3_real_frame_loop_abi_test PRIVATE "${IW3_ENTITY_LOOP_DIR}")
     target_compile_options(iw3_real_frame_loop_abi_test PRIVATE -UNDEBUG)
     add_test(NAME iw3_real_g_runframe_typed_entity_64bit COMMAND iw3_real_frame_loop_abi_test)
+
+    # Execute the original localized directory setup with only platform service
+    # stubs. This catches empty-language names aliasing the parent game folder.
+    if(IW3_EXTRACTED_FS_STARTUP AND EXISTS "${IW3_EXTRACTED_FS_STARTUP}")
+        add_executable(iw3_fs_localized_path_host_test
+            "${CMAKE_CURRENT_SOURCE_DIR}/fs_localized_path_native_test.cpp"
+            "${IW3_EXTRACTED_FS_STARTUP}")
+        target_include_directories(iw3_fs_localized_path_host_test PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}"
+            "${IW3_REAL_HEADER_ROOT}"
+            "${IW3_ENGINE_SOURCE_ROOT}"
+            "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+            "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+        target_compile_definitions(iw3_fs_localized_path_host_test PRIVATE KISAK_SP=1)
+        target_compile_options(iw3_fs_localized_path_host_test PRIVATE
+            -UNDEBUG -ffunction-sections -fdata-sections -Wall -Wextra)
+        target_link_options(iw3_fs_localized_path_host_test PRIVATE -Wl,--gc-sections)
+        add_test(NAME iw3_original_fs_localized_paths_fail_closed
+                 COMMAND iw3_fs_localized_path_host_test)
+    endif()
 endif()
