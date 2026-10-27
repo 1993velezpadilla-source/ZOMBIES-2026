@@ -9,6 +9,7 @@ using DWORD = std::uint32_t;
 using HANDLE = void *;
 #else
 #include <Windows.h>
+#include <gfx_d3d/rb_backend.h> // preserve the original Windows include surface
 #endif
 
 enum ThreadOwner : __int32
