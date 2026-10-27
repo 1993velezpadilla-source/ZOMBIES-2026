@@ -30,8 +30,6 @@ REQUIRED = (
     "if (I_islower(c1))",
     "if (c1 == '\\\\' || c1 == ':')",
     "if (*s == 92 || *s == 58)",
-    "char szIwdLanguageName[2][64];",
-    "int iString = 0;",
 )
 FORBIDDEN = (
     "letter = tolower(fname[i]);",
