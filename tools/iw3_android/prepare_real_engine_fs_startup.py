@@ -21,6 +21,8 @@ except ModuleNotFoundError:
 
 SOURCE = Path("src/universal/com_files.cpp")
 FUNCTIONS = (
+    "void __cdecl FS_AddGameDirectory(char *path, char *dir, int bLanguageDirectory, int iLanguage)",
+    "void __cdecl FS_AddLocalizedGameDirectory(char *path, char *dir)",
     "void FS_RegisterDvars()",
     "void __cdecl FS_Startup(char *gameName)",
     "void __cdecl FS_SetRestrictions()",
@@ -28,6 +30,10 @@ FUNCTIONS = (
     "void __cdecl FS_InitFilesystem()",
 )
 REQUIRED = (
+    'search->dir = (directory_t *)Z_Malloc(sizeof(directory_t), "FS_AddGameDirectory", 3);',
+    "FS_AddIwdFilesForGameDirectory(path, szGameFolder);",
+    "FS_AddGameDirectory(path, dir, 1, i);",
+    "FS_AddGameDirectory(path, dir, 0, 0);",
     'Dvar_RegisterString("fs_basepath"',
     'Dvar_RegisterString("fs_homepath"',
     "homePath = nullptr;",
@@ -39,6 +45,8 @@ REQUIRED = (
     'I_strncpyz(lastValidGame, (char *)fs_gameDirVar->current.string, 256)',
 )
 FORBIDDEN = (
+    'Z_Malloc(512, "FS_AddGameDirectory"',
+    "uint32_t *v4; // eax",
     "fs_basepath->current.integer",
     "fs_homepath->current.integer",
     "fs_cdpath->current.integer",
@@ -81,6 +89,9 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
             signature: hashlib.sha256(body.encode("utf-8")).hexdigest()
             for signature, body in zip(FUNCTIONS, bodies)
         },
+        "original_FS_AddGameDirectory_body_staged_verbatim": True,
+        "original_FS_AddLocalizedGameDirectory_body_staged_verbatim": True,
+        "directory_allocation_uses_native_sizeof": True,
         "original_FS_RegisterDvars_body_preserved_verbatim": True,
         "original_FS_Startup_body_preserved_verbatim": True,
         "original_FS_SetRestrictions_body_preserved_verbatim": True,
