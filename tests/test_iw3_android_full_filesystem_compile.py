@@ -38,6 +38,7 @@ class OriginalFilesystemAndroidPortTests(unittest.TestCase):
         self.assertIn(
             '#if defined(__ANDROID__)\n'
             '#include "iw3_android_platform.h"\n'
+            '#include "iw3_android_filesystem_compat.h"\n'
             '#include <sys/stat.h>\n'
             '#include <unistd.h>',
             source,
