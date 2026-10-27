@@ -226,7 +226,9 @@ jobs:
           echo "IW3_ORIGINAL_FILTERED_FILE_LIST_NATIVE_POINTER_ARRAY_AARCH64_COMPILE_GREEN"
 
           # The authentic startup functions are now compiled from the original
-          # source. Keep the real dvar, file-read and language dependencies
+          # source. FS_RegisterDvars uses nullptr for its null homePath default
+          # rather than the old 32-bit integer-to-pointer cast.
+          # Keep the real dvar, file-read and language dependencies
           # visible rather than pretending this archive is a running filesystem.
           startup_archive="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_fs_startup.a"
           test -s "$startup_archive"
