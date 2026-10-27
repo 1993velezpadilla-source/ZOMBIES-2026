@@ -59,7 +59,7 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
         self.assertIn("z2026_platform_copy_data_root", adapter)
         self.assertIn("Sys_DefaultCDPath()", adapter)
         self.assertIn("z2026_platform_copy_data_root", native_test)
-        self.assertIn("IW3_JNI_FS_STARTUP_PATH_PASS", jni)
+        self.assertIn("IW3_JNI_FS_STARTUP_PATH_%s", jni)
 
 
 if __name__ == "__main__":
