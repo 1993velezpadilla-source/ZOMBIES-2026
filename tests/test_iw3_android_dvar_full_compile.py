@@ -13,23 +13,20 @@ CMAKE = ROOT / "android/iw3-native/CMakeLists.txt"
 class OriginalDvarAndroidCompileTests(unittest.TestCase):
     def test_original_dvar_translation_unit_uses_narrow_android_platform_surface(self):
         source = DVAR.read_text(encoding="utf-8")
-        self.assertIn(
-            '#if defined(__ANDROID__)\\n'
-            '#include "iw3_android_dvar_compat.h"\\n'
-            '#else\\n'
-            '#include <Windows.h>\\n'
-            '#include <win32/win_local.h>\\n'
-            '#endif',
-            source,
-        )
-        self.assertIn(
-            '#if !defined(__ANDROID__)\\n'
-            '#include <win32/win_net.h>\\n'
-            '#include <devgui/devgui.h>\\n'
-            '#include "com_math.h"\\n'
-            '#endif',
-            source,
-        )
+        android_branch_start = source.index("#if defined(__ANDROID__)")
+        android_branch_end = source.index("#endif", android_branch_start)
+        android_branch = source[android_branch_start:android_branch_end]
+        self.assertIn('#include "iw3_android_dvar_compat.h"', android_branch)
+        self.assertNotIn("Windows.h", android_branch)
+        self.assertNotIn("win_local.h", android_branch)
+
+        network_branch_start = source.index("#if !defined(__ANDROID__)")
+        network_branch_end = source.index("#endif", network_branch_start)
+        network_branch = source[network_branch_start:network_branch_end]
+        self.assertIn("#include <win32/win_net.h>", network_branch)
+        self.assertIn("#include <devgui/devgui.h>", network_branch)
+        self.assertIn('#include "com_math.h"', network_branch)
+
         compat = ANDROID_COMPAT.read_text(encoding="utf-8")
         self.assertIn("void NET_Sleep(int msec);", compat)
         self.assertIn("bool __cdecl Vec4Compare(const float *a, const float *b);", compat)
@@ -60,16 +57,12 @@ class OriginalDvarAndroidCompileTests(unittest.TestCase):
 
     def test_cmake_compiles_full_original_dvar_as_object_but_does_not_link_it_to_diagnostic(self):
         cmake = CMAKE.read_text(encoding="utf-8")
-        self.assertIn(
-            'add_library(iw3_sp_full_dvar OBJECT\\n'
-            '        "${IW3_ENGINE_SOURCE_ROOT}/universal/dvar.cpp")',
-            cmake,
-        )
+        self.assertIn("add_library(iw3_sp_full_dvar OBJECT", cmake)
+        self.assertIn('${IW3_ENGINE_SOURCE_ROOT}/universal/dvar.cpp', cmake)
         self.assertIn("target_compile_definitions(iw3_sp_full_dvar PRIVATE KISAK_SP=1)", cmake)
         self.assertIn("target_compile_options(iw3_sp_full_dvar PRIVATE", cmake)
         self.assertNotIn(
-            'target_sources(iw3_sp_math PRIVATE\\n'
-            '        "${IW3_ENGINE_SOURCE_ROOT}/universal/dvar.cpp")',
+            'target_sources(iw3_sp_math PRIVATE "${IW3_ENGINE_SOURCE_ROOT}/universal/dvar.cpp")',
             cmake,
         )
 
