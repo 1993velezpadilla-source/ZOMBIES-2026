@@ -234,19 +234,18 @@ jobs:
           echo "IW3_ORIGINAL_FILTERED_FILES_AARCH64_SYMBOL_AND_SERVICE_AUDIT_GREEN"
           echo "IW3_ORIGINAL_FILTERED_FILE_LIST_NATIVE_POINTER_ARRAY_AARCH64_COMPILE_GREEN"
 
-          # The authentic startup functions are now compiled from the original
-          # source. FS_RegisterDvars uses nullptr for its null homePath default
-          # rather than the old 32-bit integer-to-pointer cast.
-          # Keep the real dvar, file-read and language dependencies
-          # visible rather than pretending this archive is a running filesystem.
+          # Compile original search-path insertion and game-directory setup too.
+          # The only directory-presence service is a fail-closed wrapper around
+          # the retained Android app-private root. Remaining dvar/IWD/file/language
+          # dependencies stay visible; this is still not a linked filesystem runtime.
           startup_archive="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_fs_startup.a"
           test -s "$startup_archive"
           "$llvm_nm" -C --defined-only "$startup_archive" | tee "$RUNNER_TEMP/iw3-fs-startup-defined.txt"
-          for symbol in FS_RegisterDvars FS_Startup FS_SetRestrictions FS_IsBasePathValid FS_InitFilesystem Sys_Cwd Sys_DefaultCDPath; do
+          for symbol in FS_AddSearchPath FS_AddGameDirectory FS_AddLocalizedGameDirectory FS_RegisterDvars FS_Startup FS_SetRestrictions FS_IsBasePathValid FS_InitFilesystem Sys_Cwd Sys_DefaultCDPath Sys_DirectoryHasContents; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-startup-defined.txt"
           done
           "$llvm_nm" -u -C "$startup_archive" | tee "$RUNNER_TEMP/iw3-fs-startup-undefined.txt"
-          for symbol in Dvar_RegisterString Dvar_RegisterBool FS_AddLocalizedGameDirectory FS_ReadFile SEH_InitLanguage; do
+          for symbol in Dvar_RegisterInt Dvar_RegisterString Dvar_RegisterBool FS_AddIwdFilesForGameDirectory FS_BuildOSPath Z_Malloc SEH_GetLanguageName FS_ReadFile SEH_InitLanguage; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-startup-undefined.txt"
           done
           echo "IW3_ORIGINAL_FS_STARTUP_AARCH64_DEPENDENCY_AUDIT_GREEN"
