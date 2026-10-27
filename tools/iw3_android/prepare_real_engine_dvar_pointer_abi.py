@@ -41,6 +41,8 @@ FUNCTIONS = (
     "void __cdecl Dvar_AssignLatchedStringValue(dvar_s *dvar, DvarValue *dest, char *string)",
     "const dvar_s *__cdecl Dvar_RegisterString(\n    const char *dvarName,\n    const char *value,\n    uint16_t flags,\n    const char *description)",
     "const dvar_s *__cdecl Dvar_RegisterEnum(\n    const char *dvarName,\n    const char **valueList,\n    int defaultIndex,\n    uint16_t flags,\n    const char *description)",
+    "DvarValue *__cdecl Dvar_ClampValueToDomain(\n    DvarValue *result,\n    uint8_t type,\n    DvarValue value,\n    DvarValue resetValue,\n    DvarLimits domain)",
+    "void __cdecl Dvar_ClampVectorToDomain(float *vector, int components, float min, float max)",
     "void __cdecl Dvar_MakeExplicitType(\n    dvar_s *dvar,\n    const char *dvarName,\n    uint8_t type,\n    uint16_t flags,\n    DvarValue resetValue,\n    DvarLimits domain)",
     "DvarValue *__cdecl Dvar_StringToValue(DvarValue *result, uint8_t type, DvarLimits domain, const char *string)",
     "int __cdecl Dvar_StringToEnum(const DvarLimits *domain, const char *string)",
@@ -63,6 +65,8 @@ SMOKE_FUNCTIONS = (
     "const dvar_s *__cdecl Dvar_RegisterString(\n    const char *dvarName,\n    const char *value,\n    uint16_t flags,\n    const char *description)",
     "const dvar_s *__cdecl Dvar_RegisterEnum(\n    const char *dvarName,\n    const char **valueList,\n    int defaultIndex,\n    uint16_t flags,\n    const char *description)",
     "void __cdecl Dvar_UpdateEnumDomain(dvar_s *dvar, const char **stringTable)",
+    "DvarValue *__cdecl Dvar_ClampValueToDomain(\n    DvarValue *result,\n    uint8_t type,\n    DvarValue value,\n    DvarValue resetValue,\n    DvarLimits domain)",
+    "void __cdecl Dvar_ClampVectorToDomain(float *vector, int components, float min, float max)",
     "DvarValue *__cdecl Dvar_StringToValue(DvarValue *result, uint8_t type, DvarLimits domain, const char *string)",
     "int __cdecl Dvar_StringToEnum(const DvarLimits *domain, const char *string)",
 )
@@ -79,6 +83,9 @@ REQUIRED = (
     "if (dvar->domainFunc && !dvar->domainFunc(dvar, value))",
     "if (!customFunc(dvar, dvar->current))",
     "iassert(dvar->current.string != stringCopy);",
+    "domain.integer.min <= domain.integer.max",
+    "if (value.integer < domain.integer.min)",
+    "else if (value.integer > domain.integer.max)",
 )
 
 FORBIDDEN = (
@@ -93,6 +100,8 @@ FORBIDDEN = (
     "domain->integer.max + 4 * stringIndex",
     "dvar->domain.integer.max + 4 * dvar->current.integer",
     "uint8_t(__cdecl *)(dvar_s *, int, uint32_t, uint32_t, uint32_t)",
+    "domain.enumeration.stringCount > domain.integer.max",
+    "value.integer = domain.enumeration.stringCount;",
 )
 
 
@@ -141,6 +150,7 @@ def prepare(engine: Path, output: Path, smoke_output: Path, report_path: Path) -
         "string_values_use_native_pointer_union_member": True,
         "enum_tables_use_native_pointer_member_and_indexing": True,
         "domain_callbacks_use_declared_DvarValue_by_value_abi": True,
+        "integer_domains_use_native_min_max_fields": True,
         "full_dvar_registry_linked": False,
         "filesystem_startup_invoked": False,
         "fastfile_or_map_loaded": False,
