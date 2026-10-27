@@ -26,7 +26,7 @@ FUNCTIONS = (
     ("char *__cdecl IwdFileLanguage(const char *pszIwdFileName)", FILES),
 )
 HEADER = '#include "iw3_android_iwd_names_compat.h"\n'
-GLOBALS = "char szIwdLanguageName[2][64];\\nint iString = 0;\\n"
+GLOBALS = "char szIwdLanguageName[2][64];\nint iString = 0;\n"
 REQUIRED = (
     "letter = tolower(static_cast<unsigned char>(fname[i]));",
     "return ((hash >> 20) ^ hash ^ (hash >> 10)) & (hashSize - 1);",
