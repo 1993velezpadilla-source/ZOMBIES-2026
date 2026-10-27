@@ -2,6 +2,7 @@
 #include <cmath>
 #include <cstdio>
 #include <limits>
+#include <universal/q_shared.h>
 
 bool __cdecl Vec4Compare(const float *a, const float *b);
 
