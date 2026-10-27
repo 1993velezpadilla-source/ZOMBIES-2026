@@ -13,6 +13,8 @@
 #include <unistd.h>
 #include <thread>
 
+extern "C" int z2026_iw3_fs_startup_path_smoke();
+
 int main() {
     const std::uint64_t start = z2026_platform_monotonic_ns();
     std::this_thread::sleep_for(std::chrono::milliseconds(2));
@@ -32,6 +34,7 @@ int main() {
     assert(z2026_platform_copy_data_root(copied_root, sizeof(copied_root)) ==
            static_cast<int>(std::strlen(root)));
     assert(std::strcmp(copied_root, root) == 0);
+    assert(z2026_iw3_fs_startup_path_smoke() == 1);
     char too_small_root[1] = {'x'};
     assert(z2026_platform_copy_data_root(too_small_root, sizeof(too_small_root)) == -1);
     assert(too_small_root[0] == '\0');
