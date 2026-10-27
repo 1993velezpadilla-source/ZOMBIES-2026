@@ -429,6 +429,11 @@ Code/test commits:
 - Native high-bit regression: [9b7522c](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/9b7522c82c1ed47427c77eda5111051108bc33ad).
 - Explicit signed-char test build: [1dbf6c4](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/1dbf6c44dc0803e084e845664352ee3705098f22).
 
-At documentation time, the source-preflight workflow had succeeded, while the native ARM64/ASan and JNI build jobs for `1dbf6c4` were still running. Their results are not presumed here; update the PR evidence only after those jobs finish.
+Validation completed for code/test HEAD `1dbf6c4` (documentation follow-up does not change these sources):
+- Native source workflow [40506916667](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40506916667) — **PASS**. The log shows 80 Python tests; CTest Release 10/10; CTest ASan/UBSan 10/10; the new `iw3_original_dvar_pointer_width` high-bit regression passed in both CTest runs; original dvar audit compiled to AArch64 ELF. Artifact [12736080649 — source modules/evidence, NOT AN APK](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40506916667/artifacts/12736080649).
+- JNI ARM64 compile/package/signature workflow [40506916708](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40506916708) — **PASS**, including 80 Python source tests, native AArch64 ELF/package/signature checks. Artifact [12734744636 — signed JNI diagnostic APK, NOT A GAME](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40506916708/artifacts/12734744636).
+- Source preflight [40506916756](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40506916756) — **PASS**.
+
+The earlier attempts for these workflows were cancelled while successive file commits were landing; the final reruns above completed successfully and are the evidence to use.
 
 **Integration boundary remains unchanged:** `Dvar_FindMalleableVar`, `Dvar_RegisterNew`, and `Dvar_Reregister` still need to be linked with the authentic shared registry state before `FS_Startup`/ `FS_InitFilesystem` can run as a complete Android runtime. No licensed FastFile/map load, original renderer scene, physical ARM64 gameplay, or playable APK is proven. Keep PR #4 open and unmerged.
