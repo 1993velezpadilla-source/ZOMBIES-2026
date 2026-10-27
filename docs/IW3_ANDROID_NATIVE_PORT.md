@@ -437,3 +437,20 @@ Validation completed for code/test HEAD `1dbf6c4` (documentation follow-up does 
 The earlier attempts for these workflows were cancelled while successive file commits were landing; the final reruns above completed successfully and are the evidence to use.
 
 **Integration boundary remains unchanged:** `Dvar_FindMalleableVar`, `Dvar_RegisterNew`, and `Dvar_Reregister` still need to be linked with the authentic shared registry state before `FS_Startup`/ `FS_InitFilesystem` can run as a complete Android runtime. No licensed FastFile/map load, original renderer scene, physical ARM64 gameplay, or playable APK is proven. Keep PR #4 open and unmerged.
+
+
+### Phase AM — map sparse Android pointer IDs to native touch slots (27 Oct 2026; validation pending)
+
+A source review of the latest Activity found a real multi-touch input defect: MotionEvent.getPointerId() returns a stable Android pointer identifier in the range 0..31, but MainActivity discarded any ID >= 10 and the native adapter used the ID directly as an index into a ten-element array. Android pointer identifiers are not compact slot indexes, so valid simultaneous touches could silently lose look/attack/movement events after the platform reused a higher pointer ID.
+
+The Android adapter now stores each external pointer ID separately from its ten available simultaneous-touch slots. DOWN/MOVE finds the existing slot by pointer ID or claims a free slot; UP releases that mapping; snapshots resolve the same ID back to its slot. IDs outside Android's 0..31 range remain rejected, and a new DOWN is rejected only when all ten slots are occupied. The Activity no longer filters valid IDs 10..31.
+
+Regression coverage:
+- Native C++ test sends pointer ID 31 and pointer ID 4 simultaneously and verifies both map to independent command bits.
+- Releasing ID 31 clears attack without clearing ID 4's still-held sprint bit.
+- ID 32 is rejected; a snapshot of an unmapped ID returns an inactive state and zero coordinates.
+- Python source regression prevents reintroducing the Activity's old id >= 10 filter.
+
+Scope boundary: this fixes the native touch adapter's pointer-ID/slot mismatch and improves the path toward touch-driven original commands. It still does not link the complete client input translation unit into the Android runtime, run Com_Frame, load a real map, render the original scene, or prove physical ARM64 gameplay. The JNI APK remains diagnostic only. Keep PR #4 open and unmerged until those gates pass.
+
+Code/test changes have been pushed to the feature branch; inspect the native ARM64, JNI package and Android emulator workflow results before treating this pass as green.
