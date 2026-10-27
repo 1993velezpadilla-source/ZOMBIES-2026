@@ -54,6 +54,27 @@ endif()
 if(NOT IW3_EXTRACTED_FS_READ OR NOT EXISTS "${IW3_EXTRACTED_FS_READ}")
     message(FATAL_ERROR "Verbatim original FS_Read source required for the 64-bit ABI compile gate")
 endif()
+
+# Compile the authentic filesystem startup functions as a separate dependency
+# audit. They are not linked into the JNI diagnostic until the original dvar
+# registry and full engine service graph are available.
+if(IW3_EXTRACTED_FS_STARTUP)
+    if(NOT EXISTS "${IW3_EXTRACTED_FS_STARTUP}")
+        message(FATAL_ERROR "Original FS_RegisterDvars/FS_Startup/FS_InitFilesystem source required")
+    endif()
+    add_library(iw3_sp_fs_startup STATIC
+        "${IW3_EXTRACTED_FS_STARTUP}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_fs_startup_io.cpp")
+    target_include_directories(iw3_sp_fs_startup PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+        "${IW3_REAL_HEADER_ROOT}"
+        "${IW3_ENGINE_SOURCE_ROOT}"
+        "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+        "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+    target_compile_definitions(iw3_sp_fs_startup PRIVATE KISAK_SP=1)
+    target_compile_options(iw3_sp_fs_startup PRIVATE
+        -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
+endif()
 if(NOT EXISTS "${IW3_REAL_HEADER_ROOT}/pool_allocator.h")
     message(FATAL_ERROR "Authentic original IW3 pool declarations required")
 endif()
@@ -133,6 +154,7 @@ add_library(iw3_sp_math SHARED
     "${IW3_ENGINE_SOURCE_ROOT}/universal/com_files_state.cpp"
     "${IW3_EXTRACTED_FS_READ}"
     "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_fs_read_io.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_fs_startup_io.cpp"
     "${IW3_EXTRACTED_MATH}"
     "${IW3_EXTRACTED_SURFACE}"
     "${IW3_EXTRACTED_CONSTANTS}"
