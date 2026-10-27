@@ -33,6 +33,8 @@ REQUIRED = (
     "if (c1 == '\\\\' || c1 == ':')",
     "if (*s == 92 || *s == 58)",
     "isalpha(static_cast<unsigned char>(pszIwdFileName[iCurrChar]))",
+    "char szIwdLanguageName[2][64];",
+    "int iString = 0;",
 )
 FORBIDDEN = (
     "letter = tolower(fname[i]);",
@@ -50,7 +52,14 @@ def prepare(engine: Path, output: Path) -> dict:
     for signature, path in FUNCTIONS:
         body = function_source(raw[path].decode("utf-8"), signature)
         bodies.append(body)
-    rendered = HEADER + "\n\n".join(bodies) + "\n"
+    language_state = (
+        "char szIwdLanguageName[2][64];",
+        "int iString = 0;",
+    )
+    for declaration in language_state:
+        if declaration not in source_text[FILES]:
+            raise ValueError("Original IWD language sort state missing: " + declaration)
+    rendered = HEADER + "\n".join(language_state) + "\n\n" + "\n\n".join(bodies) + "\n"
     for marker in REQUIRED:
         if marker not in rendered:
             raise ValueError("Original IW3 IWD filename algorithm changed: " + marker)
@@ -70,6 +79,7 @@ def prepare(engine: Path, output: Path) -> dict:
         "iwd_filename_hash_and_compare_ported": True,
         "iwd_filename_hash_high_bit_safe": True,
         "iwd_language_sort_key_high_bit_safe": True,
+        "iwd_language_sort_state_staged_from_original": True,
         "iwd_zip_archive_mount_ported": False,
         "fastfile_map_loading_ported": False,
         "gameplay_proven": False,

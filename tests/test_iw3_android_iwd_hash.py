@@ -61,6 +61,9 @@ class OriginalIwdHashPortabilityTests(unittest.TestCase):
             self.assertNotIn("isalpha(pszIwdFileName[iCurrChar])", staged)
             self.assertTrue(report["iwd_filename_hash_high_bit_safe"])
             self.assertTrue(report["iwd_language_sort_key_high_bit_safe"])
+            self.assertTrue(report["iwd_language_sort_state_staged_from_original"])
+            self.assertIn("char szIwdLanguageName[2][64];", staged)
+            self.assertIn("int iString = 0;", staged)
             self.assertFalse(report["fastfile_map_loading_ported"])
             self.assertFalse(report["playable_apk"])
 
