@@ -29,6 +29,7 @@ class OriginalDvarAndroidCompileTests(unittest.TestCase):
 
         compat = ANDROID_COMPAT.read_text(encoding="utf-8")
         self.assertIn("void NET_Sleep(int msec);", compat)
+        self.assertIn("#define CLAMP(x, low, high)", compat)
         self.assertIn("bool __cdecl Vec4Compare(const float *a, const float *b);", compat)
         self.assertIn("Dvar_RegisterVariant", source)
         self.assertIn("Dvar_RegisterNew", source)
