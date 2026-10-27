@@ -31,6 +31,10 @@ int main() {
     assert(fd >= 0);
     assert(write(fd, "IW3", 3) == 3);
     close(fd);
+    const std::string empty_path = std::string(root) + "/empty.txt";
+    const int empty_fd = open(empty_path.c_str(), O_WRONLY | O_CREAT | O_EXCL, 0600);
+    assert(empty_fd >= 0);
+    close(empty_fd);
     assert(z2026_platform_set_data_root(root) == 0);
     char copied_root[1024]{};
     assert(z2026_platform_copy_data_root(copied_root, sizeof(copied_root)) ==
@@ -44,6 +48,10 @@ int main() {
     unsigned char buffer[4]{};
     assert(z2026_platform_read_file("sample.txt", buffer, sizeof(buffer)) == 3);
     assert(std::memcmp(buffer, "IW3", 3) == 0);
+    // A null output is valid only for a zero-capacity existence/empty-file probe.
+    assert(z2026_platform_read_file("empty.txt", nullptr, 0) == 0);
+    assert(z2026_platform_read_file("sample.txt", nullptr, 0) == -1);
+    assert(z2026_platform_read_file("sample.txt", nullptr, 1) == -1);
     assert(z2026_platform_read_file("../sample.txt", buffer, sizeof(buffer)) == -1);
     assert(z2026_platform_read_file("/etc/passwd", buffer, sizeof(buffer)) == -1);
     assert(z2026_platform_read_file("sample.txt/..", buffer, sizeof(buffer)) == -1);
