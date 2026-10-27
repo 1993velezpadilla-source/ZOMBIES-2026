@@ -18,7 +18,6 @@ typedef int BOOL;
 #include <qcommon/threads.h>
 #include <stringed/stringed_hooks.h>
 #include <qcommon/unzip.h>
-#include <qcommon/com_bsp.h>
 #include <qcommon/cmd.h>
 #include <qcommon/files.h>
 #ifdef WIN32
