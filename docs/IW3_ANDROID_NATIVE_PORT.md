@@ -330,3 +330,17 @@ The regression calls `FS_AddLocalizedGameDirectory("/private/iw3", "main")` whil
 - Engine fix [f274d41](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/f274d41554e54f6bbcf5f3ace6f0f6375e34e5d1); host harness [521296b](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/521296bc6c6df2814a8572072e289e945cf7e4a6); CMake test registration [b8832fa](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/b8832fa9c8b94bfcb6ed0d73047442177b00ee60).
 
 The native harness does not call `FS_Startup` or mount real game archives. The real dvar registry and full filesystem service graph are still not linked into Android; licensed FastFile/map loading, original renderer output, client input loop, weapon/actor gameplay, and physical ARM64 execution remain unproven. Keep PR #4 open and unmerged.
+
+
+### Phase AG — preserve the original 1024-entry IWD scan cap semantics (27 Oct 2026; CI pending)
+
+A source-to-adapter comparison found a real behavior mismatch in Android IWD discovery. The original `FS_AddIwdFilesForGameDirectory` caps the `Sys_ListFiles` result at 1024 entries **before** sorting the retained entries. The Android platform adapter instead used a max-heap to choose the lexicographically smallest 1024 names from the whole directory. That could mount a different set of archives than the original engine's cap behavior on the same native directory enumeration.
+
+The adapter now retains only the first 1024 valid `.iwd` names in native `readdir` order while continuing to count every eligible archive. It returns that bounded prefix without sorting it; the unchanged original engine function then applies its existing sort to exactly the retained entries. Memory remains bounded by 1024 names, and the original overflow warning/cap path still sees that more than 1024 archives exist.
+
+- Platform correction: [d788c9c](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/d788c9c4b18ced55c3493ac73748d40255b7277f).
+- Regression harness: [01160c6](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/01160c6e9f1856482e577a6c8e3a0239628c4509). The native test creates 1030 IWD fixtures, captures the filesystem's actual `readdir` prefix, checks the adapter returns precisely that first 1024-entry prefix, verifies the total count remains 1030, and retains the undersized-output fail-closed case.
+
+**Validation status:** the preceding HEAD `0a06d27` had green source-preflight, native ARM64, JNI diagnostic and Android x86_64 emulator runs ([40455246401](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40455246401), [40455246410](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40455246410), [40455246471](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40455246471)). Those results predate this fix and do not validate the new head; CI for the new commits must finish before this phase is marked green.
+
+This corrects archive selection semantics but does not complete the filesystem runtime. `FS_Startup`/`FS_InitFilesystem` are still not invoked by the Android JNI app; no licensed FastFile or real map is loaded, no original renderer scene or weapon/actor gameplay is proven, and no physical ARM64 gameplay has been observed. The JNI APK remains diagnostic only. Keep PR #4 open and unmerged.
