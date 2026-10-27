@@ -1732,7 +1732,6 @@ int __cdecl Sys_DirectoryHasContents(const char *directory)
 
 void __cdecl FS_AddGameDirectory(char *path, char *dir, int bLanguageDirectory, int iLanguage)
 {
-    uint32_t *v4; // eax
     int v5; // eax
     const char *v6; // [esp+10h] [ebp-15Ch]
     char ospath[260]; // [esp+14h] [ebp-158h] BYREF
@@ -1791,8 +1790,10 @@ void __cdecl FS_AddGameDirectory(char *path, char *dir, int bLanguageDirectory, 
         I_strncpyz(fs_gamedir, szGameFolder, 256);
     }
     search = (searchpath_s *)Z_Malloc(sizeof(searchpath_s), "FS_AddGameDirectory", 3);
-    v4 = (uint32_t*)Z_Malloc(512, "FS_AddGameDirectory", 3);
-    search->dir = (directory_t *)v4;
+    // Allocate by the native engine type, not a decompiler-era byte constant.
+    // directory_t currently contains two 256-byte paths, but sizeof keeps this
+    // correct if its layout changes and avoids an x86-specific allocation size.
+    search->dir = (directory_t *)Z_Malloc(sizeof(directory_t), "FS_AddGameDirectory", 3);
     I_strncpyz(search->dir->path, path, 256);
     I_strncpyz(search->dir->gamedir, szGameFolder, 256);
     if (!bLanguageDirectory && iLanguage)
