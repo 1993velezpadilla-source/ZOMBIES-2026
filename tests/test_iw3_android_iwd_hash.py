@@ -21,7 +21,7 @@ class OriginalIwdHashPortabilityTests(unittest.TestCase):
         self.assertIn("tolower(static_cast<unsigned char>(fname[i]))", body)
         self.assertNotIn("tolower(fname[i])", body)
         self.assertIn("letter = tolower(static_cast<unsigned char>(fname[i]));", REQUIRED)
-        self.assertIn("tolower(fname[i])", FORBIDDEN)
+        self.assertIn("letter = tolower(fname[i]);", FORBIDDEN)
 
         native = (ROOT / "android/iw3-native/iwd_names_native_test.cpp").read_text(
             encoding="utf-8"
