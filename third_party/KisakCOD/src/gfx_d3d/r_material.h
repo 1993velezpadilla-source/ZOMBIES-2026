@@ -1,6 +1,10 @@
 #pragma once
 
+#if defined(__ANDROID__)
+#include "r_d3d9_opaque.h"
+#else
 #include <d3d9.h>
+#endif
 
 #include "r_gfx.h"
 
