@@ -18,8 +18,10 @@ except ModuleNotFoundError:
     from prepare_g_runframe_prereqs import function_source
 
 SOURCE = Path("src/universal/dvar.cpp")
+DVAR_REGISTER_VARIANT = ("const dvar_s *__cdecl Dvar_RegisterVariant(\n    const char *dvarName,\n    uint8_t type,\n    uint16_t flags,\n    DvarValue value,\n    DvarLimits domain,\n    const char *description)")
 
 FUNCTIONS = (
+    DVAR_REGISTER_VARIANT,
     "const char *__cdecl Dvar_EnumToString(const dvar_s *dvar)",
     "const char *__cdecl Dvar_IndexStringToEnumString(const dvar_s *dvar, const char *indexString)",
     "const char *__cdecl Dvar_ValueToString(const dvar_s *dvar, DvarValue value)",
@@ -72,6 +74,9 @@ SMOKE_FUNCTIONS = (
 )
 
 REQUIRED = (
+    "dvar = Dvar_FindMalleableVar(dvarName);",
+    "return Dvar_RegisterNew(dvarName, type, flags, value, domain, description);",
+    "Dvar_Reregister(dvar, dvarName, type, flags, value, domain, description);",
     "v5.string = value;",
     "value->string = CopyString(string);",
     "value->string = string;",
@@ -105,7 +110,13 @@ FORBIDDEN = (
 
 def _render(source: str, signatures: tuple[str, ...]) -> str:
     bodies = [function_source(source, signature) for signature in signatures]
-    return '#include "iw3_android_dvar_pointer_compat.h"\n\n' + "\n\n".join(bodies) + "\n"
+    return (
+        '#include "iw3_android_dvar_pointer_compat.h"\n\n'
+        # Dvar_FindMalleableVar is private in upstream dvar.cpp; this external
+        # declaration deliberately exposes the unresolved cross-TU dependency.
+        'dvar_s *__cdecl Dvar_FindMalleableVar(const char *dvarName);\n\n'
+        + "\n\n".join(bodies) + "\n"
+    )
 
 
 def prepare(engine: Path, output: Path, smoke_output: Path, report_path: Path) -> dict:
@@ -145,6 +156,8 @@ def prepare(engine: Path, output: Path, smoke_output: Path, report_path: Path) -
             for signature in FUNCTIONS
         },
         "authentic_kisakcod_function_bodies_extracted": True,
+        "dvar_register_variant_body_staged_verbatim": DVAR_REGISTER_VARIANT in FUNCTIONS,
+        "dvar_register_variant_dependencies_unresolved": ["Dvar_FindMalleableVar", "Dvar_RegisterNew", "Dvar_Reregister"],
         "string_values_use_native_pointer_union_member": True,
         "enum_tables_use_native_pointer_member_and_indexing": True,
         "domain_callbacks_use_declared_DvarValue_by_value_abi": True,
