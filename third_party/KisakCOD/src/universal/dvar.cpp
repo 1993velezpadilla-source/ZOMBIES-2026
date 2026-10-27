@@ -318,7 +318,7 @@ const char *__cdecl Dvar_EnumToString(const dvar_s *dvar)
             "%s\n\t(dvar->name) = %s",
             "(dvar->type == DVAR_TYPE_ENUM)",
             dvar->name);
-    if (!dvar->domain.integer.max)
+    if (!dvar->domain.enumeration.strings)
         MyAssertHandler(
             ".\\universal\\dvar.cpp",
             281,
@@ -338,7 +338,7 @@ const char *__cdecl Dvar_EnumToString(const dvar_s *dvar)
             dvar->current.integer);
     }
     if (dvar->domain.enumeration.stringCount)
-        return *(const char **)(dvar->domain.integer.max + 4 * dvar->current.integer);
+        return dvar->domain.enumeration.strings[dvar->current.integer];
     else
         return "";
 }
@@ -361,7 +361,7 @@ const char *__cdecl Dvar_IndexStringToEnumString(const dvar_s *dvar, const char 
             "%s\n\t(dvar->name) = %s",
             "(dvar->type == DVAR_TYPE_ENUM)",
             dvar->name);
-    if (!dvar->domain.integer.max)
+    if (!dvar->domain.enumeration.strings)
         MyAssertHandler(
             ".\\universal\\dvar.cpp",
             299,
@@ -381,7 +381,7 @@ const char *__cdecl Dvar_IndexStringToEnumString(const dvar_s *dvar, const char 
     }
     enumIndex = atoi(indexString);
     if (enumIndex >= 0 && enumIndex < dvar->domain.enumeration.stringCount)
-        return *(const char **)(dvar->domain.integer.max + 4 * enumIndex);
+        return dvar->domain.enumeration.strings[enumIndex];
     else
         return "";
 }
@@ -433,12 +433,12 @@ const char *__cdecl Dvar_ValueToString(const dvar_s *dvar, DvarValue value)
                 "(value.integer >= 0 && value.integer < dvar->domain.enumeration.stringCount || value.integer == 0)",
                 value.integer);
         if (dvar->domain.enumeration.stringCount)
-            result = *(const char **)(dvar->domain.integer.max + 4 * value.integer);
+            result = dvar->domain.enumeration.strings[value.integer];
         else
             result = "";
         break;
     case 7u:
-        if (!value.integer)
+        if (!value.string)
             MyAssertHandler(".\\universal\\dvar.cpp", 352, 0, "%s\n\t(dvar->name) = %s", "(value.string)", dvar->name);
         result = va("%s", value.string);
         break;
@@ -637,7 +637,7 @@ const char *__cdecl Dvar_DomainToString_Internal(
                     outBufferEnd - outBufferWalk,
                     "\n  %2i: %s",
                     stringIndex,
-                    *(const char **)(domain.integer.max + 4 * stringIndex));
+                    domain.enumeration.strings[stringIndex]);
                 if (charsWrittena < 0)
                     break;
                 if (outLineCount)
@@ -773,9 +773,9 @@ int __cdecl Dvar_ValuesEqual(uint8_t type, DvarValue val0, DvarValue val1)
         result = val0.integer == val1.integer;
         break;
     case 7u:
-        if (!val0.integer)
+        if (!val0.string)
             MyAssertHandler(".\\universal\\dvar.cpp", 853, 0, "%s", "val0.string");
-        if (!val1.integer)
+        if (!val1.string)
             MyAssertHandler(".\\universal\\dvar.cpp", 854, 0, "%s", "val1.string");
         result = strcmp(val0.string, val1.string) == 0;
         break;
@@ -883,7 +883,7 @@ void __cdecl Dvar_UpdateEnumDomain(dvar_s *dvar, const char **stringTable)
     }
     malleableDvar = dvar;
     dvar->domain.enumeration.stringCount = stringCount;
-    malleableDvar->domain.integer.max = (int)stringTable;
+    malleableDvar->domain.enumeration.strings = stringTable;
     v5 = *Dvar_ClampValueToDomain(&result, dvar->type, dvar->current, dvar->reset, dvar->domain);
     malleableDvar->current = v5;
     malleableDvar->latched = dvar->current;
@@ -1174,13 +1174,13 @@ void __cdecl Dvar_Shutdown()
         {
             if (Dvar_ShouldFreeCurrentString(dvar))
                 Dvar_FreeString(&dvar->current);
-            dvar->current.integer = 0;
+            dvar->current.string = nullptr;
             if (Dvar_ShouldFreeResetString(dvar))
                 Dvar_FreeString(&dvar->reset);
-            dvar->reset.integer = 0;
+            dvar->reset.string = nullptr;
             if (Dvar_ShouldFreeLatchedString(dvar))
                 Dvar_FreeString(&dvar->latched);
-            dvar->latched.integer = 0;
+            dvar->latched.string = nullptr;
         }
         if ((dvar->flags & 0x4000) != 0)
             Dvar_FreeNameString(dvar->name);
@@ -1200,29 +1200,29 @@ void __cdecl Dvar_FreeNameString(const char *name)
 
 bool __cdecl Dvar_ShouldFreeCurrentString(dvar_s *dvar)
 {
-    return dvar->current.integer
-        && dvar->current.integer != dvar->latched.integer
-        && dvar->current.integer != dvar->reset.integer;
+    return dvar->current.string
+        && dvar->current.string != dvar->latched.string
+        && dvar->current.string != dvar->reset.string;
 }
 
 bool __cdecl Dvar_ShouldFreeLatchedString(dvar_s *dvar)
 {
-    return dvar->latched.integer
-        && dvar->latched.integer != dvar->current.integer
-        && dvar->latched.integer != dvar->reset.integer;
+    return dvar->latched.string
+        && dvar->latched.string != dvar->current.string
+        && dvar->latched.string != dvar->reset.string;
 }
 
 bool __cdecl Dvar_ShouldFreeResetString(dvar_s *dvar)
 {
-    return dvar->reset.integer
-        && dvar->reset.integer != dvar->current.integer
-        && dvar->reset.integer != dvar->latched.integer;
+    return dvar->reset.string
+        && dvar->reset.string != dvar->current.string
+        && dvar->reset.string != dvar->latched.string;
 }
 
 void __cdecl Dvar_FreeString(DvarValue *value)
 {
     FreeString(value->string);
-    value->integer = 0;
+    value->string = nullptr;
 }
 
 void __cdecl Dvar_ChangeResetValue(dvar_s *dvar, DvarValue value)
@@ -1265,13 +1265,13 @@ void __cdecl Dvar_UpdateResetValue(dvar_s *dvar, DvarValue value)
         dvar->reset = value;
         break;
     case DVAR_TYPE_STRING:
-        if (dvar->reset.integer != value.integer)
+        if (dvar->reset.string != value.string)
         {
             shouldFree = Dvar_ShouldFreeResetString(dvar);
             if (shouldFree)
-                oldString.integer = dvar->reset.integer;
-            Dvar_AssignResetStringValue(dvar, &resetString, (char *)value.integer);
-            dvar->reset.integer = resetString.integer;
+                oldString.string = dvar->reset.string;
+            Dvar_AssignResetStringValue(dvar, &resetString, (char *)value.string);
+            dvar->reset.string = resetString.string;
             if (shouldFree)
                 Dvar_FreeString(&oldString);
         }
@@ -1286,11 +1286,11 @@ void __cdecl Dvar_AssignResetStringValue(dvar_s *dvar, DvarValue *dest, const ch
 {
     if (!string)
         MyAssertHandler(".\\universal\\dvar.cpp", 266, 0, "%s", "string");
-    if (dvar->current.integer && (string == (char *)dvar->current.integer || !strcmp(string, dvar->current.string)))
+    if (dvar->current.string && (string == dvar->current.string || !strcmp(string, dvar->current.string)))
     {
         Dvar_WeakCopyString(dvar->current.string, dest);
     }
-    else if (dvar->latched.integer && (string == (char *)dvar->latched.integer || !strcmp(string, dvar->latched.string)))
+    else if (dvar->latched.string && (string == dvar->latched.string || !strcmp(string, dvar->latched.string)))
     {
         Dvar_WeakCopyString(dvar->latched.string, dest);
     }
@@ -1304,14 +1304,14 @@ void __cdecl Dvar_CopyString(const char *string, DvarValue *value)
 {
     if (!string)
         MyAssertHandler(".\\universal\\dvar.cpp", 203, 0, "%s", "string");
-    value->integer = (int)CopyString(string);
+    value->string = CopyString(string);
 }
 
 void __cdecl Dvar_WeakCopyString(const char *string, DvarValue *value)
 {
     if (!string)
         MyAssertHandler(".\\universal\\dvar.cpp", 210, 0, "%s", "string");
-    value->integer = (int)string;
+    value->string = string;
 }
 
 void __cdecl Dvar_MakeLatchedValueCurrent(dvar_s *dvar)
@@ -1358,13 +1358,7 @@ void __cdecl Dvar_SetVariant(dvar_s *dvar, DvarValue value, DvarSetSource source
         }
         return;
     }
-    if (dvar->domainFunc
-        && !((uint8_t(__cdecl *)(dvar_s *, int, uint32_t, uint32_t, uint32_t))dvar->domainFunc)(
-            dvar,
-            value.integer,
-            LODWORD(value.vector[1]),
-            LODWORD(value.vector[2]),
-            LODWORD(value.vector[3])))
+    if (dvar->domainFunc && !dvar->domainFunc(dvar, value))
     {
         v8 = dvar->name;
         v6 = Dvar_ValueToString(dvar, value);
@@ -1431,9 +1425,9 @@ void __cdecl Dvar_SetVariant(dvar_s *dvar, DvarValue value, DvarSetSource source
         case 7u:
             if (!dvar->name)
                 MyAssertHandler(".\\universal\\dvar.cpp", 1020, 0, "%s", "dvar->name");
-            if (value.integer == dvar->current.integer
-                && value.integer != dvar->latched.integer
-                && value.integer != dvar->reset.integer)
+            if (value.string == dvar->current.string
+                && value.string != dvar->latched.string
+                && value.string != dvar->reset.string)
             {
                 MyAssertHandler(
                     ".\\universal\\dvar.cpp",
@@ -1445,12 +1439,12 @@ void __cdecl Dvar_SetVariant(dvar_s *dvar, DvarValue value, DvarSetSource source
             }
             shouldFreeString = Dvar_ShouldFreeCurrentString(dvar);
             if (shouldFreeString)
-                oldString.integer = dvar->current.integer;
+                oldString.string = dvar->current.string;
             Dvar_AssignCurrentStringValue(dvar, &currentString, (char*)value.string);
-            dvar->current.integer = currentString.integer;
+            dvar->current.string = currentString.string;
             if (Dvar_ShouldFreeLatchedString(dvar))
                 Dvar_FreeString(&dvar->latched);
-            dvar->latched.integer = 0;
+            dvar->latched.string = nullptr;
             Dvar_WeakCopyString(dvar->current.string, &dvar->latched);
             if (shouldFreeString)
                 Dvar_FreeString(&oldString);
@@ -1468,11 +1462,11 @@ void __cdecl Dvar_AssignCurrentStringValue(dvar_s *dvar, DvarValue *dest, char *
 {
     if (!string)
         MyAssertHandler(".\\universal\\dvar.cpp", 242, 0, "%s", "string");
-    if (dvar->latched.integer && (string == (char *)dvar->latched.integer || !strcmp(string, dvar->latched.string)))
+    if (dvar->latched.string && (string == dvar->latched.string || !strcmp(string, dvar->latched.string)))
     {
         Dvar_WeakCopyString(dvar->latched.string, dest);
     }
-    else if (dvar->reset.integer && (string == (char *)dvar->reset.integer || !strcmp(string, dvar->reset.string)))
+    else if (dvar->reset.string && (string == dvar->reset.string || !strcmp(string, dvar->reset.string)))
     {
         Dvar_WeakCopyString(dvar->reset.string, dest);
     }
@@ -1503,13 +1497,13 @@ void __cdecl Dvar_SetLatchedValue(dvar_s *dvar, DvarValue value)
         dvar->latched = value;
         break;
     case 7u:
-        if (dvar->latched.integer != value.integer)
+        if (dvar->latched.string != value.string)
         {
             shouldFree = Dvar_ShouldFreeLatchedString(dvar);
             if (shouldFree)
-                oldString.integer = dvar->latched.integer;
+                oldString.string = dvar->latched.string;
             Dvar_AssignLatchedStringValue(dvar, &latchedString, (char*)value.string);
-            dvar->latched.integer = latchedString.integer;
+            dvar->latched.string = latchedString.string;
             if (shouldFree)
                 Dvar_FreeString(&oldString);
         }
@@ -1524,11 +1518,11 @@ void __cdecl Dvar_AssignLatchedStringValue(dvar_s *dvar, DvarValue *dest, char *
 {
     if (!string)
         MyAssertHandler(".\\universal\\dvar.cpp", 254, 0, "%s", "string");
-    if (dvar->current.integer && (string == (char *)dvar->current.integer || !strcmp(string, dvar->current.string)))
+    if (dvar->current.string && (string == dvar->current.string || !strcmp(string, dvar->current.string)))
     {
         Dvar_WeakCopyString(dvar->current.string, dest);
     }
-    else if (dvar->reset.integer && (string == (char *)dvar->reset.integer || !strcmp(string, dvar->reset.string)))
+    else if (dvar->reset.string && (string == dvar->reset.string || !strcmp(string, dvar->reset.string)))
     {
         Dvar_WeakCopyString(dvar->reset.string, dest);
     }
@@ -1659,14 +1653,14 @@ void __cdecl Dvar_PerformUnregistration(dvar_s *dvar)
         Dvar_CopyString(v1, &dvar->current);
         if (Dvar_ShouldFreeLatchedString(dvar))
             Dvar_FreeString(&dvar->latched);
-        dvar->latched.integer = 0;
+        dvar->latched.string = nullptr;
         Dvar_WeakCopyString(dvar->current.string, &dvar->latched);
         if (Dvar_ShouldFreeResetString(dvar))
             Dvar_FreeString(&dvar->reset);
-        dvar->reset.integer = 0;
+        dvar->reset.string = nullptr;
         v2 = Dvar_DisplayableResetValue(dvar);
         Dvar_AssignResetStringValue(dvar, &resetString, v2);
-        dvar->reset.integer = resetString.integer;
+        dvar->reset.string = resetString.string;
         dvar->type = DVAR_TYPE_STRING;
     }
 }
@@ -1825,19 +1819,19 @@ void __cdecl Dvar_MakeExplicitType(
         v8 = *Dvar_ClampValueToDomain(&v7, type, v10, resetValue, domain);
         castValue = v8;
     }
-    v6 = dvar->type == DVAR_TYPE_STRING && castValue.integer;
+    v6 = dvar->type == DVAR_TYPE_STRING && castValue.string;
     wasString = v6;
     if (v6)
-        castValue.integer = (int)CopyString((char *)castValue.integer);
+        castValue.string = CopyString((char *)castValue.string);
     if (dvar->type != DVAR_TYPE_STRING && Dvar_ShouldFreeCurrentString(dvar))
         Dvar_FreeString(&dvar->current);
-    dvar->current.integer = 0;
+    dvar->current.string = nullptr;
     if (Dvar_ShouldFreeLatchedString(dvar))
         Dvar_FreeString(&dvar->latched);
-    dvar->latched.integer = 0;
+    dvar->latched.string = nullptr;
     if (Dvar_ShouldFreeResetString(dvar))
         Dvar_FreeString(&dvar->reset);
-    dvar->reset.integer = 0;
+    dvar->reset.string = nullptr;
     Dvar_UpdateResetValue(dvar, resetValue);
     Dvar_UpdateValue(dvar, castValue);
     dvar_modifiedFlags |= flags;
@@ -1876,7 +1870,7 @@ DvarValue *__cdecl Dvar_StringToValue(DvarValue *result, uint8_t type, DvarLimit
         value.integer = Dvar_StringToEnum(&domain, string);
         break;
     case 7u:
-        value.integer = (int)string;
+        value.string = string;
         break;
     case 8u:
         Dvar_StringToColor(string, (uint8_t *)&value);
@@ -1941,7 +1935,7 @@ int __cdecl Dvar_StringToEnum(const DvarLimits *domain, const char *string)
         MyAssertHandler(".\\universal\\dvar.cpp", 421, 0, "%s", "string");
     for (stringIndex = 0; stringIndex < domain->enumeration.stringCount; ++stringIndex)
     {
-        if (!I_stricmp(string, *(const char **)(domain->integer.max + 4 * stringIndex)))
+        if (!I_stricmp(string, domain->enumeration.strings[stringIndex]))
             return stringIndex;
     }
     stringIndexa = 0;
@@ -1956,7 +1950,7 @@ int __cdecl Dvar_StringToEnum(const DvarLimits *domain, const char *string)
     v3 = strlen(string);
     for (stringIndexb = 0; stringIndexb < domain->enumeration.stringCount; ++stringIndexb)
     {
-        if (!I_strnicmp(string, *(const char **)(domain->integer.max + 4 * stringIndexb), v3))
+        if (!I_strnicmp(string, domain->enumeration.strings[stringIndexb], v3))
             return stringIndexb;
     }
     return -1337;
@@ -1991,16 +1985,16 @@ void __cdecl Dvar_UpdateValue(dvar_s *dvar, DvarValue value)
         dvar->latched = value;
         break;
     case 7u:
-        if (value.integer != dvar->current.integer)
+        if (value.string != dvar->current.string)
         {
             shouldFree = Dvar_ShouldFreeCurrentString(dvar);
             if (shouldFree)
-                oldString.integer = dvar->current.integer;
-            Dvar_AssignCurrentStringValue(dvar, &currentString, (char *)value.integer);
-            dvar->current.integer = currentString.integer;
+                oldString.string = dvar->current.string;
+            Dvar_AssignCurrentStringValue(dvar, &currentString, (char *)value.string);
+            dvar->current.string = currentString.string;
             if (Dvar_ShouldFreeLatchedString(dvar))
                 Dvar_FreeString(&dvar->latched);
-            dvar->latched.integer = 0;
+            dvar->latched.string = nullptr;
             Dvar_WeakCopyString(dvar->current.string, &dvar->latched);
             if (shouldFree)
                 Dvar_FreeString(&oldString);
@@ -2183,7 +2177,7 @@ const dvar_s *__cdecl Dvar_RegisterString(
             "%s\n\t(dvarName) = %s",
             "((flags & (1 << 14)) || CanKeepStringPointer( value ))",
             dvarName);
-    v5.integer = (int)value;
+    v5.string = value;
     return Dvar_RegisterVariant(dvarName, DVAR_TYPE_STRING, flags, v5, 0, description);
 }
 
@@ -2202,7 +2196,7 @@ const dvar_s *__cdecl Dvar_RegisterEnum(
     if (!valueList)
         MyAssertHandler(".\\universal\\dvar.cpp", 1767, 0, "%s", "valueList");
     dvarValue.integer = defaultIndex;
-    dvarDomain.integer.max = (int)valueList;
+    dvarDomain.enumeration.strings = valueList;
     for (dvarDomain.enumeration.stringCount = 0;
         valueList[dvarDomain.enumeration.stringCount];
         ++dvarDomain.enumeration.stringCount)
@@ -2320,7 +2314,7 @@ void __cdecl Dvar_SetBoolFromSource(dvar_s *dvar, bool value, DvarSetSource sour
             v3 = "1";
         else
             v3 = "0";
-        newValue.integer = (int)v3;
+        newValue.string = v3;
     }
     else
     {
@@ -2353,7 +2347,7 @@ void __cdecl Dvar_SetIntFromSource(dvar_s *dvar, int value, DvarSetSource source
     else
     {
         Com_sprintf(string, 0x20u, "%i", value);
-        newValue.integer = (int)string;
+        newValue.string = string;
     }
     Dvar_SetVariant(dvar, newValue, source);
 }
@@ -2382,7 +2376,7 @@ void __cdecl Dvar_SetFloatFromSource(dvar_s *dvar, float value, DvarSetSource so
     else
     {
         Com_sprintf(string, 0x20u, "%g", value);
-        newValue.integer = (int)string;
+        newValue.string = string;
     }
     Dvar_SetVariant(dvar, newValue, source);
 }
@@ -2412,7 +2406,7 @@ void __cdecl Dvar_SetVec2FromSource(dvar_s *dvar, float x, float y, DvarSetSourc
     else
     {
         Com_sprintf(string, 0x40u, "%g %g", x, y);
-        newValue.integer = (int)string;
+        newValue.string = string;
     }
     Dvar_SetVariant(dvar, newValue, source);
 }
@@ -2443,7 +2437,7 @@ void __cdecl Dvar_SetVec3FromSource(dvar_s *dvar, float x, float y, float z, Dva
     else
     {
         Com_sprintf(string, 0x60u, "%g %g %g", x, y, z);
-        newValue.integer = (int)string;
+        newValue.string = string;
     }
     Dvar_SetVariant(dvar, newValue, source);
 }
@@ -2475,7 +2469,7 @@ void __cdecl Dvar_SetVec4FromSource(dvar_s *dvar, float x, float y, float z, flo
     else
     {
         Com_sprintf(string, 0x80u, "%g %g %g %g", x, y, z, w);
-        newValue.integer = (int)string;
+        newValue.string = string;
     }
     Dvar_SetVariant(dvar, newValue, source);
 }
@@ -2506,7 +2500,7 @@ void __cdecl Dvar_SetColorFromSource(dvar_s *dvar, float r, float g, float b, fl
     else
     {
         Com_sprintf(string, 0x80u, "%g %g %g %g", r, g, b, a);
-        newValue.integer = (int)string;
+        newValue.string = string;
     }
     Dvar_SetVariant(dvar, newValue, source);
 }
@@ -2550,7 +2544,7 @@ void __cdecl Dvar_SetStringFromSource(dvar_s *dvar, char *string, DvarSetSource 
     if (dvar->type == DVAR_TYPE_STRING)
     {
         I_strncpyz(stringCopy, string, 1024);
-        newValue.integer = (int)stringCopy;
+        newValue.string = stringCopy;
     }
     else
     {
@@ -2563,7 +2557,7 @@ void __cdecl Dvar_SetStringFromSource(dvar_s *dvar, char *string, DvarSetSource 
     }
     Dvar_SetVariant(dvar, newValue, source);
 
-    iassert(dvar->current.value != (int)stringCopy); // LWSS ADD
+    iassert(dvar->current.string != stringCopy); // The setter must copy the stack buffer.
 }
 
 void __cdecl Dvar_SetColor(dvar_s *dvar, float r, float g, float b, float a)
@@ -2717,12 +2711,7 @@ void __cdecl Dvar_SetDomainFunc(dvar_s *dvar, bool(__cdecl *customFunc)(dvar_s *
     dvar->domainFunc = customFunc;
     if (customFunc)
     {
-        if (!((uint8_t(__cdecl *)(dvar_s *, int, uint32_t, uint32_t, uint32_t))dvar->domainFunc)(
-            dvar,
-            dvar->current.integer,
-            LODWORD(dvar->current.vector[1]),
-            LODWORD(dvar->current.vector[2]),
-            LODWORD(dvar->current.vector[3])))
+        if (!customFunc(dvar, dvar->current))
         {
             name = dvar->name;
             v2 = Dvar_ValueToString(dvar, dvar->current);
