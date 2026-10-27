@@ -109,6 +109,10 @@ jobs:
             --output "$RUNNER_TEMP/iw3-source/iw3_dvar_pointer_abi.cpp" \
             --smoke-output "$RUNNER_TEMP/iw3-source/iw3_dvar_pointer_smoke.cpp" \
             --report "$RUNNER_TEMP/iw3-original-dvar-pointer-abi.json"
+          python3 tools/iw3_android/prepare_real_engine_dvar_vec4.py \
+            --engine third_party/KisakCOD \
+            --output "$RUNNER_TEMP/iw3-source/iw3_dvar_vec4_compare.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-dvar-vec4.json"
           echo "IW3_ORIGINAL_FILE_READ_LIFECYCLE_STAGED_NOT_LINKED"
           echo "IW3_ORIGINAL_FS_READ_ABI_AUDIT_SOURCE_STAGED"
           echo "IW3_ACTUAL_SOURCE_USED_FROM_KISAKCOD"
@@ -135,6 +139,7 @@ jobs:
             -DIW3_EXTRACTED_FS_READ="$RUNNER_TEMP/iw3-source/iw3_fs_read.cpp" \
             -DIW3_EXTRACTED_FS_STARTUP="$RUNNER_TEMP/iw3-source/iw3_fs_startup.cpp" \
             -DIW3_EXTRACTED_DVAR_POINTER_ABI="$RUNNER_TEMP/iw3-source/iw3_dvar_pointer_abi.cpp" \
+            -DIW3_EXTRACTED_DVAR_VEC4_COMPARE="$RUNNER_TEMP/iw3-source/iw3_dvar_vec4_compare.cpp" \
             -DIW3_EXTRACTED_DVAR_POINTER_SMOKE="$RUNNER_TEMP/iw3-source/iw3_dvar_pointer_smoke.cpp" \
             -DIW3_EXTRACTED_FILTERED_FILES="$RUNNER_TEMP/iw3-source/iw3_filtered_files_location.cpp" \
             -DIW3_ENTITY_LOOP_INC="$RUNNER_TEMP/iw3-source/iw3_g_runframe_entity_loop.inc" \
@@ -196,6 +201,7 @@ jobs:
             -DIW3_EXTRACTED_FS_READ="$RUNNER_TEMP/iw3-source/iw3_fs_read.cpp" \
             -DIW3_EXTRACTED_FS_STARTUP="$RUNNER_TEMP/iw3-source/iw3_fs_startup.cpp" \
             -DIW3_EXTRACTED_DVAR_POINTER_ABI="$RUNNER_TEMP/iw3-source/iw3_dvar_pointer_abi.cpp" \
+            -DIW3_EXTRACTED_DVAR_VEC4_COMPARE="$RUNNER_TEMP/iw3-source/iw3_dvar_vec4_compare.cpp" \
             -DIW3_EXTRACTED_DVAR_POINTER_SMOKE="$RUNNER_TEMP/iw3-source/iw3_dvar_pointer_smoke.cpp" \
             -DIW3_EXTRACTED_FILTERED_FILES="$RUNNER_TEMP/iw3-source/iw3_filtered_files_location.cpp" \
             -DIW3_ENTITY_LOOP_INC="$RUNNER_TEMP/iw3-source/iw3_g_runframe_entity_loop.inc" \
@@ -286,9 +292,13 @@ jobs:
             echo "Android NET_Sleep provider failed to resolve the original dvar dependency" >&2
             exit 1
           fi
-          # This remains a dependency audit, not a complete dvar runtime link.
-          grep -F 'Vec4Compare' "$RUNNER_TEMP/iw3-full-dvar-unresolved.txt"
-          echo "IW3_ORIGINAL_DVAR_ANDROID_SLEEP_SERVICE_RESOLVED_REMAINING_ENGINE_SERVICES_VISIBLE"
+          if grep -F 'Vec4Compare' "$RUNNER_TEMP/iw3-full-dvar-unresolved.txt"; then
+            echo "Original Vec4Compare dependency should have been resolved from the extracted KisakCOD body" >&2
+            exit 1
+          fi
+          # Other engine services must remain visible: this is not a full runtime link.
+          grep -F 'Com_Printf' "$RUNNER_TEMP/iw3-full-dvar-unresolved.txt"
+          echo "IW3_ORIGINAL_DVAR_NET_SLEEP_AND_VEC4_COMPARE_RESOLVED_REMAINING_ENGINE_SERVICES_VISIBLE"
 
           so="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_math.so"
           test -s "$so"
