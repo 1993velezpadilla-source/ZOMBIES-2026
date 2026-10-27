@@ -16,6 +16,10 @@ using LONG = std::int32_t;
 void NET_Sleep(int msec);
 bool __cdecl Vec4Compare(const float *a, const float *b);
 
+#ifndef CLAMP
+#define CLAMP(x, low, high) ((x) < (low) ? (low) : ((x) > (high) ? (high) : (x)))
+#endif
+
 template <typename T>
 inline T InterlockedIncrement(volatile T *value) noexcept
 {
