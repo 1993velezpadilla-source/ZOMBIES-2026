@@ -1,7 +1,15 @@
 #pragma once
 
-#include <Windows.h> // literally just for some of the extern types at the bottom
-#include <gfx_d3d/rb_backend.h> // THREAD_CONTEXT_COUNT
+#include <qcommon/thread_context.h>
+#if defined(__ANDROID__)
+#include <cstdint>
+// The original declarations below only need Win32-compatible opaque types;
+// Android runtime services are provided by the POSIX platform boundary.
+using DWORD = std::uint32_t;
+using HANDLE = void *;
+#else
+#include <Windows.h>
+#endif
 
 enum ThreadOwner : __int32
 {                                       // ...
