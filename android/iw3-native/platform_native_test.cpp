@@ -130,6 +130,12 @@ int main() {
     }
     assert(many_offset == static_cast<std::size_t>(many_iwd_bytes));
     assert(returned_iwd_count == 1024);
+    char undersized_iwd_output[1]{};
+    std::size_t undersized_iwd_count = 99;
+    assert(z2026_platform_list_iwd_files(
+        "many-iwd", undersized_iwd_output, sizeof(undersized_iwd_output),
+        &undersized_iwd_count) == -1);
+    assert(undersized_iwd_count == 0);
     for (int i = 0; i < kManyIwdCount; ++i) {
         char name[40]{};
         assert(std::snprintf(name, sizeof(name), "archive-%04d.iwd", i) > 0);
