@@ -133,6 +133,10 @@ jobs:
             --engine third_party/KisakCOD \
             --output "$folder/iw3_fs_read.cpp" \
             --report "$RUNNER_TEMP/iw3-original-fs-read.json"
+          python3 tools/iw3_android/prepare_real_engine_fs_startup.py \
+            --engine third_party/KisakCOD \
+            --output "$folder/iw3_fs_startup.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-fs-startup.json"
           python3 tools/iw3_android/prepare_real_engine_iwd_read.py \
             --engine third_party/KisakCOD \
             --output "$folder/iw3_iwd_read_lifecycle.cpp" \
@@ -182,6 +186,7 @@ jobs:
             ${{ runner.temp }}/iw3-original-iwd-mount.json
             ${{ runner.temp }}/iw3-original-iwd-services.json
             ${{ runner.temp }}/iw3-original-fs-read.json
+            ${{ runner.temp }}/iw3-original-fs-startup.json
             ${{ runner.temp }}/iw3-original-iwd-read-lifecycle.json
           if-no-files-found: warn
           retention-days: 14

@@ -614,4 +614,20 @@ Implemented on the branch in this pass:
 - Added the provider to iw3_sp_full_dvar / libiw3_sp_dvar_android.a. The ARM64 audit now requires Com_Printf to be defined and absent from the unresolved list, while explicitly retaining __android_log_write as an external Android platform import.
 - This provider is scoped to the dvar dependency archive only. It is not a replacement for the original Com_PrintMessage, console, or logfile subsystem and is not linked into the JNI diagnostic APK.
 
-Validation for this new pass is pending; do not infer success from the previous run. The next CI must pass the new host CTest and the AArch64 relocatable-link assertion. Remaining original dvar dependencies and all full-runtime gates remain open: Com_PrintError, Com_PrintWarning, parser/string/memory/command/file services, full FS_Startup / FS_InitFilesystem execution, real IWD/FastFile/map loading, original rendering, touch-driven gameplay and physical ARM64 execution. PR #4 remains open and unmerged; this is not a playable APK.
+Validation of the provider at commit c4f8da5:
+- [ARM64 native source/ABI gate, run 40573527252](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40573527252) — PASS; host Release CTest 13/13, ASan/UBSan CTest 13/13, original dvar archive resolves Com_Printf while leaving the Android log import and other engine services visible.
+- [Source preflight, run 40573531783](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40573531783) — PASS, 106 Python regressions.
+- [JNI integration, run 40573531857](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40573531857) — FAIL, not because of Com_Printf: Gradle did not pass the now-required IW3_EXTRACTED_FS_STARTUP path, and the JNI workflow had not generated that source. This separate integration gap is fixed in Phase AT; validation of that fix is pending. Remaining original dvar dependencies and all full-runtime gates remain open: Com_PrintError, Com_PrintWarning, parser/string/memory/command/file services, full FS_Startup / FS_InitFilesystem execution, real IWD/FastFile/map loading, original rendering, touch-driven gameplay and physical ARM64 execution. PR #4 remains open and unmerged; this is not a playable APK.
+
+
+## Phase AT — wire original filesystem-startup source into both Android Gradle builds (2026-10-27)
+
+The first JNI integration attempt after Phase AS failed at CMake configuration, with the exact error that the original FS_RegisterDvars/FS_Startup/FS_InitFilesystem source was required. Inspection showed a real build-graph mismatch: the native ARM64 audit generated iw3_fs_startup.cpp and passed IW3_EXTRACTED_FS_STARTUP to CMake, but the Android app's Gradle arguments omitted that variable and both JNI workflows omitted the generator call. CMake now correctly fails closed rather than silently skipping the startup translation unit.
+
+Implemented:
+- android/iw3-native/android_app/app/build.gradle now passes IW3_EXTRACTED_FS_STARTUP using the same generated-source directory as the other original IW3 C++ inputs.
+- Both iw3-original-android-jni.yml and iw3-original-android-emulator-jni.yml run prepare_real_engine_fs_startup.py before Gradle configuration, writing iw3_fs_startup.cpp and an explicit provenance/dependency report.
+- Both workflow artifacts retain the new startup report for inspection.
+- tests/test_iw3_android_fs_startup_gradle.py checks that the generated source path matches between the generator, Gradle CMake argument and mandatory CMake gate.
+
+This is a build-graph correction that makes the JNI gate compile the original filesystem-startup source instead of failing before compilation. It does not call FS_Startup at runtime or mount licensed game data. The native source/ABI gate passed on c4f8da5; the new Gradle/workflow wiring is awaiting fresh CI. The JNI APK remains diagnostic only. No original renderer scene, real map/FastFile load, touch-driven combat, or physical ARM64 gameplay is proven; PR #4 remains open and unmerged.
