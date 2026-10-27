@@ -21,6 +21,8 @@ IW3_ANDROID_EXPORT int z2026_platform_set_data_root(const char *absolute_dir);
 // Returns the path length, or -1 when unconfigured/too small.
 IW3_ANDROID_EXPORT int z2026_platform_copy_data_root(
     char *destination, std::size_t capacity);
+// Calls the narrow Sys_Cwd/Sys_DefaultCDPath adapter used by original FS_RegisterDvars.
+IW3_ANDROID_EXPORT int z2026_iw3_fs_startup_path_smoke();
 IW3_ANDROID_EXPORT int z2026_platform_read_file(
     const char *relative_path, void *destination, std::size_t capacity);
 
