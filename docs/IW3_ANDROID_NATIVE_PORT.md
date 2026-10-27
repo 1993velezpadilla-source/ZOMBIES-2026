@@ -654,3 +654,21 @@ Validation for Phase AU is pending. This resolves one real startup dependency bu
 
 
 Phase AU CI correction: the first host build found that the diagnostic already had a Sys_DirectoryHasContents definition in iw3_android_iwd_directory_io.cpp. I removed that duplicate and centralized the rooted implementation in iw3_android_directory_has_contents.cpp, then wired that one source into both the startup archive and diagnostic library. The legacy FS-startup regression now asserts the centralized provider and that the IWD directory adapter no longer defines a second copy. Fresh CI is pending; the failed attempt is retained as evidence of the duplicate-symbol regression, not counted as a pass.
+
+
+## Phase AV — POSIX ABI fix for rooted FS startup directory service (2026-10-27)
+
+Reviewed PR #4 and the current Android source/CI before changing code. The latest ARM64 source run failed before reaching the NDK because the shared Android directory adapter used the Win32-only spelling `__cdecl` in a translation unit also compiled by the Linux host tests. The compiler reported `expected initializer before 'Sys_DirectoryHasContents'`.
+
+Implemented on `feature/iw3-native-android-arm64-20261025`:
+- `b6b69b7`: removed the Win32-only `__cdecl` annotation from `android/iw3-native/iw3_android_directory_has_contents.cpp`. Android and POSIX use the platform default C++ calling convention here; the original Windows-only implementation is unchanged.
+- `7df56bd`: updated the dedicated directory-adapter regression to require the POSIX declaration and reject a leaked `__cdecl` spelling.
+- `af75fa3`: fixed a second stale assertion in `tests/test_iw3_android_fs_startup.py` that still expected the removed annotation.
+
+Evidence/state at the latest check:
+- [Source preflight 40576935748](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40576935748) — PASS on `af75fa3`.
+- [Native Android ARM64 source/ABI gate 40576935679](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40576935679) — host Release build/CTest and ASan/UBSan build/CTest passed; Android NDK installation was still in progress, so the ARM64 compile/audit was not yet confirmed.
+- [JNI diagnostic integration 40576935823](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40576935823) — in progress; no APK result counted yet.
+- Earlier failures [40576763463](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40576763463) and [40575999258](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40575999258) are retained as regression evidence: first the old Python assertion rejected the intended ABI fix; then host compilation exposed the undefined `__cdecl` token. Neither is counted as a pass.
+
+This is a build portability correction only. `FS_Startup` and `FS_InitFilesystem` are still staged/compiled for dependency audit, not invoked by the app. The next runtime graph still has to resolve original IWD enumeration/mount, path, allocation, language, file-read and Dvar services before real game data can be mounted. No FastFile/map load, original renderer scene, touch-driven combat, or physical ARM64 gameplay is proven. The JNI APK remains diagnostic only; keep PR #4 open and unmerged.
