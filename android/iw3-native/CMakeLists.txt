@@ -55,7 +55,21 @@ if(NOT IW3_EXTRACTED_FS_READ OR NOT EXISTS "${IW3_EXTRACTED_FS_READ}")
     message(FATAL_ERROR "Verbatim original FS_Read source required for the 64-bit ABI compile gate")
 endif()
 
-# Compile the authentic filesystem startup functions as a separate dependency
+if(NOT EXISTS "${IW3_REAL_HEADER_ROOT}/pool_allocator.h")
+    message(FATAL_ERROR "Authentic original IW3 pool declarations required")
+endif()
+if(NOT EXISTS "${IW3_REAL_HEADER_ROOT}/com_constantconfigstrings.h")
+    message(FATAL_ERROR "Original engine config registry declarations required")
+endif()
+
+# Compile the complete ORIGINAL frame from its engine source module and
+# real state headers. This archive deliberately keeps unported service
+# references unresolved; it is not linked into the diagnostic APK.
+get_filename_component(IW3_ENGINE_SOURCE_ROOT "${IW3_REAL_HEADER_ROOT}/.." ABSOLUTE)
+if(NOT EXISTS "${IW3_ENGINE_SOURCE_ROOT}/game/g_runframe.cpp")
+    message(FATAL_ERROR "Complete original IW3 SP frame source required")
+endif()
+\n# Compile the authentic filesystem startup functions as a separate dependency
 # audit. They are not linked into the JNI diagnostic until the original dvar
 # registry and full engine service graph are available.
 if(IW3_EXTRACTED_FS_STARTUP)
@@ -74,20 +88,6 @@ if(IW3_EXTRACTED_FS_STARTUP)
     target_compile_definitions(iw3_sp_fs_startup PRIVATE KISAK_SP=1)
     target_compile_options(iw3_sp_fs_startup PRIVATE
         -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
-endif()
-if(NOT EXISTS "${IW3_REAL_HEADER_ROOT}/pool_allocator.h")
-    message(FATAL_ERROR "Authentic original IW3 pool declarations required")
-endif()
-if(NOT EXISTS "${IW3_REAL_HEADER_ROOT}/com_constantconfigstrings.h")
-    message(FATAL_ERROR "Original engine config registry declarations required")
-endif()
-
-# Compile the complete ORIGINAL frame from its engine source module and
-# real state headers. This archive deliberately keeps unported service
-# references unresolved; it is not linked into the diagnostic APK.
-get_filename_component(IW3_ENGINE_SOURCE_ROOT "${IW3_REAL_HEADER_ROOT}/.." ABSOLUTE)
-if(NOT EXISTS "${IW3_ENGINE_SOURCE_ROOT}/game/g_runframe.cpp")
-    message(FATAL_ERROR "Complete original IW3 SP frame source required")
 endif()
 add_library(iw3_sp_frame STATIC "${IW3_ENGINE_SOURCE_ROOT}/game/g_runframe.cpp")
 target_include_directories(iw3_sp_frame PRIVATE "${IW3_ENGINE_SOURCE_ROOT}")
