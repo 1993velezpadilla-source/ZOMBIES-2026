@@ -145,6 +145,24 @@ target_compile_definitions(iw3_sp_fs_read PRIVATE KISAK_SP=1)
 target_compile_options(iw3_sp_fs_read PRIVATE
     -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
 
+# Compile the corrected original dvar string/enum pointer paths and callback ABI
+# as an LP64 source audit. This archive is not linked into the JNI diagnostic.
+if(IW3_EXTRACTED_DVAR_POINTER_ABI)
+    if(NOT EXISTS "${IW3_EXTRACTED_DVAR_POINTER_ABI}")
+        message(FATAL_ERROR "Authentic corrected KisakCOD dvar pointer source required")
+    endif()
+    add_library(iw3_sp_dvar_pointer_abi STATIC "${IW3_EXTRACTED_DVAR_POINTER_ABI}")
+    target_include_directories(iw3_sp_dvar_pointer_abi PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+        "${IW3_REAL_HEADER_ROOT}"
+        "${IW3_ENGINE_SOURCE_ROOT}"
+        "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+        "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+    target_compile_definitions(iw3_sp_dvar_pointer_abi PRIVATE KISAK_SP=1)
+    target_compile_options(iw3_sp_dvar_pointer_abi PRIVATE
+        -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
+endif()
+
 # The diagnostic shared library compiles exact original handle allocator/open/
 # read/close bodies against the shared engine-owned native-width fsh table. The
 # IWD fixture opens one member twice to exercise the original unzReOpen clone
@@ -269,6 +287,23 @@ else()
     add_test(NAME iw3_portable_platform COMMAND iw3_platform_host_test)
     if(NOT IW3_ENTITY_LOOP_INC OR NOT EXISTS "${IW3_ENTITY_LOOP_INC}")
         message(FATAL_ERROR "Original G_RunFrame typed entity source extraction required for ABI fixture")
+    endif()
+    if(IW3_EXTRACTED_DVAR_POINTER_SMOKE)
+        if(NOT EXISTS "${IW3_EXTRACTED_DVAR_POINTER_SMOKE}")
+            message(FATAL_ERROR "Original dvar pointer smoke source required")
+        endif()
+        add_executable(iw3_dvar_pointer_native_test
+            "${CMAKE_CURRENT_SOURCE_DIR}/dvar_pointer_native_test.cpp"
+            "${IW3_EXTRACTED_DVAR_POINTER_SMOKE}")
+        target_include_directories(iw3_dvar_pointer_native_test PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}"
+            "${IW3_REAL_HEADER_ROOT}"
+            "${IW3_ENGINE_SOURCE_ROOT}"
+            "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+            "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+        target_compile_definitions(iw3_dvar_pointer_native_test PRIVATE KISAK_SP=1)
+        target_compile_options(iw3_dvar_pointer_native_test PRIVATE -UNDEBUG)
+        add_test(NAME iw3_original_dvar_pointer_width COMMAND iw3_dvar_pointer_native_test)
     endif()
     add_executable(iw3_real_frame_loop_abi_test
         "${CMAKE_CURRENT_SOURCE_DIR}/frame_loop_abi_test.cpp")
