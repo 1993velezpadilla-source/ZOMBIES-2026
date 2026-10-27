@@ -691,3 +691,26 @@ CI evidence:
 - The fresh ARM64 and JNI workflows for `d20c062` were queued at the latest check, so the new relocatable-link audit has not yet been confirmed. No result is inferred from pending runs.
 
 This phase fixes the evidence gate, not the runtime. The combined startup object must still report the original Dvar registration, IWD enumeration/mount, path, allocation, language and file-read services as unresolved. `FS_Startup`/ `FS_InitFilesystem` have not been invoked by the Android app; there is still no real FastFile/map load, original renderer scene, touch-driven weapon/actor gameplay, or physical ARM64 gameplay. Keep PR #4 open and unmerged.
+
+
+## Phase AX — native-width original FS_BuildOSPath for Android startup (2026-10-27)
+
+Reviewed the current PR head and CI before changing the filesystem startup slice. The combined AArch64 FS_Startup archive audit had shown FS_BuildOSPath/FS_BuildOSPathForThread as unresolved alongside the Dvar, IWD enumeration, allocator, language and file-read services.
+
+Implemented at code commit [6320e86](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/6320e86c44221ea128b947cbaab09646482f467b), with extraction/test corrections at [e7fa689](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/e7fa689246383a87c3d0abc7c0736dcc4d0fafbf):
+
+- Corrected the authentic FS_BuildOSPathForThread body in third_party/KisakCOD/src/universal/com_files.cpp: path component lengths now use bounded native size_t lengths instead of decompiled uint32_t temporaries. The 256-byte engine limit is checked without overflowing the sum.
+- Overlong paths preserve the original thread-specific contract (background/threaded calls clear the output; main-thread calls report ERR_FATAL). The output is also cleared if a test/platform fatal handler unexpectedly returns.
+- prepare_real_engine_fs_startup.py now extracts the original FS_ReplaceSeparators, FS_BuildOSPath, and FS_BuildOSPathForThread functions from the vendored engine source into the startup dependency-audit archive.
+- The host regression now executes those original path-builder functions, checks separator normalization, checks the 256-byte overflow behavior for backend and main-thread calls, and exercises the original localized directory insertion with the resulting OS path.
+- The ARM64 workflow requires all three path functions to be defined and rejects them from the combined startup object's unresolved-symbol list.
+
+Validation on HEAD e7fa689246383a87c3d0abc7c0736dcc4d0fafbf:
+
+- [Source preflight 40583644871](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40583644871) — PASS; 111 Python source/regression tests.
+- [Native Android ARM64 source/ABI 40583644880](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40583644880) — PASS; Release CTest 14/14 and ASan/UBSan CTest 14/14. The complete original com_files.cpp and dvar.cpp compile gates passed; the archive-level audit reports IW3_ORIGINAL_FS_BUILD_OS_PATH_AARCH64_RESOLVED and IW3_ORIGINAL_FS_STARTUP_AARCH64_RELOCATABLE_LINK_AUDIT_GREEN. Artifact [12769594094](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40583644880/artifacts/12769594094) contains native modules/audit reports only, NOT an APK.
+- [JNI ARM64 package 40583644708](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40583644708) — PASS; Gradle built, verified and signed the arm64-v8a diagnostic package. APK SHA-256: c89abe2d09b00a21046beabe90cf59df4888ae6ac2f40cdde07c51a9646ea442. Artifact [12770404005](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40583644708/artifacts/12770404005) is explicitly DIAGNOSTIC — NOT A PLAYABLE GAME.
+- Android emulator runtime run [40583634644](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40583634644) had compiled the x86_64 diagnostic and was still executing its emulator proof at the latest check; no result is claimed for that run here.
+- Earlier run [40583457156](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40583457156) failed in the new generator contract because it expected initializer syntax rather than the source's declaration-plus-assignment form. The marker was corrected in e7fa689; the succeeding preflight and ARM64 workflow passed. That failed attempt remains visible and is not counted as a pass.
+
+This resolves one real path-builder edge in the staged startup graph; it does not invoke FS_Startup/FS_InitFilesystem or mount game data. Remaining original startup dependencies include Dvar_RegisterInt/String/Bool, FS_AddIwdFilesForGameDirectory, Z_Malloc, SEH_GetLanguageName, FS_ReadFile, and SEH_InitLanguage. The next integration target is the original IWD directory scan/mount path and its rooted Android Sys_ListFiles service, followed by real FastFile/map loading, renderer integration, touch-to-usercmd_s consumption, and observed gameplay on physical ARM64. No playable APK, real map load, original renderer scene, or ARM64 combat is claimed; keep PR #4 open and unmerged.
