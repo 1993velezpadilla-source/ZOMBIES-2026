@@ -104,6 +104,11 @@ jobs:
             --engine third_party/KisakCOD \
             --output "$RUNNER_TEMP/iw3-source/iw3_filtered_files_location.cpp" \
             --report "$RUNNER_TEMP/iw3-original-filtered-files-location.json"
+          python3 tools/iw3_android/prepare_real_engine_dvar_pointer_abi.py \
+            --engine third_party/KisakCOD \
+            --output "$RUNNER_TEMP/iw3-source/iw3_dvar_pointer_abi.cpp" \
+            --smoke-output "$RUNNER_TEMP/iw3-source/iw3_dvar_pointer_smoke.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-dvar-pointer-abi.json"
           echo "IW3_ORIGINAL_FILE_READ_LIFECYCLE_STAGED_NOT_LINKED"
           echo "IW3_ORIGINAL_FS_READ_ABI_AUDIT_SOURCE_STAGED"
           echo "IW3_ACTUAL_SOURCE_USED_FROM_KISAKCOD"
@@ -129,6 +134,8 @@ jobs:
             -DIW3_EXTRACTED_IWD_LOOKUP="$RUNNER_TEMP/iw3-source/iw3_iwd_lookup.cpp" \
             -DIW3_EXTRACTED_FS_READ="$RUNNER_TEMP/iw3-source/iw3_fs_read.cpp" \
             -DIW3_EXTRACTED_FS_STARTUP="$RUNNER_TEMP/iw3-source/iw3_fs_startup.cpp" \
+            -DIW3_EXTRACTED_DVAR_POINTER_ABI="$RUNNER_TEMP/iw3-source/iw3_dvar_pointer_abi.cpp" \
+            -DIW3_EXTRACTED_DVAR_POINTER_SMOKE="$RUNNER_TEMP/iw3-source/iw3_dvar_pointer_smoke.cpp" \
             -DIW3_EXTRACTED_FILTERED_FILES="$RUNNER_TEMP/iw3-source/iw3_filtered_files_location.cpp" \
             -DIW3_ENTITY_LOOP_INC="$RUNNER_TEMP/iw3-source/iw3_g_runframe_entity_loop.inc" \
             -DIW3_REAL_HEADER_ROOT="$GITHUB_WORKSPACE/third_party/KisakCOD/src/universal"
@@ -188,6 +195,8 @@ jobs:
             -DIW3_EXTRACTED_IWD_LOOKUP="$RUNNER_TEMP/iw3-source/iw3_iwd_lookup.cpp" \
             -DIW3_EXTRACTED_FS_READ="$RUNNER_TEMP/iw3-source/iw3_fs_read.cpp" \
             -DIW3_EXTRACTED_FS_STARTUP="$RUNNER_TEMP/iw3-source/iw3_fs_startup.cpp" \
+            -DIW3_EXTRACTED_DVAR_POINTER_ABI="$RUNNER_TEMP/iw3-source/iw3_dvar_pointer_abi.cpp" \
+            -DIW3_EXTRACTED_DVAR_POINTER_SMOKE="$RUNNER_TEMP/iw3-source/iw3_dvar_pointer_smoke.cpp" \
             -DIW3_EXTRACTED_FILTERED_FILES="$RUNNER_TEMP/iw3-source/iw3_filtered_files_location.cpp" \
             -DIW3_ENTITY_LOOP_INC="$RUNNER_TEMP/iw3-source/iw3_g_runframe_entity_loop.inc" \
             -DIW3_REAL_HEADER_ROOT="$GITHUB_WORKSPACE/third_party/KisakCOD/src/universal"
@@ -241,6 +250,21 @@ jobs:
             grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-startup-undefined.txt"
           done
           echo "IW3_ORIGINAL_FS_STARTUP_AARCH64_DEPENDENCY_AUDIT_GREEN"
+
+          # Verify the corrected original dvar pointer/string/enum functions
+          # compile into an AArch64 archive. Its unresolved registry services
+          # are intentionally visible: this is not a linked dvar runtime.
+          dvar_archive="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_dvar_pointer_abi.a"
+          test -s "$dvar_archive"
+          "$llvm_nm" -C --defined-only "$dvar_archive" | tee "$RUNNER_TEMP/iw3-dvar-pointer-defined.txt"
+          for symbol in Dvar_RegisterString Dvar_RegisterEnum Dvar_StringToEnum Dvar_UpdateEnumDomain Dvar_SetVariant Dvar_SetDomainFunc Dvar_SetStringFromSource; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-dvar-pointer-defined.txt"
+          done
+          "$llvm_nm" -u -C "$dvar_archive" | tee "$RUNNER_TEMP/iw3-dvar-pointer-undefined.txt"
+          grep -F "Dvar_RegisterVariant" "$RUNNER_TEMP/iw3-dvar-pointer-undefined.txt"
+          grep -F "Dvar_ClampValueToDomain" "$RUNNER_TEMP/iw3-dvar-pointer-undefined.txt"
+          echo "IW3_ORIGINAL_DVAR_LP64_POINTER_ABI_AARCH64_COMPILE_GREEN"
+
           so="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_math.so"
           test -s "$so"
           elf="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
@@ -342,6 +366,12 @@ jobs:
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_iwd_mount.a
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_filtered_files.a
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_fs_startup.a
+            ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_dvar_pointer_abi.a
+            ${{ runner.temp }}/iw3-source/iw3_dvar_pointer_abi.cpp
+            ${{ runner.temp }}/iw3-source/iw3_dvar_pointer_smoke.cpp
+            ${{ runner.temp }}/iw3-original-dvar-pointer-abi.json
+            ${{ runner.temp }}/iw3-dvar-pointer-defined.txt
+            ${{ runner.temp }}/iw3-dvar-pointer-undefined.txt
             ${{ runner.temp }}/iw3-original-fs-startup.json
             ${{ runner.temp }}/iw3-fs-startup-defined.txt
             ${{ runner.temp }}/iw3-fs-startup-undefined.txt
