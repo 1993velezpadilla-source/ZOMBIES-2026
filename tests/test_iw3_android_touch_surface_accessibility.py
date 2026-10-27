@@ -40,5 +40,15 @@ class TouchSurfaceAccessibilityTests(unittest.TestCase):
         self.assertIn("z2026_platform_touch_event(32, .5f, .5f, 1) == -1", source)
 
 
+    def test_off_view_coordinates_are_clamped_and_release_clears_buttons(self):
+        native = PLATFORM.read_text(encoding="utf-8")
+        regression = PLATFORM_TEST.read_text(encoding="utf-8")
+        self.assertIn("x = std::clamp(x, 0.0f, 1.0f);", native)
+        self.assertIn("y = std::clamp(y, 0.0f, 1.0f);", native)
+        self.assertIn("!std::isfinite(x) || !std::isfinite(y)", native)
+        self.assertIn("z2026_platform_touch_event(6, 1.25f, .85f, 0) == 0", regression)
+        self.assertIn("off_view_release_cmd[1] & BUTTON_ATTACK", regression)
+
+
 if __name__ == "__main__":
     unittest.main()
