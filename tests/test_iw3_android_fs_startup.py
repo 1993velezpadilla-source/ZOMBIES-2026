@@ -28,6 +28,9 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
                 self.assertIn(body, staged)
             self.assertEqual(report["source_sha256"],
                              hashlib.sha256(original).hexdigest())
+            self.assertTrue(report["original_FS_AddGameDirectory_body_staged_verbatim"])
+            self.assertTrue(report["original_FS_AddLocalizedGameDirectory_body_staged_verbatim"])
+            self.assertTrue(report["directory_allocation_uses_native_sizeof"])
             self.assertTrue(report["original_FS_RegisterDvars_body_preserved_verbatim"])
             self.assertTrue(report["original_FS_Startup_body_preserved_verbatim"])
             self.assertTrue(report["original_FS_SetRestrictions_body_preserved_verbatim"])
@@ -48,6 +51,26 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
             saved_report = report_path.read_text(encoding="utf-8")
             self.assertIn('"startup_runtime_invoked": false', saved_report)
         self.assertEqual(source_path.read_bytes(), original)
+
+    def test_original_game_directory_setup_uses_native_allocation_size(self):
+        source = (ENGINE / SOURCE).read_text(encoding="utf-8")
+        add_directory = function_source(
+            source,
+            "void __cdecl FS_AddGameDirectory(char *path, char *dir, int bLanguageDirectory, int iLanguage)",
+        )
+        add_localized = function_source(
+            source,
+            "void __cdecl FS_AddLocalizedGameDirectory(char *path, char *dir)",
+        )
+        self.assertIn(
+            'search->dir = (directory_t *)Z_Malloc(sizeof(directory_t), "FS_AddGameDirectory", 3);',
+            add_directory,
+        )
+        self.assertNotIn("Z_Malloc(512", add_directory)
+        self.assertNotIn("uint32_t *v4", add_directory)
+        self.assertIn("FS_AddIwdFilesForGameDirectory(path, szGameFolder);", add_directory)
+        self.assertIn("FS_AddGameDirectory(path, dir, 1, i);", add_localized)
+        self.assertIn("FS_AddGameDirectory(path, dir, 0, 0);", add_localized)
 
     def test_android_path_service_uses_configured_private_root_not_process_cwd(self):
         platform = (ROOT / "android/iw3-native/iw3_android_platform.cpp").read_text(encoding="utf-8")
