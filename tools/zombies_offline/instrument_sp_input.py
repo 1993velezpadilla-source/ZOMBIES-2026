@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Exercise original single-player firing through bounded client usercmds.
 
-The disposable KisakCOD-sp clone injects at most 12 attack-button commands after
-the client snapshot reports a real weapon and aims them at the nearest already
-existing live damageable actor. No actor is spawned and no weapon/damage callback
-is called directly. The checked-in engine source is never modified.
+The disposable KisakCOD-sp clone injects at most 12 attack-button commands as
+soon as the authoritative SP playerState reports a real weapon. It aims those
+commands at the nearest existing live damageable actor. No actor is spawned and
+no weapon/damage callback is called directly. The checked-in engine source is
+never modified.
 """
 from __future__ import annotations
 import argparse
@@ -110,8 +111,6 @@ CODE = """
         static bool z2026_test_cl_createcmd_logged = false;
         static bool z2026_test_server_weapon_seen_logged = false;
         static unsigned int z2026_test_attack_cmds = 0;
-        static unsigned int z2026_test_weapon_warmup_cmds = 0;
-        static bool z2026_test_weapon_warmup_logged = false;
         if (!z2026_test_cl_createcmd_logged)
         {
             z2026_test_cl_createcmd_logged = true;
@@ -130,23 +129,23 @@ CODE = """
                 z2026_test_server_weapon_seen_logged = true;
                 Z2026_TestInputTrace("TEST_SERVER_PLAYER_WEAPON_READY");
             }
-            // Let the original raise/switch state settle before spending the
-            // finite attack budget; inject at most 12 real attack usercmds.
-            if (z2026_test_weapon_warmup_cmds < 120)
+            // Do not gate on an arbitrary number of CL_CreateCmd calls: the
+            // offline client may produce only a few commands in the bounded probe.
+            // The original weapon state machine decides whether this real attack
+            // command can fire; this hook never calls combat functions directly.
+            result->buttons |= BUTTON_ATTACK;
+            const unsigned int z2026_attack_attempt = ++z2026_test_attack_cmds;
+            if (z2026_attack_attempt == 1)
             {
-                ++z2026_test_weapon_warmup_cmds;
+                Z2026_TestInputTrace("TEST_ATTACK_BUTTON_INJECTED");
+                Z2026_TestInputTrace("TEST_ATTACK_USERCMD_1");
             }
-            else
-            {
-                if (!z2026_test_weapon_warmup_logged)
-                {
-                    z2026_test_weapon_warmup_logged = true;
-                    Z2026_TestInputTrace("TEST_WEAPON_WARMUP_COMPLETE");
-                }
-                result->buttons |= BUTTON_ATTACK;
-                if (z2026_test_attack_cmds++ == 0)
-                    Z2026_TestInputTrace("TEST_ATTACK_BUTTON_INJECTED");
-            }
+            else if (z2026_attack_attempt == 4)
+                Z2026_TestInputTrace("TEST_ATTACK_USERCMD_4");
+            else if (z2026_attack_attempt == 8)
+                Z2026_TestInputTrace("TEST_ATTACK_USERCMD_8");
+            else if (z2026_attack_attempt == 12)
+                Z2026_TestInputTrace("TEST_ATTACK_USERCMD_12");
         }
 #endif
 """
@@ -176,8 +175,9 @@ def apply(copy: Path) -> dict:
     return {
         "test_only_input": True,
         "client_commands_limited_to": 12,
-        "warmup_client_commands_before_attack": 120,
-        "weapon_raise_window_is_respected": True,
+        "warmup_client_commands_before_attack": 0,
+        "no_fixed_command_warmup_gate": True,
+        "attack_injection_uses_real_usercmd_button": True,
         "requires_authoritative_server_weapon_state": True,
         "traces_client_command_hook_entry": True,
         "fireweapon_called_directly": False,
