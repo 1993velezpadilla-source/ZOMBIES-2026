@@ -303,6 +303,11 @@ else()
             "${IW3_ENGINE_SOURCE_ROOT}/../deps")
         target_compile_definitions(iw3_dvar_pointer_native_test PRIVATE KISAK_SP=1)
         target_compile_options(iw3_dvar_pointer_native_test PRIVATE -UNDEBUG)
+        # Exercise the same signed-char hazard present on Android ARM64 even
+        # when this host's default char signedness differs.
+        if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+            target_compile_options(iw3_dvar_pointer_native_test PRIVATE -fsigned-char)
+        endif()
         add_test(NAME iw3_original_dvar_pointer_width COMMAND iw3_dvar_pointer_native_test)
     endif()
     add_executable(iw3_real_frame_loop_abi_test
