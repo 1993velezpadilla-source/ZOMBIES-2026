@@ -8,6 +8,10 @@ CMAKE = ROOT / "android/iw3-native/CMakeLists.txt"
 GFX = ROOT / "third_party/KisakCOD/src/gfx_d3d/r_gfx.h"
 MATERIAL = ROOT / "third_party/KisakCOD/src/gfx_d3d/r_material.h"
 D3D9_OPAQUE = ROOT / "third_party/KisakCOD/src/gfx_d3d/r_d3d9_opaque.h"
+FS_COMPAT = ROOT / "android/iw3-native/iw3_android_filesystem_compat.h"
+CHECKSUM_HEADER = ROOT / "third_party/KisakCOD/src/qcommon/com_checksum.h"
+SND_STOP_HEADER = ROOT / "third_party/KisakCOD/src/sound/snd_stopsounds.h"
+SND_PUBLIC = ROOT / "third_party/KisakCOD/src/sound/snd_public.h"
 
 
 def function_body(source: str, signature: str) -> str:
@@ -114,6 +118,34 @@ class OriginalFilesystemAndroidPortTests(unittest.TestCase):
             self.assertIn(f"struct {interface};", opaque)
         self.assertIn("enum _D3DFORMAT : int;", opaque)
         self.assertIn("sizeof(_D3DFORMAT) == sizeof(int)", opaque)
+
+
+    def test_android_filesystem_uses_native_services_and_portable_apis(self):
+        source = SOURCE.read_text(encoding="utf-8")
+        self.assertIn('#include "iw3_android_filesystem_compat.h"', source)
+        self.assertIn("z2026_interlocked_compare_exchange(&iwd->hasOpenFile, 1u, 0u)", source)
+        self.assertIn("vsnprintf(string, 0x1000u, fmt, va);", source)
+        self.assertIn("sizeof(descPath) / sizeof(descPath[0])", source)
+        self.assertNotIn("ARRAYSIZE(descPath)", source)
+        compat = FS_COMPAT.read_text(encoding="utf-8")
+        for service in (
+            "Sys_Mkdir",
+            "Sys_CountFileList",
+            "Sys_ListFiles",
+            "Sys_Cwd",
+            "Sys_DefaultCDPath",
+            "Sys_DirectoryHasContents",
+        ):
+            self.assertIn(service, compat)
+        checksum = CHECKSUM_HEADER.read_text(encoding="utf-8")
+        self.assertIn("Com_BlockChecksumKey32", checksum)
+        bsp = (ROOT / "third_party/KisakCOD/src/qcommon/com_bsp.h").read_text(encoding="utf-8")
+        self.assertIn("#include <qcommon/com_checksum.h>", bsp)
+        sound_header = SND_STOP_HEADER.read_text(encoding="utf-8")
+        self.assertIn("SND_STOP_STREAMED = 0x8", sound_header)
+        public_sound = SND_PUBLIC.read_text(encoding="utf-8")
+        self.assertIn('#include "snd_stopsounds.h"', public_sound)
+        self.assertNotIn("enum snd_stopsounds_arg_t : __int32", public_sound)
 
 
 if __name__ == "__main__":
