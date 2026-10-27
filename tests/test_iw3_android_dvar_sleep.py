@@ -31,7 +31,7 @@ class AndroidDvarSleepPortTests(unittest.TestCase):
         self.assertIn("libiw3_sp_dvar_android.a", workflow)
         self.assertIn("-m aarch64linux -r --whole-archive", workflow)
         self.assertIn("Android NET_Sleep provider failed to resolve", workflow)
-        self.assertIn("IW3_ORIGINAL_DVAR_ANDROID_SLEEP_SERVICE_RESOLVED_REMAINING_ENGINE_SERVICES_VISIBLE", workflow)
+        self.assertIn("IW3_ORIGINAL_DVAR_NET_SLEEP_AND_VEC4_COMPARE_RESOLVED_REMAINING_ENGINE_SERVICES_VISIBLE", workflow)
 
 
 if __name__ == "__main__":
