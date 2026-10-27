@@ -247,9 +247,10 @@ jobs:
           startup_archive="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_fs_startup.a"
           test -s "$startup_archive"
           "$llvm_nm" -C --defined-only "$startup_archive" | tee "$RUNNER_TEMP/iw3-fs-startup-defined.txt"
-          for symbol in FS_AddSearchPath FS_AddGameDirectory FS_AddLocalizedGameDirectory FS_ReplaceSeparators FS_BuildOSPath FS_BuildOSPathForThread FS_RegisterDvars FS_Startup FS_SetRestrictions FS_IsBasePathValid FS_InitFilesystem Sys_Cwd Sys_DefaultCDPath Sys_DirectoryHasContents; do
+          for symbol in FS_AddSearchPath FS_AddGameDirectory FS_AddLocalizedGameDirectory FS_AddIwdFilesForGameDirectory FS_ReplaceSeparators FS_BuildOSPath FS_BuildOSPathForThread FS_RegisterDvars FS_Startup FS_SetRestrictions FS_IsBasePathValid FS_InitFilesystem Sys_Cwd Sys_DefaultCDPath Sys_DirectoryHasContents; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-startup-defined.txt"
           done
+          echo "IW3_ORIGINAL_FS_STARTUP_IWD_ENUMERATION_AARCH64_RESOLVED"
           for symbol in 'FS_ReplaceSeparators(' 'FS_BuildOSPath(' 'FS_BuildOSPathForThread('; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-startup-defined.txt"
           done
@@ -262,7 +263,7 @@ jobs:
           "$ld_lld" -m aarch64linux -r --whole-archive "$startup_archive" --no-whole-archive \
             -o "$RUNNER_TEMP/iw3-fs-startup-combined.o"
           "$llvm_nm" -u -C "$RUNNER_TEMP/iw3-fs-startup-combined.o" | tee "$RUNNER_TEMP/iw3-fs-startup-undefined.txt"
-          for symbol in Dvar_RegisterInt Dvar_RegisterString Dvar_RegisterBool FS_AddIwdFilesForGameDirectory Z_Malloc SEH_GetLanguageName FS_ReadFile SEH_InitLanguage; do
+          for symbol in Dvar_RegisterInt Dvar_RegisterString Dvar_RegisterBool Z_Malloc SEH_GetLanguageName FS_ReadFile SEH_InitLanguage FS_LoadZipFile Sys_ListFiles FS_FreeFileList IwdFileLanguage iwdsort I_strncmp SEH_GetLanguageIndexForName Com_PrintWarning; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-startup-undefined.txt"
           done
           for symbol in 'FS_ReplaceSeparators(' 'FS_BuildOSPath(' 'FS_BuildOSPathForThread('; do
@@ -349,9 +350,13 @@ jobs:
           done
           # These are now the explicit next integration edges; do not paper over
           # them with stubs or claim FS_Startup/FS_InitFilesystem has executed.
-          for symbol in FS_AddIwdFilesForGameDirectory Z_Malloc SEH_GetLanguageName FS_ReadFile SEH_InitLanguage; do
+          for symbol in Z_Malloc SEH_GetLanguageName FS_ReadFile SEH_InitLanguage FS_LoadZipFile Sys_ListFiles FS_FreeFileList IwdFileLanguage iwdsort I_strncmp SEH_GetLanguageIndexForName Com_PrintWarning; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-startup-undefined.txt"
           done
+          if grep -F "FS_AddIwdFilesForGameDirectory" "$RUNNER_TEMP/iw3-fs-dvar-startup-undefined.txt"; then
+            echo "Original IWD enumeration function should be defined by the staged KisakCOD body" >&2
+            exit 1
+          fi
           echo "IW3_ORIGINAL_FS_STARTUP_DVAR_REGISTRATION_AARCH64_COMBINED_LINK_GREEN"
           echo "IW3_FS_STARTUP_RUNTIME_INVOKED=false"
           echo "IW3_REAL_GAME_DATA_MOUNTED=false"
