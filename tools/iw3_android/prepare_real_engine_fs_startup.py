@@ -30,6 +30,7 @@ FUNCTIONS = (
 REQUIRED = (
     'Dvar_RegisterString("fs_basepath"',
     'Dvar_RegisterString("fs_homepath"',
+    "homePath = nullptr;",
     'FS_AddLocalizedGameDirectory((char *)fs_basepath->current.string, (char*)"raw")',
     'FS_AddCommands();',
     'FS_Startup((char*)"main")',
@@ -43,6 +44,7 @@ FORBIDDEN = (
     "fs_cdpath->current.integer",
     "fs_basegame->current.integer",
     "fs_gameDirVar->current.integer",
+    "homePath = (char *)RETURN_ZERO32();",
     "Godot",
     "fake FS_Startup",
     "diagnostic FS_Startup stub",
