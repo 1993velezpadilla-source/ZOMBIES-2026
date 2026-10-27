@@ -96,6 +96,7 @@ REQUIRED = (
     "iassert(dvar->current.string != stringCopy);",
     "domain.integer.min <= domain.integer.max",
     "if (!isalnum(static_cast<unsigned char>(nameChar)) && nameChar != 95)",
+    "if (!isdigit(static_cast<unsigned char>(indexString[indexStringIndex])))",
     "if (value.integer < domain.integer.min)",
     "else if (value.integer > domain.integer.max)",
 )
@@ -113,6 +114,7 @@ FORBIDDEN = (
     "dvar->domain.integer.max + 4 * dvar->current.integer",
     "uint8_t(__cdecl *)(dvar_s *, int, uint32_t, uint32_t, uint32_t)",
     "isalnum(nameChar)",
+    "isdigit(indexString[indexStringIndex])",
     "tolower(fname[i])",
 )
 
@@ -180,6 +182,7 @@ def prepare(engine: Path, output: Path, smoke_output: Path, report_path: Path) -
         "domain_callbacks_use_declared_DvarValue_by_value_abi": True,
         "integer_domains_use_native_min_max_fields": True,
         "dvar_name_validation_uses_unsigned_char": True,
+        "dvar_enum_index_parser_uses_unsigned_char": True,
         "dvar_hash_uses_unsigned_char": True,
         "full_dvar_registry_linked": False,
         "filesystem_startup_invoked": False,
