@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Stage verbatim KisakCOD IWD filename and language helpers for Android.
+"""Stage verbatim KisakCOD IWD filename lookup/normalization for Android.
 
-Extract actual FS_HashFileName, FS_FilenameCompare, FS_ConvertPath and
-IwdFileLanguage from src/universal/com_files.cpp, plus the real I_islower
-dependency from src/universal/q_shared.cpp. This is not an archive reader or
-playable game.
+Extract actual FS_HashFileName, FS_FilenameCompare and FS_ConvertPath from
+src/universal/com_files.cpp, and their real I_islower dependency from
+src/universal/q_shared.cpp. This is not an archive reader or playable game.
 """
 from __future__ import annotations
 import argparse
@@ -23,7 +22,6 @@ FUNCTIONS = (
     ("int __cdecl FS_HashFileName(const char *fname, int hashSize)", FILES),
     ("int __cdecl FS_FilenameCompare(const char *s1, const char *s2)", FILES),
     ("void __cdecl FS_ConvertPath(char *s)", FILES),
-    ("char *__cdecl IwdFileLanguage(const char *pszIwdFileName)", FILES),
 )
 HEADER = '#include "iw3_android_iwd_names_compat.h"\n'
 REQUIRED = (
@@ -32,13 +30,11 @@ REQUIRED = (
     "if (I_islower(c1))",
     "if (c1 == '\\\\' || c1 == ':')",
     "if (*s == 92 || *s == 58)",
-    "isalpha(static_cast<unsigned char>(pszIwdFileName[iCurrChar]))",
     "char szIwdLanguageName[2][64];",
     "int iString = 0;",
 )
 FORBIDDEN = (
     "letter = tolower(fname[i]);",
-    "isalpha(pszIwdFileName[iCurrChar])",
 )
 
 def prepare(engine: Path, output: Path) -> dict:
@@ -48,19 +44,11 @@ def prepare(engine: Path, output: Path) -> dict:
     if output in originals.values():
         raise ValueError("Never overwrite authentic KisakCOD source")
     raw = {path: origin.read_bytes() for path, origin in originals.items()}
-    source_text = {path: data.decode("utf-8") for path, data in raw.items()}
     bodies = []
     for signature, path in FUNCTIONS:
         body = function_source(raw[path].decode("utf-8"), signature)
         bodies.append(body)
-    language_state = (
-        "char szIwdLanguageName[2][64];",
-        "int iString = 0;",
-    )
-    for declaration in language_state:
-        if declaration not in source_text[FILES]:
-            raise ValueError("Original IWD language sort state missing: " + declaration)
-    rendered = HEADER + "\n".join(language_state) + "\n\n" + "\n\n".join(bodies) + "\n"
+    rendered = HEADER + "\n\n".join(bodies) + "\n"
     for marker in REQUIRED:
         if marker not in rendered:
             raise ValueError("Original IW3 IWD filename algorithm changed: " + marker)
@@ -79,8 +67,6 @@ def prepare(engine: Path, output: Path) -> dict:
         "source_bodies_preserved": True,
         "iwd_filename_hash_and_compare_ported": True,
         "iwd_filename_hash_high_bit_safe": True,
-        "iwd_language_sort_key_high_bit_safe": True,
-        "iwd_language_sort_state_staged_from_original": True,
         "iwd_zip_archive_mount_ported": False,
         "fastfile_map_loading_ported": False,
         "gameplay_proven": False,

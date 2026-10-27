@@ -46,6 +46,7 @@ REQUIRED = (
     "int __cdecl iwdsort(const char **a, char **b)",
     "void __cdecl FS_AddIwdFilesForGameDirectory(char *path, char *pszGameFolder)",
     "void __cdecl FS_AddGameDirectory(char *path, char *dir, int bLanguageDirectory, int iLanguage)",
+    "isalpha(static_cast<unsigned char>(pszIwdFileName[iCurrChar]))",
     "FS_AddIwdFilesForGameDirectory(path, szGameFolder);",
     "I_strncpyz(fs_gamedir, szGameFolder, 256);",
     "numfiles = 0;",
@@ -60,6 +61,7 @@ FORBIDDEN = (
     '*((_DWORD *)v2 + 1)',
     '*((_WORD *)v2 + 4)',
     'qsort(s0, numfiles, 4u,',
+    'isalpha(pszIwdFileName[iCurrChar])',
 )
 
 
@@ -101,6 +103,7 @@ def prepare(engine: Path, output: Path) -> dict:
         "game_directory_source_staged_for_android_diagnostic": True,
         "null_or_failed_directory_listing_fails_closed": True,
         "native_pointer_width_qsort": True,
+        "iwd_language_sort_key_high_bit_safe": True,
         "android_os_directory_adapter": "rooted z2026_platform_list_iwd_files",
         "localized_language_registry": "English-only adapter; full game language registry pending",
         "fixture_directory_scan_runtime_proven": False,
