@@ -360,3 +360,12 @@ The Android rooted file API also had a contract bug: `z2026_platform_read_file` 
 
 
 Phase AH follow-up: the extracted `Dvar_RegisterVariant` compilation unit now declares the exact upstream signatures for `Dvar_RegisterNew`, `Dvar_Reregister`, and the private `Dvar_FindMalleableVar` boundary. These declarations exist only so the compiler can type-check the authentic body in isolation; the ARM64 symbol audit still requires all three to remain unresolved, so this does not pretend the registry is linked.
+
+
+### Phase AI — signed-char-safe original dvar-name validation (27 Oct 2026; CI pending)
+
+A source audit found that authentic `Dvar_IsValidName()` passed a plain `char` directly to `isalnum()`. On Android ABIs where `char` is signed, bytes at or above 0x80 become negative; passing those values (other than EOF) to the C character-classification API is undefined behavior. The original function now casts the byte to `unsigned char` before classification. Its existing policy remains unchanged: null names are rejected, and every non-null byte must be alphanumeric under the active C locale or underscore.
+
+The exact original `Dvar_IsValidName()` body is now included in both the ARM64 dvar source-audit TU and the host smoke TU. The executable regression checks null, a valid ASCII name, forbidden punctuation, and a high-bit byte; the Python source gate forbids the unsafe `isalnum(nameChar)` call. This targets a real signed-char/UBSan portability defect in the vendored KisakCOD source, not a substitute implementation.
+
+Validation for this code change is pending. Scope boundary: the original dvar registry remains an isolated audit archive with unresolved `Dvar_FindMalleableVar`, `Dvar_RegisterNew`, and `Dvar_Reregister`; the full registry is not linked to Android, `FS_Startup` is not invoked in a complete runtime, and no licensed FastFile/map load, renderer output, or touch-driven weapon/actor gameplay is proven. The diagnostic JNI APK remains not a game; PR #4 must stay open and unmerged.

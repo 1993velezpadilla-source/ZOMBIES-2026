@@ -19,9 +19,11 @@ except ModuleNotFoundError:
 
 SOURCE = Path("src/universal/dvar.cpp")
 DVAR_REGISTER_VARIANT = ("const dvar_s *__cdecl Dvar_RegisterVariant(\n    const char *dvarName,\n    uint8_t type,\n    uint16_t flags,\n    DvarValue value,\n    DvarLimits domain,\n    const char *description)")
+DVAR_IS_VALID_NAME = "char __cdecl Dvar_IsValidName(const char *dvarName)"
 
 FUNCTIONS = (
     DVAR_REGISTER_VARIANT,
+    DVAR_IS_VALID_NAME,
     "const char *__cdecl Dvar_EnumToString(const dvar_s *dvar)",
     "const char *__cdecl Dvar_IndexStringToEnumString(const dvar_s *dvar, const char *indexString)",
     "const char *__cdecl Dvar_ValueToString(const dvar_s *dvar, DvarValue value)",
@@ -61,6 +63,7 @@ FUNCTIONS = (
 )
 
 SMOKE_FUNCTIONS = (
+    DVAR_IS_VALID_NAME,
     "const char *__cdecl Dvar_EnumToString(const dvar_s *dvar)",
     "const char *__cdecl Dvar_IndexStringToEnumString(const dvar_s *dvar, const char *indexString)",
     "const char *__cdecl Dvar_ValueToString(const dvar_s *dvar, DvarValue value)",
@@ -89,6 +92,7 @@ REQUIRED = (
     "if (!customFunc(dvar, dvar->current))",
     "iassert(dvar->current.string != stringCopy);",
     "domain.integer.min <= domain.integer.max",
+    "if (!isalnum(static_cast<unsigned char>(nameChar)) && nameChar != 95)",
     "if (value.integer < domain.integer.min)",
     "else if (value.integer > domain.integer.max)",
 )
@@ -105,6 +109,7 @@ FORBIDDEN = (
     "domain->integer.max + 4 * stringIndex",
     "dvar->domain.integer.max + 4 * dvar->current.integer",
     "uint8_t(__cdecl *)(dvar_s *, int, uint32_t, uint32_t, uint32_t)",
+    "isalnum(nameChar)",
 )
 
 
@@ -164,6 +169,7 @@ def prepare(engine: Path, output: Path, smoke_output: Path, report_path: Path) -
         "enum_tables_use_native_pointer_member_and_indexing": True,
         "domain_callbacks_use_declared_DvarValue_by_value_abi": True,
         "integer_domains_use_native_min_max_fields": True,
+        "dvar_name_validation_uses_unsigned_char": True,
         "full_dvar_registry_linked": False,
         "filesystem_startup_invoked": False,
         "fastfile_or_map_loaded": False,

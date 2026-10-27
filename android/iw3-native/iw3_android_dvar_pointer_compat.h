@@ -7,6 +7,7 @@
 #include <universal/com_memory.h>
 #include <cstdio>
 #include <cstdint>
+#include <ctype.h>
 
 #ifndef __cdecl
 #define __cdecl
@@ -25,6 +26,7 @@ void __cdecl MyAssertHandler(
 extern const dvar_s *dvar_cheats;
 extern int dvar_modifiedFlags;
 bool __cdecl Vec4Compare(const float *a, const float *b);
+char __cdecl Dvar_IsValidName(const char *dvarName);
 
 #ifndef CLAMP
 #define CLAMP(x, low, high) ((x) < (low) ? (low) : ((x) > (high) ? (high) : (x)))

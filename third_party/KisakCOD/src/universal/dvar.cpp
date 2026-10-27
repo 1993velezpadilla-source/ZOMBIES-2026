@@ -298,7 +298,7 @@ char __cdecl Dvar_IsValidName(const char *dvarName)
     for (index = 0; dvarName[index]; ++index)
     {
         nameChar = dvarName[index];
-        if (!isalnum(nameChar) && nameChar != 95)
+        if (!isalnum(static_cast<unsigned char>(nameChar)) && nameChar != 95)
             return 0;
     }
     return 1;

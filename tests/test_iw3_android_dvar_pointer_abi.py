@@ -37,6 +37,10 @@ class OriginalDvarPointerAbiTests(unittest.TestCase):
             )
             self.assertTrue(report["authentic_kisakcod_function_bodies_extracted"])
             self.assertIn(DVAR_REGISTER_VARIANT, FUNCTIONS)
+            self.assertIn("char __cdecl Dvar_IsValidName(const char *dvarName)", FUNCTIONS)
+            self.assertTrue(report["dvar_name_validation_uses_unsigned_char"])
+            self.assertIn("Dvar_IsValidName", staged)
+            self.assertIn("isalnum(static_cast<unsigned char>(nameChar))", staged)
             self.assertTrue(report["dvar_register_variant_body_staged_verbatim"])
             self.assertIn("Dvar_RegisterVariant", staged)
             self.assertIn("Dvar_FindMalleableVar", staged)
@@ -77,6 +81,8 @@ class OriginalDvarPointerAbiTests(unittest.TestCase):
         self.assertIn("dvar->current.string = nullptr;", source)
         self.assertIn("dvar->latched.string = nullptr;", source)
         self.assertIn("dvar->reset.string = nullptr;", source)
+        self.assertIn("isalnum(static_cast<unsigned char>(nameChar))", source)
+        self.assertNotIn("isalnum(nameChar)", source)
 
 
 if __name__ == "__main__":

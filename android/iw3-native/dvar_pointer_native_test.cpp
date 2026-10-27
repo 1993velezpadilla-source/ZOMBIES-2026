@@ -93,6 +93,12 @@ int main() {
     static_assert(sizeof(void *) == 8,
                   "This regression must exercise a 64-bit pointer ABI");
 
+    assert(!Dvar_IsValidName(nullptr));
+    assert(Dvar_IsValidName("alpha_123"));
+    assert(!Dvar_IsValidName("bad-name"));
+    const char high_bit_name[] = {static_cast<char>(0xFF), '\0'};
+    assert(!Dvar_IsValidName(high_bit_name));
+
     char stringValue[] = "filesDir/main";
     assert(reinterpret_cast<std::uintptr_t>(stringValue) > UINT32_MAX);
     const dvar_s *registered = Dvar_RegisterString(
