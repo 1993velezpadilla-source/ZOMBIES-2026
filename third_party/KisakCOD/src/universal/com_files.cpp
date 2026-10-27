@@ -5,7 +5,16 @@
 #include <universal/com_memory.h>
 #include <qcommon/com_fileaccess.h>
 #include <qcommon/qcommon.h>
+#if defined(__ANDROID__)
+#include "iw3_android_platform.h"
+#include <sys/stat.h>
+#include <unistd.h>
+// win_local.h normally provides BOOL through Win32 headers. Keep the original
+// return ABI for the filesystem TU without importing DirectInput on Android.
+typedef int BOOL;
+#else
 #include <win32/win_local.h>
+#endif
 #include <qcommon/threads.h>
 #include <stringed/stringed_hooks.h>
 #include <qcommon/unzip.h>
@@ -294,9 +303,11 @@ int __cdecl FS_GetFileOsPath(const char *filename, char *ospath)
 
 int __cdecl FS_OpenFileOverwrite(char *qpath)
 {
+#if !defined(__ANDROID__)
     DWORD oldAttributes; // [esp+0h] [ebp-10Ch]
-    char ospath[256]; // [esp+4h] [ebp-108h] BYREF
     uint32_t attributes; // [esp+108h] [ebp-4h]
+#endif
+    char ospath[256]; // [esp+4h] [ebp-108h] BYREF
 
     FS_CheckFileSystemStarted();
     if (!qpath)
@@ -304,11 +315,26 @@ int __cdecl FS_OpenFileOverwrite(char *qpath)
     if (FS_GetFileOsPath(qpath, ospath) >= 0)
     {
         if (fs_debug->current.integer)
-            Com_Printf(CON_CHANNEL_FILES, "FS_FOpenFileOverWrite: %s\n", ospath);
+            Com_Printf(CON_CHANNEL_FILES, "FS_FOpenFileOverWrite: %s\\n", ospath);
+#if defined(__ANDROID__)
+        // Resolve through the retained app-data root and a no-follow descriptor
+        // instead of probing an arbitrary absolute OS path. POSIX has no DOS
+        // FILE_ATTRIBUTE_READONLY bit; restore owner write permission instead.
+        const int attributesFd = z2026_platform_open_engine_path_fd(ospath);
+        if (attributesFd >= 0)
+        {
+            struct stat oldAttributes{};
+            if (fstat(attributesFd, &oldAttributes) == 0 &&
+                S_ISREG(oldAttributes.st_mode) && !(oldAttributes.st_mode & S_IWUSR))
+                (void)fchmod(attributesFd, oldAttributes.st_mode | S_IWUSR);
+            close(attributesFd);
+        }
+#else
         oldAttributes = GetFileAttributesA(ospath);
         attributes = oldAttributes & 0xFFFFFFFE;
         if ((oldAttributes & 0xFFFFFFFE) != oldAttributes)
             SetFileAttributesA(ospath, attributes);
+#endif
         return FS_GetHandleAndOpenFile(qpath, ospath, FS_THREAD_MAIN);
     }
     else
