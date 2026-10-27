@@ -18,16 +18,7 @@ char *__cdecl Sys_Cwd();
 const char *__cdecl Sys_DefaultCDPath();
 int __cdecl Sys_DirectoryHasContents(const char *directory);
 
-// Windows InterlockedCompareExchange returns the previous value and writes
-// exchange only when the target equals comparand. Preserve that contract on
-// Android using the compiler's native atomic compare/exchange primitive.
-template <typename T>
-static inline T z2026_interlocked_compare_exchange(
-    volatile T *destination, T exchange, T comparand)
-{
-    T expected = comparand;
-    __atomic_compare_exchange_n(
-        destination, &expected, exchange, false,
-        __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
-    return expected;
-}
+// Shared with the original-source FS_Read extraction; preserves the Windows
+// InterlockedCompareExchange return-old-value contract using native atomics.
+uint32_t z2026_iw3_interlocked_compare_exchange(
+    volatile uint32_t *destination, uint32_t exchange, uint32_t comparand);
