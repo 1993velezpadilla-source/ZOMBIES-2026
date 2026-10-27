@@ -7,6 +7,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <dirent.h>
 #include <fcntl.h>
 #include <string>
 #include <sys/stat.h>
@@ -91,9 +92,9 @@ int main() {
     assert(z2026_platform_read_file("generated.iwd", buffer, sizeof(buffer)) == 3);
     assert(std::memcmp(buffer, "IWD", 3) == 0);
 
-    // The original IW3 scanner mounts at most 1024 archives after sorting the
-    // complete list. Android enumeration must return that same sorted prefix
-    // without retaining every filename in memory.
+    // The original engine caps the list at 1024 before qsorting it.
+    // Capture this directory's native readdir prefix so the platform adapter
+    // cannot silently replace it with the lexicographically smallest archives.
     const std::string many_iwd_dir = std::string(root) + "/many-iwd";
     assert(mkdir(many_iwd_dir.c_str(), 0700) == 0);
     constexpr int kManyIwdCount = 1030;
@@ -105,6 +106,18 @@ int main() {
         assert(many_fd >= 0);
         close(many_fd);
     }
+    std::vector<std::string> expected_iwd_names;
+    expected_iwd_names.reserve(1024);
+    DIR *expected_stream = opendir(many_iwd_dir.c_str());
+    assert(expected_stream);
+    while (dirent *entry = readdir(expected_stream)) {
+        if (entry->d_name[0] == '.') continue;
+        const std::string name(entry->d_name);
+        if (name.size() < 4 || name.substr(name.size() - 4) != ".iwd") continue;
+        if (expected_iwd_names.size() < 1024) expected_iwd_names.push_back(name);
+    }
+    assert(closedir(expected_stream) == 0);
+    assert(expected_iwd_names.size() == 1024);
     std::vector<char> many_iwd_names(1024 * 32);
     std::size_t many_iwd_count = 0;
     const int many_iwd_bytes = z2026_platform_list_iwd_files(
@@ -120,11 +133,10 @@ int main() {
         assert(end_name);
         const std::size_t name_length =
             static_cast<const char *>(end_name) - name;
-        char expected_name[40]{};
-        assert(std::snprintf(expected_name, sizeof(expected_name),
-                             "archive-%04d.iwd", returned_iwd_count) > 0);
-        assert(name_length == std::strlen(expected_name));
-        assert(std::memcmp(name, expected_name, name_length) == 0);
+        assert(returned_iwd_count < static_cast<int>(expected_iwd_names.size()));
+        const std::string &expected_name = expected_iwd_names[returned_iwd_count];
+        assert(name_length == expected_name.size());
+        assert(std::memcmp(name, expected_name.data(), name_length) == 0);
         many_offset += name_length + 1;
         ++returned_iwd_count;
     }
