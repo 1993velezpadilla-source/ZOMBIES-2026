@@ -14,7 +14,7 @@ class OriginalDvarAndroidCompileTests(unittest.TestCase):
     def test_original_dvar_translation_unit_uses_narrow_android_platform_surface(self):
         source = DVAR.read_text(encoding="utf-8")
         android_branch_start = source.index("#if defined(__ANDROID__)")
-        android_branch_end = source.index("#endif", android_branch_start)
+        android_branch_end = source.index("#else", android_branch_start)
         android_branch = source[android_branch_start:android_branch_end]
         self.assertIn('#include "iw3_android_dvar_compat.h"', android_branch)
         self.assertNotIn("Windows.h", android_branch)
