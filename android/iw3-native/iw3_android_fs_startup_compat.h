@@ -3,6 +3,7 @@
 // The original FS_RegisterDvars/FS_Startup bodies remain upstream source.
 #include "iw3_android_platform.h"
 #include "universal/com_files.h"
+#include "universal/com_memory.h"
 #include "qcommon/qcommon.h"
 #include "stringed/stringed_hooks.h"
 
@@ -30,6 +31,10 @@ extern searchpath_s *fs_searchpaths;
 extern char lastValidBase[256];
 extern char lastValidGame[256];
 
+void __cdecl FS_AddSearchPath(searchpath_s *search);
+void __cdecl FS_AddGameDirectory(char *path, char *dir, int bLanguageDirectory, int iLanguage);
+void __cdecl FS_AddIwdFilesForGameDirectory(char *path, char *pszGameFolder);
+int Sys_DirectoryHasContents(const char *directory);
 void FS_RegisterDvars();
 void __cdecl Com_ReadCDKey();
 bool __cdecl FS_GameDirDomainFunc(dvar_s *dvar, DvarValue newValue);
