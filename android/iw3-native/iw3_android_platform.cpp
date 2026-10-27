@@ -327,7 +327,7 @@ extern "C" IW3_ANDROID_EXPORT int z2026_platform_set_data_root(const char *dir) 
 extern "C" IW3_ANDROID_EXPORT int z2026_platform_copy_data_root(
     char *destination, std::size_t capacity) {
     if (!destination || capacity == 0) return -1;
-    destination[0] = '\\0';
+    destination[0] = '\0';
     std::lock_guard<std::mutex> lock(g_data_mutex);
     if (g_data_root_fd < 0 || g_data_root_path.empty() ||
         g_data_root_path.size() >= capacity) return -1;
