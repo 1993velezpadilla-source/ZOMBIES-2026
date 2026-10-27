@@ -42,6 +42,16 @@ class OriginalIWDReadLifecycleTests(unittest.TestCase):
                 self.assertIn(marker, staged)
         self.assertEqual(source_path.read_bytes(), original)
 
+    def test_original_zip_state_copy_uses_native_structure_size(self):
+        source = (ENGINE / SOURCE).read_text(encoding="utf-8")
+        body = function_source(source, FUNCTIONS[2])
+        self.assertIn(
+            "Com_Memcpy((char *)zfi, (char *)iwd->handle, sizeof(*zfi));", body
+        )
+        self.assertNotIn(
+            "Com_Memcpy((char *)zfi, (char *)iwd->handle, 128);", body
+        )
+
     def test_original_lifecycle_keeps_zip_clone_and_disk_read_paths(self):
         source = (ENGINE / SOURCE).read_text(encoding="utf-8")
         combined = "\\n".join(function_source(source, signature) for signature in FUNCTIONS)
