@@ -672,3 +672,22 @@ Evidence/state at the latest check:
 - Earlier failures [40576763463](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40576763463) and [40575999258](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40575999258) are retained as regression evidence: first the old Python assertion rejected the intended ABI fix; then host compilation exposed the undefined `__cdecl` token. Neither is counted as a pass.
 
 This is a build portability correction only. `FS_Startup` and `FS_InitFilesystem` are still staged/compiled for dependency audit, not invoked by the app. The next runtime graph still has to resolve original IWD enumeration/mount, path, allocation, language, file-read and Dvar services before real game data can be mounted. No FastFile/map load, original renderer scene, touch-driven combat, or physical ARM64 gameplay is proven. The JNI APK remains diagnostic only; keep PR #4 open and unmerged.
+
+
+## Phase AW — correct archive-level FS startup symbol audit (2026-10-27)
+
+The POSIX calling-convention correction compiled through the full Android NDK stage. That exposed a defect in the CI audit itself: `llvm-nm -u` on a static archive reports undefined references per archive member, even when another member of the same archive defines the symbol. The log showed `Sys_DirectoryHasContents(char const*)` in the defined-symbol list and also as a member-level undefined reference from the original startup object. The old audit incorrectly treated that normal archive representation as a failed provider.
+
+Implemented:
+- `6bbb594`: the ARM64 workflow now performs a relocatable link of all `libiw3_sp_fs_startup.a` members with the NDK's `ld.lld -m aarch64linux -r --whole-archive ... --no-whole-archive` and checks the combined object's undefined-symbol list. It still requires the genuinely unported Dvar/IWD/path/memory/language/file services to remain visible.
+- `ffbe17a`: added a regression requiring the archive-level link audit and rejecting the old per-member false-positive check.
+- `6113b91`: pinned the AArch64 linker emulation explicitly.
+- `d20c062`: aligned the test assertion with the NDK linker variable used by the workflow.
+
+CI evidence:
+- [Preflight 40577715567](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40577715567) — PASS on `d20c062`.
+- ARM64 source/ABI run [40576935679](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40576935679) reached the AArch64 archive audit and failed only at the false-positive check described above; that run is not counted as a pass.
+- Run [40577383430](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40577383430) failed earlier in the Python guard because the test expected the literal `ld.lld` command rather than the workflow's `$ld_lld` variable. The assertion was corrected; that run is not counted as a pass.
+- The fresh ARM64 and JNI workflows for `d20c062` were queued at the latest check, so the new relocatable-link audit has not yet been confirmed. No result is inferred from pending runs.
+
+This phase fixes the evidence gate, not the runtime. The combined startup object must still report the original Dvar registration, IWD enumeration/mount, path, allocation, language and file-read services as unresolved. `FS_Startup`/ `FS_InitFilesystem` have not been invoked by the Android app; there is still no real FastFile/map load, original renderer scene, touch-driven weapon/actor gameplay, or physical ARM64 gameplay. Keep PR #4 open and unmerged.
