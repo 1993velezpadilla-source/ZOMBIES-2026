@@ -14,6 +14,7 @@ char fs_gamedir[256] = {};
 
 static int g_directory_probes = 0;
 static int g_iwd_scans = 0;
+static int g_fatal_errors = 0;
 static std::vector<std::string> g_probed_paths;
 static std::vector<std::string> g_iwd_game_folders;
 
@@ -26,15 +27,6 @@ void __cdecl FS_AddIwdFilesForGameDirectory(char *path, char *game_folder) {
     assert(game_folder && *game_folder);
     ++g_iwd_scans;
     g_iwd_game_folders.emplace_back(game_folder);
-}
-
-void __cdecl FS_BuildOSPath(const char *base, const char *game,
-                            const char *qpath, char *ospath) {
-    assert(ospath);
-    const int written = std::snprintf(
-        ospath, 260, "%s/%s/%s", base ? base : "", game ? game : "",
-        qpath ? qpath : "");
-    assert(written >= 0 && written < 260);
 }
 
 int __cdecl Sys_DirectoryHasContents(const char *directory) {
@@ -73,11 +65,35 @@ void *Z_Malloc(int size, const char *, int) {
 
 void Com_PrintWarning(int, const char *, ...) {}
 
+void QDECL Com_Error(errorParm_t code, const char *fmt, ...) {
+    assert(code == ERR_FATAL);
+    assert(fmt && *fmt);
+    ++g_fatal_errors;
+}
+
 void MyAssertHandler(const char *, int, int, const char *, ...) {
     std::abort();
 }
 
+static void test_original_path_builder() {
+    char path[256]{};
+    FS_BuildOSPath("/private//iw3/", "main", "english//voice", path);
+    assert(std::strcmp(path, "\\private\\iw3\\main\\english\\voice") == 0);
+
+    std::string oversized(300, 'x');
+    std::strcpy(path, "stale");
+    FS_BuildOSPathForThread(oversized.c_str(), "main", "", path, FS_THREAD_BACKEND);
+    assert(path[0] == '\\0');
+
+    g_fatal_errors = 0;
+    std::strcpy(path, "stale");
+    FS_BuildOSPathForThread(oversized.c_str(), "main", "", path, FS_THREAD_MAIN);
+    assert(g_fatal_errors == 1);
+    assert(path[0] == '\\0');
+}
+
 int main() {
+    test_original_path_builder();
     fs_searchpaths = nullptr;
     std::memset(fs_gamedir, 0, sizeof(fs_gamedir));
     g_directory_probes = 0;
@@ -96,7 +112,7 @@ int main() {
     // language IDs must not alias the parent "main" directory as localized.
     assert(g_directory_probes == 1);
     assert(g_probed_paths.size() == 1);
-    assert(g_probed_paths[0] == "/private/iw3/main/english");
+    assert(g_probed_paths[0] == "\\private\\iw3\\main\\english");
     assert(g_iwd_scans == 2);
     assert(g_iwd_game_folders.size() == 2);
 

@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Stage authentic KisakCOD filesystem startup bodies for an ARM64 dependency audit.
 
-This extracts the original FS_RegisterDvars, FS_Startup, FS_SetRestrictions,
-FS_IsBasePathValid, and FS_InitFilesystem bodies verbatim. Android path defaults
-are supplied by a separate narrow platform adapter. The generated archive is
+This extracts the original path builder, directory setup, and FS startup bodies
+from KisakCOD. FS_BuildOSPathForThread uses bounded native-width lengths and
+fails closed at the 256-byte engine path boundary. Android path defaults are
+supplied by a separate narrow platform adapter. The generated archive is
 not linked into the diagnostic APK until the real dvar registry and remaining
 engine services are ported.
 """
@@ -24,6 +25,9 @@ FUNCTIONS = (
     "void __cdecl FS_AddSearchPath(searchpath_s *search)",
     "void __cdecl FS_AddGameDirectory(char *path, char *dir, int bLanguageDirectory, int iLanguage)",
     "void __cdecl FS_AddLocalizedGameDirectory(char *path, char *dir)",
+    "void __cdecl FS_ReplaceSeparators(char *path)",
+    "void __cdecl FS_BuildOSPath(const char *base, const char *game, const char *qpath, char *ospath)",
+    "void __cdecl FS_BuildOSPathForThread(const char *base, const char *game, const char *qpath, char *ospath, FsThread thread)",
     "void FS_RegisterDvars()",
     "void __cdecl FS_Startup(char *gameName)",
     "void __cdecl FS_SetRestrictions()",
@@ -37,6 +41,11 @@ REQUIRED = (
     "FS_AddGameDirectory(path, dir, 1, i);",
     "FS_AddGameDirectory(path, dir, 0, 0);",
     "if (!pszLanguage || !pszLanguage[0])",
+    "size_t baseLength = boundedLength(base);",
+    "size_t gameLength = boundedLength(game);",
+    "size_t qpathLength = boundedLength(qpath);",
+    "baseLength >= 256 || gameLength >= 256 || qpathLength >= 256",
+    "FS_ReplaceSeparators(ospath);",
     'Dvar_RegisterString("fs_basepath"',
     'Dvar_RegisterString("fs_homepath"',
     "homePath = nullptr;",
@@ -50,6 +59,9 @@ REQUIRED = (
 FORBIDDEN = (
     'Z_Malloc(512, "FS_AddGameDirectory"',
     "uint32_t *v4; // eax",
+    "uint32_t v5; // [esp+0h] [ebp-3Ch]",
+    "uint32_t v6; // [esp+10h] [ebp-2Ch]",
+    "uint32_t v7; // [esp+20h] [ebp-1Ch]",
     "fs_basepath->current.integer",
     "fs_homepath->current.integer",
     "fs_cdpath->current.integer",
@@ -95,6 +107,11 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
         "original_FS_AddSearchPath_body_staged_verbatim": True,
         "original_FS_AddGameDirectory_body_staged_verbatim": True,
         "original_FS_AddLocalizedGameDirectory_body_staged_verbatim": True,
+        "original_FS_ReplaceSeparators_body_staged_verbatim": True,
+        "original_FS_BuildOSPath_body_staged_verbatim": True,
+        "original_FS_BuildOSPathForThread_body_staged_verbatim": True,
+        "path_builder_uses_bounded_native_size_lengths": True,
+        "path_builder_fails_closed_on_overflow": True,
         "directory_allocation_uses_native_sizeof": True,
         "unsupported_localized_language_fails_closed": True,
         "original_FS_RegisterDvars_body_preserved_verbatim": True,

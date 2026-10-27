@@ -31,6 +31,11 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
             self.assertTrue(report["original_FS_AddSearchPath_body_staged_verbatim"])
             self.assertTrue(report["original_FS_AddGameDirectory_body_staged_verbatim"])
             self.assertTrue(report["original_FS_AddLocalizedGameDirectory_body_staged_verbatim"])
+            self.assertTrue(report["original_FS_ReplaceSeparators_body_staged_verbatim"])
+            self.assertTrue(report["original_FS_BuildOSPath_body_staged_verbatim"])
+            self.assertTrue(report["original_FS_BuildOSPathForThread_body_staged_verbatim"])
+            self.assertTrue(report["path_builder_uses_bounded_native_size_lengths"])
+            self.assertTrue(report["path_builder_fails_closed_on_overflow"])
             self.assertTrue(report["directory_allocation_uses_native_sizeof"])
             self.assertTrue(report["unsupported_localized_language_fails_closed"])
             self.assertTrue(report["original_FS_RegisterDvars_body_preserved_verbatim"])
@@ -81,8 +86,34 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
         self.assertLess(add_directory.index(language_guard),
                         add_directory.index('Com_sprintf(szGameFolder, 0x40u, "%s/%s", dir, pszLanguage);'))
         self.assertIn("FS_AddIwdFilesForGameDirectory(path, szGameFolder);", add_directory)
+
+        path_builder = function_source(
+            source,
+            "void __cdecl FS_BuildOSPathForThread(const char *base, const char *game, const char *qpath, char *ospath, FsThread thread)",
+        )
+        self.assertIn("size_t baseLength", path_builder)
+        self.assertIn("size_t gameLength", path_builder)
+        self.assertIn("size_t qpathLength", path_builder)
+        self.assertIn("baseLength >= 256 || gameLength >= 256 || qpathLength >= 256", path_builder)
+        self.assertIn("FS_ReplaceSeparators(ospath);", path_builder)
+        self.assertNotIn("uint32_t v5;", path_builder)
+        self.assertNotIn("uint32_t v6;", path_builder)
+        self.assertNotIn("uint32_t v7;", path_builder)
+
+        build_path = function_source(
+            source,
+            "void __cdecl FS_BuildOSPath(const char *base, const char *game, const char *qpath, char *ospath)",
+        )
+        self.assertIn("FS_BuildOSPathForThread(base, game, qpath, ospath, FS_THREAD_MAIN);", build_path)
         self.assertIn("FS_AddGameDirectory(path, dir, 1, i);", add_localized)
         self.assertIn("FS_AddGameDirectory(path, dir, 0, 0);", add_localized)
+
+    def test_workflow_audits_original_path_builder_as_resolved(self):
+        workflow = (ROOT / ".github/workflows/iw3-original-native-android.yml").read_text(encoding="utf-8")
+        self.assertIn("FS_BuildOSPathForThread(", workflow)
+        self.assertIn("IW3_ORIGINAL_FS_BUILD_OS_PATH_AARCH64_RESOLVED", workflow)
+        self.assertIn("FS_BuildOSPath(", workflow)
+        self.assertNotIn('grep -F "FS_BuildOSPath" "$RUNNER_TEMP/iw3-fs-startup-undefined.txt"', workflow)
 
     def test_android_path_service_uses_configured_private_root_not_process_cwd(self):
         platform = (ROOT / "android/iw3-native/iw3_android_platform.cpp").read_text(encoding="utf-8")

@@ -444,22 +444,46 @@ void __cdecl FS_BuildOSPath(const char *base, const char *game, const char *qpat
 
 void __cdecl FS_BuildOSPathForThread(const char *base, const char *game, const char *qpath, char *ospath, FsThread thread)
 {
-    uint32_t v5; // [esp+0h] [ebp-3Ch]
-    uint32_t v6; // [esp+10h] [ebp-2Ch]
-    uint32_t v7; // [esp+20h] [ebp-1Ch]
+    size_t baseLength;
+    size_t gameLength;
+    size_t qpathLength;
+
+    const auto boundedLength = [](const char *value) -> size_t
+    {
+        size_t length = 0;
+        while (length < 256 && value[length])
+            ++length;
+        return length;
+    };
 
     if (!base)
+    {
         MyAssertHandler(".\\universal\\com_files.cpp", 1049, 0, "%s", "base");
+        if (ospath) *ospath = 0;
+        return;
+    }
     if (!qpath)
+    {
         MyAssertHandler(".\\universal\\com_files.cpp", 1050, 0, "%s", "qpath");
+        if (ospath) *ospath = 0;
+        return;
+    }
     if (!ospath)
+    {
         MyAssertHandler(".\\universal\\com_files.cpp", 1051, 0, "%s", "ospath");
+        return;
+    }
     if (!game || !*game)
         game = fs_gamedir;
-    v7 = strlen(base);
-    v6 = strlen(game);
-    v5 = strlen(qpath);
-    if ((int)(v7 + v6 + 1 + v5 + 1) >= 256)
+
+    // Bound each source string before summing. The old decompilation used
+    // uint32_t for strlen() results; native size_t avoids truncation on LP64,
+    // and the bounded lengths make the combined-size arithmetic overflow-safe.
+    baseLength = boundedLength(base);
+    gameLength = boundedLength(game);
+    qpathLength = boundedLength(qpath);
+    if (baseLength >= 256 || gameLength >= 256 || qpathLength >= 256 ||
+        baseLength + gameLength + qpathLength + 2 >= 256)
     {
         if (thread)
         {
@@ -467,12 +491,17 @@ void __cdecl FS_BuildOSPathForThread(const char *base, const char *game, const c
             return;
         }
         Com_Error(ERR_FATAL, "FS_BuildOSPath: os path length exceeded");
+        // Com_Error is fatal in the engine. Keep this function fail-closed
+        // if a platform/test error handler unexpectedly returns.
+        *ospath = 0;
+        return;
     }
-    memcpy((uint8_t *)ospath, (uint8_t *)base, v7);
-    ospath[v7] = 47;
-    memcpy((uint8_t *)&ospath[v7 + 1], (uint8_t *)game, v6);
-    ospath[v7 + 1 + v6] = 47;
-    memcpy((uint8_t *)&ospath[v7 + 2 + v6], (uint8_t *)qpath, v5 + 1);
+
+    memcpy(ospath, base, baseLength);
+    ospath[baseLength] = 47;
+    memcpy(ospath + baseLength + 1, game, gameLength);
+    ospath[baseLength + 1 + gameLength] = 47;
+    memcpy(ospath + baseLength + gameLength + 2, qpath, qpathLength + 1);
     FS_ReplaceSeparators(ospath);
 }
 
