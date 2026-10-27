@@ -31,7 +31,7 @@ REQUIRED = (
     'Dvar_RegisterString("fs_basepath"',
     'Dvar_RegisterString("fs_homepath"',
     'FS_AddLocalizedGameDirectory((char *)fs_basepath->current.string, (char*)"raw")',
-    'FS_AddIwdFilesForGameDirectory(path, szGameFolder);',
+    'FS_AddCommands();',
     'FS_Startup((char*)"main")',
     'FS_ReadFile("fileSysCheck.cfg", 0) > 0',
     'I_strncpyz(lastValidBase, (char *)fs_basepath->current.string, 256)',
