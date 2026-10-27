@@ -222,3 +222,19 @@ This is deliberately NOT yet an invocation of FS_Startup. The original Dvar regi
 - CI audit marker: IW3_ORIGINAL_FS_STARTUP_AARCH64_DEPENDENCY_AUDIT_GREEN (pending for this head at documentation time).
 
 Scope boundary: this is a real startup prerequisite and a compile/dependency gate, not a playable APK. Keep PR #4 open and unmerged until original startup is actually called in a linked runtime, the genuine licensed assets/map load, renderer output appears, and touch drives original player/weapon/actor gameplay on ARM64.
+
+
+## Phase AA — original dvar pointer-width and callback ABI repair (2026-10-26)
+
+The next blocker exposed while tracing `FS_RegisterDvars` into the real filesystem startup path was in the vendored original `src/universal/dvar.cpp`, not in the JNI bridge. Several Win32-era code paths stored native pointers in 32-bit `DvarValue::integer` and `DvarLimits::integer.max` members. That truncates string values and enum-table addresses on LP64; enum lookups also performed 32-bit pointer arithmetic. The domain callback path reconstructed a 16-byte `DvarValue` as five scalar arguments, which is not the native 64-bit C++ calling convention.
+
+This pass changes the authentic dvar implementation to:
+
+- Store string values through `DvarValue::string`, including registration, parsing, copying, latching/reset, setter conversion buffers, and cleanup to `nullptr`.
+- Store enum tables through `DvarLimits::enumeration.strings` and index them as pointer arrays in enum-to-string, prefix lookup, value display, domain display, and string-to-enum conversion.
+- Call the declared `dvar_s::domainFunc(dvar_s *, DvarValue)` type directly from `Dvar_SetVariant` and `Dvar_SetDomainFunc`, preserving the native aggregate ABI rather than using the old x86 scalar-call cast.
+- Replace the stack-buffer assertion in `Dvar_SetStringFromSource` with a pointer comparison against `dvar->current.string`, verifying the setter did not retain the temporary stack buffer.
+
+The new `prepare_real_engine_dvar_pointer_abi.py` stages corrected function bodies from the vendored KisakCOD `dvar.cpp` for host runtime regression and ARM64 compile auditing. The native regression exercises real extracted `Dvar_RegisterString`, `Dvar_RegisterEnum`, enum table lookup, `Dvar_StringToValue`, and `Dvar_UpdateEnumDomain` functions with 64-bit stack addresses; test-only stubs satisfy external services for that isolated function test. The separate ARM64 archive compiles the wider corrected string/enum setter and callback functions, and deliberately leaves registry services unresolved so this archive is not mistaken for a linked runtime.
+
+**Scope limit:** this is a real LP64 portability repair in the original dvar source, but the complete dvar registry is not linked into Android yet. `FS_Startup`/ `FS_InitFilesystem` still have unresolved real registry, localized-directory, file-read and language services; no FastFile/map load, renderer frame, actor/weapon gameplay, or playable ARM64 APK is claimed by this phase. CI results for the new extraction, host runtime test, and ARM64 compile gate are pending at the time of this documentation change.
