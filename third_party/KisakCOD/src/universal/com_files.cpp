@@ -959,7 +959,7 @@ uint32_t __cdecl FS_FOpenFileReadForThread(const char *filename, int *file, FsTh
     filetemp = zfi->file;
     ziptemp = zfi->pfile_in_zip_read;
     unzSetCurrentFileInfoPosition(iwd->handle, iwdFile->pos);
-    Com_Memcpy((char *)zfi, (char *)iwd->handle, 128);
+    Com_Memcpy((char *)zfi, (char *)iwd->handle, sizeof(*zfi));
     zfi->file = filetemp;
     zfi->pfile_in_zip_read = ziptemp;
     unzOpenCurrentFile(fsh[*file].handleFiles.file.z);
