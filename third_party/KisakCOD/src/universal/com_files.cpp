@@ -930,7 +930,7 @@ uint32_t __cdecl FS_FOpenFileReadForThread(const char *filename, int *file, FsTh
     if (!iwd->referenced && !FS_FilesAreLoadedGlobally(sanitizedName))
         iwd->referenced = 1;
 #if defined(__ANDROID__)
-    if (z2026_interlocked_compare_exchange(&iwd->hasOpenFile, 1u, 0u) == 1u)
+    if (z2026_iw3_interlocked_compare_exchange(&iwd->hasOpenFile, 1u, 0u) == 1u)
 #else
     if (InterlockedCompareExchange(&iwd->hasOpenFile, 1, 0) == 1)
 #endif
