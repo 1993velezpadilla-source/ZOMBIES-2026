@@ -415,7 +415,7 @@ else()
             "${IW3_ENGINE_SOURCE_ROOT}"
             "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
             "${IW3_ENGINE_SOURCE_ROOT}/../deps")
-        target_compile_definitions(iw3_fs_localized_path_host_test PRIVATE KISAK_SP=1)
+        target_compile_definitions(iw3_fs_localized_path_host_test PRIVATE KISAK_SP=1 IW3_FS_STARTUP_HOST_TEST=1)
         target_compile_options(iw3_fs_localized_path_host_test PRIVATE
             -UNDEBUG -ffunction-sections -fdata-sections -Wall -Wextra)
         target_link_options(iw3_fs_localized_path_host_test PRIVATE -Wl,--gc-sections)
