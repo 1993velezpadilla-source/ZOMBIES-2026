@@ -52,6 +52,15 @@ class OriginalIWDReadLifecycleTests(unittest.TestCase):
             "Com_Memcpy((char *)zfi, (char *)iwd->handle, 128);", body
         )
 
+        # The upstream clone constructor already copies the native unz_s size;
+        # guard both sides of the clone-and-state-sync path against Win32 sizes.
+        unzip_source = (ENGINE / "src/qcommon/unzip.cpp").read_text(encoding="utf-8")
+        reopen_body = function_source(
+            unzip_source, "extern unzFile unzReOpen (const char* path, unzFile file)"
+        )
+        self.assertIn("ALLOC(sizeof(unz_s))", reopen_body)
+        self.assertIn("Com_Memcpy(s, (unz_s*)file, sizeof(unz_s));", reopen_body)
+
     def test_original_lifecycle_keeps_zip_clone_and_disk_read_paths(self):
         source = (ENGINE / SOURCE).read_text(encoding="utf-8")
         combined = "\\n".join(function_source(source, signature) for signature in FUNCTIONS)
