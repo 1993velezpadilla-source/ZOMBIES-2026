@@ -1928,6 +1928,7 @@ int __cdecl Dvar_StringToEnum(const DvarLimits *domain, const char *string)
     int stringIndexa; // [esp+14h] [ebp-8h]
     int stringIndexb; // [esp+14h] [ebp-8h]
     const char *digit; // [esp+18h] [ebp-4h]
+    bool isNumeric;
 
     if (!domain)
         MyAssertHandler(".\\universal\\dvar.cpp", 420, 0, "%s", "domain");
@@ -1939,13 +1940,17 @@ int __cdecl Dvar_StringToEnum(const DvarLimits *domain, const char *string)
             return stringIndex;
     }
     stringIndexa = 0;
+    isNumeric = true;
     for (digit = string; *digit; ++digit)
     {
         if (*digit < 48 || *digit > 57)
-            return -1337;
+        {
+            isNumeric = false;
+            break;
+        }
         stringIndexa = 10 * stringIndexa + *digit - 48;
     }
-    if (stringIndexa >= 0 && stringIndexa < domain->enumeration.stringCount)
+    if (isNumeric && stringIndexa >= 0 && stringIndexa < domain->enumeration.stringCount)
         return stringIndexa;
     v3 = strlen(string);
     for (stringIndexb = 0; stringIndexb < domain->enumeration.stringCount; ++stringIndexb)
