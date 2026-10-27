@@ -6,8 +6,11 @@
 #include <qcommon/com_fileaccess.h>
 #include <qcommon/com_bsp.h> // Declares the original keyed IWD checksum routine.
 #include <qcommon/qcommon.h>
+#include <qcommon/com_checksum.h>
+#include <sound/snd_stopsounds.h>
 #if defined(__ANDROID__)
 #include "iw3_android_platform.h"
+#include "iw3_android_filesystem_compat.h"
 #include <sys/stat.h>
 #include <unistd.h>
 // win_local.h normally provides BOOL through Win32 headers. Keep the original
@@ -927,7 +930,11 @@ uint32_t __cdecl FS_FOpenFileReadForThread(const char *filename, int *file, FsTh
     }
     if (!iwd->referenced && !FS_FilesAreLoadedGlobally(sanitizedName))
         iwd->referenced = 1;
+#if defined(__ANDROID__)
+    if (z2026_interlocked_compare_exchange(&iwd->hasOpenFile, 1u, 0u) == 1u)
+#else
     if (InterlockedCompareExchange(&iwd->hasOpenFile, 1, 0) == 1)
+#endif
     {
         fsh[*file].handleFiles.iwdIsClone = 1;
         fsh[*file].handleFiles.file.z = unzReOpen(iwd->iwdFilename, iwd->handle);
@@ -1068,7 +1075,11 @@ void FS_Printf(int h, const char *fmt, ...)
     va_list va; // [esp+102Ch] [ebp+10h] BYREF
 
     va_start(va, fmt);
+#if defined(__ANDROID__)
+    vsnprintf(string, 0x1000u, fmt, va);
+#else
     _vsnprintf(string, 0x1000u, fmt, va);
+#endif
     FS_Write(string, &string[strlen(string) + 1] - &string[1], h);
 }
 
@@ -2326,7 +2337,7 @@ int __cdecl FS_GetModList(char *listbuf, int bufsize)
     nTotal = 0;
     nPotential = 0;
     nMods = 0;
-    snprintf(descPath, ARRAYSIZE(descPath), "%s/%s", fs_homepath->current.string, "mods");
+    snprintf(descPath, sizeof(descPath) / sizeof(descPath[0]), "%s/%s", fs_homepath->current.string, "mods");
     pFiles = Sys_ListFiles(descPath, 0, 0, &dummy, 1);
     nPotential = Sys_CountFileList(pFiles);
     for (i = 0; i < nPotential; ++i)
