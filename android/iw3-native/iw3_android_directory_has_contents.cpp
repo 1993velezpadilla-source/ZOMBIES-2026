@@ -6,7 +6,9 @@
 // The original com_files.cpp defines Sys_DirectoryHasContents only under
 // WIN32. Android keeps its 0/1 contract while translating the engine's absolute
 // app-root path to a relative path for the openat/no-follow platform scanner.
-int __cdecl Sys_DirectoryHasContents(const char *directory) {
+// POSIX/Android use the platform's default C calling convention; __cdecl is a
+// Win32-only spelling and is intentionally not used by this adapter.
+int Sys_DirectoryHasContents(const char *directory) {
     if (!directory) return 0;
 
     char root[1024]{};
