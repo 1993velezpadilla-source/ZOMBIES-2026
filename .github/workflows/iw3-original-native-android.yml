@@ -257,12 +257,11 @@ jobs:
           dvar_archive="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_dvar_pointer_abi.a"
           test -s "$dvar_archive"
           "$llvm_nm" -C --defined-only "$dvar_archive" | tee "$RUNNER_TEMP/iw3-dvar-pointer-defined.txt"
-          for symbol in Dvar_RegisterString Dvar_RegisterEnum Dvar_StringToEnum Dvar_UpdateEnumDomain Dvar_SetVariant Dvar_SetDomainFunc Dvar_SetStringFromSource; do
+          for symbol in Dvar_RegisterString Dvar_RegisterEnum Dvar_StringToEnum Dvar_UpdateEnumDomain Dvar_SetVariant Dvar_SetDomainFunc Dvar_SetStringFromSource Dvar_ClampValueToDomain Dvar_ClampVectorToDomain; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-dvar-pointer-defined.txt"
           done
           "$llvm_nm" -u -C "$dvar_archive" | tee "$RUNNER_TEMP/iw3-dvar-pointer-undefined.txt"
           grep -F "Dvar_RegisterVariant" "$RUNNER_TEMP/iw3-dvar-pointer-undefined.txt"
-          grep -F "Dvar_ClampValueToDomain" "$RUNNER_TEMP/iw3-dvar-pointer-undefined.txt"
           echo "IW3_ORIGINAL_DVAR_LP64_POINTER_ABI_AARCH64_COMPILE_GREEN"
 
           so="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_math.so"
