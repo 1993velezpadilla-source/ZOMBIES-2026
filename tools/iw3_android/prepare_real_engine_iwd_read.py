@@ -35,10 +35,12 @@ REQUIRED = (
     "FS_FileForHandle(h)",
     "unzCloseCurrentFile(fsh[h].handleFiles.file.z);",
     "fsh[h].handleFiles.iwdIsClone",
+    "Com_Memcpy((char *)zfi, (char *)iwd->handle, sizeof(*zfi));",
 )
 FORBIDDEN = (
     "z2026_iw3_original_searchpath_lookup",
     "return -1; // non-null handle path is intentionally outside this probe",
+    "Com_Memcpy((char *)zfi, (char *)iwd->handle, 128);",
 )
 
 def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict:
