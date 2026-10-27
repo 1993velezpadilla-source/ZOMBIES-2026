@@ -97,7 +97,18 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
     original = source_path.read_bytes()
     source = original.decode("utf-8")
     bodies = [function_source(source, signature) for signature in FUNCTIONS]
-    rendered = HEADER + "\n\n".join(bodies) + "\n"
+    rendered_bodies = []
+    for signature, body in zip(FUNCTIONS, bodies):
+        if signature == "void __cdecl FS_AddIwdFilesForGameDirectory(char *path, char *pszGameFolder)":
+            # The dependency archive includes the original enumerator. The
+            # focused localized-path host test deliberately keeps its narrow
+            # service stub so it does not need to fabricate IWD archive state.
+            rendered_bodies.append(
+                "#if !defined(IW3_FS_STARTUP_HOST_TEST)\\n" + body + "\\n#endif"
+            )
+        else:
+            rendered_bodies.append(body)
+    rendered = HEADER + "\\n\\n".join(rendered_bodies) + "\\n"
     for marker in REQUIRED:
         if marker not in rendered:
             raise ValueError("Original filesystem startup contract missing: " + marker)
