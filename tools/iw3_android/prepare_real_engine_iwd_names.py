@@ -25,11 +25,14 @@ FUNCTIONS = (
 )
 HEADER = '#include "iw3_android_iwd_names_compat.h"\n'
 REQUIRED = (
-    "letter = tolower(fname[i]);",
+    "letter = tolower(static_cast<unsigned char>(fname[i]));",
     "return ((hash >> 20) ^ hash ^ (hash >> 10)) & (hashSize - 1);",
     "if (I_islower(c1))",
     "if (c1 == '\\\\' || c1 == ':')",
     "if (*s == 92 || *s == 58)",
+)
+FORBIDDEN = (
+    "letter = tolower(fname[i]);",
 )
 
 def prepare(engine: Path, output: Path) -> dict:
@@ -47,6 +50,9 @@ def prepare(engine: Path, output: Path) -> dict:
     for marker in REQUIRED:
         if marker not in rendered:
             raise ValueError("Original IW3 IWD filename algorithm changed: " + marker)
+    for marker in FORBIDDEN:
+        if marker in rendered:
+            raise ValueError("Unsafe signed-char ctype call in original IWD filename hash: " + marker)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(rendered, encoding="utf-8")
     for path, origin in originals.items():
@@ -58,6 +64,7 @@ def prepare(engine: Path, output: Path) -> dict:
         "function_sha256": [hashlib.sha256(body.encode("utf-8")).hexdigest() for body in bodies],
         "source_bodies_preserved": True,
         "iwd_filename_hash_and_compare_ported": True,
+        "iwd_filename_hash_high_bit_safe": True,
         "iwd_zip_archive_mount_ported": False,
         "fastfile_map_loading_ported": False,
         "gameplay_proven": False,

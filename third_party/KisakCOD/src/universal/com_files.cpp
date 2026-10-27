@@ -333,7 +333,7 @@ int __cdecl FS_HashFileName(const char *fname, int hashSize)
     hash = 0;
     for (i = 0; fname[i]; ++i)
     {
-        letter = tolower(fname[i]);
+        letter = tolower(static_cast<unsigned char>(fname[i]));
         if (letter == 46)
             break;
         if (letter == 92)

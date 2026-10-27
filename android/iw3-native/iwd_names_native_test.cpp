@@ -17,6 +17,10 @@ int main() {
     assert(FS_HashFileName("SCRIPTS\\ZOMBIES.GSC", 1024) == 917);
     assert(FS_HashFileName("weapons/mp40", 1024) == 230);
     assert(FS_HashFileName("weapons/MP40", 1024) == 230);
+    // A high-bit byte must be passed to tolower as unsigned char; with
+    // signed char this value becomes negative and changes the original hash.
+    const char highBitName[] = {static_cast<char>(0xFE), 'A', '.', 't', 'x', 't', '\0'};
+    assert(FS_HashFileName(highBitName, 1024) == 930);
     assert(FS_FilenameCompare("maps/mp/mp_crash.d3dbsp",
                               "MAPS\\MP\\MP_CRASH.D3DBSP") == 0);
     assert(FS_FilenameCompare("weapons:mp40", "WEAPONS/mp40") == 0);
