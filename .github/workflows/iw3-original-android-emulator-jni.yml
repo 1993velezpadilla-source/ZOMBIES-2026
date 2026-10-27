@@ -2,9 +2,11 @@ name: IW3 original C++ JNI Android Emulator Runtime Proof (NOT GAME)
 
 on:
   workflow_dispatch:
+  # pull_request.branches filters the PR BASE branch, not its head.
+  # PR #4 targets feature/zombies-offline-sp-weapons-20261024.
   pull_request:
     branches:
-      - feature/iw3-native-android-arm64-20261025
+      - feature/zombies-offline-sp-weapons-20261024
     paths:
       - .github/workflows/iw3-original-android-emulator-jni.yml
       - .github/workflows/iw3-original-native-android.yml
