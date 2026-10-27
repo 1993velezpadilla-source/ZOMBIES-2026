@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 class AndroidFsStartupDirectoryTests(unittest.TestCase):
     def test_adapter_is_rooted_and_fails_closed(self):
         source = (ROOT / "android/iw3-native/iw3_android_directory_has_contents.cpp").read_text(encoding="utf-8")
-        self.assertIn("int Sys_DirectoryHasContents(const char *directory)", source)
+        self.assertIn("int __cdecl Sys_DirectoryHasContents(const char *directory)", source)
         self.assertIn("z2026_platform_copy_data_root", source)
         self.assertIn("z2026_platform_directory_has_contents(relative)", source)
         self.assertIn("return result > 0 ? 1 : 0;", source)
