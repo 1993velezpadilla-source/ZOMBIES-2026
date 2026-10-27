@@ -4,6 +4,7 @@
 
 #include <universal/com_memory.h>
 #include <qcommon/com_fileaccess.h>
+#include <qcommon/com_bsp.h> // Declares the original keyed IWD checksum routine.
 #include <qcommon/qcommon.h>
 #if defined(__ANDROID__)
 #include "iw3_android_platform.h"
