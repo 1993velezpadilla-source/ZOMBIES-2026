@@ -241,6 +241,12 @@ if(ANDROID)
     # waits. Compile the POSIX equivalent beside the untouched original TU.
     target_sources(iw3_sp_full_dvar PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_dvar_io.cpp")
+    if(IW3_EXTRACTED_DVAR_VEC4_COMPARE)
+        if(NOT EXISTS "${IW3_EXTRACTED_DVAR_VEC4_COMPARE}")
+            message(FATAL_ERROR "Original Vec4Compare source extraction required")
+        endif()
+        target_sources(iw3_sp_full_dvar PRIVATE "${IW3_EXTRACTED_DVAR_VEC4_COMPARE}")
+    endif()
     target_include_directories(iw3_sp_full_dvar PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}"
         "${IW3_REAL_HEADER_ROOT}"
@@ -277,6 +283,18 @@ else()
         "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_dvar_io.cpp")
     target_compile_options(iw3_dvar_sleep_host_test PRIVATE -UNDEBUG -Wall -Wextra)
     add_test(NAME iw3_android_dvar_net_sleep_semantics COMMAND iw3_dvar_sleep_host_test)
+    if(IW3_EXTRACTED_DVAR_VEC4_COMPARE)
+        add_executable(iw3_dvar_vec4_host_test
+            "${CMAKE_CURRENT_SOURCE_DIR}/dvar_vec4_native_test.cpp"
+            "${IW3_EXTRACTED_DVAR_VEC4_COMPARE}")
+        target_include_directories(iw3_dvar_vec4_host_test PRIVATE
+            "${IW3_ENGINE_SOURCE_ROOT}"
+            "${IW3_REAL_HEADER_ROOT}"
+            "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+            "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+        target_compile_options(iw3_dvar_vec4_host_test PRIVATE -UNDEBUG -Wall -Wextra)
+        add_test(NAME iw3_original_dvar_vec4_compare COMMAND iw3_dvar_vec4_host_test)
+    endif()
 
     add_executable(iw3_snap_float_host_test
         "${CMAKE_CURRENT_SOURCE_DIR}/snap_float_native_test.cpp")
