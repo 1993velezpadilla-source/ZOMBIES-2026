@@ -2,6 +2,13 @@ name: IW3 ORIGINAL SOURCE Android ARM64 math port (NOT APK)
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/iw3-original-native-android.yml'
+      - 'android/iw3-native/**'
+      - 'tools/iw3_android/**'
+      - 'tests/test_iw3_android_*.py'
+      - 'third_party/KisakCOD/src/**'
   push:
     branches:
       - feature/iw3-native-android-arm64-20261025
