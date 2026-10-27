@@ -500,3 +500,31 @@ Added `tests/test_iw3_android_fs_sound_abi.py`: it checks the Android declaratio
 Validation after the fix is now green in [native ARM64 workflow run 40543600189](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40543600189): **93 Python tests passed**, **CTest 10/10 passed**, ASan/UBSan host checks passed, and the complete original `com_files.cpp` translation unit compiled as an Android ARM64 object. The same run also passed the original frame, IWD indexer, filtered-file/location and typed `G_RunFrame` ARM64 compile/audit steps. Artifact [12752181230](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40543600189/artifacts/12752181230) contains native modules and audit evidence, not an APK. The earlier failing run [40541980104](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40541980104) is retained as the regression trigger and is not counted as passing. The separate JNI packaging workflow is still running at the time of this note.
 
 Scope boundary unchanged: this fixes a compile-time ABI declaration gap only. It does not link the real audio service, complete `FS_Startup()`/IWD mounting into a game runtime, load FastFiles/maps, render the original scene, or prove ARM64 gameplay. The JNI APK remains diagnostic only; keep PR #4 open and unmerged.
+
+
+### Phase AP — compile the complete original dvar translation unit without Win32 headers (27 Oct 2026)
+
+The last successful Android source gate compiled the complete original `com_files.cpp` translation unit, but the authentic dvar registry still existed only as a collection of extracted ABI-audit bodies. The next compile-time portability barrier was the original `universal/dvar.cpp` translation unit: it directly included `Windows.h` and `win_local.h`, which brings DirectInput/Win32-only declarations into the Android build. Its unused `devgui.h` include also exposes 32-bit-only UI layout assertions that are not part of the dvar registry.
+
+Implemented on `feature/iw3-native-android-arm64-20261025`:
+
+- `qcommon/fast_critical_section.h` now owns the original two-counter `FastCriticalSection` declaration and `Sys_LockWrite/Sys_UnlockWrite` prototypes. Compile-time assertions pin its 8-byte size and `writeCount` offset. `win_local.h` includes that shared declaration, preserving the Win32 layout rather than duplicating a platform-specific copy.
+- Original `dvar.cpp` selects a narrow Android compatibility header instead of importing `Windows.h`/DirectInput through `win_local.h`. The unused `devgui.h` include is excluded on Android; the original dvar registration and lookup bodies remain unchanged.
+- `iw3_android_dvar_compat.h` provides native atomic wrappers with Win32 `InterlockedIncrement`, `InterlockedDecrement`, and `InterlockedCompareExchange` return-value semantics. It does not implement the engine lock or network-sleep services.
+- CMake now compiles the **complete original `dvar.cpp` as an Android ARM64 object-only gate** (`iw3_sp_full_dvar`). It is deliberately not linked into the JNI diagnostic: `Sys_LockWrite`, `Sys_UnlockWrite`, `NET_Sleep`, and the broader engine service graph still need authentic runtime integration.
+- Added four source regression tests for the conditional include boundary, shared lock layout, atomic return semantics, and the object-only CMake target.
+
+Commits:
+- [`be81007` — shared original critical-section ABI](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/be81007dae1863a082ea164ecb8c5caea020a828)
+- [`a86f72e` — use shared ABI from the Win32 header](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/a86f72ecad4ed8054be324ff967ddfff5d7227b7)
+- [`c6f6524` — narrow Android include path in original dvar.cpp](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/c6f65245dfa0cd7acc4efea1bf6fa98ee5381810)
+- [`c7cd6d7` — compile the full original dvar TU for ARM64](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/c7cd6d7ecbe57c8717a560d9e50badd01dbebefc)
+- [`5855978` — regression guards](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/5855978ca59041cfd47043bc94f12e54ff7c1bc6)
+
+Validation status at this documentation update:
+- Source preflight [40550116986](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40550116986) — **PASS** (static source/package gates only).
+- Android ARM64 source build [40550116839](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40550116839) — queued/pending; not counted as a pass.
+- JNI packaging [40550116957](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40550116957) — queued/pending; not counted as a pass.
+- A local GCC C++20 check of the three atomic wrapper return contracts passed, but this is not a substitute for the NDK compile.
+
+Scope boundary: this phase only opens the next full-source compile gate. It does not link the original dvar registry, invoke `FS_Startup()`, mount licensed IWD/FastFiles, load a map, render a scene, or prove gameplay. The JNI APK remains diagnostic only. Keep PR #4 open and unmerged.
