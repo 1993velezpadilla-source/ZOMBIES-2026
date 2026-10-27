@@ -34,7 +34,7 @@ int main() {
     assert(std::strcmp(copied_root, root) == 0);
     char too_small_root[1] = {'x'};
     assert(z2026_platform_copy_data_root(too_small_root, sizeof(too_small_root)) == -1);
-    assert(too_small_root[0] == '\\0');
+    assert(too_small_root[0] == '\0');
     assert(z2026_platform_set_data_root(".") == -1);
     unsigned char buffer[4]{};
     assert(z2026_platform_read_file("sample.txt", buffer, sizeof(buffer)) == 3);
