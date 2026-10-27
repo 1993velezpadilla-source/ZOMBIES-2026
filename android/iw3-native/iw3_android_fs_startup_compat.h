@@ -10,6 +10,10 @@
 #define __cdecl
 #endif
 
+#ifndef BOOL
+typedef int BOOL;
+#endif
+
 // Globals shared with the original com_files.cpp translation unit.
 extern const dvar_t *fs_homepath;
 extern const dvar_s *fs_debug;
@@ -28,6 +32,7 @@ extern char lastValidGame[256];
 
 void FS_RegisterDvars();
 void __cdecl Com_ReadCDKey();
+bool __cdecl FS_GameDirDomainFunc(dvar_s *dvar, DvarValue newValue);
 BOOL __cdecl FS_UseSearchPath(const searchpath_s *pSearch);
 void FS_AddLocalizedGameDirectory(char *path, char *dir);
 void FS_AddCommands();
