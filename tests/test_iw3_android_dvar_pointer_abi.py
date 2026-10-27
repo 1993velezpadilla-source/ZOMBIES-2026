@@ -42,6 +42,7 @@ class OriginalDvarPointerAbiTests(unittest.TestCase):
             self.assertIn(DVAR_HASH_VALUE, SMOKE_FUNCTIONS)
             self.assertTrue(report["dvar_name_validation_uses_unsigned_char"])
             self.assertTrue(report["dvar_hash_uses_unsigned_char"])
+            self.assertTrue(report["dvar_enum_index_parser_uses_unsigned_char"])
             self.assertIn("Dvar_IsValidName", staged)
             self.assertIn("isalnum(static_cast<unsigned char>(nameChar))", staged)
             self.assertIn("tolower(static_cast<unsigned char>(fname[i]))", staged)
@@ -88,6 +89,8 @@ class OriginalDvarPointerAbiTests(unittest.TestCase):
         self.assertIn("isalnum(static_cast<unsigned char>(nameChar))", source)
         self.assertNotIn("isalnum(nameChar)", source)
         self.assertIn("tolower(static_cast<unsigned char>(fname[i]))", source)
+        self.assertIn("isdigit(static_cast<unsigned char>(indexString[indexStringIndex]))", source)
+        self.assertNotIn("isdigit(indexString[indexStringIndex])", source)
         self.assertNotIn("tolower(fname[i])", source)
 
 
