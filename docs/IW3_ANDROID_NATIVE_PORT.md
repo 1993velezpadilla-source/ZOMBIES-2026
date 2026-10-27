@@ -528,3 +528,21 @@ Validation status at this documentation update:
 - A local GCC C++20 check of the three atomic wrapper return contracts passed, but this is not a substitute for the NDK compile.
 
 Scope boundary: this phase only opens the next full-source compile gate. It does not link the original dvar registry, invoke `FS_Startup()`, mount licensed IWD/FastFiles, load a map, render a scene, or prove gameplay. The JNI APK remains diagnostic only. Keep PR #4 open and unmerged.
+
+
+### Phase AP validation follow-up — 27 Oct 2026
+
+The first full ARM64 dvar compile attempt, run [40550752915](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40550752915), exposed three concrete header-surface issues: the Win32 `win_net.h` transitively included the Windows-only `net_chan.h` layout; `com_math.h` collided with Android libc's `random()` declaration and required `__forceinline`; and removing that header also removed the original `CLAMP` macro. The Android dvar include boundary was narrowed further: only the exact `NET_Sleep` and `Vec4Compare` declarations are retained, the Win32 network/math headers stay on the Windows branch, and the source-compatible `CLAMP` macro is provided. These are compile-boundary changes; no dvar function body was replaced.
+
+Final code validation at source commit [`c7faa09`](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/c7faa0935fcef1a911855a4e604a0b0aa478ee56):
+
+- [Android ARM64 native-source workflow 40551042854](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40551042854) — **PASS**.
+- Its log reports **97 Python tests passed**, **CTest 10/10**, and **ASan/UBSan CTest 10/10**.
+- The NDK build explicitly compiled `third_party/KisakCOD/src/universal/dvar.cpp` as `iw3_sp_full_dvar`; log marker: `Built target iw3_sp_full_dvar`.
+- [JNI integration workflow 40551042669](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40551042669) — **PASS**, producing only a signed diagnostic package.
+- [Static source preflight 40551042758](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40551042758) — **PASS**.
+- The source module artifact [12755855399](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40551042854/artifacts/12755855399) contains native modules/audit evidence, not a playable APK.
+- The JNI artifact [12754168226](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40551042669/artifacts/12754168226) is explicitly **NOT A GAME**.
+- The separate offline SP weapons and killhouse workflows were still in progress at this check; their outcomes are not counted.
+
+The new milestone is limited but concrete: the full authentic dvar translation unit now compiles for Android ARM64. It is still not linked into the runtime; `Sys_LockWrite`, `Sys_UnlockWrite`, `NET_Sleep`, the dvar global state/service graph, and the FS startup call path remain unintegrated. No `FS_Startup()`, real IWD/FastFile/map load, original renderer, or real gameplay has been demonstrated. Keep PR #4 open and unmerged.
