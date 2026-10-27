@@ -32,6 +32,7 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
             self.assertTrue(report["original_FS_AddGameDirectory_body_staged_verbatim"])
             self.assertTrue(report["original_FS_AddLocalizedGameDirectory_body_staged_verbatim"])
             self.assertTrue(report["directory_allocation_uses_native_sizeof"])
+            self.assertTrue(report["unsupported_localized_language_fails_closed"])
             self.assertTrue(report["original_FS_RegisterDvars_body_preserved_verbatim"])
             self.assertTrue(report["original_FS_Startup_body_preserved_verbatim"])
             self.assertTrue(report["original_FS_SetRestrictions_body_preserved_verbatim"])
@@ -75,6 +76,10 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
         )
         self.assertNotIn("Z_Malloc(512", add_directory)
         self.assertNotIn("uint32_t *v4", add_directory)
+        language_guard = "if (!pszLanguage || !pszLanguage[0])\\n            return;"
+        self.assertIn(language_guard, add_directory)
+        self.assertLess(add_directory.index(language_guard),
+                        add_directory.index('Com_sprintf(szGameFolder, 0x40u, "%s/%s", dir, pszLanguage);'))
         self.assertIn("FS_AddIwdFilesForGameDirectory(path, szGameFolder);", add_directory)
         self.assertIn("FS_AddGameDirectory(path, dir, 1, i);", add_localized)
         self.assertIn("FS_AddGameDirectory(path, dir, 0, 0);", add_localized)
@@ -92,6 +97,7 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
         self.assertIn("char *Sys_Cwd()", adapter)
         self.assertIn("z2026_platform_copy_data_root", adapter)
         self.assertIn("Sys_DefaultCDPath()", adapter)
+        self.assertIn('return language == 0 ? "english" : "";', directory_io)
         self.assertNotIn("int Sys_DirectoryHasContents(const char *directory)", adapter)
         self.assertIn("int __cdecl Sys_DirectoryHasContents(const char *directory)", directory_io)
         self.assertIn("z2026_platform_directory_has_contents(directory) > 0 ? 1 : 0", directory_io)
