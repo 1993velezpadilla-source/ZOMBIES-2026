@@ -14,18 +14,25 @@ class OriginalDvarAndroidCompileTests(unittest.TestCase):
     def test_original_dvar_translation_unit_uses_narrow_android_platform_surface(self):
         source = DVAR.read_text(encoding="utf-8")
         self.assertIn(
-            '#if defined(__ANDROID__)\n'
-            '#include "iw3_android_dvar_compat.h"\n'
-            '#else\n'
-            '#include <Windows.h>\n'
-            '#include <win32/win_local.h>\n'
+            '#if defined(__ANDROID__)\\n'
+            '#include "iw3_android_dvar_compat.h"\\n'
+            '#else\\n'
+            '#include <Windows.h>\\n'
+            '#include <win32/win_local.h>\\n'
             '#endif',
             source,
         )
         self.assertIn(
-            '#if !defined(__ANDROID__)\n#include <devgui/devgui.h>\n#endif',
+            '#if !defined(__ANDROID__)\\n'
+            '#include <win32/win_net.h>\\n'
+            '#include <devgui/devgui.h>\\n'
+            '#include "com_math.h"\\n'
+            '#endif',
             source,
         )
+        compat = ANDROID_COMPAT.read_text(encoding="utf-8")
+        self.assertIn("void NET_Sleep(int msec);", compat)
+        self.assertIn("bool __cdecl Vec4Compare(const float *a, const float *b);", compat)
         self.assertIn("Dvar_RegisterVariant", source)
         self.assertIn("Dvar_RegisterNew", source)
         self.assertIn("Dvar_Reregister", source)
@@ -54,14 +61,14 @@ class OriginalDvarAndroidCompileTests(unittest.TestCase):
     def test_cmake_compiles_full_original_dvar_as_object_but_does_not_link_it_to_diagnostic(self):
         cmake = CMAKE.read_text(encoding="utf-8")
         self.assertIn(
-            'add_library(iw3_sp_full_dvar OBJECT\n'
+            'add_library(iw3_sp_full_dvar OBJECT\\n'
             '        "${IW3_ENGINE_SOURCE_ROOT}/universal/dvar.cpp")',
             cmake,
         )
         self.assertIn("target_compile_definitions(iw3_sp_full_dvar PRIVATE KISAK_SP=1)", cmake)
         self.assertIn("target_compile_options(iw3_sp_full_dvar PRIVATE", cmake)
         self.assertNotIn(
-            'target_sources(iw3_sp_math PRIVATE\n'
+            'target_sources(iw3_sp_math PRIVATE\\n'
             '        "${IW3_ENGINE_SOURCE_ROOT}/universal/dvar.cpp")',
             cmake,
         )
