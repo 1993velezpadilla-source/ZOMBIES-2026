@@ -328,6 +328,35 @@ jobs:
           grep -F '__android_log_write' "$RUNNER_TEMP/iw3-full-dvar-unresolved.txt"
           echo "IW3_ORIGINAL_DVAR_NET_SLEEP_VEC4_AND_ANDROID_LOG_PROVIDER_RESOLVED_ENGINE_SERVICES_VISIBLE"
 
+          # Integrate the authentic startup object with the complete original
+          # dvar translation unit and its Android providers. This must resolve
+          # the startup's real Dvar_Register* edges without hiding the next
+          # filesystem/language dependencies or claiming a runtime invocation.
+          startup_dvar_combined="$RUNNER_TEMP/iw3-fs-dvar-startup-combined.o"
+          "$ld_lld" -m aarch64linux -r --whole-archive \
+            "$startup_archive" "$dvar_full_archive" --no-whole-archive \
+            -o "$startup_dvar_combined"
+          "$llvm_nm" -C --defined-only "$startup_dvar_combined" \
+            | tee "$RUNNER_TEMP/iw3-fs-dvar-startup-defined.txt"
+          "$llvm_nm" -u -C "$startup_dvar_combined" \
+            | tee "$RUNNER_TEMP/iw3-fs-dvar-startup-undefined.txt"
+          for symbol in Dvar_RegisterInt Dvar_RegisterString Dvar_RegisterBool; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-startup-defined.txt"
+            if grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-startup-undefined.txt"; then
+              echo "Original FS startup Dvar registration still unresolved: $symbol" >&2
+              exit 1
+            fi
+          done
+          # These are now the explicit next integration edges; do not paper over
+          # them with stubs or claim FS_Startup/FS_InitFilesystem has executed.
+          for symbol in FS_AddIwdFilesForGameDirectory Z_Malloc SEH_GetLanguageName FS_ReadFile SEH_InitLanguage; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-startup-undefined.txt"
+          done
+          echo "IW3_ORIGINAL_FS_STARTUP_DVAR_REGISTRATION_AARCH64_COMBINED_LINK_GREEN"
+          echo "IW3_FS_STARTUP_RUNTIME_INVOKED=false"
+          echo "IW3_REAL_GAME_DATA_MOUNTED=false"
+          echo "IW3_PLAYABLE_APK=false"
+
           so="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_math.so"
           test -s "$so"
           elf="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
@@ -443,6 +472,9 @@ jobs:
             ${{ runner.temp }}/iw3-original-fs-startup.json
             ${{ runner.temp }}/iw3-fs-startup-defined.txt
             ${{ runner.temp }}/iw3-fs-startup-undefined.txt
+            ${{ runner.temp }}/iw3-fs-dvar-startup-combined.o
+            ${{ runner.temp }}/iw3-fs-dvar-startup-defined.txt
+            ${{ runner.temp }}/iw3-fs-dvar-startup-undefined.txt
             ${{ runner.temp }}/iw3-original-filtered-files-location.json
             ${{ runner.temp }}/iw3-complete-frame-arm64.json
             ${{ runner.temp }}/iw3-native-source.json
