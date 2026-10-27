@@ -1,8 +1,12 @@
 #include <universal/q_shared.h>
 #include <qcommon/qcommon.h>
 
+#if defined(__ANDROID__)
+#include "iw3_android_dvar_compat.h"
+#else
 #include <Windows.h>
 #include <win32/win_local.h>
+#endif
 #include <qcommon/cmd.h>
 #include "com_files.h"
 #include "com_memory.h"
@@ -10,7 +14,9 @@
 #include "q_parse.h"
 #include <gfx_d3d/r_dvars.h>
 #include <win32/win_net.h>
+#if !defined(__ANDROID__)
 #include <devgui/devgui.h>
+#endif
 #include "com_math.h"
 #include "memfile.h"        // Dvar_Save/LoadDvars
 
