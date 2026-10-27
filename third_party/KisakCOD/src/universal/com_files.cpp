@@ -1743,6 +1743,11 @@ void __cdecl FS_AddGameDirectory(char *path, char *dir, int bLanguageDirectory, 
     if (bLanguageDirectory)
     {
         pszLanguage = SEH_GetLanguageName(iLanguage);
+        // Unsupported platform languages must not collapse to the parent game
+        // directory. An empty name would otherwise form "dir/" and make the
+        // original directory probe register that same path as every language.
+        if (!pszLanguage || !pszLanguage[0])
+            return;
         Com_sprintf(szGameFolder, 0x40u, "%s/%s", dir, pszLanguage);
     }
     else
