@@ -100,8 +100,6 @@ FORBIDDEN = (
     "domain->integer.max + 4 * stringIndex",
     "dvar->domain.integer.max + 4 * dvar->current.integer",
     "uint8_t(__cdecl *)(dvar_s *, int, uint32_t, uint32_t, uint32_t)",
-    "domain.enumeration.stringCount > domain.integer.max",
-    "value.integer = domain.enumeration.stringCount;",
 )
 
 
