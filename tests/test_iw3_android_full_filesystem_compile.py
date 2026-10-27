@@ -52,6 +52,21 @@ class OriginalFilesystemAndroidPortTests(unittest.TestCase):
         self.assertIn("GetFileAttributesA(ospath)", windows)
         self.assertIn("SetFileAttributesA(ospath, attributes)", windows)
 
+    def test_thread_context_abi_is_shared_without_win32_or_d3d_headers(self):
+        threads = (ROOT / "third_party/KisakCOD/src/qcommon/threads.h").read_text(encoding="utf-8")
+        backend = (ROOT / "third_party/KisakCOD/src/gfx_d3d/rb_backend.h").read_text(encoding="utf-8")
+        context = (ROOT / "third_party/KisakCOD/src/qcommon/thread_context.h").read_text(encoding="utf-8")
+        self.assertIn("#include <qcommon/thread_context.h>", threads)
+        self.assertNotIn("#include <gfx_d3d/rb_backend.h>", threads)
+        self.assertIn("#if defined(__ANDROID__)", threads)
+        self.assertIn("using DWORD = std::uint32_t;", threads)
+        self.assertIn("using HANDLE = void *;", threads)
+        self.assertIn("#include <Windows.h>", threads)
+        self.assertIn("#include <qcommon/thread_context.h>", backend)
+        self.assertNotIn("enum ThreadContext_t", backend)
+        self.assertIn("THREAD_CONTEXT_COUNT = 12", context)
+        self.assertIn("THREAD_CONTEXT_COUNT        = 0x7", context)
+
     def test_android_gate_compiles_complete_original_filesystem_source(self):
         cmake = CMAKE.read_text(encoding="utf-8")
         self.assertIn(
