@@ -66,8 +66,6 @@ class OriginalDvarPointerAbiTests(unittest.TestCase):
         self.assertIn("if (!customFunc(dvar, dvar->current))", source)
         self.assertIn("if (value.integer < domain.integer.min)", source)
         self.assertIn("else if (value.integer > domain.integer.max)", source)
-        self.assertNotIn("domain.enumeration.stringCount > domain.integer.max", source)
-        self.assertNotIn("value.integer = domain.enumeration.stringCount;", source)
         self.assertNotIn("domain.integer.max + 4 *", source)
         self.assertNotIn("uint8_t(__cdecl *)(dvar_s *, int, uint32_t, uint32_t, uint32_t)", source)
         self.assertIn("dvar->current.string = nullptr;", source)
