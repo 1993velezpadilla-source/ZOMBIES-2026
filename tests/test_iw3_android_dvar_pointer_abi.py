@@ -40,6 +40,8 @@ class OriginalDvarPointerAbiTests(unittest.TestCase):
             self.assertTrue(report["dvar_register_variant_body_staged_verbatim"])
             self.assertIn("Dvar_RegisterVariant", staged)
             self.assertIn("Dvar_FindMalleableVar", staged)
+            self.assertIn("const dvar_s *__cdecl Dvar_RegisterNew(", staged)
+            self.assertIn("void __cdecl Dvar_Reregister(", staged)
             self.assertTrue(report["string_values_use_native_pointer_union_member"])
             self.assertTrue(report["enum_tables_use_native_pointer_member_and_indexing"])
             self.assertTrue(report["domain_callbacks_use_declared_DvarValue_by_value_abi"])
