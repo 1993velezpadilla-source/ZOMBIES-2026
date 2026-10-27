@@ -83,13 +83,13 @@ static void test_original_path_builder() {
     std::string oversized(300, 'x');
     std::strcpy(path, "stale");
     FS_BuildOSPathForThread(oversized.c_str(), "main", "", path, FS_THREAD_BACKEND);
-    assert(path[0] == '\\0');
+    assert(path[0] == '\0');
 
     g_fatal_errors = 0;
     std::strcpy(path, "stale");
     FS_BuildOSPathForThread(oversized.c_str(), "main", "", path, FS_THREAD_MAIN);
     assert(g_fatal_errors == 1);
-    assert(path[0] == '\\0');
+    assert(path[0] == '\0');
 }
 
 int main() {
