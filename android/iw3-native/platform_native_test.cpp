@@ -116,7 +116,7 @@ int main() {
         const char *name = many_iwd_names.data() + many_offset;
         const std::size_t remaining =
             static_cast<std::size_t>(many_iwd_bytes) - many_offset;
-        const void *end_name = std::memchr(name, '\\0', remaining);
+        const void *end_name = std::memchr(name, '\0', remaining);
         assert(end_name);
         const std::size_t name_length =
             static_cast<const char *>(end_name) - name;
