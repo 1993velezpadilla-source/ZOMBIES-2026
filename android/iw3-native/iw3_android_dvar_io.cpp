@@ -3,7 +3,7 @@
 // uses 0 for yielding while a critical-section counter changes and positive
 // values for short back-off waits; no networking implementation is substituted.
 #include <cerrno>
-#include <ctime>
+#include <time.h>
 #include <sched.h>
 
 void NET_Sleep(int msec)
