@@ -50,6 +50,8 @@ IW3_ANDROID_EXPORT int z2026_platform_unlink_file(const char *relative_path);
 IW3_ANDROID_EXPORT int z2026_platform_mkdir(const char *relative_path);
 IW3_ANDROID_EXPORT int z2026_platform_rmdir(const char *relative_path);
 
+// Android MotionEvent pointer IDs (0..31) map onto ten simultaneous native
+// touch slots; pointer IDs are never used directly as array indices.
 // Android touch state plus a native adapter to original usercmd_s layout.
 // CL_CreateCmd/game-frame consumption remains pending.
 IW3_ANDROID_EXPORT int z2026_platform_touch_event(
