@@ -112,8 +112,10 @@ def _render(source: str, signatures: tuple[str, ...]) -> str:
     bodies = [function_source(source, signature) for signature in signatures]
     return (
         '#include "iw3_android_dvar_pointer_compat.h"\n\n'
-        # Dvar_FindMalleableVar is private in upstream dvar.cpp; this external
-        # declaration deliberately exposes the unresolved cross-TU dependency.
+        # These declarations let the exact original RegisterVariant body compile
+        # as a separate audit TU. The symbol audit intentionally leaves them unresolved.
+        'const dvar_s *__cdecl Dvar_RegisterNew(const char *dvarName, uint8_t type, uint16_t flags, DvarValue value, DvarLimits domain, const char *description);\n'
+        'void __cdecl Dvar_Reregister(dvar_s *dvar, const char *dvarName, uint8_t type, uint16_t flags, DvarValue resetValue, DvarLimits domain, const char *description);\n'
         'dvar_s *__cdecl Dvar_FindMalleableVar(const char *dvarName);\n\n'
         + "\n\n".join(bodies) + "\n"
     )
