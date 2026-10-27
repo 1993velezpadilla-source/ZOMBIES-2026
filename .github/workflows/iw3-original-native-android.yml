@@ -250,7 +250,15 @@ jobs:
           for symbol in FS_AddSearchPath FS_AddGameDirectory FS_AddLocalizedGameDirectory FS_RegisterDvars FS_Startup FS_SetRestrictions FS_IsBasePathValid FS_InitFilesystem Sys_Cwd Sys_DefaultCDPath Sys_DirectoryHasContents; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-startup-defined.txt"
           done
-          "$llvm_nm" -u -C "$startup_archive" | tee "$RUNNER_TEMP/iw3-fs-startup-undefined.txt"
+          # Archive-member U entries are reported even when another member of
+          # the same archive defines the symbol. Perform a relocatable link of
+          # every member before deciding whether the Android provider resolved it.
+          "$llvm_nm" -u -C "$startup_archive" | tee "$RUNNER_TEMP/iw3-fs-startup-member-undefined.txt"
+          ld_lld="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/ld.lld"
+          test -x "$ld_lld"
+          "$ld_lld" -r --whole-archive "$startup_archive" --no-whole-archive \
+            -o "$RUNNER_TEMP/iw3-fs-startup-combined.o"
+          "$llvm_nm" -u -C "$RUNNER_TEMP/iw3-fs-startup-combined.o" | tee "$RUNNER_TEMP/iw3-fs-startup-undefined.txt"
           for symbol in Dvar_RegisterInt Dvar_RegisterString Dvar_RegisterBool FS_AddIwdFilesForGameDirectory FS_BuildOSPath Z_Malloc SEH_GetLanguageName FS_ReadFile SEH_InitLanguage; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-startup-undefined.txt"
           done
@@ -258,7 +266,7 @@ jobs:
             echo "Android rooted Sys_DirectoryHasContents adapter failed to resolve FS startup" >&2
             exit 1
           fi
-          echo "IW3_ORIGINAL_FS_STARTUP_AARCH64_DEPENDENCY_AUDIT_GREEN"
+          echo "IW3_ORIGINAL_FS_STARTUP_AARCH64_RELOCATABLE_LINK_AUDIT_GREEN"
 
           # Verify the corrected original dvar pointer/string/enum functions
           # compile into an AArch64 archive. Its unresolved registry services
