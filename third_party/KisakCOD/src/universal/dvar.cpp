@@ -2557,7 +2557,8 @@ void __cdecl Dvar_SetStringFromSource(dvar_s *dvar, char *string, DvarSetSource 
     }
     Dvar_SetVariant(dvar, newValue, source);
 
-    iassert(dvar->current.string != stringCopy); // The setter must copy the stack buffer.
+    if (dvar->type == DVAR_TYPE_STRING)
+        iassert(dvar->current.string != stringCopy); // The setter must copy the stack buffer.
 }
 
 void __cdecl Dvar_SetColor(dvar_s *dvar, float r, float g, float b, float a)
