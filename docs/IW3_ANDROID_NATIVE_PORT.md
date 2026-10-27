@@ -461,3 +461,26 @@ Validation for the code/test tree (documentation-only HEAD follow-up does not al
 - Windows SP build/runtime workflows [40530590091](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40530590091) and [40530590325](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40530590325) were still in progress at the time of this update and are not counted as passing.
 
 The host regression specifically exercises sparse IDs 31 and 4 concurrently, verifies their attack/sprint bits remain independent, and verifies releasing ID 31 does not clear the still-held ID 4. The Android emulator uses its normal synthetic fixture touches; it is not evidence of a physical ARM64 device or a game map.
+
+
+### Phase AN — captured Android pointers remain releasable outside the view (27 Oct 2026)
+
+Review of the current native touch boundary found a gameplay-relevant failure mode: Android can continue dispatching a captured MotionEvent after the finger crosses the view/screen boundary. The adapter rejected any finite normalized coordinate outside [0,1] before checking whether the event was MOVE or UP. Consequently, an out-of-view UP was discarded and the corresponding touch role (including ATTACK) could remain active in later usercmd snapshots.
+
+The original native platform boundary now rejects invalid pointer IDs, non-finite coordinates, and invalid DOWN flags, but clamps finite coordinates to [0,1] before updating the existing pointer slot. This preserves bounded coordinates for the original touch-role classifier and, importantly, allows an UP outside the view to release its slot.
+
+Regression coverage:
+- A finite coordinate of 1.01 is accepted and observed as 1.0 in the snapshot.
+- An out-of-view UP at 1.25 is accepted and deactivates the pointer.
+- An attack pointer moved and released at x=1.25 no longer leaves BUTTON_ATTACK set in the next usercmd snapshot.
+- NaN coordinates remain rejected.
+- Python source guard requires the clamping implementation and the native release regression.
+
+Code/test commits:
+- Native boundary: [331c8ba](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/331c8bab2b904994e8f8f0e84b35b6d8f7787fc0).
+- Native regression: [0a21b23](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/0a21b238602a54f2eba1f9645dc48c231aadf08d).
+- Python source guard: [4c9d3ce](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/4c9d3ceb5ffa5d78ce6fb19c44796f90057f000d).
+
+Validation is pending for this new code. The branch's current Android workflows must pass before this change is considered verified. A separate current-head commit [493e759](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/493e75953e8c3bd27eb657477deed715fb3d0003) also adds an object-only compile gate for the complete original `com_files.cpp` translation unit; its CI was still pending when this phase began.
+
+Scope boundary unchanged: this prevents stuck controls in the Android adapter, but does not link the full original client input TU into the Android game runtime. The current JNI APK remains diagnostic only; no real FastFile/map load, original renderer scene, or physical ARM64 gameplay is claimed. Keep PR #4 open and unmerged.
