@@ -5,6 +5,9 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "third_party/KisakCOD/src/universal/com_files.cpp"
 CMAKE = ROOT / "android/iw3-native/CMakeLists.txt"
+GFX = ROOT / "third_party/KisakCOD/src/gfx_d3d/r_gfx.h"
+MATERIAL = ROOT / "third_party/KisakCOD/src/gfx_d3d/r_material.h"
+D3D9_OPAQUE = ROOT / "third_party/KisakCOD/src/gfx_d3d/r_d3d9_opaque.h"
 
 
 def function_body(source: str, signature: str) -> str:
@@ -80,6 +83,37 @@ class OriginalFilesystemAndroidPortTests(unittest.TestCase):
             cmake,
         )
         self.assertIn("target_compile_definitions(iw3_sp_full_filesystem PRIVATE KISAK_SP=1)", cmake)
+
+
+    def test_android_shared_engine_layouts_do_not_require_d3d9_sdk(self):
+        conditional_include = (
+            '#if defined(__ANDROID__)\\n'
+            '#include "r_d3d9_opaque.h"\\n'
+            '#else\\n'
+            '#include <d3d9.h>\\n'
+            '#endif'
+        )
+        for path in (GFX, MATERIAL):
+            header = path.read_text(encoding="utf-8")
+            self.assertIn(conditional_include, header)
+            self.assertIn("#include <d3d9.h>", header)
+        opaque = D3D9_OPAQUE.read_text(encoding="utf-8")
+        for interface in (
+            "IDirect3DVertexBuffer9",
+            "IDirect3DIndexBuffer9",
+            "IDirect3DBaseTexture9",
+            "IDirect3DTexture9",
+            "IDirect3DVolumeTexture9",
+            "IDirect3DCubeTexture9",
+            "IDirect3DQuery9",
+            "IDirect3DSurface9",
+            "IDirect3DVertexDeclaration9",
+            "IDirect3DVertexShader9",
+            "IDirect3DPixelShader9",
+        ):
+            self.assertIn(f"struct {interface};", opaque)
+        self.assertIn("enum _D3DFORMAT : int;", opaque)
+        self.assertIn("sizeof(_D3DFORMAT) == sizeof(int)", opaque)
 
 
 if __name__ == "__main__":
