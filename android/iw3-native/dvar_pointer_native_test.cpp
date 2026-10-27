@@ -144,6 +144,10 @@ int main() {
     assert(std::strcmp(Dvar_EnumToString(&enum_dvar), "gamma") == 0);
     assert(std::strcmp(Dvar_IndexStringToEnumString(&enum_dvar, "1"),
                        "beta") == 0);
+    // High-bit bytes must be rejected as non-digits without passing a negative
+    // signed char to the C ctype API on Android/LP64.
+    const char high_bit_enum_index[] = {static_cast<char>(0xFF), '\0'};
+    assert(std::strcmp(Dvar_IndexStringToEnumString(&enum_dvar, high_bit_enum_index), "") == 0);
 
     DvarValue enum_value{};
     enum_value.integer = 0;
