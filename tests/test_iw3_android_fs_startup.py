@@ -140,6 +140,16 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
         self.assertIn('echo "IW3_FS_STARTUP_RUNTIME_INVOKED=false"', workflow)
         self.assertIn('echo "IW3_PLAYABLE_APK=false"', workflow)
 
+    def test_iwd_enumerator_is_in_startup_archive_but_not_the_narrow_host_probe(self):
+        generator = (ROOT / "tools/iw3_android/prepare_real_engine_fs_startup.py").read_text(encoding="utf-8")
+        cmake = (ROOT / "android/iw3-native/CMakeLists.txt").read_text(encoding="utf-8")
+        workflow = (ROOT / ".github/workflows/iw3-original-native-android.yml").read_text(encoding="utf-8")
+        self.assertIn("#if !defined(IW3_FS_STARTUP_HOST_TEST)", generator)
+        self.assertIn("IW3_FS_STARTUP_HOST_TEST=1", cmake)
+        self.assertIn("FS_AddIwdFilesForGameDirectory", workflow)
+        self.assertIn("IW3_ORIGINAL_FS_STARTUP_IWD_ENUMERATION_AARCH64_RESOLVED", workflow)
+        self.assertNotIn("Dvar_RegisterInt Dvar_RegisterString Dvar_RegisterBool FS_AddIwdFilesForGameDirectory Z_Malloc", workflow)
+
     def test_android_path_service_uses_configured_private_root_not_process_cwd(self):
         platform = (ROOT / "android/iw3-native/iw3_android_platform.cpp").read_text(encoding="utf-8")
         header = (ROOT / "android/iw3-native/iw3_android_platform.h").read_text(encoding="utf-8")
