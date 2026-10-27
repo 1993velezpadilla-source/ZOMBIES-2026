@@ -124,7 +124,7 @@ class OriginalFilesystemAndroidPortTests(unittest.TestCase):
     def test_android_filesystem_uses_native_services_and_portable_apis(self):
         source = SOURCE.read_text(encoding="utf-8")
         self.assertIn('#include "iw3_android_filesystem_compat.h"', source)
-        self.assertIn("z2026_interlocked_compare_exchange(&iwd->hasOpenFile, 1u, 0u)", source)
+        self.assertIn("z2026_iw3_interlocked_compare_exchange(&iwd->hasOpenFile, 1u, 0u)", source)
         self.assertIn("vsnprintf(string, 0x1000u, fmt, va);", source)
         self.assertIn("sizeof(descPath) / sizeof(descPath[0])", source)
         self.assertNotIn("ARRAYSIZE(descPath)", source)
