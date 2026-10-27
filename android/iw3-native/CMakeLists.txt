@@ -286,6 +286,16 @@ else()
     target_compile_options(iw3_dvar_sleep_host_test PRIVATE -UNDEBUG -Wall -Wextra)
     add_test(NAME iw3_android_dvar_net_sleep_semantics COMMAND iw3_dvar_sleep_host_test)
 
+    # Exercise the Android FS startup directory probe's root confinement and
+    # fail-closed behavior using the exact platform adapter.
+    add_executable(iw3_fs_startup_directory_adapter_host_test
+        "${CMAKE_CURRENT_SOURCE_DIR}/fs_startup_directory_native_test.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_fs_startup_io.cpp")
+    target_include_directories(iw3_fs_startup_directory_adapter_host_test PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}")
+    target_compile_options(iw3_fs_startup_directory_adapter_host_test PRIVATE -UNDEBUG -Wall -Wextra)
+    add_test(NAME iw3_original_fs_directory_probe_rooted COMMAND iw3_fs_startup_directory_adapter_host_test)
+
     # Exercise the real Android dvar log sink's formatting and channel prefix
     # on host; the Android build routes the same formatted message to logcat.
     add_executable(iw3_dvar_log_host_test

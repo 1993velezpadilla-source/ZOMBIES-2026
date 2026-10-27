@@ -639,3 +639,15 @@ Validation on code commit 0ab6abd (the subsequent documentation-only commit does
 - [Android emulator execution, run 40574158588](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40574158588) — PASS on x86_64 emulator; the original C++ diagnostics execute, touch DOWN/UP and sprint/slide chords reach the original usercmd_s adapter, and pause/resume is observed. The evidence explicitly records arm64_device_execution_proven=false and gameplay_proven=false. Artifact [12767541187](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40574158588/artifacts/12767541187) contains the emulator logs, not gameplay.
 
 Next real-runtime blocker: the FS-startup archive still has visible original dependencies including FS_AddIwdFilesForGameDirectory, FS_BuildOSPath, Z_Malloc, SEH_GetLanguageName, FS_ReadFile, SEH_InitLanguage and Sys_DirectoryHasContents; the full dvar archive also has parser, string, memory, command, file and synchronization services unresolved. The next pass must close these original service edges and actually invoke FS startup before attempting a licensed IWD/FastFile/map load. The JNI APK remains diagnostic only: no original renderer scene, real map load, touch-driven player/weapon/actor combat, or physical ARM64 gameplay is proven. PR #4 remains open and unmerged.
+
+
+## Phase AU — resolve the original FS-startup directory probe on Android (2026-10-27)
+
+The successful Phase AT build exposed the next concrete FS startup edge: KisakCOD defines Sys_DirectoryHasContents only under WIN32, so the verbatim FS_AddGameDirectory startup body still depended on a platform symbol that Android did not provide. The existing z2026_platform_directory_has_contents implementation already performs a no-follow scan under the retained app-private root and returns -1 for invalid/unreadable paths.
+
+Implemented:
+- android/iw3-native/iw3_android_fs_startup_io.cpp now provides the original Sys_DirectoryHasContents 0/1 contract for the Android FS-startup archive. It accepts only paths rooted at the configured app data directory, rejects sibling-prefix paths, delegates relative scanning to the existing openat/no-follow service, and maps errors to 0 (fail closed).
+- Added fs_startup_directory_native_test.cpp to exercise root path, nested path, empty/unreadable result, and sibling/outside-root rejection against the same adapter.
+- Added the CTest target and Python/CI source contract; the ARM64 audit now requires Sys_DirectoryHasContents to be defined and absent from the startup archive's unresolved list.
+
+Validation for Phase AU is pending. This resolves one real startup dependency but does not call FS_Startup, link the complete dvar/filesystem runtime, mount a real IWD/FastFile, or load a map. The next unresolved startup edges remain FS_AddIwdFilesForGameDirectory, FS_BuildOSPath, Z_Malloc, SEH_GetLanguageName, FS_ReadFile, SEH_InitLanguage and Dvar_RegisterInt/String/Bool. No original renderer scene or gameplay is proven.
