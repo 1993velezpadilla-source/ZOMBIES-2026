@@ -256,3 +256,34 @@ In the vendored `src/universal/dvar.cpp`, integer-domain clamping now names `dom
 The first attempt exposed an overbroad test guard that rejected a valid union alias elsewhere in `Dvar_ValueInDomain`; the guard was narrowed and explicit LP64 layout assertions were added before the successful rerun.
 
 **Scope limit:** this does not link the full dvar registry into Android or invoke `FS_Startup`. FastFile/map loading, the original renderer, actual player/weapon/actor gameplay and physical ARM64 execution remain unproven. The JNI artifact remains diagnostic only; no playable APK is claimed.
+
+### Phase AC — bounded deterministic Android IWD discovery (27 Oct 2026; CI pending)
+
+The next filesystem portability issue was in the Android OS adapter used by the authentic
+`FS_AddIwdFilesForGameDirectory` path. The engine mounts at most 1024 IWD archives after
+sorting the complete list, but the adapter retained every matching filename in a
+`std::vector` before returning the list. A large app-private game-data directory could
+therefore consume unbounded memory even though the original engine only uses the first
+1024 sorted entries.
+
+The adapter now maintains a max-heap of the lexicographically smallest 1024 regular
+`.iwd` filenames while counting all eligible entries. It emits those 1024 (or fewer)
+names in ascending order and reports the total count separately. This preserves the
+original engine's sorted-prefix/cap behavior while bounding retained filename state to
+1024 entries; symlinks and non-regular files remain excluded by the existing rooted
+`fstatat(..., AT_SYMLINK_NOFOLLOW)` check.
+
+A native regression creates 1030 IWD-named files and verifies that the adapter reports
+all 1030 but emits exactly `archive-0000.iwd` through `archive-1023.iwd` in order.
+This exercises the same platform function called by the original directory-scanning
+source slice. It does not claim that the full startup runtime or licensed game assets
+are integrated.
+
+- Engine-side Android adapter change: `android/iw3-native/iw3_android_platform.cpp`.
+- Regression: `android/iw3-native/platform_native_test.cpp`.
+- Validation is pending for the updated HEAD; do not count the change as green until
+  the native ARM64 source workflow and its host Release/ASan/UBSan tests finish.
+- Scope remains limited to IWD enumeration. Original `FS_Startup` is not invoked by
+  the diagnostic APK; licensed FastFile/map loading, the original renderer, live
+  client-frame input, weapon/actor gameplay, and physical ARM64 execution remain
+  unproven. The APK artifact remains diagnostic only and PR #4 must stay unmerged.
