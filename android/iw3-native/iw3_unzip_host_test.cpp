@@ -4,6 +4,7 @@
 
 extern "C" int z2026_iw3_unzip_smoke(const char *directory, int *iwd_mount_ok, int *iwd_searchpath_ok, int *iwd_directory_scan_ok, int *iwd_lookup_ok, int *iwd_fs_read_ok, int *iwd_fs_disk_read_ok);
 extern "C" int z2026_iw3_casefold_smoke();
+extern "C" int z2026_iw3_fs_global_load_policy_smoke();
 
 int main() {
     if (!z2026_iw3_casefold_smoke()) {
@@ -11,6 +12,11 @@ int main() {
         return 1;
     }
     std::puts("IW3_ORIGINAL_Q_SHARED_CASEFOLD_HOST_GREEN");
+    if (!z2026_iw3_fs_global_load_policy_smoke()) {
+        std::fprintf(stderr, "IW3_ORIGINAL_FS_GLOBAL_LOAD_POLICY_HOST_FAIL\\n");
+        return 1;
+    }
+    std::puts("IW3_ORIGINAL_FS_GLOBAL_LOAD_POLICY_HOST_GREEN");
     const std::string directory = std::filesystem::temp_directory_path().string();
     int iwd_mount_ok = 0;
     int iwd_searchpath_ok = 0;

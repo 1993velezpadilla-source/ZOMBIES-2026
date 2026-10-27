@@ -24,13 +24,14 @@ SHARED_SOURCE = Path("src/universal/q_shared.cpp")
 TABLE_SOURCE = Path("src/universal/com_files_handle_table.cpp")
 HEADER_SOURCE = Path("src/universal/com_files.h")
 SIGNATURE = "uint32_t __cdecl FS_Read(uint8_t *buffer, uint32_t len, int h)"
+GLOBAL_POLICY_SIGNATURE = "char __cdecl FS_FilesAreLoadedGlobally(const char *filename)"
 FUNCTIONS = (
     ("int __cdecl FS_filelength(int f)", SOURCE),
     ("int __cdecl FS_HandleForFile(FsThread thread)", SOURCE),
     ("FILE *__cdecl FS_FileForHandle(int f)", SOURCE),
     ("uint32_t __cdecl FS_FOpenFileReadForThread(const char *filename, int *file, FsThread thread)", SOURCE),
     ("BOOL __cdecl FS_PureIgnoresExtension(const char *extension)", SOURCE),
-    ("char __cdecl FS_FilesAreLoadedGlobally(const char *filename)", SOURCE),
+    (GLOBAL_POLICY_SIGNATURE, SOURCE),
     ("int __cdecl FS_IwdIsPure(iwd_t *iwd)", SOURCE),
     ("bool __cdecl FS_GameDirDomainFunc(dvar_s *dvar, DvarValue newValue)", SOURCE),
     (SIGNATURE, SOURCE),
@@ -62,6 +63,8 @@ REQUIRED = (
     "unzCloseCurrentFile(fsh[h].handleFiles.file.z);",
     "Com_Memset((uint32_t *)&fsh[h], 0, sizeof(fsh[h]));",
     "FS_FilesAreLoadedGlobally(sanitizedName)",
+    "const size_t extensionLen = strlen(extensions[extensionNum]);",
+    "if (filenameLen >= extensionLen &&",
     "FS_IwdIsPure(iwd)",
     "return !I_stricmp(extension, \"cfg\")",
     "const char *__cdecl Com_GetExtensionSubString(const char *filename)",
@@ -71,6 +74,7 @@ REQUIRED = (
     "tolower(static_cast<unsigned char>(substr[substrChar]))",
 )
 FORBIDDEN = (
+    "filenameLen - strlen(extensions[extensionNum])",
     "z2026_iw3_original_searchpath_lookup",
     "return -1; // non-null handle path is intentionally outside this probe",
     "Com_Memset((uint32_t *)&fsh[h], 0, 284);",
@@ -178,6 +182,7 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
         "original_extension_and_purity_helpers_preserved_exactly": True,
         "original_FS_GameDirDomainFunc_body_preserved_exactly": True,
         "original_FS_GameDirDomainFunc_uses_native_width_string_member": True,
+        "original_FS_FilesAreLoadedGlobally_guards_short_suffixes": True,
         "game_directory_domain_validator_runtime_executed": False,
         "full_original_open_read_close_lifecycle_compiled_into_diagnostic": True,
         "engine_shared_fsh_table_source_present": True,

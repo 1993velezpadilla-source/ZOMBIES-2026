@@ -5,7 +5,7 @@ import hashlib
 import unittest
 
 from tools.iw3_android.prepare_real_engine_fs_read import (
-    SOURCE, SHARED_SOURCE, SIGNATURE, FUNCTIONS, REQUIRED, PROLOGUE, prepare,
+    SOURCE, SHARED_SOURCE, SIGNATURE, GLOBAL_POLICY_SIGNATURE, FUNCTIONS, REQUIRED, PROLOGUE, prepare,
     definition_source,
 )
 
@@ -52,6 +52,19 @@ class OriginalFSReadStageTests(unittest.TestCase):
         for source_path, original in originals.items():
             self.assertEqual((ENGINE / source_path).read_bytes(), original)
 
+
+    def test_global_load_policy_checks_suffix_length_before_pointer_arithmetic(self):
+        source = (ENGINE / SOURCE).read_text(encoding="utf-8")
+        body = definition_source(source, GLOBAL_POLICY_SIGNATURE)
+        self.assertIn("const size_t extensionLen = strlen(extensions[extensionNum]);", body)
+        self.assertIn("if (filenameLen >= extensionLen &&", body)
+        self.assertNotIn("filenameLen - strlen(extensions[extensionNum])", body)
+
+        smoke = (ROOT / "android/iw3-native/iw3_unzip_native_smoke.cpp").read_text(encoding="utf-8")
+        host = (ROOT / "android/iw3-native/iw3_unzip_host_test.cpp").read_text(encoding="utf-8")
+        self.assertIn("z2026_iw3_fs_global_load_policy_smoke", smoke)
+        self.assertIn("z2026_iw3_fs_global_load_policy_smoke", host)
+        self.assertIn("IW3_ORIGINAL_FS_GLOBAL_LOAD_POLICY_HOST_GREEN", host)
 
     def test_original_q_shared_casefold_helpers_are_unsigned_char_safe(self):
         source = (ENGINE / "src/universal/q_shared.cpp").read_text(encoding="utf-8")

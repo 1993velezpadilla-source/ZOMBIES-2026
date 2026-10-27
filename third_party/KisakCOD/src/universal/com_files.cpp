@@ -118,7 +118,7 @@ BOOL __cdecl FS_PureIgnoresExtension(const char *extension)
 char __cdecl FS_FilesAreLoadedGlobally(const char *filename)
 {
     const char *extensions[8]; // [esp+20h] [ebp-28h]
-    int filenameLen; // [esp+40h] [ebp-8h]
+    size_t filenameLen;
     int extensionNum; // [esp+44h] [ebp-4h]
 
     extensions[0] = ".hlsl";
@@ -132,7 +132,11 @@ char __cdecl FS_FilesAreLoadedGlobally(const char *filename)
     filenameLen = strlen(filename);
     for (extensionNum = 0; *extensions[extensionNum]; ++extensionNum)
     {
-        if (!I_stricmp(&filename[filenameLen - strlen(extensions[extensionNum])], extensions[extensionNum]))
+        const size_t extensionLen = strlen(extensions[extensionNum]);
+        // Do not form a pointer before filename when the path is shorter than
+        // the candidate suffix. FS paths include short names during lookup.
+        if (filenameLen >= extensionLen &&
+            !I_stricmp(filename + filenameLen - extensionLen, extensions[extensionNum]))
             return 1;
     }
     return 0;

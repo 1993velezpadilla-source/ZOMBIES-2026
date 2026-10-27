@@ -15,6 +15,7 @@
 
 extern const char *__cdecl I_stristr(const char *s0, const char *substr);
 extern int __cdecl I_stricmpwild(const char *wild, const char *s);
+extern char __cdecl FS_FilesAreLoadedGlobally(const char *filename);
 
 #if defined(__GNUC__)
 #define IW3_UNZIP_EXPORT __attribute__((visibility("default")))
@@ -494,6 +495,23 @@ extern "C" IW3_UNZIP_EXPORT int z2026_iw3_casefold_smoke() {
     const int expected = delta == 0 ? 0 : (delta > 0 ? 1 : -1);
     return I_stristr(haystack, needle) == haystack &&
            I_stricmpwild(pattern, candidate) == expected ? 1 : 0;
+}
+
+extern "C" IW3_UNZIP_EXPORT int z2026_iw3_fs_global_load_policy_smoke() {
+    const char *globallyLoaded[] = {
+        "a.txt", "x.cfg", "x.hlsl", "m.levelshots", "u.menu", "x.arena", "a.str"
+    };
+    for (const char *name : globallyLoaded) {
+        if (!FS_FilesAreLoadedGlobally(name)) return 0;
+    }
+
+    // These short names are shorter than at least one candidate suffix. The
+    // original policy must return false without forming a pointer before name.
+    const char *notGloballyLoaded[] = {"", "a", "ab", "abc", "foo.bin"};
+    for (const char *name : notGloballyLoaded) {
+        if (FS_FilesAreLoadedGlobally(name)) return 0;
+    }
+    return 1;
 }
 
 extern "C" IW3_UNZIP_EXPORT int z2026_iw3_unzip_smoke(const char *directory, int *iwd_mount_ok, int *iwd_searchpath_ok, int *iwd_directory_scan_ok, int *iwd_lookup_ok, int *iwd_fs_read_ok, int *iwd_fs_disk_read_ok) {
