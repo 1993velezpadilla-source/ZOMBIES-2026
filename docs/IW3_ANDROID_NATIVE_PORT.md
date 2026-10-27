@@ -410,3 +410,25 @@ The authentic `third_party/KisakCOD/src/universal/com_files.cpp` now uses `tolow
 - Windows SP/killhouse runs [40505161252](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40505161252) and [40505160713](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40505160713) were cancelled before completion during subsequent branch updates; neither is counted as passed.
 
 **Scope boundary:** this fixes an authentic filename-hash portability defect and adds executable regression coverage. It does not load a licensed IWD or FastFile, invoke the complete `FS_Startup`/`FS_InitFilesystem` runtime, render a map, or prove touch-driven gameplay on physical ARM64. The JNI package remains diagnostic only; PR #4 stays open and unmerged.
+
+
+### Phase AL — signed-char-safe original enum-index parsing (27 Oct 2026)
+
+The current branch review found one more C-ctype portability hazard in the authentic `Dvar_IndexStringToEnumString()` body: it passed `indexString[indexStringIndex]` directly to `isdigit()`. A high-bit byte can become negative on signed-char builds, which violates the C ctype contract. The original source now calls `isdigit(static_cast<unsigned char>(indexString[indexStringIndex]))`, preserving the existing enum-index parsing behavior while safely rejecting non-ASCII digit bytes.
+
+Regression coverage added:
+- The original-source extractor now requires the safe cast and rejects the unsafe call.
+- The host test executes the extracted original function with a high-bit index byte and verifies it returns the empty-string failure result.
+- The dvar ABI regression target is compiled with `-fsigned-char` for GCC/Clang so the test exercises the same signed-char condition explicitly; the option is limited to that test target.
+- No dvar registry, filesystem runtime, or gameplay is claimed by this change.
+
+Code/test commits:
+- Engine source: [464e4bb](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/464e4bbdfd1d7d6235d2675b32120fccc148f8eb).
+- Extraction/source gate: [f28a713](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/f28a7131475e5973cac4f121b27658d6f4d5e0c4).
+- Python regression: [d8e40f8](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/d8e40f8a3f9d937b8a558a184c201076d6207eae).
+- Native high-bit regression: [9b7522c](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/9b7522c82c1ed47427c77eda5111051108bc33ad).
+- Explicit signed-char test build: [1dbf6c4](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/1dbf6c44dc0803e084e845664352ee3705098f22).
+
+At documentation time, the source-preflight workflow had succeeded, while the native ARM64/ASan and JNI build jobs for `1dbf6c4` were still running. Their results are not presumed here; update the PR evidence only after those jobs finish.
+
+**Integration boundary remains unchanged:** `Dvar_FindMalleableVar`, `Dvar_RegisterNew`, and `Dvar_Reregister` still need to be linked with the authentic shared registry state before `FS_Startup`/ `FS_InitFilesystem` can run as a complete Android runtime. No licensed FastFile/map load, original renderer scene, physical ARM64 gameplay, or playable APK is proven. Keep PR #4 open and unmerged.
