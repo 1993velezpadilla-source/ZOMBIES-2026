@@ -4,7 +4,6 @@
 
 #include <universal/com_memory.h>
 #include <qcommon/com_fileaccess.h>
-#include <qcommon/com_bsp.h> // Declares the original keyed IWD checksum routine.
 #include <qcommon/qcommon.h>
 #include <qcommon/com_checksum.h>
 #include <sound/snd_stopsounds.h>
