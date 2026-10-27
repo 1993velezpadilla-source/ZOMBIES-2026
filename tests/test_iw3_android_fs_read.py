@@ -55,11 +55,11 @@ class OriginalFSReadStageTests(unittest.TestCase):
 
     def test_original_q_shared_casefold_helpers_are_unsigned_char_safe(self):
         source = (ENGINE / "src/universal/q_shared.cpp").read_text(encoding="utf-8")
-        istristr = function_source(
+        istristr = definition_source(
             source,
             "const char *__cdecl I_stristr(const char *s0, const char *substr)",
         )
-        wildcard = function_source(
+        wildcard = definition_source(
             source,
             "int __cdecl I_stricmpwild(const char *wild, const char *s)",
         )
