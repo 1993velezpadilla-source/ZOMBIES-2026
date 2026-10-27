@@ -12,6 +12,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <thread>
+#include <vector>
 
 extern "C" int z2026_iw3_fs_startup_path_smoke();
 
@@ -89,6 +90,53 @@ int main() {
     assert(z2026_platform_write_file("generated.iwd", "IWD", 3) == 3);
     assert(z2026_platform_read_file("generated.iwd", buffer, sizeof(buffer)) == 3);
     assert(std::memcmp(buffer, "IWD", 3) == 0);
+
+    // The original IW3 scanner mounts at most 1024 archives after sorting the
+    // complete list. Android enumeration must return that same sorted prefix
+    // without retaining every filename in memory.
+    const std::string many_iwd_dir = std::string(root) + "/many-iwd";
+    assert(mkdir(many_iwd_dir.c_str(), 0700) == 0);
+    constexpr int kManyIwdCount = 1030;
+    for (int i = 0; i < kManyIwdCount; ++i) {
+        char name[40]{};
+        assert(std::snprintf(name, sizeof(name), "archive-%04d.iwd", i) > 0);
+        const std::string full_path = many_iwd_dir + "/" + name;
+        const int many_fd = open(full_path.c_str(), O_WRONLY | O_CREAT | O_EXCL, 0600);
+        assert(many_fd >= 0);
+        close(many_fd);
+    }
+    std::vector<char> many_iwd_names(1024 * 32);
+    std::size_t many_iwd_count = 0;
+    const int many_iwd_bytes = z2026_platform_list_iwd_files(
+        "many-iwd", many_iwd_names.data(), many_iwd_names.size(), &many_iwd_count);
+    assert(many_iwd_bytes > 0 && many_iwd_count == kManyIwdCount);
+    std::size_t many_offset = 0;
+    int returned_iwd_count = 0;
+    while (many_offset < static_cast<std::size_t>(many_iwd_bytes)) {
+        const char *name = many_iwd_names.data() + many_offset;
+        const std::size_t remaining =
+            static_cast<std::size_t>(many_iwd_bytes) - many_offset;
+        const void *end_name = std::memchr(name, '\\0', remaining);
+        assert(end_name);
+        const std::size_t name_length =
+            static_cast<const char *>(end_name) - name;
+        char expected_name[40]{};
+        assert(std::snprintf(expected_name, sizeof(expected_name),
+                             "archive-%04d.iwd", returned_iwd_count) > 0);
+        assert(name_length == std::strlen(expected_name));
+        assert(std::memcmp(name, expected_name, name_length) == 0);
+        many_offset += name_length + 1;
+        ++returned_iwd_count;
+    }
+    assert(many_offset == static_cast<std::size_t>(many_iwd_bytes));
+    assert(returned_iwd_count == 1024);
+    for (int i = 0; i < kManyIwdCount; ++i) {
+        char name[40]{};
+        assert(std::snprintf(name, sizeof(name), "archive-%04d.iwd", i) > 0);
+        assert(unlink((many_iwd_dir + "/" + name).c_str()) == 0);
+    }
+    assert(rmdir(many_iwd_dir.c_str()) == 0);
+
     char iwd_names[512]{};
     std::size_t iwd_count = 0;
     const int iwd_name_bytes = z2026_platform_list_iwd_files(
