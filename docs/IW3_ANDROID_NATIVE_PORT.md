@@ -484,3 +484,19 @@ Code/test commits:
 Validation is pending for this new code. The branch's current Android workflows must pass before this change is considered verified. A separate current-head commit [493e759](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/493e75953e8c3bd27eb657477deed715fb3d0003) also adds an object-only compile gate for the complete original `com_files.cpp` translation unit; its CI was still pending when this phase began.
 
 Scope boundary unchanged: this prevents stuck controls in the Android adapter, but does not link the full original client input TU into the Android game runtime. The current JNI APK remains diagnostic only; no real FastFile/map load, original renderer scene, or physical ARM64 gameplay is claimed. Keep PR #4 open and unmerged.
+
+
+### Phase AO — restore the original sound-shutdown declaration for the Android FS compile gate (27 Oct 2026)
+
+The latest HEAD CI was inspected before editing: ARM64 source-port workflow run [40541980104](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40541980104) failed while compiling the **complete original** `third_party/KisakCOD/src/universal/com_files.cpp` object. The compiler error was precise: `SND_StopSounds` was undeclared at `FS_Shutdown()`. Android had included `sound/snd_stopsounds.h` for the enum only, whereas the normal Win32 include path exposed the function prototype transitively through the platform/sound headers.
+
+Fix: `android/iw3-native/iw3_android_filesystem_compat.h` now includes the narrow upstream `sound/snd_stopsounds.h` enum header and declares the exact original ABI `void __cdecl SND_StopSounds(snd_stopsounds_arg_t which);`. This is a declaration only: no Android no-op or fake sound implementation was added, and the original `FS_Shutdown()` call to `SND_StopSounds(SND_STOP_STREAMED)` remains unchanged. The function will still need the real sound service when the complete runtime is linked.
+
+Added `tests/test_iw3_android_fs_sound_abi.py`: it checks the Android declaration against the original `snd_public.h` prototype, confirms the enum and original call are present, and rejects a stub definition in the compatibility header.
+
+- Fix commit: [0de8cc0](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/0de8cc008b1e518d734c7bc40d265dc66a6af4ce)
+- Regression commit: [874f898](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/874f898004aacbca9c9cff1c32c68d9249ccb88e)
+
+Validation is pending for these new commits. The failing log is preserved in [run 40541980104](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40541980104); do not count that run as passing. The new pull-request workflows must prove that the full `com_files.cpp` object now compiles and that the new Python regression passes.
+
+Scope boundary unchanged: this fixes a compile-time ABI declaration gap only. It does not link the real audio service, complete `FS_Startup()`/IWD mounting into a game runtime, load FastFiles/maps, render the original scene, or prove ARM64 gameplay. The JNI APK remains diagnostic only; keep PR #4 open and unmerged.
