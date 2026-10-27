@@ -69,7 +69,8 @@ get_filename_component(IW3_ENGINE_SOURCE_ROOT "${IW3_REAL_HEADER_ROOT}/.." ABSOL
 if(NOT EXISTS "${IW3_ENGINE_SOURCE_ROOT}/game/g_runframe.cpp")
     message(FATAL_ERROR "Complete original IW3 SP frame source required")
 endif()
-\n# Compile the authentic filesystem startup functions as a separate dependency
+
+# Compile the authentic filesystem startup functions as a separate dependency
 # audit. They are not linked into the JNI diagnostic until the original dvar
 # registry and full engine service graph are available.
 if(IW3_EXTRACTED_FS_STARTUP)
