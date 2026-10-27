@@ -57,7 +57,7 @@ class OriginalFilesystemAndroidPortTests(unittest.TestCase):
         backend = (ROOT / "third_party/KisakCOD/src/gfx_d3d/rb_backend.h").read_text(encoding="utf-8")
         context = (ROOT / "third_party/KisakCOD/src/qcommon/thread_context.h").read_text(encoding="utf-8")
         self.assertIn("#include <qcommon/thread_context.h>", threads)
-        self.assertNotIn("#include <gfx_d3d/rb_backend.h>", threads)
+        self.assertIn("#else\n#include <Windows.h>\n#include <gfx_d3d/rb_backend.h>", threads)
         self.assertIn("#if defined(__ANDROID__)", threads)
         self.assertIn("using DWORD = std::uint32_t;", threads)
         self.assertIn("using HANDLE = void *;", threads)
