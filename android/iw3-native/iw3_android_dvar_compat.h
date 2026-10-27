@@ -10,6 +10,12 @@
 
 using LONG = std::int32_t;
 
+// Only these declarations from the Win32 network/math headers are used by
+// this TU. Keep their original ABI without importing net_chan.h or the POSIX
+// random() declaration conflict from com_math.h.
+void NET_Sleep(int msec);
+bool __cdecl Vec4Compare(const float *a, const float *b);
+
 template <typename T>
 inline T InterlockedIncrement(volatile T *value) noexcept
 {
