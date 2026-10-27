@@ -5,7 +5,7 @@ import hashlib
 import unittest
 
 from tools.iw3_android.prepare_real_engine_dvar_pointer_abi import (
-    SOURCE, FUNCTIONS, SMOKE_FUNCTIONS, REQUIRED, FORBIDDEN, DVAR_REGISTER_VARIANT, prepare,
+    SOURCE, FUNCTIONS, SMOKE_FUNCTIONS, REQUIRED, FORBIDDEN, DVAR_REGISTER_VARIANT, DVAR_HASH_VALUE, prepare,
 )
 from tools.iw3_android.prepare_g_runframe_prereqs import function_source
 
@@ -38,9 +38,13 @@ class OriginalDvarPointerAbiTests(unittest.TestCase):
             self.assertTrue(report["authentic_kisakcod_function_bodies_extracted"])
             self.assertIn(DVAR_REGISTER_VARIANT, FUNCTIONS)
             self.assertIn("char __cdecl Dvar_IsValidName(const char *dvarName)", FUNCTIONS)
+            self.assertIn(DVAR_HASH_VALUE, FUNCTIONS)
+            self.assertIn(DVAR_HASH_VALUE, SMOKE_FUNCTIONS)
             self.assertTrue(report["dvar_name_validation_uses_unsigned_char"])
+            self.assertTrue(report["dvar_hash_uses_unsigned_char"])
             self.assertIn("Dvar_IsValidName", staged)
             self.assertIn("isalnum(static_cast<unsigned char>(nameChar))", staged)
+            self.assertIn("tolower(static_cast<unsigned char>(fname[i]))", staged)
             self.assertTrue(report["dvar_register_variant_body_staged_verbatim"])
             self.assertIn("Dvar_RegisterVariant", staged)
             self.assertIn("Dvar_FindMalleableVar", staged)
@@ -83,6 +87,8 @@ class OriginalDvarPointerAbiTests(unittest.TestCase):
         self.assertIn("dvar->reset.string = nullptr;", source)
         self.assertIn("isalnum(static_cast<unsigned char>(nameChar))", source)
         self.assertNotIn("isalnum(nameChar)", source)
+        self.assertIn("tolower(static_cast<unsigned char>(fname[i]))", source)
+        self.assertNotIn("tolower(fname[i])", source)
 
 
 if __name__ == "__main__":

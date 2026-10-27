@@ -46,7 +46,7 @@ static int generateHashValue(const char* fname)
     }
     int hash = 0;
     for (int i = 0; fname[i]; ++i)
-        hash += tolower(fname[i]) * (i + 119);
+        hash += tolower(static_cast<unsigned char>(fname[i])) * (i + 119);
     return (uint8_t)hash;
 }
 

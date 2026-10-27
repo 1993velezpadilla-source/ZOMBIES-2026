@@ -20,10 +20,12 @@ except ModuleNotFoundError:
 SOURCE = Path("src/universal/dvar.cpp")
 DVAR_REGISTER_VARIANT = ("const dvar_s *__cdecl Dvar_RegisterVariant(\n    const char *dvarName,\n    uint8_t type,\n    uint16_t flags,\n    DvarValue value,\n    DvarLimits domain,\n    const char *description)")
 DVAR_IS_VALID_NAME = "char __cdecl Dvar_IsValidName(const char *dvarName)"
+DVAR_HASH_VALUE = "static int generateHashValue(const char* fname)"
 
 FUNCTIONS = (
     DVAR_REGISTER_VARIANT,
     DVAR_IS_VALID_NAME,
+    DVAR_HASH_VALUE,
     "const char *__cdecl Dvar_EnumToString(const dvar_s *dvar)",
     "const char *__cdecl Dvar_IndexStringToEnumString(const dvar_s *dvar, const char *indexString)",
     "const char *__cdecl Dvar_ValueToString(const dvar_s *dvar, DvarValue value)",
@@ -64,6 +66,7 @@ FUNCTIONS = (
 
 SMOKE_FUNCTIONS = (
     DVAR_IS_VALID_NAME,
+    DVAR_HASH_VALUE,
     "const char *__cdecl Dvar_EnumToString(const dvar_s *dvar)",
     "const char *__cdecl Dvar_IndexStringToEnumString(const dvar_s *dvar, const char *indexString)",
     "const char *__cdecl Dvar_ValueToString(const dvar_s *dvar, DvarValue value)",
@@ -110,12 +113,13 @@ FORBIDDEN = (
     "dvar->domain.integer.max + 4 * dvar->current.integer",
     "uint8_t(__cdecl *)(dvar_s *, int, uint32_t, uint32_t, uint32_t)",
     "isalnum(nameChar)",
+    "tolower(fname[i])",
 )
 
 
-def _render(source: str, signatures: tuple[str, ...]) -> str:
+def _render(source: str, signatures: tuple[str, ...], *, expose_hash_smoke: bool = False) -> str:
     bodies = [function_source(source, signature) for signature in signatures]
-    return (
+    rendered = (
         '#include "iw3_android_dvar_pointer_compat.h"\n\n'
         # These declarations let the exact original RegisterVariant body compile
         # as a separate audit TU. The symbol audit intentionally leaves them unresolved.
@@ -124,6 +128,12 @@ def _render(source: str, signatures: tuple[str, ...]) -> str:
         'dvar_s *__cdecl Dvar_FindMalleableVar(const char *dvarName);\n\n'
         + "\n\n".join(bodies) + "\n"
     )
+    if expose_hash_smoke:
+        rendered += (
+            '\nextern "C" int z2026_dvar_test_generate_hash_value(const char *name) {'
+            ' return generateHashValue(name); }\n'
+        )
+    return rendered
 
 
 def prepare(engine: Path, output: Path, smoke_output: Path, report_path: Path) -> dict:
@@ -132,7 +142,7 @@ def prepare(engine: Path, output: Path, smoke_output: Path, report_path: Path) -
     original = source_path.read_bytes()
     source = original.decode("utf-8")
     rendered = _render(source, FUNCTIONS)
-    smoke = _render(source, SMOKE_FUNCTIONS)
+    smoke = _render(source, SMOKE_FUNCTIONS, expose_hash_smoke=True)
 
     for marker in REQUIRED:
         if marker not in rendered:
@@ -170,6 +180,7 @@ def prepare(engine: Path, output: Path, smoke_output: Path, report_path: Path) -
         "domain_callbacks_use_declared_DvarValue_by_value_abi": True,
         "integer_domains_use_native_min_max_fields": True,
         "dvar_name_validation_uses_unsigned_char": True,
+        "dvar_hash_uses_unsigned_char": True,
         "full_dvar_registry_linked": False,
         "filesystem_startup_invoked": False,
         "fastfile_or_map_loaded": False,

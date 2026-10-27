@@ -9,6 +9,8 @@
 #include <cstring>
 #include <strings.h>
 
+extern "C" int z2026_dvar_test_generate_hash_value(const char *name);
+
 static_assert(
     offsetof(DvarLimits_Integer, min) ==
         offsetof(DvarLimits_Enumeration, stringCount),
@@ -39,6 +41,10 @@ bool __cdecl CanKeepStringPointer(const char *string) {
 }
 
 void __cdecl MyAssertHandler(const char *, int, int, const char *, ...) {
+    std::abort();
+}
+
+void QDECL Com_Error(errorParm_t, const char *, ...) {
     std::abort();
 }
 
@@ -98,6 +104,14 @@ int main() {
     assert(!Dvar_IsValidName("bad-name"));
     const char high_bit_name[] = {static_cast<char>(0xFF), '\0'};
     assert(!Dvar_IsValidName(high_bit_name));
+
+    // The original hash helper is also callable from lookup paths that may
+    // receive command text before public registration validation. Its
+    // unsigned-char cast must keep high-bit bytes out of ctype undefined behavior.
+    assert(z2026_dvar_test_generate_hash_value("alpha") == 210);
+    assert(z2026_dvar_test_generate_hash_value("ALPHA") == 210);
+    const char high_bit_hash_name[] = {static_cast<char>(0xFF), 'a', '\0'};
+    assert(z2026_dvar_test_generate_hash_value(high_bit_hash_name) == 1);
 
     char stringValue[] = "filesDir/main";
     assert(reinterpret_cast<std::uintptr_t>(stringValue) > UINT32_MAX);
