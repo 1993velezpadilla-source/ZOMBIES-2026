@@ -25,6 +25,7 @@ FUNCTIONS = (
     "void __cdecl FS_AddSearchPath(searchpath_s *search)",
     "void __cdecl FS_AddGameDirectory(char *path, char *dir, int bLanguageDirectory, int iLanguage)",
     "void __cdecl FS_AddLocalizedGameDirectory(char *path, char *dir)",
+    "void __cdecl FS_AddIwdFilesForGameDirectory(char *path, char *pszGameFolder)",
     "void __cdecl FS_ReplaceSeparators(char *path)",
     "void __cdecl FS_BuildOSPath(const char *base, const char *game, const char *qpath, char *ospath)",
     "void __cdecl FS_BuildOSPathForThread(const char *base, const char *game, const char *qpath, char *ospath, FsThread thread)",
@@ -36,7 +37,13 @@ FUNCTIONS = (
 )
 REQUIRED = (
     'search->dir = (directory_t *)Z_Malloc(sizeof(directory_t), "FS_AddGameDirectory", 3);',
+    "void __cdecl FS_AddIwdFilesForGameDirectory(char *path, char *pszGameFolder)",
     "FS_AddIwdFilesForGameDirectory(path, szGameFolder);",
+    "numfiles = 0;",
+    "if (!list || numfiles <= 0)",
+    "qsort(s0, numfiles, sizeof(s0[0]),",
+    "ZipFile = FS_LoadZipFile(ospath, s0[i]);",
+    "FS_FreeFileList((const char **)list);",
     "FS_AddSearchPath(search);",
     "FS_AddGameDirectory(path, dir, 1, i);",
     "FS_AddGameDirectory(path, dir, 0, 0);",
@@ -62,6 +69,8 @@ FORBIDDEN = (
     "uint32_t v5; // [esp+0h] [ebp-3Ch]",
     "uint32_t v6; // [esp+10h] [ebp-2Ch]",
     "uint32_t v7; // [esp+20h] [ebp-1Ch]",
+    'qsort(s0, numfiles, 4u,',
+    '*(_DWORD *)v2',
     "fs_basepath->current.integer",
     "fs_homepath->current.integer",
     "fs_cdpath->current.integer",
@@ -73,7 +82,10 @@ FORBIDDEN = (
     "diagnostic FS_Startup stub",
 )
 
-HEADER = '#include "iw3_android_fs_startup_compat.h"\n'
+HEADER = ('#include "iw3_android_fs_startup_compat.h"\n'
+          '#include "iw3_android_iwd_directory_compat.h"\n'
+          '#include <cstdint>\n'
+          '#include <cstring>\n')
 
 
 def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict:
@@ -107,6 +119,10 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
         "original_FS_AddSearchPath_body_staged_verbatim": True,
         "original_FS_AddGameDirectory_body_staged_verbatim": True,
         "original_FS_AddLocalizedGameDirectory_body_staged_verbatim": True,
+        "original_FS_AddIwdFilesForGameDirectory_body_staged_verbatim": True,
+        "original_iwd_directory_enumeration_in_startup_archive": True,
+        "iwd_directory_scan_fails_closed_on_missing_listing": True,
+        "iwd_sort_uses_native_pointer_width": True,
         "original_FS_ReplaceSeparators_body_staged_verbatim": True,
         "original_FS_BuildOSPath_body_staged_verbatim": True,
         "original_FS_BuildOSPathForThread_body_staged_verbatim": True,
