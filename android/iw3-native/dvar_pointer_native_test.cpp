@@ -1,12 +1,22 @@
 #include "iw3_android_dvar_pointer_compat.h"
 
 #include <cassert>
+#include <cstddef>
 #include <cstdarg>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <strings.h>
+
+static_assert(
+    offsetof(DvarLimits_Integer, min) ==
+        offsetof(DvarLimits_Enumeration, stringCount),
+    "DvarLimits integer min and enum count must share the original union offset");
+static_assert(
+    offsetof(DvarLimits_Enumeration, strings) >
+        offsetof(DvarLimits_Integer, max),
+    "LP64 enum string pointers must not be assumed to alias integer max");
 
 namespace {
 dvar_s g_registered{};
