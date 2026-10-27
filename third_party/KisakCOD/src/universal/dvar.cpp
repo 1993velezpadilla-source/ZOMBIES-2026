@@ -924,17 +924,12 @@ DvarValue *__cdecl Dvar_ClampValueToDomain(
         Dvar_ClampVectorToDomain(&value.value, 4, domain.value.min, domain.value.max);
         break;
     case 5u:
-        if (domain.enumeration.stringCount > domain.integer.max)
+        if (domain.integer.min > domain.integer.max)
             MyAssertHandler(".\\universal\\dvar.cpp", 579, 0, "%s", "domain.integer.min <= domain.integer.max");
-        if (value.integer >= domain.enumeration.stringCount)
-        {
-            if (value.integer > domain.integer.max)
-                value.integer = domain.integer.max;
-        }
-        else
-        {
-            value.integer = domain.enumeration.stringCount;
-        }
+        if (value.integer < domain.integer.min)
+            value.integer = domain.integer.min;
+        else if (value.integer > domain.integer.max)
+            value.integer = domain.integer.max;
         break;
     case 6u:
         if (value.integer < 0 || value.integer >= domain.enumeration.stringCount)
