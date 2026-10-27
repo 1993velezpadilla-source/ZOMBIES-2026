@@ -49,12 +49,6 @@ int I_strnicmp(const char *left, const char *right, int count) {
     return strncasecmp(left, right, static_cast<std::size_t>(count));
 }
 
-DvarValue *__cdecl Dvar_ClampValueToDomain(
-    DvarValue *result, uint8_t, DvarValue value, DvarValue, DvarLimits) {
-    *result = value;
-    return result;
-}
-
 bool __cdecl Dvar_StringToBool(const char *string) {
     return string && (std::strcmp(string, "1") == 0 ||
                       strcasecmp(string, "true") == 0);
@@ -140,5 +134,30 @@ int main() {
     assert(enum_dvar.domain.enumeration.strings == names);
     assert(enum_dvar.domain.enumeration.stringCount == 3);
     assert(std::strcmp(Dvar_EnumToString(&enum_dvar), "gamma") == 0);
+
+    // Exercise the authentic original clamp body with the LP64 DvarLimits ABI.
+    // Integer domains must use integer.min/max, not the wider enum union member.
+    DvarLimits integerDomain{};
+    integerDomain.integer.min = -5;
+    integerDomain.integer.max = 9;
+    DvarValue resetValue{};
+    resetValue.integer = 0;
+    DvarValue input{};
+    DvarValue clamped{};
+
+    input.integer = -20;
+    assert(Dvar_ClampValueToDomain(
+        &clamped, DVAR_TYPE_INT, input, resetValue, integerDomain) == &clamped);
+    assert(clamped.integer == -5);
+
+    input.integer = 42;
+    assert(Dvar_ClampValueToDomain(
+        &clamped, DVAR_TYPE_INT, input, resetValue, integerDomain) == &clamped);
+    assert(clamped.integer == 9);
+
+    input.integer = 4;
+    assert(Dvar_ClampValueToDomain(
+        &clamped, DVAR_TYPE_INT, input, resetValue, integerDomain) == &clamped);
+    assert(clamped.integer == 4);
     return 0;
 }
