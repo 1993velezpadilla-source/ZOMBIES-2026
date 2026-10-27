@@ -5,7 +5,7 @@ import hashlib
 import unittest
 
 from tools.iw3_android.prepare_real_engine_dvar_pointer_abi import (
-    SOURCE, FUNCTIONS, SMOKE_FUNCTIONS, REQUIRED, FORBIDDEN, prepare,
+    SOURCE, FUNCTIONS, SMOKE_FUNCTIONS, REQUIRED, FORBIDDEN, DVAR_REGISTER_VARIANT, prepare,
 )
 from tools.iw3_android.prepare_g_runframe_prereqs import function_source
 
@@ -36,6 +36,10 @@ class OriginalDvarPointerAbiTests(unittest.TestCase):
                 report["source_sha256"], hashlib.sha256(original).hexdigest()
             )
             self.assertTrue(report["authentic_kisakcod_function_bodies_extracted"])
+            self.assertIn(DVAR_REGISTER_VARIANT, FUNCTIONS)
+            self.assertTrue(report["dvar_register_variant_body_staged_verbatim"])
+            self.assertIn("Dvar_RegisterVariant", staged)
+            self.assertIn("Dvar_FindMalleableVar", staged)
             self.assertTrue(report["string_values_use_native_pointer_union_member"])
             self.assertTrue(report["enum_tables_use_native_pointer_member_and_indexing"])
             self.assertTrue(report["domain_callbacks_use_declared_DvarValue_by_value_abi"])
