@@ -28,6 +28,13 @@ int main() {
     assert(write(fd, "IW3", 3) == 3);
     close(fd);
     assert(z2026_platform_set_data_root(root) == 0);
+    char copied_root[1024]{};
+    assert(z2026_platform_copy_data_root(copied_root, sizeof(copied_root)) ==
+           static_cast<int>(std::strlen(root)));
+    assert(std::strcmp(copied_root, root) == 0);
+    char too_small_root[1] = {'x'};
+    assert(z2026_platform_copy_data_root(too_small_root, sizeof(too_small_root)) == -1);
+    assert(too_small_root[0] == '\\0');
     assert(z2026_platform_set_data_root(".") == -1);
     unsigned char buffer[4]{};
     assert(z2026_platform_read_file("sample.txt", buffer, sizeof(buffer)) == 3);
