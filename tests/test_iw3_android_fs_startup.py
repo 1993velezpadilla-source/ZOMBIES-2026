@@ -31,6 +31,10 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
             self.assertTrue(report["original_FS_AddSearchPath_body_staged_verbatim"])
             self.assertTrue(report["original_FS_AddGameDirectory_body_staged_verbatim"])
             self.assertTrue(report["original_FS_AddLocalizedGameDirectory_body_staged_verbatim"])
+            self.assertTrue(report["original_FS_AddIwdFilesForGameDirectory_body_staged_verbatim"])
+            self.assertTrue(report["original_iwd_directory_enumeration_in_startup_archive"])
+            self.assertTrue(report["iwd_directory_scan_fails_closed_on_missing_listing"])
+            self.assertTrue(report["iwd_sort_uses_native_pointer_width"])
             self.assertTrue(report["original_FS_ReplaceSeparators_body_staged_verbatim"])
             self.assertTrue(report["original_FS_BuildOSPath_body_staged_verbatim"])
             self.assertTrue(report["original_FS_BuildOSPathForThread_body_staged_verbatim"])
@@ -86,6 +90,15 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
         self.assertLess(add_directory.index(language_guard),
                         add_directory.index('Com_sprintf(szGameFolder, 0x40u, "%s/%s", dir, pszLanguage);'))
         self.assertIn("FS_AddIwdFilesForGameDirectory(path, szGameFolder);", add_directory)
+        add_iwd_files = function_source(
+            source,
+            "void __cdecl FS_AddIwdFilesForGameDirectory(char *path, char *pszGameFolder)",
+        )
+        self.assertIn("numfiles = 0;", add_iwd_files)
+        self.assertIn("if (!list || numfiles <= 0)", add_iwd_files)
+        self.assertIn("qsort(s0, numfiles, sizeof(s0[0]),", add_iwd_files)
+        self.assertIn("ZipFile = FS_LoadZipFile(ospath, s0[i]);", add_iwd_files)
+        self.assertIn("FS_FreeFileList((const char **)list);", add_iwd_files)
 
         path_builder = function_source(
             source,
@@ -121,7 +134,9 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
         self.assertIn('dvar_full_archive="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_dvar_android.a"', workflow)
         self.assertIn('"$startup_archive" "$dvar_full_archive" --no-whole-archive', workflow)
         self.assertIn("IW3_ORIGINAL_FS_STARTUP_DVAR_REGISTRATION_AARCH64_COMBINED_LINK_GREEN", workflow)
-        self.assertIn("FS_AddIwdFilesForGameDirectory Z_Malloc SEH_GetLanguageName FS_ReadFile SEH_InitLanguage", workflow)
+        self.assertIn("IW3_ORIGINAL_FS_STARTUP_IWD_ENUMERATION_AARCH64_RESOLVED", workflow)
+        self.assertIn("FS_AddIwdFilesForGameDirectory", workflow)
+        self.assertIn("Dvar_RegisterInt Dvar_RegisterString Dvar_RegisterBool Z_Malloc SEH_GetLanguageName FS_ReadFile SEH_InitLanguage FS_LoadZipFile Sys_ListFiles FS_FreeFileList IwdFileLanguage iwdsort I_strncmp SEH_GetLanguageIndexForName Com_PrintWarning", workflow)
         self.assertIn('echo "IW3_FS_STARTUP_RUNTIME_INVOKED=false"', workflow)
         self.assertIn('echo "IW3_PLAYABLE_APK=false"', workflow)
 
