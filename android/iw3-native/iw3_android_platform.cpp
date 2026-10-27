@@ -337,7 +337,7 @@ extern "C" IW3_ANDROID_EXPORT int z2026_platform_copy_data_root(
 
 extern "C" IW3_ANDROID_EXPORT int z2026_platform_read_file(
     const char *relative, void *out, std::size_t capacity) {
-    if (!out || !valid_path(relative) ||
+    if ((!out && capacity != 0) || !valid_path(relative) ||
         capacity > static_cast<std::size_t>(std::numeric_limits<int>::max())) return -1;
     std::lock_guard<std::mutex> lock(g_data_mutex);
     if (g_data_root_fd < 0) return -1;
