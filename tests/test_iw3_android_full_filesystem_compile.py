@@ -87,10 +87,10 @@ class OriginalFilesystemAndroidPortTests(unittest.TestCase):
 
     def test_android_shared_engine_layouts_do_not_require_d3d9_sdk(self):
         conditional_include = (
-            '#if defined(__ANDROID__)\\n'
-            '#include "r_d3d9_opaque.h"\\n'
-            '#else\\n'
-            '#include <d3d9.h>\\n'
+            '#if defined(__ANDROID__)\n'
+            '#include "r_d3d9_opaque.h"\n'
+            '#else\n'
+            '#include <d3d9.h>\n'
             '#endif'
         )
         for path in (GFX, MATERIAL):
