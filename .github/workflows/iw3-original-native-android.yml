@@ -402,7 +402,12 @@ jobs:
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_filtered_files.a
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_fs_startup.a
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_dvar_pointer_abi.a
+            ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_dvar_android.a
             ${{ runner.temp }}/iw3-source/iw3_dvar_pointer_abi.cpp
+            ${{ runner.temp }}/iw3-source/iw3_dvar_vec4_compare.cpp
+            ${{ runner.temp }}/iw3-original-dvar-vec4.json
+            ${{ runner.temp }}/iw3-full-dvar-defined.txt
+            ${{ runner.temp }}/iw3-full-dvar-unresolved.txt
             ${{ runner.temp }}/iw3-source/iw3_dvar_pointer_smoke.cpp
             ${{ runner.temp }}/iw3-original-dvar-pointer-abi.json
             ${{ runner.temp }}/iw3-dvar-pointer-defined.txt
