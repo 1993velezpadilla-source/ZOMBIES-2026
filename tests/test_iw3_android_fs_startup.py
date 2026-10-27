@@ -34,6 +34,8 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
             self.assertTrue(report["original_FS_IsBasePathValid_body_preserved_verbatim"])
             self.assertTrue(report["original_FS_InitFilesystem_body_preserved_verbatim"])
             self.assertTrue(report["string_dvars_use_native_pointer_members"])
+            self.assertIn("homePath = nullptr;", staged)
+            self.assertNotIn("homePath = (char *)RETURN_ZERO32();", staged)
             self.assertFalse(report["dvar_registry_linked"])
             self.assertFalse(report["startup_runtime_invoked"])
             self.assertFalse(report["licensed_fastfile_or_map_loaded"])
