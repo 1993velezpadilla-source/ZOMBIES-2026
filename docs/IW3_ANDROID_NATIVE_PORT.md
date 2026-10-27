@@ -281,8 +281,8 @@ are integrated.
 
 - Engine-side Android adapter change: `android/iw3-native/iw3_android_platform.cpp`.
 - Regression: `android/iw3-native/platform_native_test.cpp`.
-- Validation is pending for the updated HEAD; do not count the change as green until
-  the native ARM64 source workflow and its host Release/ASan/UBSan tests finish.
+- Native ARM64 source workflow [40443331931](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40443331931) passed on code HEAD `c53bef4`. The host CTest suite passed **9/9 in Release and 9/9 under ASan/UBSan**; the `iw3_portable_platform` test includes the 1030-entry sorted-prefix and undersized-output regressions. Artifact [12707615573](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40443331931/artifacts/12707615573) contains native modules and evidence, **not an APK**.
+- The source preflight [40443332055](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40443332055) also passed. JNI packaging and Android emulator runs for this HEAD were still in progress at documentation time and are not counted as passed.
 - Scope remains limited to IWD enumeration. Original `FS_Startup` is not invoked by
   the diagnostic APK; licensed FastFile/map loading, the original renderer, live
   client-frame input, weapon/actor gameplay, and physical ARM64 execution remain
