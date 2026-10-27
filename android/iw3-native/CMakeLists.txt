@@ -217,6 +217,21 @@ target_link_options(iw3_sp_math PRIVATE
     -Wl,--no-undefined
 )
 if(ANDROID)
+    # Compile the entire original filesystem translation unit for Android.
+    # Keep this as an object-only port gate until its remaining engine services
+    # are wired into the runtime; never substitute extracted diagnostic bodies.
+    add_library(iw3_sp_full_filesystem OBJECT
+        "${IW3_ENGINE_SOURCE_ROOT}/universal/com_files.cpp")
+    target_include_directories(iw3_sp_full_filesystem PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+        "${IW3_REAL_HEADER_ROOT}"
+        "${IW3_ENGINE_SOURCE_ROOT}"
+        "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+        "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+    target_compile_definitions(iw3_sp_full_filesystem PRIVATE KISAK_SP=1)
+    target_compile_options(iw3_sp_full_filesystem PRIVATE
+        -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
+
     # Java Activity JNI entry points are tied directly to the authentic
     # IW3 native C++ library; not a gameplay stand-in or second engine.
     target_sources(iw3_sp_math PRIVATE
