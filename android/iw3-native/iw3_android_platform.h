@@ -17,6 +17,10 @@ IW3_ANDROID_EXPORT std::uint64_t z2026_platform_monotonic_ns();
 // Sandbox reads only: all paths relative to an opened app-owned directory.
 // A 0 return is success. The service retains its own root descriptor.
 IW3_ANDROID_EXPORT int z2026_platform_set_data_root(const char *absolute_dir);
+// Copy the configured app-private filesDir path into caller-owned storage.
+// Returns the path length, or -1 when unconfigured/too small.
+IW3_ANDROID_EXPORT int z2026_platform_copy_data_root(
+    char *destination, std::size_t capacity);
 IW3_ANDROID_EXPORT int z2026_platform_read_file(
     const char *relative_path, void *destination, std::size_t capacity);
 
