@@ -747,3 +747,24 @@ Implemented on `feature/iw3-native-android-arm64-20261025`:
 The fresh preflight, native ARM64 source/ABI, JNI diagnostic and emulator workflows were triggered by the branch updates; their final results have not yet been inspected. Do not count this pass as CI-green until the run for the latest code completes.
 
 **Scope boundary:** this closes a real function-definition edge in a dependency-audit archive; it does not execute `FS_Startup` or `FS_InitFilesystem` in the Android app. The remaining original IWD enumeration/mount services are intentionally unresolved rather than stubbed. No licensed FastFile/map load, original renderer scene, touch-driven weapon/actor gameplay, or physical ARM64 gameplay is proven. The JNI APK remains diagnostic only. Keep PR #4 open and unmerged.
+
+
+### Phase AY validation correction — keep the path-only host test isolated (2026-10-27)
+
+The first build after adding the original IWD enumerator failed in the host-only localized-path test with a duplicate definition of `FS_AddIwdFilesForGameDirectory`: the test intentionally supplies a narrow stub, while the new startup audit source now contains the real body. This failure was inspected and is not counted as passing evidence.
+
+Corrective changes:
+- [`d952aef`](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/d952aefc14362ac925fc57669e7ecf8738fe06c4): put only the extracted IWD enumerator behind `#if !defined(IW3_FS_STARTUP_HOST_TEST)` in the generated source. The original body remains present and compiled in the actual startup archive.
+- [`e62fb77`](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/e62fb77fd248323ac209260003724b1b16b78c78): corrected the generator's newline escaping.
+- [`748400e`](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/748400e5069c876fdffbb03f3e26802aaa0a96a3): define the exclusion macro only for the focused host test target, leaving the ARM64 startup archive unchanged.
+- [`b6b1107`](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/b6b1107aa8d5e58aa3cc353c2267872494c3026f): add a regression for this separation.
+
+Validation on code commit `b6b1107aa8d5e58aa3cc353c2267872494c3026f`:
+- [Preflight run 40601336530](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40601336530) — PASS; 113 Python tests.
+- [Native Android ARM64 source/ABI run 40601328329](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40601328329) — PASS; Release CTest 14/14, ASan/UBSan CTest 14/14, original KisakCOD frame/IWD/filter compile gates, and AArch64 relocatable startup+Dvar audit.
+- [PR native run 40601336640](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40601336640) — PASS on the same code commit.
+- [Artifact 12778902451](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40601328329/artifacts/12778902451) contains native modules, symbols and provenance reports only; **not an APK and not a game**.
+
+The AArch64 audit now confirms that the original `FS_AddIwdFilesForGameDirectory` is defined in the startup archive and no longer unresolved in the combined startup+Dvar object. The following genuine services remain unresolved and intentionally visible: `FS_LoadZipFile`, `Sys_ListFiles`, `FS_FreeFileList`, `IwdFileLanguage`, `iwdsort`, `I_strncmp`, `SEH_GetLanguageIndexForName`, `Com_PrintWarning`, `Z_Malloc`, `SEH_GetLanguageName`, `FS_ReadFile`, and `SEH_InitLanguage`.
+
+The JNI ARM64 packaging and x86_64 emulator runs for this code commit were still running when this note was written; they are not counted as passing. Even a successful diagnostic APK/emulator run would not prove real-map rendering or gameplay. `FS_Startup`/ `FS_InitFilesystem` are still not invoked by the Android app, no licensed FastFile/map is loaded, no original renderer scene or touch-driven weapon/actor combat is proven, and physical ARM64 gameplay remains unverified. PR #4 remains open and unmerged.
