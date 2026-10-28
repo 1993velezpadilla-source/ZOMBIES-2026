@@ -413,7 +413,7 @@ void __cdecl Hunk_ClearToMarkLow(int32_t mark)
     hunk_low.temp = mark;
     hunk_low.permanent = mark;
     Hunk_ClearData();
-    beginBuf = (uint8_t*)((uint32_t)&s_hunkData[hunk_low.temp + 4095] & 0xFFFFF000);
+    beginBuf = Hunk_PageBase(&s_hunkData[hunk_low.temp + 4095]);
     if (endBuf != beginBuf)
         Z_VirtualDecommit(beginBuf, endBuf - beginBuf);
     track_hunk_ClearToMarkLow(mark);
