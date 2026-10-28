@@ -150,17 +150,29 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
         self.assertIn("IW3_ORIGINAL_FS_STARTUP_IWD_ENUMERATION_AARCH64_RESOLVED", workflow)
         self.assertNotIn("Dvar_RegisterInt Dvar_RegisterString Dvar_RegisterBool FS_AddIwdFilesForGameDirectory Z_Malloc", workflow)
 
-    def test_original_path_builder_is_linked_into_iwd_diagnostic_without_duplicate_directory_providers(self):
-        generator = (ROOT / "tools/iw3_android/prepare_real_engine_fs_startup.py").read_text(encoding="utf-8")
+    def test_original_path_builder_uses_the_single_existing_iwd_lookup_provider(self):
+        lookup_generator = (ROOT / "tools/iw3_android/prepare_real_engine_iwd_lookup.py").read_text(encoding="utf-8")
         cmake = (ROOT / "android/iw3-native/CMakeLists.txt").read_text(encoding="utf-8")
         directory_io = (ROOT / "android/iw3-native/iw3_android_iwd_directory_io.cpp").read_text(encoding="utf-8")
-        self.assertIn("IW3_FS_STARTUP_EXTERNAL_IWD_DIRECTORY", generator)
-        self.assertIn("add_library(iw3_sp_fs_startup_runtime OBJECT", cmake)
-        self.assertIn("IW3_FS_STARTUP_EXTERNAL_IWD_DIRECTORY=1", cmake)
-        self.assertIn("$<TARGET_OBJECTS:iw3_sp_fs_startup_runtime>", cmake)
+        lookup_io = (ROOT / "android/iw3-native/iw3_android_iwd_lookup_io.cpp").read_text(encoding="utf-8")
+        self.assertIn('("void __cdecl FS_BuildOSPath(const char *base, const char *game, const char *qpath, char *ospath)", SOURCE)', lookup_generator)
+        self.assertIn("FS_BuildOSPathForThread(base, game, qpath, ospath, FS_THREAD_MAIN);", lookup_generator)
+        self.assertIn('"' + '$' + '{IW3_EXTRACTED_IWD_LOOKUP}' + '"', cmake)
+        self.assertNotIn("iw3_sp_fs_startup_runtime", cmake)
         self.assertNotIn("void __cdecl FS_BuildOSPath(const char *base, const char *game,", directory_io)
-        self.assertIn("void __cdecl Com_Error(errorParm_t code, const char *format, ...)", directory_io)
-        self.assertIn("std::abort();", directory_io)
+        self.assertNotIn("void __cdecl Com_Error(errorParm_t code, const char *format, ...)", directory_io)
+        self.assertIn("void QDECL Com_Error(errorParm_t code, const char *format, ...)", lookup_io)
+
+    def test_iwd_lookup_generator_stages_original_fs_build_os_path_body(self):
+        from tools.iw3_android.prepare_real_engine_iwd_lookup import prepare as prepare_iwd_lookup
+        with TemporaryDirectory() as temp:
+            output = Path(temp) / "iw3_iwd_lookup.cpp"
+            report = prepare_iwd_lookup(ENGINE, output)
+            staged = output.read_text(encoding="utf-8")
+            self.assertIn("void __cdecl FS_BuildOSPath(const char *base, const char *game, const char *qpath, char *ospath)", staged)
+            self.assertIn("FS_BuildOSPathForThread(base, game, qpath, ospath, FS_THREAD_MAIN);", staged)
+            self.assertTrue(report["original_FS_BuildOSPath_body_staged_verbatim"])
+            self.assertTrue(report["original_path_builder_helper_bodies_staged_verbatim"])
 
     def test_android_path_service_uses_configured_private_root_not_process_cwd(self):
         platform = (ROOT / "android/iw3-native/iw3_android_platform.cpp").read_text(encoding="utf-8")
