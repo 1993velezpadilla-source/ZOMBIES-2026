@@ -60,6 +60,10 @@ jobs:
             --engine third_party/KisakCOD \
             --output "$RUNNER_TEMP/iw3-source/iw3_g_update_player_triggers.cpp" \
             --report "$RUNNER_TEMP/iw3-original-g-update-player-triggers.json"
+          python3 tools/iw3_android/prepare_real_engine_g_runframe_entity.py \
+            --engine third_party/KisakCOD \
+            --output "$RUNNER_TEMP/iw3-source/iw3_g_runframe_entity.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-g-runframe-entity.json"
           python3 tools/iw3_android/prepare_real_engine_sentient_trigger_services.py \
             --engine third_party/KisakCOD \
             --output "$RUNNER_TEMP/iw3-source/iw3_sentient_trigger_services.cpp" \
@@ -726,13 +730,16 @@ jobs:
           player_source="$RUNNER_TEMP/iw3-source/iw3_g_update_player.cpp"
           trigger_source="$RUNNER_TEMP/iw3-source/iw3_g_update_player_triggers.cpp"
           sentient_source="$RUNNER_TEMP/iw3-source/iw3_sentient_trigger_services.cpp"
+          entity_source="$RUNNER_TEMP/iw3-source/iw3_g_runframe_entity.cpp"
           player_object="$RUNNER_TEMP/iw3-original-g-update-player-arm64.o"
           trigger_object="$RUNNER_TEMP/iw3-original-g-update-player-triggers-arm64.o"
           sentient_object="$RUNNER_TEMP/iw3-original-sentient-trigger-services-arm64.o"
+          entity_object="$RUNNER_TEMP/iw3-original-g-runframe-entity-arm64.o"
           test -s "$frame_archive"
           test -s "$player_source"
           test -s "$trigger_source"
           test -s "$sentient_source"
+          test -s "$entity_source"
 
           common_flags=(
             -std=c++20 -DKISAK_SP=1 -Wall -Wextra -UNDEBUG -O2
@@ -744,8 +751,9 @@ jobs:
           "$ndk/bin/aarch64-linux-android26-clang++" "${common_flags[@]}" -c "$player_source" -o "$player_object"
           "$ndk/bin/aarch64-linux-android26-clang++" "${common_flags[@]}" -c "$trigger_source" -o "$trigger_object"
           "$ndk/bin/aarch64-linux-android26-clang++" "${common_flags[@]}" -c "$sentient_source" -o "$sentient_object"
+          "$ndk/bin/aarch64-linux-android26-clang++" "${common_flags[@]}" -c "$entity_source" -o "$entity_object"
 
-          for object in "$player_object" "$trigger_object" "$sentient_object"; do
+          for object in "$player_object" "$trigger_object" "$sentient_object" "$entity_object"; do
             "$ndk/bin/llvm-readelf" -h "$object" | tee "$RUNNER_TEMP/$(basename "$object").elf.txt"
             grep -F 'Class:                             ELF64' "$RUNNER_TEMP/$(basename "$object").elf.txt"
             grep -F 'Machine:                           AArch64' "$RUNNER_TEMP/$(basename "$object").elf.txt"
@@ -782,6 +790,32 @@ jobs:
           echo "IW3_ORIGINAL_SENTIENT_TRIGGER_SERVICES_AARCH64_LINK_GREEN"
           echo "IW3_SENTIENT_TRIGGER_SERVICES_RUNTIME_EXECUTED=false"
           echo "IW3_G_UPDATE_PLAYER_TRIGGERS_RUNTIME_EXECUTED=false"
+
+          # Extend the same relocatable frame audit with the verbatim original
+          # entity dispatcher and its internal helper. External missile/item/
+          # mover/script/render services intentionally remain unresolved.
+          entity_combined="$RUNNER_TEMP/iw3-original-g-runframe-plus-entity-arm64.o"
+          "$ndk/bin/ld.lld" -m aarch64linux -r --whole-archive \
+            "$frame_archive" "$player_object" "$trigger_object" "$sentient_object" "$entity_object" --no-whole-archive -o "$entity_combined"
+          "$ndk/bin/llvm-nm" -C --defined-only "$entity_combined" \
+            | tee "$RUNNER_TEMP/iw3-g-runframe-entity-defined.txt"
+          "$ndk/bin/llvm-nm" -C -u "$entity_combined" \
+            | tee "$RUNNER_TEMP/iw3-g-runframe-entity-undefined.txt"
+          grep -F 'G_RunFrameForEntity(gentity_s*)' "$RUNNER_TEMP/iw3-g-runframe-entity-defined.txt"
+          grep -F 'G_RunFrameForEntityInternal(gentity_s*)' "$RUNNER_TEMP/iw3-g-runframe-entity-defined.txt"
+          if grep -F 'G_RunFrameForEntity(gentity_s*)' "$RUNNER_TEMP/iw3-g-runframe-entity-undefined.txt"; then
+            echo "Original G_RunFrameForEntity edge failed to resolve" >&2
+            exit 1
+          fi
+          if grep -F 'G_RunFrameForEntityInternal(gentity_s*)' "$RUNNER_TEMP/iw3-g-runframe-entity-undefined.txt"; then
+            echo "Original G_RunFrameForEntityInternal edge failed to resolve" >&2
+            exit 1
+          fi
+          for symbol in 'G_RunMissile(gentity_s*)' 'G_RunItem(gentity_s*)' 'G_RunMover(gentity_s*)' 'ClientEndFrame(gentity_s*)' 'Scr_RunCurrentThreads()' 'SV_DObjExists(gentity_s*)' 'SV_XModelDebugBoxes(gentity_s*)'; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-g-runframe-entity-undefined.txt"
+          done
+          echo "IW3_ORIGINAL_G_RUNFRAME_FOR_ENTITY_AARCH64_FRAME_EDGE_RESOLVED_GREEN"
+          echo "IW3_G_RUNFRAME_FOR_ENTITY_RUNTIME_EXECUTED=false"
           echo "IW3_REAL_MAP_LOADED=false"
           echo "IW3_GAMEPLAY_PROVEN=false"
           echo "IW3_PLAYABLE_APK=false"
@@ -808,6 +842,12 @@ jobs:
             ${{ runner.temp }}/iw3-original-sentient-trigger-services-arm64.o
             ${{ runner.temp }}/iw3-g-update-player-triggers-defined.txt
             ${{ runner.temp }}/iw3-g-update-player-triggers-undefined.txt
+            ${{ runner.temp }}/iw3-source/iw3_g_runframe_entity.cpp
+            ${{ runner.temp }}/iw3-original-g-runframe-entity.json
+            ${{ runner.temp }}/iw3-original-g-runframe-entity-arm64.o
+            ${{ runner.temp }}/iw3-original-g-runframe-plus-entity-arm64.o
+            ${{ runner.temp }}/iw3-g-runframe-entity-defined.txt
+            ${{ runner.temp }}/iw3-g-runframe-entity-undefined.txt
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_iwd_mount.a
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_iwd_services.a
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_unzip.a
