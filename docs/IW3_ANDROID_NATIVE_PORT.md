@@ -1333,3 +1333,12 @@ The native ARM64 workflow now compiles that original body against the real `g_ru
 The source and regression test are in `tools/iw3_android/prepare_real_engine_g_update_player.py` and `tests/test_iw3_android_g_update_player.py`; the generated source, report, object, combined object and symbol tables are retained by the native workflow artifact.
 
 **Scope boundary:** this closes one authentic compile/link dependency edge only. It does not execute `G_UpdatePlayer`, link the player packet path, run `G_RunFrame` in Android, mount real game data, load a map, render a 3D scene, or prove weapon/actor gameplay. The JNI APK remains diagnostic and `IW3_PLAYABLE_APK=false`. Keep PR #4 open and unmerged.
+
+
+### Phase — original player-trigger update edge in the ARM64 frame audit (28 Oct 2026)
+
+The latest frame audit had the authentic `G_RunFrame` and `G_UpdatePlayer` bodies compiled for AArch64, but `G_UpdatePlayerTriggers(gentity_s*)` was still an unresolved first-phase edge. This pass adds `prepare_real_engine_g_update_player_triggers.py`, which extracts the complete original body from `third_party/KisakCOD/src/game/g_active.cpp` verbatim, hashes it, and verifies the real declarations for its math, sentient/path-node and trigger services against the vendored engine headers.
+
+The native workflow now compiles both original player-update functions with the Android NDK and relocatably links their objects with `libiw3_sp_frame.a`. The link gate requires both functions and `G_RunFrame` to be defined, and requires the player/trigger update symbols to be absent from the combined undefined-symbol table. The actual node, claim and trigger providers remain unresolved and are explicitly checked as such; no stubs were introduced.
+
+This phase is a source/ABI/linkage milestone only. It does not execute the functions in Android, initialize the complete server runtime, load a real IWD/FastFile/map, render a scene, or prove touch-driven combat. The emulator is not a physical ARM64 device. The JNI package remains diagnostic and is not a playable game; keep PR #4 open and unmerged until all gameplay gates are evidenced.
