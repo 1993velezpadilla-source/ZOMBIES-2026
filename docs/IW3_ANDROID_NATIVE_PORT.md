@@ -1451,3 +1451,12 @@ Baseline inspected: `799952b6a8a5ebe1133f273235294721ef77b492`; PR #4 remained o
 The activity now calls `nativeValidateImportedIwds(filesDir)` after import and reports validated archive/entry counts or the failing path. CI also executes the same path against a temporary synthetic IWD under an isolated app-private root; this proves the original indexer and cleanup path run, but it is explicitly a fixture, not proprietary game data.
 
 **Still not gameplay:** this is IWD indexing, not full searchpath startup or FastFile/map loading. `FS_Startup/FS_InitFilesystem` are not invoked by the app, the original renderer and live command/frame loop are not integrated, and no physical ARM64 gameplay is proven. The APK remains diagnostic only. PR #4 must remain open and unmerged.
+
+
+## Phase CI — original IWD entry-counter overflow guard
+
+- Hardened the authentic `FS_LoadZipFile` body to reject negative `fs_iwdFileCount` and any archive whose entry count would overflow `INT_MAX`, before allocation.
+- The extraction generator enforces the guard; the synthetic Android JNI IWD fixture tests rejection at `INT_MAX` and then confirms normal two-entry indexing still works.
+- Validation: 217 Python tests, CTest Release 22/22, CTest ASan/UBSan 22/22; ARM64 audit and JNI build passed; emulator log includes `IW3_JNI_IMPORTED_IWD_INDEX_FIXTURE_PASS`.
+- Evidence: [ARM64 audit](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40783665908), [JNI build](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40783665869), [emulator execution](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40783665919).
+- Scope remains diagnostic: emulator x86_64; startup invocation, real game data/FastFiles/map, original rendering and real gameplay are not proven. `IW3_PLAYABLE_APK=false`.
