@@ -174,7 +174,7 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
         self.assertIn("FS_ReadFile FS_FOpenFileRead FS_CheckFileSystemStarted FS_AllocMem", workflow)
         self.assertIn("for symbol in Hunk_AllocateTempMemory Hunk_FreeTempMemory SEH_InitLanguage; do", workflow)
         self.assertIn("FS_FileOpenReadBinary FS_FileClose FS_FileRead FS_FileSeek FS_FileGetFileSize", workflow)
-        self.assertIn("IW3_ORIGINAL_FS_STARTUP_IWD_DIRECTORY_ADAPTER_AARCH64_LINK_GREEN", workflow)
+        self.assertIn("IW3_ORIGINAL_FS_STARTUP_IWD_DIRECTORY_AND_READFILE_AARCH64_LINK_GREEN", workflow)
         self.assertIn('echo "IW3_PLAYABLE_APK=false"', workflow)
 
     def test_iwd_enumerator_is_in_startup_archive_but_not_the_narrow_host_probe(self):
