@@ -53,6 +53,7 @@ class OriginalComPrintfTests(unittest.TestCase):
         self.assertIn("print_printf_archive", workflow)
         self.assertIn("Com_Printf(int, char const*, ...)", workflow)
         self.assertIn("IW3_ORIGINAL_COM_PRINTF_AARCH64_LINK_GREEN", workflow)
+        self.assertLess(workflow.index('-o "$RUNNER_TEMP/iw3-fs-startup-combined.o"'), workflow.index('"$llvm_nm" -C --defined-only "$RUNNER_TEMP/iw3-fs-startup-combined.o"'))
         self.assertIn("iw3_sp_com_print_printf", cmake)
         self.assertIn("iw3_original_com_print_printf_android_sink", cmake)
         generator = (ROOT / "tools/iw3_android/prepare_real_engine_com_print_printf.py").read_text(encoding="utf-8")
