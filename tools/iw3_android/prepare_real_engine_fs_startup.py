@@ -122,6 +122,12 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
             rendered_bodies.append(
                 "#if !defined(IW3_FS_STARTUP_HOST_TEST)\n" + body + "\n#endif"
             )
+        elif signature == "void __cdecl Com_ReadCDKey()":
+            # Keep the original upstream provider in the ARM64 startup archive,
+            # while the focused host test retains its observable service spy.
+            rendered_bodies.append(
+                "#if !defined(IW3_FS_STARTUP_HOST_TEST)\n" + body + "\n#endif"
+            )
         else:
             rendered_bodies.append(body)
     rendered = HEADER + "\n\n".join(rendered_bodies) + "\n"

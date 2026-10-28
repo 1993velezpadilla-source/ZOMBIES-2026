@@ -25,6 +25,11 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
             report_path = Path(temp) / "evidence.json"
             report = prepare(ENGINE, output, report_path)
             staged = output.read_text(encoding="utf-8")
+            cdkey_body = function_source(source, "void __cdecl Com_ReadCDKey()")
+            self.assertIn(
+                "#if !defined(IW3_FS_STARTUP_HOST_TEST)\n" + cdkey_body + "\n#endif",
+                staged,
+            )
             for body in bodies:
                 self.assertIn(body, staged)
             self.assertEqual(report["source_sha256"],
