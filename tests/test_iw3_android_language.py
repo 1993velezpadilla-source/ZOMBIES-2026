@@ -55,6 +55,8 @@ class OriginalLanguageRegistryTests(unittest.TestCase):
         self.assertIn("IW3_ORIGINAL_FS_STARTUP_LANGUAGE_INIT_AARCH64_LINK_GREEN", workflow)
         self.assertIn("#if !defined(IW3_IWD_DIRECTORY_LINK_AUDIT)", adapter)
         self.assertIn("static_assert(sizeof(languageInfo_t)", compat)
+        self.assertIn("SEH_UpdateCurrentLanguage();", (ROOT / "tools/iw3_android/prepare_real_engine_language.py").read_text(encoding="utf-8"))
+        self.assertIn("const dvar_s *__cdecl SEH_UpdateCurrentLanguage();", compat)
         self.assertIn('echo "IW3_FS_STARTUP_RUNTIME_INVOKED=false"', workflow)
         self.assertIn('echo "IW3_PLAYABLE_APK=false"', workflow)
         self.assertNotIn('for symbol in SEH_InitLanguage; do\n            grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-iwd-undefined.txt"\n          done', workflow)
