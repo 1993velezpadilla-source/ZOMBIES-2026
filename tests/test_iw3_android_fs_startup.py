@@ -8,6 +8,7 @@ from tools.iw3_android.prepare_real_engine_fs_startup import (
     SOURCE, FUNCTIONS, REQUIRED, FORBIDDEN, prepare,
 )
 from tools.iw3_android.prepare_g_runframe_prereqs import function_source
+from tools.iw3_android.prepare_real_engine_iwd_services import prepare as prepare_iwd_services
 
 ROOT = Path(__file__).resolve().parents[1]
 ENGINE = ROOT / "third_party/KisakCOD"
@@ -138,6 +139,40 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
         self.assertIn("FS_AddIwdFilesForGameDirectory", workflow)
         self.assertIn("Dvar_RegisterInt Dvar_RegisterString Dvar_RegisterBool Z_Malloc SEH_GetLanguageName FS_ReadFile SEH_InitLanguage FS_LoadZipFile Sys_ListFiles FS_FreeFileList IwdFileLanguage iwdsort I_strncmp SEH_GetLanguageIndexForName Com_PrintWarning", workflow)
         self.assertIn('echo "IW3_FS_STARTUP_RUNTIME_INVOKED=false"', workflow)
+        self.assertIn('echo "IW3_PLAYABLE_APK=false"', workflow)
+
+    def test_original_iwd_language_sort_allocator_and_zip_helpers_join_startup_audit(self):
+        with TemporaryDirectory() as temp:
+            output = Path(temp) / "iw3_iwd_services.cpp"
+            report = prepare_iwd_services(ENGINE, output)
+            staged = output.read_text(encoding="utf-8")
+
+        for symbol in (
+            "IwdFileLanguage",
+            "FS_PathCmp",
+            "iwdsort",
+            "I_islower",
+            "I_strncmp",
+            "Z_Malloc",
+        ):
+            self.assertIn(symbol, staged)
+        self.assertIn("char szIwdLanguageName[2][64];", staged)
+        self.assertIn("int iString = 0;", staged)
+        self.assertTrue(report["original_iwd_language_and_sort_helpers_staged_verbatim"])
+        self.assertTrue(report["original_iwd_language_sort_state_staged_from_com_files_cpp"])
+        self.assertFalse(report["playable_apk"])
+
+        cmake = (ROOT / "android/iw3-native/CMakeLists.txt").read_text(encoding="utf-8")
+        self.assertIn('add_library(iw3_sp_iwd_services STATIC "${IW3_EXTRACTED_IWD_SERVICES}")', cmake)
+        self.assertIn('add_library(iw3_sp_unzip STATIC "${IW3_EXTRACTED_UNZIP}")', cmake)
+        workflow = (ROOT / ".github/workflows/iw3-original-native-android.yml").read_text(encoding="utf-8")
+        self.assertIn('"$startup_archive" "$dvar_full_archive" "$iwd_services_archive"', workflow)
+        self.assertIn('"$iwd_mount_archive" "$unzip_archive" --no-whole-archive', workflow)
+        self.assertIn("IW3_ORIGINAL_FS_STARTUP_IWD_SERVICES_AARCH64_COMBINED_LINK_GREEN", workflow)
+        self.assertIn(
+            "SEH_GetLanguageName FS_ReadFile SEH_InitLanguage Sys_ListFiles FS_FreeFileList SEH_GetLanguageIndexForName Com_PrintWarning",
+            workflow,
+        )
         self.assertIn('echo "IW3_PLAYABLE_APK=false"', workflow)
 
     def test_iwd_enumerator_is_in_startup_archive_but_not_the_narrow_host_probe(self):
