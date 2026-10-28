@@ -130,6 +130,42 @@ if(IW3_EXTRACTED_Q_PARSE)
     endif()
 endif()
 
+# Compile only the original command argument accessors from cmd.cpp for the
+# filesystem-startup dependency audit. The command-state object remains owned
+# by the full original cmd.cpp translation unit and intentionally stays visible
+# as an unresolved dependency in the relocatable audit; this archive is not
+# linked into the JNI diagnostic APK.
+if(IW3_EXTRACTED_CMD_ARGS)
+    if(NOT EXISTS "${IW3_EXTRACTED_CMD_ARGS}")
+        message(FATAL_ERROR "Configured original Cmd_Argc/Cmd_Argv extraction path does not exist")
+    endif()
+    add_library(iw3_sp_cmd_args STATIC "${IW3_EXTRACTED_CMD_ARGS}")
+    target_include_directories(iw3_sp_cmd_args PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+        "${IW3_REAL_HEADER_ROOT}"
+        "${IW3_ENGINE_SOURCE_ROOT}"
+        "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+        "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+    target_compile_definitions(iw3_sp_cmd_args PRIVATE KISAK_SP=1)
+    target_compile_options(iw3_sp_cmd_args PRIVATE
+        -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
+
+    if(NOT ANDROID)
+        add_executable(iw3_cmd_args_native_test cmd_args_native_test.cpp)
+        target_include_directories(iw3_cmd_args_native_test PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}"
+            "${IW3_REAL_HEADER_ROOT}"
+            "${IW3_ENGINE_SOURCE_ROOT}"
+            "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+            "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+        target_compile_definitions(iw3_cmd_args_native_test PRIVATE KISAK_SP=1)
+        target_link_libraries(iw3_cmd_args_native_test PRIVATE iw3_sp_cmd_args)
+        target_compile_options(iw3_cmd_args_native_test PRIVATE -UNDEBUG -Wall -Wextra)
+        add_test(NAME iw3_original_cmd_arg_accessors_host_runtime
+                 COMMAND iw3_cmd_args_native_test)
+    endif()
+endif()
+
 if(IW3_EXTRACTED_COM_PRINT_WARNING)
     if(NOT EXISTS "${IW3_EXTRACTED_COM_PRINT_WARNING}")
         message(FATAL_ERROR
