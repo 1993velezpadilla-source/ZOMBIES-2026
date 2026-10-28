@@ -164,12 +164,7 @@ void __cdecl TRACK_com_math();
 // == RANDOM == 
 void __cdecl Rand_Init(int seed);
 
-#if defined(__ANDROID__)
-// Avoid colliding with POSIX long random(void) on Android/Linux.
 float __cdecl Com_Random();
-#else
-float __cdecl random();
-#endif
 float __cdecl crandom();
 
 float __cdecl flrand(float min, float max);
