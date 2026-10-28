@@ -45,6 +45,7 @@ HEADER = (
     '#include <cstdlib>\n'
     '#include <cstring>\n'
     '#include <cstdint>\n'
+    'char *__cdecl IwdFileLanguage(const char *pszIwdFileName);\n'
     '#undef iassert\n'
     '#define iassert(expr) assert(expr)\n'
 )
