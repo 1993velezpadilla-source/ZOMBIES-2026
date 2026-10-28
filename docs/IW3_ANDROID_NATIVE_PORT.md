@@ -1405,12 +1405,31 @@ Code commits:
 - `38056da0d9cdd8d3033c045d626ba5534659366e` — isolated temporary output in the test.
 - `5608385bd10ce8f41bd3462b43a92c7a69fc6ac4` — Android NDK compile/link gate and artifact retention.
 
-Validation status at documentation time:
-- Source/RotU preflight run [40755542954](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40755542954): **passed**.
-- Native ARM64 source/link audit [40755542806](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40755542806): **pending**; no compile/link result is claimed yet.
-- JNI diagnostic package [40755543234](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40755543234): **pending**.
-- Android emulator probe [40755542917](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40755542917): **pending**.
+### Validation completed on code tree `0997bf9e17a43893e41d060be5e071581f665cc9`
 
-The earlier green native audit at `fa4f55c70840081e05bd9eff1cc3bb3fc72ec746` passed 192 Python preflight tests, Release CTest 22/22, ASan/UBSan CTest 22/22, and the AArch64 compile/link gate for the original frame/player/trigger functions. Its artifact [12839735900](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40740627238/artifacts/12839735900) contains compiled objects and reports, not a game APK.
+- Source preflight [40756784273](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40756784273): **PASS**.
+- Native ARM64 source/link audit [40756784326](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40756784326): **PASS**. The workflow ran **206 Python tests**, CTest Release **22/22**, and ASan/UBSan CTest **22/22**. The Android NDK compiled the original entity-frame functions as ELF64/AArch64, and the combined relocatable object defined both `G_RunFrameForEntity` and `G_RunFrameForEntityInternal` without either remaining undefined. Evidence marker: `IW3_ORIGINAL_G_RUNFRAME_FOR_ENTITY_AARCH64_FRAME_EDGE_RESOLVED_GREEN`.
+- Native artifact [12845787812](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40756784326/artifacts/12845787812): compiled objects and reports only, **not an APK**.
+- JNI diagnostic package [40756784264](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40756784264): **PASS**; artifact [12847165670](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40756784264/artifacts/12847165670) is diagnostic only.
+- Android emulator probe [40756784297](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40756784297): **PASS** for original ZIP/IWD fixture operations, JNI execution, touch-to-`usercmd_s`, and lifecycle. It ran on x86_64; its evidence still says `arm64_device_execution_proven=false` and `gameplay_proven=false`. Log artifact: [12846296439](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40756784297/artifacts/12846296439).
+- Native Windows SP compile [40756784310](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40756784310): **PASS** after the public server-header correction described in Phase AB below.
+- Killhouse SP smoke [40756784216](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40756784216): workflow **PASS**, original `killhouse` level loop and actor AI think observed. However, `actual_weapon_fire_callback=false`, `bullet_fire_dispatched=false`, `actor_damage_callback=false`, `actor_death_callback=false`, and `actual_graphics_verified=false`. Evidence [12847316067](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40756784216/artifacts/12847316067) does **not** prove weapon fire, damage, death, or playable Android gameplay.
 
-**Scope boundary:** the new entity-frame provider has not yet passed its current CI compile/link gate. Even if that gate passes, it does not execute the frame in Android, initialize the full runtime, mount licensed IWD/FastFiles, load a real map, render the original 3D scene, connect touch to live frame execution, or prove weapon/actor gameplay on physical ARM64. `IW3_PLAYABLE_APK=false`; keep PR #4 open and unmerged.
+**Scope boundary:** the entity-frame provider is now compile/link-audited, but not executed in the Android game runtime. The script/client/actor/path services remain unresolved; `FS_Startup()` has not run in the app; real IWD/FastFiles/map loading, original 3D rendering, live touch-driven frame execution, and physical ARM64 combat remain unproven. `IW3_PLAYABLE_APK=false`; keep PR #4 open and unmerged.
+
+
+## Phase AB — expose canonical SP server APIs to client/cgame consumers (28 Oct 2026)
+
+The offline SP build failed before this correction with C3861 for `SV_GetEntityState`, `SV_WaitServerSnapshot`, `SV_RecordClientCommand`, `SV_ExecuteClientCommand`, `SV_RecordClientThink`, `SV_ClientThink`, `SV_TrackPlayerDied`, and `SV_AddToPlayerScore`. Their canonical declarations already existed in `server/server.h`, but shared SP translation units did not include that private header.
+
+The original SP public interface `server/sv_public.h` now forward-declares only the pointer types `gentity_s` and `usercmd_s`, and exposes the exact existing prototypes. `client/cl_input.cpp` and `cgame/cg_snapshot.cpp` now include that public interface; `game/g_combat.cpp` already did. The new regression requires every public prototype to match the canonical declaration in `server.h` exactly and requires the client/cgame includes. No service implementation or simulation stub was added.
+
+Code commits:
+- `4585c83df2f944a4f8b4d0e59c90a223577fd171` — public SP server declarations.
+- `6d8df54075626c28da5c6d5a7bcc4bcfe2db11f0` — client input includes the public interface.
+- `02ef0e9f9ff90650f83a75b34eebc5921bcfabfa` — cgame snapshot includes the public interface.
+- `0997bf9e17a43893e41d060be5e071581f665cc9` — regression guard for the public API contract.
+
+The latest native ARM64 run also executed the new header regression as part of its 206-test suite and passed both CTest configurations. The original Windows SP executable build then passed in [40756784310](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40756784310). The Killhouse smoke reached the real level loop and actor AI, but its evidence explicitly shows no weapon-fire callback, bullet dispatch, damage, pain, or death. That is the next gameplay test blocker—not a reason to infer combat success from an equipped weapon.
+
+The next Android runtime blockers remain the original script services (`Scr_RunCurrentThreads`, `Scr_IncTime`), `ClientEndFrame`, actor corpse/event services, and `Path_RunBadPlaces`, followed by real filesystem startup, map loading, original renderer integration, and physical ARM64 gameplay evidence.
