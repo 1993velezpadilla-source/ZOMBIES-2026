@@ -6,7 +6,10 @@
 #include <game_mp/g_main_mp.h>
 #include <client_mp/client_mp.h>
 #elif KISAK_SP
-#include <server/server.h>
+// Game-side client state must not pull the renderer/server implementation into
+// the SP game module. Keep the actual shared records in a narrow header.
+#include <game/g_client.h>
+#include <qcommon/ent.h>
 #include <bgame/bg_local.h>
 #endif
 
