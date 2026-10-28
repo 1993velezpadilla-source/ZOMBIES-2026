@@ -33,9 +33,6 @@ FUNCTIONS = (
     ("void* Z_Malloc(int32_t size, const char* name, int32_t type)", Path("src/universal/com_memory.cpp")),
     ("void __cdecl Z_Free(void *ptr, int32_t type)", Path("src/universal/com_memory.cpp")),
     ("int __cdecl Com_BlockChecksumKey32(const uint8_t *data, uint32_t length, uint32_t initialCrc)", Path("src/qcommon/com_bsp_load_obj.cpp")),
-    ("int __cdecl FS_PathCmp(const char *s1, const char *s2)", FILES),
-    ("int __cdecl iwdsort(const char **a, char **b)", FILES),
-    ("int __cdecl I_strncmp(const char *s0, const char *s1, int n)", Path("src/universal/q_shared.cpp")),
 )
 HEADER = (
     '#include <universal/q_shared.h>\n'
@@ -45,7 +42,6 @@ HEADER = (
     '#include <cstdlib>\n'
     '#include <cstring>\n'
     '#include <cstdint>\n'
-    'char *__cdecl IwdFileLanguage(const char *pszIwdFileName);\n'
     '#undef iassert\n'
     '#define iassert(expr) assert(expr)\n'
 )
@@ -60,10 +56,6 @@ REQUIRED = (
     "return ~crc;",
     "void __cdecl Com_Memset(void *dest_p, const int val, const size_t count)",
     "_copyDWord(dest, val |",
-    "int __cdecl FS_PathCmp(const char *s1, const char *s2)",
-    "int __cdecl iwdsort(const char **a, char **b)",
-    'I_strncmp(*a, "          ", 10)',
-    "return FS_PathCmp(aa, bb);",
 )
 FORBIDDEN = ("MyAssertHandler", "Com_BlockChecksumKey32(const unsigned char *data, int length, int key)")
 
@@ -115,8 +107,6 @@ def prepare(engine: Path, output: Path) -> dict:
         "original_allocator_and_free_staged": True,
         "original_checksum_algorithm_staged": True,
         "original_string_helpers_staged": True,
-        "original_iwd_sort_helpers_staged_verbatim": True,
-        "original_iwd_language_provider_expected_from_iwd_names_archive": True,
         "iwd_state_globals_from_shared_engine_source": True,
         "assertion_adapter": "standard assert for isolated original string helpers",
         "source_staged_for_android_diagnostic_link": True,
