@@ -70,6 +70,8 @@ class OriginalIwdHashPortabilityTests(unittest.TestCase):
             self.assertTrue(report["original_iwdsort_body_staged"])
             self.assertTrue(report["original_I_strncmp_body_staged"])
             self.assertTrue(report["iwd_startup_sort_dependencies_closed"])
+            compat = (ROOT / "android/iw3-native/iw3_android_iwd_names_compat.h").read_text(encoding="utf-8")
+            self.assertIn("int __cdecl I_stricmp(const char *s0, const char *s1);", compat)
             self.assertTrue(report["iwd_filename_hash_high_bit_safe"])
             self.assertTrue(report["iwd_language_sort_key_high_bit_safe"])
             self.assertTrue(report["iwd_language_sort_state_staged_from_original"])
