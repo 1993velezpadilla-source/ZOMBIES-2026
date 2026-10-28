@@ -26,6 +26,9 @@ class TouchSurfaceAccessibilityTests(unittest.TestCase):
     def test_probe_recovers_only_a_launcher_anr_using_real_wait_button_bounds(self):
         source = PROBE.read_text(encoding="utf-8")
         self.assertIn("max_ui_attempts=5", source)
+        self.assertIn("ensure_app_ready()", source)
+        self.assertIn("ANDROID_SYSTEM_UI_RECOVERY_BEFORE_GESTURE", source)
+        self.assertIn('input touchscreen swipe "$sprint_x" "$sprint_y" "$sprint_x" "$sprint_y" 600', source)
         self.assertIn("Quickstep isn't responding", source)
         self.assertIn("android:id/aerr_wait", source)
         self.assertIn('adb shell input tap "$ui_x" "$ui_y"', source)
