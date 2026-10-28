@@ -59,6 +59,8 @@ class OriginalHunkUserTests(unittest.TestCase):
         self.assertIn("mprotect(", adapter)
         self.assertIn("madvise(", adapter)
         self.assertIn("munmap(", adapter)
+        self.assertIn("IsRangeReservedLocked", adapter)
+        self.assertIn('VirtualMemoryFatal("Z_VirtualFree null pointer", EINVAL)', adapter)
         self.assertNotIn("VirtualAlloc(", adapter)
         self.assertNotIn("VirtualFreeInternal(", adapter)
         self.assertIn("add_library(iw3_sp_hunk_user STATIC", cmake)
