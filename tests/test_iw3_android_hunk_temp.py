@@ -53,7 +53,8 @@ class OriginalHunkTempAllocatorTests(unittest.TestCase):
         self.assertIn("IW3_ORIGINAL_FS_STARTUP_IWD_DIRECTORY_READFILE_HUNK_AARCH64_LINK_GREEN", workflow)
         self.assertIn('echo "IW3_FS_STARTUP_RUNTIME_INVOKED=false"', workflow)
         self.assertIn('echo "IW3_PLAYABLE_APK=false"', workflow)
-        self.assertIn("for symbol in SEH_InitLanguage; do", workflow)
+        self.assertIn("for symbol in SEH_InitLanguage SEH_UpdateCurrentLanguage; do", workflow)
+        self.assertIn("IW3_ORIGINAL_FS_STARTUP_LANGUAGE_INIT_AARCH64_LINK_GREEN", workflow)
 
 if __name__ == "__main__":
     unittest.main()
