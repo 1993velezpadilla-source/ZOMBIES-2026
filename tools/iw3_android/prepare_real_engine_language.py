@@ -20,6 +20,7 @@ except ModuleNotFoundError:
 
 SOURCE = Path("src/stringed/stringed_hooks.cpp")
 FUNCTIONS = (
+    "int __cdecl SEH_GetCurrentLanguage()",
     "void __cdecl SEH_InitLanguage()",
     "const dvar_s *SEH_UpdateCurrentLanguage()",
     "const char *__cdecl SEH_GetLanguageName(uint32_t iLanguage)",
@@ -54,6 +55,7 @@ REQUIRED = (
     'Dvar_RegisterBool("loc_warnings"',
     'Dvar_RegisterBool("loc_warningsAsErrors"',
     "SEH_UpdateCurrentLanguage();",
+    "return loc_language->current.integer;",
     "g_currentAsian = integer >= 8 && integer <= 12;",
     "return g_languages[iLanguage].pszName;",
     "if (!I_stricmp(pszLanguageName, g_languages[i].pszName))",
@@ -122,6 +124,7 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
             for signature, body in zip(FUNCTIONS, bodies)
         },
         "original_language_table_preserved_verbatim": True,
+        "original_SEH_GetCurrentLanguage_body_preserved_verbatim": True,
         "original_SEH_InitLanguage_body_preserved_verbatim": True,
         "original_SEH_UpdateCurrentLanguage_body_preserved_verbatim": True,
         "original_language_name_and_index_helpers_preserved_verbatim": True,
