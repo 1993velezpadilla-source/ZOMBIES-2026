@@ -22,11 +22,13 @@ void z2026_iw3_lookup_file_close_binary(FILE *stream) {
     if (stream) std::fclose(stream);
 }
 
-// The authentic lookup path only consults this when a localized searchpath is
-// selected. This diagnostic registers nonlocalized English fixtures only.
+// The diagnostic APK registers nonlocalized English fixtures only. The
+// combined engine audit must bind the original StringEd language provider.
+#if !defined(IW3_IWD_DIRECTORY_LINK_AUDIT)
 int __cdecl SEH_GetCurrentLanguage() {
     return 0;
 }
+#endif
 
 // Error-only adapters for original diagnostics/path-overflow handling. They
 // fail closed; they do not provide gameplay or suppress an engine fatal error.
