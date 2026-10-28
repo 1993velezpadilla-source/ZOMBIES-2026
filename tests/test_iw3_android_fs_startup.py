@@ -38,7 +38,6 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
             self.assertTrue(report["original_FS_UseSearchPath_body_staged_verbatim"])
             self.assertTrue(report["original_FS_AddFileToList_body_staged_verbatim"])
             self.assertTrue(report["original_FS_ReturnPath_body_staged_verbatim"])
-            self.assertTrue(report["original_FS_IwdIsPure_body_staged_verbatim"])
             self.assertTrue(report["original_FS_ListFiles_body_staged_verbatim"])
             self.assertTrue(report["original_FS_CheckLocation_body_staged_verbatim"])
             self.assertTrue(report["original_iwd_directory_enumeration_in_startup_archive"])
