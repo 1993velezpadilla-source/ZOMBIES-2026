@@ -1217,3 +1217,27 @@ The native ARM64 workflow now includes the parser archive in the relocatable fil
 During this pass, the first native attempt caught a Windows-only thread-header include, then the host link caught the fatal `Com_ScriptErrorDrop` path referenced by the original unget routine. The include was replaced with ABI declarations; the host harness now aborts if the exceptional double-unget error path is reached. A subsequent ARM64 audit initially inspected the startup archive's symbol list instead of the combined object's list; that audit was corrected to capture and inspect the combined definitions, and the latest run passed. These intermediate failures are preserved in Actions history.
 
 **Scope boundary:** the parser functions now compile for ARM64 and execute in the host regression, and their definitions participate in the relocatable startup audit. This still does **not** invoke `FS_Startup()` or `FS_InitFilesystem()` in Android. Original `Com_Error` / fatal parser reporting and thread-selection services, command argument state (`Cmd_Argc` / `Cmd_Argv`), the full Dvar and filesystem service graph, actual IWD mounting, licensed FastFiles/map loading, renderer, live touch-to-frame integration, and gameplay remain incomplete. The CI report continues to state `IW3_PLAYABLE_APK=false`; no playable APK exists. Keep PR #4 open and unmerged.
+
+
+### Phase CB — guard the original FS_Startup against an empty home path (28 Oct 2026)
+
+A focused runtime test exposed a portability hazard in the authentic `FS_Startup()` body: when `fs_homepath` is explicitly empty but `fs_basepath` is set, the original path-registration branch added `gameName` a second time with an empty OS root. On Android, the rooted POSIX adapter must reject that relative/empty search path; registering it also creates an invalid searchpath node that can shadow or alias unrelated paths.
+
+The original `third_party/KisakCOD/src/universal/com_files.cpp` now keeps the normal `<basepath>/<gameName>_shared` registration, but only registers the corresponding homepath `gameName` directory when `fs_homepath->current.string[0] != '\\0'`. This is a narrow guard in the real engine function, not a substitute filesystem implementation.
+
+The source-staging generator `tools/iw3_android/prepare_real_engine_fs_startup.py` now requires that guard and records `empty_homepath_search_registration_skipped=true`. The host harness `fs_localized_path_native_test.cpp` now executes the extracted original `FS_RegisterDvars()` and `FS_Startup()` bodies with only Dvar/platform services supplied by the harness, forces an empty `fs_homepath`, and asserts:
+- the original basepath remains `/private/iw3`;
+- all 14 registered searchpath nodes have a non-empty base path;
+- the expected seven basepath directory probes and fourteen IWD scan calls occur;
+- original command/CD-key registration side effects are reached exactly once.
+
+The Python regression verifies that the source guard, extraction requirement, and executable host scenario remain aligned.
+
+**Verified on code commit `b49d75f35d75ebd9c6dfafcf8f650419d0acb27a`:**
+- Source preflight [run 40688699733](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40688699733): PASS.
+- Native ARM64/source audit [run 40688699751](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40688699751): PASS; CTest Release **21/21**, CTest with ASan/UBSan **21/21**; original filesystem startup, IWD, Hunk, StringEd and frame compile/link gates passed. Artifact [12816331756](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40688699751/artifacts/12816331756) contains native modules/reports, **not an APK**.
+- JNI ARM64 diagnostic build [run 40688699908](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40688699908): PASS for compile/package/signature. Artifact [12816182436](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40688699908/artifacts/12816182436) is **diagnostic only, not the game**.
+- Android emulator runtime probe [run 40688699875](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40688699875): PASS on an Android x86_64 emulator. Log evidence records original ZIP/IWD fixture execution, original file read paths, touch DOWN/UP and sprint/slide input reaching the `usercmd_s` adapter, and lifecycle pause/resume. Artifact [12816725114](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40688699875/artifacts/12816725114) is a log/evidence archive, **not a game**.
+- The emulator evidence explicitly keeps `original_upstream_fsh_table_integrated=false`, `arm64_device_execution_proven=false`, and `gameplay_proven=false`.
+
+**Scope boundary:** this proves the original `FS_Startup()` path-registration body executes in a host regression with narrow service harnesses, and that the corrected source compiles in the existing ARM64 audit. It does not invoke the complete `FS_InitFilesystem()` chain in the Android Activity, link the full filesystem/Dvar/runtime service graph, mount licensed FastFiles, load a real map, render a 3D scene, or run weapons/actors on a physical ARM64 device. The Android JNI artifact remains diagnostic; `IW3_PLAYABLE_APK=false`. PR #4 stays open and unmerged.
