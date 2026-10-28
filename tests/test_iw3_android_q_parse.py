@@ -56,6 +56,7 @@ class OriginalQParseExtractionTests(unittest.TestCase):
         self.assertIn("ParseThreadInfo g_parse[4];", generated)
         self.assertIn('const char *punctuation[15]', generated)
         self.assertIn("Com_ParseOnLine", generated)
+        self.assertIn("Com_SkipRestOfLine", generated)
 
     def test_generator_rejects_missing_original_source(self):
         with TemporaryDirectory() as temp:
@@ -74,6 +75,7 @@ class OriginalQParseExtractionTests(unittest.TestCase):
             "Com_GetCurrentParseLine()",
             "Com_SetCSV(1)",
             "Com_EndParseSession()",
+            "Com_SkipRestOfLine(&skipLine)",
         ):
             self.assertIn(symbol, test_source)
         self.assertIn("IW3_ORIGINAL_Q_PARSE_HOST_RUNTIME_PASS", test_source)
@@ -99,6 +101,8 @@ class OriginalQParseExtractionTests(unittest.TestCase):
         self.assertIn('-DIW3_EXTRACTED_Q_PARSE="$RUNNER_TEMP/iw3-source/iw3_q_parse.cpp"', workflow)
         self.assertIn('libiw3_sp_q_parse.a', workflow)
         self.assertIn("IW3_ORIGINAL_Q_PARSE_AARCH64_LINK_GREEN", workflow)
+        self.assertIn("Com_SkipRestOfLine", workflow)
+        self.assertIn("IW3_ORIGINAL_Q_PARSE_SKIP_LINE_AARCH64_LINK_GREEN", workflow)
         self.assertIn("IW3_FS_STARTUP_RUNTIME_INVOKED=false", workflow)
         self.assertIn("IW3_PLAYABLE_APK=false", workflow)
         self.assertNotIn("iw3_sp_q_parse", jni)
