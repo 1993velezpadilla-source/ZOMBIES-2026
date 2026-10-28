@@ -119,7 +119,7 @@ target_compile_options(iw3_sp_iwd_mount PRIVATE
 if(NOT IW3_EXTRACTED_IWD_SERVICES OR NOT EXISTS "${IW3_EXTRACTED_IWD_SERVICES}")
     message(FATAL_ERROR "Original IWD language/sort/allocator service extraction required")
 endif()
-add_library(iw3_sp_iwd_services STATIC "${IW3_EXTRACTED_IWD_SERVICES}")
+add_library(iw3_sp_iwd_services STATIC "${IW3_EXTRACTED_IWD_SERVICES}" "${IW3_EXTRACTED_IWD_NAMES}")
 target_include_directories(iw3_sp_iwd_services PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}"
     "${IW3_REAL_HEADER_ROOT}"
