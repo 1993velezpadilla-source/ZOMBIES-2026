@@ -477,7 +477,7 @@ jobs:
             | tee "$RUNNER_TEMP/iw3-fs-dvar-iwd-undefined.txt"
           # The authentic directory, ZIP, file-handle, FS_ReadFile, Hunk,
           # language, StringEd, HunkUser and filtered-list bodies must resolve.
-          for symbol in IwdFileLanguage FS_PathCmp iwdsort I_strncmp Z_Malloc FS_LoadZipFile unzOpen unzGetGlobalInfo unzReadCurrentFile unzClose FS_FileOpenReadBinary FS_FileClose FS_FileRead FS_FileSeek FS_FileGetFileSize FS_AddSearchPath FS_AddIwdFilesForGameDirectory FS_AddGameDirectory Sys_ListFiles FS_FreeFileList FS_SanitizeFilename FS_UseSearchPath FS_AddFileToList FS_ReturnPath FS_IwdIsPure FS_ListFiles FS_CheckLocation FS_ListFilteredFiles FS_ListFilteredFilesInLocation SEH_GetCurrentLanguage SEH_GetLanguageName SEH_GetLanguageIndexForName FS_ReadFile FS_FOpenFileRead FS_CheckFileSystemStarted FS_AllocMem FS_FreeFile FS_FreeMem FS_LoadStack FS_ResetFiles FS_Read FS_FCloseFile FS_FOpenFileReadForThread Hunk_AllocateTempMemory Hunk_FreeTempMemory Hunk_UserCreate Hunk_UserAlloc Hunk_UserAllocAlignStrict Hunk_UserSetPos Hunk_UserReset Hunk_UserDestroy Hunk_CopyString Z_VirtualReserve Z_VirtualCommit Z_VirtualDecommit Z_VirtualFree SEH_InitLanguage SEH_UpdateCurrentLanguage FS_LanguageHasAssets SEH_StringEd_SetLanguageStrings SEH_UpdateLanguageInfo SEH_Init_StringEd SEH_Shutdown_StringEd SE_Init SE_ShutDown SE_LoadLanguage SE_Load SE_LoadFileData SE_FreeFileDataAfterLoad SE_BuildFileList SE_R_ListFiles; do
+          for symbol in IwdFileLanguage FS_PathCmp iwdsort I_strncmp Z_Malloc FS_LoadZipFile unzOpen unzGetGlobalInfo unzReadCurrentFile unzClose FS_FileOpenReadBinary FS_FileClose FS_FileRead FS_FileSeek FS_FileGetFileSize FS_AddSearchPath FS_AddIwdFilesForGameDirectory FS_AddGameDirectory Sys_ListFiles FS_FreeFileList FS_SanitizeFilename FS_UseSearchPath FS_AddFileToList FS_ReturnPath FS_IwdIsPure FS_ListFiles FS_CheckLocation FS_ListFilteredFiles FS_ListFilteredFilesInLocation SEH_GetCurrentLanguage SEH_GetLanguageName SEH_GetLanguageIndexForName FS_ReadFile FS_FOpenFileRead FS_CheckFileSystemStarted FS_AllocMem FS_FreeFile FS_FreeMem FS_LoadStack FS_ResetFiles FS_Read FS_FCloseFile FS_FOpenFileReadForThread Hunk_ClearToMarkLow Hunk_AllocAlign Hunk_AllocateTempMemoryHigh Hunk_ClearTempMemoryHigh Hunk_AllocLowAlign Hunk_ClearTempMemory Hunk_AllocateTempMemory Hunk_FreeTempMemory Hunk_UserCreate Hunk_UserAlloc Hunk_UserAllocAlignStrict Hunk_UserSetPos Hunk_UserReset Hunk_UserDestroy Hunk_CopyString Z_VirtualReserve Z_VirtualCommit Z_VirtualDecommit Z_VirtualFree SEH_InitLanguage SEH_UpdateCurrentLanguage FS_LanguageHasAssets SEH_StringEd_SetLanguageStrings SEH_UpdateLanguageInfo SEH_Init_StringEd SEH_Shutdown_StringEd SE_Init SE_ShutDown SE_LoadLanguage SE_Load SE_LoadFileData SE_FreeFileDataAfterLoad SE_BuildFileList SE_R_ListFiles; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-iwd-defined.txt"
             if grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-iwd-undefined.txt"; then
               echo "Original FS/IWD dependency failed to resolve: $symbol" >&2
@@ -486,12 +486,13 @@ jobs:
           done
           # The Hunk allocator is now supplied by the corrected original source.
           # Language initialization remains the next explicit engine dependency.
-          for symbol in Hunk_AllocateTempMemory Hunk_FreeTempMemory; do
+          for symbol in Hunk_ClearToMarkLow Hunk_AllocAlign Hunk_AllocateTempMemoryHigh Hunk_ClearTempMemoryHigh Hunk_AllocLowAlign Hunk_ClearTempMemory Hunk_AllocateTempMemory Hunk_FreeTempMemory; do
             if grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-iwd-undefined.txt"; then
               echo "Original Hunk allocator dependency failed to resolve: $symbol" >&2
               exit 1
             fi
           done
+          echo "IW3_ORIGINAL_HUNK_CORE_ALLOCATORS_LP64_AARCH64_LINK_GREEN"
           for symbol in SEH_InitLanguage SEH_UpdateCurrentLanguage; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-iwd-defined.txt"
             if grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-iwd-undefined.txt"; then
