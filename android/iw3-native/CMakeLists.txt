@@ -260,6 +260,19 @@ if(IW3_EXTRACTED_LANGUAGE)
     endif()
 endif()
 
+# The vendored q_shared.h declares the engine wildcard service, but the
+# source slice has no provider. This portable id Tech 3-compatible provider is
+# linked only as an engine service; it is not a filesystem or gameplay stand-in.
+add_library(iw3_sp_filter STATIC "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_filter.cpp")
+target_include_directories(iw3_sp_filter PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${IW3_ENGINE_SOURCE_ROOT}/universal"
+    "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+    "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+target_compile_definitions(iw3_sp_filter PRIVATE KISAK_SP=1)
+target_compile_options(iw3_sp_filter PRIVATE
+    -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
+
 # Compile the complete original location-filter function with native-width
 # searchpath_s size/alignment. Its real Hunk/list services remain unresolved in
 # this audit archive; it is intentionally not linked into the JNI diagnostic.
@@ -468,6 +481,18 @@ if(ANDROID)
     message(STATUS "IW3 original code native Android JNI enabled")
 else()
     enable_testing()
+
+    add_executable(iw3_filter_host_test
+        "${CMAKE_CURRENT_SOURCE_DIR}/filter_native_test.cpp")
+    target_include_directories(iw3_filter_host_test PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+        "${IW3_ENGINE_SOURCE_ROOT}/universal"
+        "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+        "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+    target_compile_definitions(iw3_filter_host_test PRIVATE KISAK_SP=1)
+    target_compile_options(iw3_filter_host_test PRIVATE -UNDEBUG -Wall -Wextra)
+    target_link_libraries(iw3_filter_host_test PRIVATE iw3_sp_filter)
+    add_test(NAME iw3_original_filter_path_semantics COMMAND iw3_filter_host_test)
     add_executable(iw3_dvar_sleep_host_test
         "${CMAKE_CURRENT_SOURCE_DIR}/dvar_sleep_native_test.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_dvar_io.cpp")
