@@ -382,7 +382,7 @@ jobs:
             echo "Android rooted Sys_DirectoryHasContents adapter failed to resolve FS startup" >&2
             exit 1
           fi
-          for symbol in Com_InitParse Com_InitParseInfo Com_BeginParseSession Com_GetParseThreadInfo Com_EndParseSession Com_SetCSV Com_GetCurrentParseLine Com_Parse Com_ParseExt Com_ParseCSV Com_ParseOnLine; do
+          for symbol in Com_InitParse Com_InitParseInfo Com_BeginParseSession Com_GetParseThreadInfo Com_EndParseSession Com_SetCSV Com_GetCurrentParseLine Com_Parse Com_ParseExt Com_ParseCSV Com_ParseOnLine Com_SkipRestOfLine; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-startup-combined-defined.txt"
             if grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-startup-undefined.txt"; then
               echo "Original q_parse service failed to resolve: $symbol" >&2
@@ -390,6 +390,7 @@ jobs:
             fi
           done
           echo "IW3_ORIGINAL_Q_PARSE_AARCH64_LINK_GREEN"
+          echo "IW3_ORIGINAL_Q_PARSE_SKIP_LINE_AARCH64_LINK_GREEN"
           echo "IW3_ORIGINAL_FS_STARTUP_AARCH64_RELOCATABLE_LINK_AUDIT_GREEN"
 
           # Verify the corrected original dvar pointer/string/enum functions
@@ -535,7 +536,7 @@ jobs:
             | tee "$RUNNER_TEMP/iw3-fs-dvar-iwd-undefined.txt"
           # The authentic directory, ZIP, file-handle, FS_ReadFile, Hunk,
           # language, StringEd, HunkUser and filtered-list bodies must resolve.
-          for symbol in Cmd_Argc Cmd_Argv IwdFileLanguage FS_PathCmp iwdsort I_strncmp Z_Malloc FS_LoadZipFile unzOpen unzGetGlobalInfo unzReadCurrentFile unzClose FS_FileOpenReadBinary FS_FileClose FS_FileRead FS_FileSeek FS_FileGetFileSize FS_AddSearchPath FS_AddIwdFilesForGameDirectory FS_AddGameDirectory Sys_ListFiles FS_FreeFileList FS_SanitizeFilename FS_UseSearchPath FS_AddFileToList FS_ReturnPath FS_IwdIsPure FS_ListFiles FS_CheckLocation FS_ListFilteredFiles FS_ListFilteredFilesInLocation SEH_GetCurrentLanguage SEH_GetLanguageName SEH_GetLanguageIndexForName FS_ReadFile FS_FOpenFileRead FS_CheckFileSystemStarted FS_AllocMem FS_FreeFile FS_FreeMem FS_LoadStack FS_ResetFiles FS_Read FS_FCloseFile FS_FOpenFileReadForThread Hunk_ClearToMarkLow Hunk_AllocAlign Hunk_AllocateTempMemoryHigh Hunk_ClearTempMemoryHigh Hunk_AllocLowAlign Hunk_ClearTempMemory Hunk_AllocateTempMemory Hunk_FreeTempMemory Hunk_UserCreate Hunk_UserAlloc Hunk_UserAllocAlignStrict Hunk_UserSetPos Hunk_UserReset Hunk_UserDestroy Hunk_CopyString Z_VirtualReserve Z_VirtualCommit Z_VirtualDecommit Z_VirtualFree SEH_InitLanguage SEH_UpdateCurrentLanguage FS_LanguageHasAssets SEH_StringEd_SetLanguageStrings SEH_UpdateLanguageInfo SEH_Init_StringEd SEH_Shutdown_StringEd SE_Init SE_ShutDown SE_LoadLanguage SE_Load SE_LoadFileData SE_FreeFileDataAfterLoad SE_BuildFileList SE_R_ListFiles Com_InitParse Com_InitParseInfo Com_BeginParseSession Com_GetParseThreadInfo Com_EndParseSession Com_SetCSV Com_GetCurrentParseLine Com_Parse Com_ParseExt Com_ParseCSV Com_ParseOnLine; do
+          for symbol in Cmd_Argc Cmd_Argv IwdFileLanguage FS_PathCmp iwdsort I_strncmp Z_Malloc FS_LoadZipFile unzOpen unzGetGlobalInfo unzReadCurrentFile unzClose FS_FileOpenReadBinary FS_FileClose FS_FileRead FS_FileSeek FS_FileGetFileSize FS_AddSearchPath FS_AddIwdFilesForGameDirectory FS_AddGameDirectory Sys_ListFiles FS_FreeFileList FS_SanitizeFilename FS_UseSearchPath FS_AddFileToList FS_ReturnPath FS_IwdIsPure FS_ListFiles FS_CheckLocation FS_ListFilteredFiles FS_ListFilteredFilesInLocation SEH_GetCurrentLanguage SEH_GetLanguageName SEH_GetLanguageIndexForName FS_ReadFile FS_FOpenFileRead FS_CheckFileSystemStarted FS_AllocMem FS_FreeFile FS_FreeMem FS_LoadStack FS_ResetFiles FS_Read FS_FCloseFile FS_FOpenFileReadForThread Hunk_ClearToMarkLow Hunk_AllocAlign Hunk_AllocateTempMemoryHigh Hunk_ClearTempMemoryHigh Hunk_AllocLowAlign Hunk_ClearTempMemory Hunk_AllocateTempMemory Hunk_FreeTempMemory Hunk_UserCreate Hunk_UserAlloc Hunk_UserAllocAlignStrict Hunk_UserSetPos Hunk_UserReset Hunk_UserDestroy Hunk_CopyString Z_VirtualReserve Z_VirtualCommit Z_VirtualDecommit Z_VirtualFree SEH_InitLanguage SEH_UpdateCurrentLanguage FS_LanguageHasAssets SEH_StringEd_SetLanguageStrings SEH_UpdateLanguageInfo SEH_Init_StringEd SEH_Shutdown_StringEd SE_Init SE_ShutDown SE_LoadLanguage SE_Load SE_LoadFileData SE_FreeFileDataAfterLoad SE_BuildFileList SE_R_ListFiles Com_InitParse Com_InitParseInfo Com_BeginParseSession Com_GetParseThreadInfo Com_EndParseSession Com_SetCSV Com_GetCurrentParseLine Com_Parse Com_ParseExt Com_ParseCSV Com_ParseOnLine Com_SkipRestOfLine; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-iwd-defined.txt"
             if grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-iwd-undefined.txt"; then
               echo "Original FS/IWD dependency failed to resolve: $symbol" >&2
