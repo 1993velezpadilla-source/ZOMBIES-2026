@@ -46,6 +46,9 @@ HEADER = (
     '#include <string>\n'
     '#include <cstring>\n'
     '#include <cstdio>\n'
+    '#ifndef ARRAYSIZE\n'
+    '#define ARRAYSIZE(a) (sizeof(a) / sizeof((a)[0]))\n'
+    '#endif\n'
 )
 REQUIRED = (
     "TheStringPackage->SetupNewFileParse(psFileName);",
