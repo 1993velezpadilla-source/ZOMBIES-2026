@@ -210,6 +210,38 @@ if(IW3_EXTRACTED_LANGUAGE)
         -ffunction-sections -fdata-sections -Wall -Wextra
         -fsigned-char -frounding-math -fno-fast-math)
 
+    if(IW3_EXTRACTED_HUNK_USER)
+        add_library(iw3_sp_hunk_user STATIC
+            "${IW3_EXTRACTED_HUNK_USER}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_hunk_virtual.cpp")
+        target_include_directories(iw3_sp_hunk_user PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}"
+            "${IW3_REAL_HEADER_ROOT}"
+            "${IW3_ENGINE_SOURCE_ROOT}"
+            "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+            "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+        target_compile_definitions(iw3_sp_hunk_user PRIVATE KISAK_SP=1)
+        target_compile_options(iw3_sp_hunk_user PRIVATE
+            -ffunction-sections -fdata-sections -Wall -Wextra
+            -fsigned-char -frounding-math -fno-fast-math)
+
+        if(NOT ANDROID)
+            add_executable(iw3_hunk_user_native_test
+                "${CMAKE_CURRENT_SOURCE_DIR}/tests/hunk_user_native_test.cpp")
+            target_include_directories(iw3_hunk_user_native_test PRIVATE
+                "${CMAKE_CURRENT_SOURCE_DIR}"
+                "${IW3_REAL_HEADER_ROOT}"
+                "${IW3_ENGINE_SOURCE_ROOT}"
+                "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+                "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+            target_link_libraries(iw3_hunk_user_native_test PRIVATE iw3_sp_hunk_user)
+            target_compile_options(iw3_hunk_user_native_test PRIVATE
+                -UNDEBUG -ffunction-sections -fdata-sections -Wall -Wextra)
+            target_link_options(iw3_hunk_user_native_test PRIVATE -Wl,--gc-sections)
+            add_test(NAME iw3_hunk_user_native_test COMMAND iw3_hunk_user_native_test)
+        endif()
+    endif()
+
     if(NOT ANDROID)
         add_executable(iw3_language_native_test
             "${CMAKE_CURRENT_SOURCE_DIR}/language_native_test.cpp"
