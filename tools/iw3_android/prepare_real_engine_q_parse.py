@@ -36,6 +36,7 @@ FUNCTIONS = (
     "const char *__cdecl SkipWhitespace(const char *data, int *hasNewLines)",
     "parseInfo_t *__cdecl Com_ParseCSV(const char **data_p, int allowLineBreaks)",
     "parseInfo_t *__cdecl Com_ParseOnLine(const char **data_p)",
+    "void __cdecl Com_SkipRestOfLine(const char **data)",
 )
 PUNCTUATION_MARKER = "const char *punctuation[15]"
 
@@ -95,6 +96,8 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
         "punctuation_table_sha256": hashlib.sha256(punctuation.encode("utf-8")).hexdigest(),
         "generated_sha256": hashlib.sha256(generated.encode("utf-8")).hexdigest(),
         "original_parser_bodies_preserved": True,
+        "original_Com_SkipRestOfLine_body_preserved": True,
+        "skip_rest_of_line_dependency_staged_for_startup_audit": True,
         "original_parse_thread_state_preserved": True,
         "original_punctuation_table_preserved": True,
         "command_thread_error_services_are_stubs": False,
