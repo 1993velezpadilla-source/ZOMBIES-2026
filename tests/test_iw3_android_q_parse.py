@@ -92,6 +92,8 @@ class OriginalQParseExtractionTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
 
         self.assertIn("add_library(iw3_sp_q_parse STATIC", cmake)
+        self.assertIn("if(IW3_EXTRACTED_Q_PARSE)", cmake)
+        self.assertNotIn("if(NOT IW3_EXTRACTED_Q_PARSE OR NOT EXISTS", cmake)
         self.assertIn("add_test(NAME iw3_original_q_parse_host_runtime", cmake)
         self.assertIn("prepare_real_engine_q_parse.py", workflow)
         self.assertIn('-DIW3_EXTRACTED_Q_PARSE="$RUNNER_TEMP/iw3-source/iw3_q_parse.cpp"', workflow)
