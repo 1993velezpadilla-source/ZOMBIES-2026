@@ -141,7 +141,8 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
         self.assertIn("const char **__cdecl FS_ListFilteredFiles(", compat)
         self.assertIn("searchpath_s *searchPath, const char *path, const char *extension,", compat)
         self.assertIn("for symbol in MyAssertHandler I_strnicmp; do", workflow)
-        self.assertIn('grep -F "Com_FilterPath" "$RUNNER_TEMP/iw3-fs-dvar-iwd-undefined.txt"', workflow)
+        self.assertIn("for symbol in 'Com_Filter(' 'Com_FilterPath('; do", workflow)
+        self.assertIn("IW3_ORIGINAL_FILTER_PATH_PROVIDER_AARCH64_LINK_GREEN", workflow)
         self.assertNotIn('grep -F "FS_BuildOSPath" "$RUNNER_TEMP/iw3-fs-startup-undefined.txt"', workflow)
 
     def test_combined_audit_keeps_single_original_providers(self):
@@ -155,7 +156,8 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
         self.assertIn("int __cdecl SEH_GetCurrentLanguage()", lookup_io)
         self.assertIn("Hunk_UserCreate Hunk_UserAlloc Hunk_UserAllocAlignStrict Hunk_UserSetPos Hunk_UserReset Hunk_UserDestroy Hunk_CopyString Z_VirtualReserve Z_VirtualCommit Z_VirtualDecommit Z_VirtualFree", workflow)
         self.assertIn("for symbol in MyAssertHandler I_strnicmp; do", workflow)
-        self.assertIn('grep -F "Com_FilterPath" "$RUNNER_TEMP/iw3-fs-dvar-iwd-undefined.txt"', workflow)
+        self.assertIn("for symbol in 'Com_Filter(' 'Com_FilterPath('; do", workflow)
+        self.assertIn("IW3_ORIGINAL_FILTER_PATH_PROVIDER_AARCH64_LINK_GREEN", workflow)
         self.assertIn('grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-iwd-defined.txt"', workflow)
 
     def test_full_original_dvar_registry_resolves_fs_startup_registration_edges(self):
