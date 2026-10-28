@@ -130,11 +130,10 @@ if(IW3_EXTRACTED_Q_PARSE)
     endif()
 endif()
 
-# Compile only the original command argument accessors from cmd.cpp for the
-# filesystem-startup dependency audit. The command-state object remains owned
-# by the full original cmd.cpp translation unit and intentionally stays visible
-# as an unresolved dependency in the relocatable audit; this archive is not
-# linked into the JNI diagnostic APK.
+# Compile the original cmd_args storage declaration and Cmd_Argc/Cmd_Argv
+# accessors extracted from cmd.cpp for the filesystem-startup dependency audit.
+# The tokenizer/dispatcher is still absent; this archive is not linked into the
+# JNI diagnostic APK and is not a complete command runtime.
 if(IW3_EXTRACTED_CMD_ARGS)
     if(NOT EXISTS "${IW3_EXTRACTED_CMD_ARGS}")
         message(FATAL_ERROR "Configured original Cmd_Argc/Cmd_Argv extraction path does not exist")
