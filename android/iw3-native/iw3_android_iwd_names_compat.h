@@ -1,6 +1,6 @@
 #pragma once
-// Platform header only. All four functions are verbatim KisakCOD C++,
-// including the real q_shared.cpp I_islower helper. No fake archive index.
+// Platform header only. Original KisakCOD filename, language and IWD sort
+// functions plus their q_shared.cpp helpers. No fake archive index.
 #include <ctype.h>
 #include <stdint.h>
 #include <string.h>
@@ -9,3 +9,7 @@
 #endif
 
 char *__cdecl IwdFileLanguage(const char *pszIwdFileName);
+
+int __cdecl FS_PathCmp(const char *s1, const char *s2);
+int __cdecl iwdsort(const char **a, char **b);
+int __cdecl I_strncmp(const char *s0, const char *s1, int n);
