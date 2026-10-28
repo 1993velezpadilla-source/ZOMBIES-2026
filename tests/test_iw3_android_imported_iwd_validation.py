@@ -12,8 +12,19 @@ EMULATOR = ROOT / "tools/iw3_android/run_emulator_probe.sh"
 
 
 def function_body(source: str, signature: str) -> str:
+    # Some C++ functions have a forward declaration before the definition.
+    # Skip declarations whose semicolon appears before the next opening brace.
     start = source.index(signature)
-    opening = source.index("{", start)
+    while True:
+        opening = source.find("{", start)
+        semicolon = source.find(";", start)
+        if opening < 0:
+            raise AssertionError(f"function body not found: {signature}")
+        if semicolon < 0 or opening < semicolon:
+            break
+        start = source.find(signature, start + len(signature))
+        if start < 0:
+            raise AssertionError(f"function definition not found: {signature}")
     depth = 0
     for index in range(opening, len(source)):
         if source[index] == "{":
