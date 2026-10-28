@@ -1,12 +1,16 @@
 package org.z2026.iw3nativeprobe;
 
 import android.app.Activity;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.graphics.Color;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -19,6 +23,7 @@ import java.nio.charset.StandardCharsets;
 public final class MainActivity extends Activity {
     private static final String TAG = "IW3NativeGate";
     private static final int MAX_ANDROID_POINTER_ID_COUNT = 32;
+    private static final int REQUEST_IMPORT_GAME_DATA = 7013;
     private TextView label;
 
     private static float clamp01(float value) {
@@ -43,7 +48,21 @@ public final class MainActivity extends Activity {
         // Bind touch directly on that actual view, rather than relying on
         // Activity.onTouchEvent to receive unhandled events.
         label.setOnTouchListener((view, motion) -> onTouchEvent(motion));
-        setContentView(label);
+
+        // Import only data the user already owns. This prepares the original
+        // filesystem's app-private root; it does not start or emulate gameplay.
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        Button importButton = new Button(this);
+        importButton.setText("Import personal COD4 data");
+        importButton.setContentDescription("Import personal Call of Duty 4 game data");
+        importButton.setOnClickListener(view -> chooseGameDataDirectory());
+        layout.addView(importButton, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT));
+        layout.addView(label, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, 0, 1.0f));
+        setContentView(layout);
         try {
             EngineBridge.nativeLifecycle(1);
             // Diagnostic sentinel, NOT a fake COD asset. The actual JNI
@@ -65,6 +84,54 @@ public final class MainActivity extends Activity {
                     failure.getClass().getSimpleName() + ": " + failure.getMessage());
             Log.e(TAG, "IW3_JNI_ACTIVITY_FAILED", failure);
         }
+    }
+
+    private void chooseGameDataDirectory() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION
+                | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+        try {
+            startActivityForResult(intent, REQUEST_IMPORT_GAME_DATA);
+        } catch (Throwable failure) {
+            Log.e(TAG, "IW3_GAME_DATA_PICKER_FAILED", failure);
+            label.append("\\n\\nCannot open Android document picker: "
+                    + failure.getClass().getSimpleName());
+        }
+    }
+
+    @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != REQUEST_IMPORT_GAME_DATA) return;
+        if (resultCode != RESULT_OK || data == null || data.getData() == null) {
+            label.append("\\n\\nGame-data import cancelled.");
+            return;
+        }
+
+        Uri treeUri = data.getData();
+        int granted = data.getFlags() & Intent.FLAG_GRANT_READ_URI_PERMISSION;
+        try {
+            if (granted != 0) getContentResolver().takePersistableUriPermission(treeUri, granted);
+        } catch (SecurityException failure) {
+            Log.w(TAG, "Could not persist document-tree permission; importing this selection now", failure);
+        }
+
+        label.append("\\n\\nScanning selected COD4 game root...");
+        new Thread(() -> {
+            try {
+                GameDataImporter.Summary summary =
+                        GameDataImporter.importTree(this, treeUri, getFilesDir());
+                String evidence = "IW3_GAME_DATA_IMPORT_PASS iwd=" + summary.iwdFiles
+                        + " fastfiles=" + summary.fastFiles + " bytes=" + summary.bytesCopied;
+                Log.i(TAG, evidence);
+                runOnUiThread(() -> label.append("\\n\\n" + evidence
+                        + "\\nFiles staged in app-private main/ and zone/. "
+                        + "Original FS/FastFile/map loading is still pending."));
+            } catch (Throwable failure) {
+                Log.e(TAG, "IW3_GAME_DATA_IMPORT_FAIL", failure);
+                runOnUiThread(() -> label.append("\\n\\nGame-data import failed: "
+                        + failure.getClass().getSimpleName() + ": " + failure.getMessage()));
+            }
+        }, "iw3-game-data-import").start();
     }
 
     @Override protected void onResume() {
