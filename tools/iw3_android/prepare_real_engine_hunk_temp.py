@@ -29,8 +29,8 @@ HEADER = (
     '#include <qcommon/mem_track.h>\n'
     '#include <assertive.h>\n'
     '#include <cstdint>\n'
-    // Declarations only: these remain genuine engine service edges in the audit
-    // object; this staging file must not invent implementations for them.
+    # Declarations only: these remain genuine engine service edges in the audit
+    # object; this staging file must not invent implementations for them.
     'extern bool __cdecl Sys_IsMainThread();\n'
     'extern void Hunk_CheckTempMemoryClear();\n'
     'extern void Hunk_CheckTempMemoryHighClear();\n'
