@@ -593,7 +593,7 @@ bool run_imported_iwd_index_fixture(const char *root) {
             // while the engine lookup table stores C strings; accepting this
             // archive would make its visible name differ from the ZIP name.
             std::array<Entry, 2> malformed_entries{{
-                {std::string("maps/bad\\0name.txt", 17), "bad-name", 0, {}, 0, 0},
+                {std::string("maps/bad\0name.txt", 17), "bad-name", 0, {}, 0, 0},
                 {"maps/good.txt", "good", 0, {}, 0, 0}
             }};
             Bytes malformed_bytes;
@@ -601,14 +601,12 @@ bool run_imported_iwd_index_fixture(const char *root) {
             const int malformed_path_len = std::snprintf(
                 malformed_path, sizeof(malformed_path),
                 "main/iw3-index-nul-%ld.iwd", pid);
-            bool malformed_written = false;
             bool malformed_rejected = false;
             if (make_zip(malformed_bytes, malformed_entries) &&
                 malformed_path_len > 0 &&
                 static_cast<std::size_t>(malformed_path_len) < sizeof(malformed_path) &&
                 z2026_platform_write_file(malformed_path, malformed_bytes.data(),
                     malformed_bytes.size()) == static_cast<int>(malformed_bytes.size())) {
-                malformed_written = true;
                 const int before_count = fs_iwdFileCount;
                 const int before_feed = fs_checksumFeed;
                 fs_checksumFeed = 0x13579BDF;
