@@ -1088,13 +1088,23 @@ The first JNI integration rerun then showed that the app's Gradle CMake configur
 
 
 
-## Phase BQ — original q_shared startup string providers (2026-10-28; fresh CI pending)
+## Phase BQ — original q_shared startup string providers (2026-10-28; ARM64 audit green, emulator pending)
 
 The prior startup+Dvar audit still showed `I_strncat` and `Com_sprintf` as missing providers. `I_strncpyz` and `I_stricmp` already come from the original IWD-services extraction in the expanded graph, so adding second copies of them would be incorrect. This pass stages only the two still-missing bodies from `third_party/KisakCOD/src/universal/q_shared.cpp`, rather than adding handwritten engine substitutes.
 
 - Added `tools/iw3_android/prepare_real_engine_q_shared_strings.py`. It extracts original `I_strncat` and `Com_sprintf`, recording source/body hashes without modifying vendored `q_shared.cpp`. The existing original IWD-services archive remains the sole provider for `I_strncpyz` and `I_stricmp`.
-- Only `Com_sprintf` receives a narrow portability adaptation: MSVC `_vsnprintf` becomes bounded `std::vsnprintf`; a zero-sized destination returns `-1) before indexing; and C99's required-length result is translated back to the original `-1)-on-truncation contract. The original string-copy/compare bodies remain verbatim.
+- Only `Com_sprintf` receives a narrow portability adaptation: MSVC `_vsnprintf` becomes bounded `std::vsnprintf`; a zero-sized destination returns `-1` before indexing; and C99's required-length result is translated back to the original `-1`-on-truncation contract. The original `I_strncat` body is staged verbatim.
 - Added a native CTest for the original append call contract and the formatter's normal, truncated and zero-size cases, plus Python source-provenance and workflow-wiring regressions. The host test supplies only the already-audited `I_strncpyz` dependency; the ARM64 combined object uses the original IWD-services provider.
-- The native workflow builds `libiw3_sp_q_shared_strings.a`, includes it in the combined AArch64 relocatable audit, and requires the four symbols to be defined and absent from that object's undefined-symbol list. The JNI Gradle configuration does not receive this audit-only extraction and the archive is not linked into the diagnostic APK.
+- The native workflow builds `libiw3_sp_q_shared_strings.a`, includes it in the combined AArch64 relocatable audit, and requires `I_strncat`, `I_strncpyz`, `I_stricmp` and `Com_sprintf` to be defined and absent from that object's undefined-symbol list. The JNI Gradle configuration does not receive this audit-only extraction and the archive is not linked into the diagnostic APK.
 
-The first ARM64 link attempt exposed duplicate definitions: the new archive duplicated `I_strncpyz`/`I_stricmp` already present in the original IWD-services archive, and the directory adapter's diagnostic `Com_sprintf` collided with the original body. The staged provider is now limited to the two missing functions, and the diagnostic formatter is guarded out when `IW3_IWD_DIRECTORY_LINK_AUDIT` is defined. A regression pins this separation. The fresh source preflight passed; the latest host Release and ASan/UBSan runs passed 19/19 tests each. The corrected ARM64 link-audit, JNI diagnostic and emulator jobs must finish before this phase is marked green. This is a bounded dependency closure step only. The combined object still retains unrelated engine command/parser, shutdown, CD-key and Dvar services; the Activity still does not invoke `FS_Startup()/FS_InitFilesystem()), mount real game IWD/FastFiles, load a map, render the original scene, or run touch-driven gameplay on physical ARM64. `IW3_PLAYABLE_APK=false` remains explicit. PR #4 stays open and unmerged.
+The first ARM64 link attempt exposed duplicate definitions: the new archive duplicated `I_strncpyz`/`I_stricmp` already present in the original IWD-services archive, and the directory adapter's diagnostic `Com_sprintf` collided with the original body. The staged provider is now limited to the two missing functions, and the diagnostic formatter is guarded out when `IW3_IWD_DIRECTORY_LINK_AUDIT` is defined. A regression pins this separation.
+
+Validation for code HEAD `dbc3c3b260303df98849f219c0b2f8db4ac97819`:
+- Source preflight: passed (run `40644461428`).
+- Host Release CTest: 19/19 passed.
+- Host ASan/UBSan CTest: 19/19 passed.
+- Native Android ARM64 compile and combined-link audit: passed (run `40644453400`), including `IW3_ORIGINAL_Q_SHARED_STRING_SERVICES_AARCH64_LINK_GREEN` and `IW3_ORIGINAL_SOURCE_ANDROID_ARM64_ELF_GREEN`.
+- JNI diagnostic package build: passed (run `40644453404`); artifact `12796668334` is explicitly labeled NOT A GAME.
+- Emulator execution probes: still running at the last inspection (runs `40644453405` and `40644461493`); not counted as passed yet.
+
+This is a bounded dependency-closure step only. The combined object still retains unrelated engine command/parser, shutdown, CD-key and Dvar services; the Activity still does not invoke `FS_Startup()/FS_InitFilesystem()`, mount real game IWD/FastFiles, load a map, render the original scene, or run touch-driven gameplay on physical ARM64. `IW3_PLAYABLE_APK=false` remains explicit. PR #4 stays open and unmerged.
