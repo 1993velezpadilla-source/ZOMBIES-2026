@@ -1271,3 +1271,26 @@ ARM64 audit artifact (compiled objects/reports only, not a game APK): https://gi
 The Android JNI integration build also completed successfully in run 40692472477, but it remains a diagnostic/build check, not proof that the original runtime is linked or playable. The emulator execution and Windows SP smoke were still running when this section was first recorded.
 
 **Remaining boundary:** `cmd_args` storage/initialization still belongs to the full original command subsystem. This accessor archive is deliberately excluded from JNI and is not a substitute runtime. `FS_Startup()` has not been demonstrated running in the app; no real FastFile/map load, original renderer, complete touch-to-game loop, weapon fire/damage, or physical ARM64 device gameplay has been proven. `IW3_PLAYABLE_APK=false` remains the status.
+
+
+## Phase CD — original Com_SkipRestOfLine parser service (28 Oct 2026)
+
+The latest ARM64 startup audit already staged the authentic `q_parse.cpp` parser/session bodies, but the combined filesystem-startup dependency list still named `Com_SkipRestOfLine(const char **)` as missing. The original implementation is in the same vendored `src/universal/q_parse.cpp`; it advances to the next LF, updates the active parse session's line counter, and safely leaves a null input unchanged.
+
+This pass extends `tools/iw3_android/prepare_real_engine_q_parse.py` to extract that exact upstream body alongside the existing parser functions. It does not add a new parser implementation or alter the vendored function. The native parser regression now covers:
+- skipping a CRLF-terminated line and advancing the original parse-line counter exactly once;
+- continuing to parse the next line using the same original parser/session state;
+- reaching NUL when the input has no trailing newline;
+- preserving a null input pointer.
+
+The ARM64 workflow now requires `Com_SkipRestOfLine` to be defined and absent from the unresolved-symbol report in both the parser and combined startup audits, and emits `IW3_ORIGINAL_Q_PARSE_SKIP_LINE_AARCH64_LINK_GREEN` only after those checks pass. The parser archive remains an audit artifact; it is not linked into the JNI diagnostic APK.
+
+Code changes:
+- `tools/iw3_android/prepare_real_engine_q_parse.py` — original-body extraction and provenance fields.
+- `android/iw3-native/parser_native_test.cpp` — host runtime behavior regression.
+- `tests/test_iw3_android_q_parse.py` — source provenance, test wiring and CI-gate assertions.
+- `.github/workflows/iw3-original-native-android.yml` — combined-link requirements.
+
+**Validation status at documentation time:** source preflight passed on code commit `c6544a303dc94bd9e6cf9282dbfd29f5b8d75ceb`. The fresh native ARM64, JNI diagnostic, emulator, SP and source-only workflows had been triggered by the branch update; their final results had not yet been inspected. Do not count the new parser CTest or the new symbol gate as green until the fresh native workflow completes.
+
+**Scope boundary:** this closes one authentic parser dependency if the new link gate passes. It does not link the full command-state object, full Dvar registry, all filesystem/platform services or the original frame into a working Android runtime. It does not invoke the complete `FS_InitFilesystem()` path in the app, mount licensed FastFiles, load a map, render the original 3D scene, or demonstrate touch-driven weapons/actors on a physical ARM64 device. `IW3_PLAYABLE_APK=false`; keep PR #4 open and unmerged.
