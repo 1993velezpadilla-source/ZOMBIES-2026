@@ -16,17 +16,56 @@ class OriginalHunkTempAllocatorTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             staged = output.read_text(encoding="utf-8")
             evidence = json.loads(report_path.read_text(encoding="utf-8"))
-        self.assertIn("Hunk_AllocateTempMemory", staged)
-        self.assertIn("Hunk_FreeTempMemory", staged)
+        for symbol in (
+            "Hunk_ClearToMarkLow", "Hunk_AllocAlign", "Hunk_AllocateTempMemoryHigh",
+            "Hunk_ClearTempMemoryHigh", "Hunk_AllocLowAlign", "Hunk_ClearTempMemory",
+            "Hunk_AllocateTempMemory", "Hunk_FreeTempMemory",
+        ):
+            self.assertIn(symbol, staged)
         self.assertIn("Hunk_PageBase(&s_hunkData[hunk_low.temp + 4095])", staged)
+        self.assertIn("Hunk_PageBase(&s_hunkData[s_hunkTotal - hunk_high.permanent])", staged)
+        self.assertIn("Hunk_PageBase(&s_hunkData[hunk_low.permanent + 4095])", staged)
+        self.assertIn("reinterpret_cast<uintptr_t>(buf) & 0xFu", staged)
+        self.assertIn("uint8_t* __cdecl Hunk_AllocateTempMemoryHigh", staged)
         self.assertIn("reinterpret_cast<uintptr_t>(bufa)", staged)
-        for forbidden in ("(uint32_t)&s_hunkData", "(uint32_t)beginBuf", "(uint8_t)bufa", "0xFFFFF000"):
+        for forbidden in (
+            "(uint32_t)&s_hunkData", "(uint32_t)beginBuf", "(uint8_t)bufa",
+            "(uint32_t)buf", "(uint32_t)pos", "0xFFFFF000", "(_BYTE)s_hunkData",
+            "(int)pos", "user[114].name", "0xFE0u",
+        ):
             self.assertNotIn(forbidden, staged)
         self.assertTrue(evidence["pointer_page_alignment_uses_uintptr_t"])
+        self.assertTrue(evidence["high_temp_allocator_returns_native_pointer"])
+        self.assertTrue(evidence["core_allocator_page_math_uses_native_pointer_width"])
         self.assertTrue(evidence["temporary_header_fixed_at_16_bytes_on_32_and_64_bit"])
         self.assertTrue(evidence["single_engine_owned_hunk_state"])
         self.assertFalse(evidence["runtime_hunk_allocator_invoked"])
         self.assertFalse(evidence["playable_apk"])
+
+    def test_vendored_core_hunk_allocators_no_longer_truncate_addresses(self):
+        source = (ENGINE / "src/universal/com_memory.cpp").read_text(encoding="utf-8")
+        header = (ENGINE / "src/universal/com_memory.h").read_text(encoding="utf-8")
+        for marker in (
+            "endBuf = Hunk_PageBase(&s_hunkData[s_hunkTotal - hunk_high.permanent]);",
+            "buf = &s_hunkData[s_hunkTotal - hunk_high.temp];",
+            "if ((reinterpret_cast<uintptr_t>(buf) & 0xFu) != 0)",
+            "commitSize = static_cast<uint32_t>(Hunk_PageBase(&s_hunkData[hunk_low.permanent + 4095]) - beginBuf);",
+            "user->end = reinterpret_cast<uintptr_t>(user) + static_cast<uintptr_t>(maxSize);",
+            "user->pos = reinterpret_cast<uintptr_t>(user->buf);",
+            "Z_VirtualCommit(reinterpret_cast<void *>(pos), static_cast<int32_t>(current->pos - pos));",
+            "pos = reinterpret_cast<uintptr_t>(user) + 4096u;",
+        ):
+            self.assertIn(marker, source)
+        self.assertIn("uint8_t* __cdecl Hunk_AllocateTempMemoryHigh", source)
+        self.assertIn("uint8_t* __cdecl Hunk_AllocateTempMemoryHigh(int size, const char* name);", header)
+        for forbidden in (
+            "(uint32_t)&s_hunkData", "(uint32_t)beginBuf", "(uint32_t)buf",
+            "user->end = (int)user + maxSize;", "user->pos = (int)user->buf;",
+            "pos = (void*)(((uint32_t)&user[114].name + 3) & 0xFFFFF000);",
+            "Z_VirtualCommit((void*)pos, current->pos - (uint32_t)pos);",
+            "Z_VirtualDecommit(pos, user->pos - (uint32_t)pos);",
+        ):
+            self.assertNotIn(forbidden, source)
 
     def test_original_hunk_state_has_one_shared_definition(self):
         source = (ENGINE / "src/universal/com_memory.cpp").read_text(encoding="utf-8")
