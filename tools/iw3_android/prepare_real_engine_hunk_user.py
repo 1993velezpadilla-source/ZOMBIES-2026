@@ -54,7 +54,6 @@ FORBIDDEN = (
     "user[114].name",
     "0xFE0u",
     "VirtualAlloc(",
-    "VirtualFree(",
 )
 
 
