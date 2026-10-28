@@ -1433,3 +1433,12 @@ Code commits:
 The latest native ARM64 run also executed the new header regression as part of its 206-test suite and passed both CTest configurations. The original Windows SP executable build then passed in [40756784310](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40756784310). The Killhouse smoke reached the real level loop and actor AI, but its evidence explicitly shows no weapon-fire callback, bullet dispatch, damage, pain, or death. That is the next gameplay test blocker—not a reason to infer combat success from an equipped weapon.
 
 The next Android runtime blockers remain the original script services (`Scr_RunCurrentThreads`, `Scr_IncTime`), `ClientEndFrame`, actor corpse/event services, and `Path_RunBadPlaces`, followed by real filesystem startup, map loading, original renderer integration, and physical ARM64 gameplay evidence.
+
+
+### Phase CF — user-owned COD4 data staging prerequisite (28 Oct 2026)
+
+The Android diagnostic now offers a Storage Access Framework directory picker for a game root selected by the user. `GameDataImporter` enumerates only the selected root's `main/` and `zone/` trees and copies `.iwd` and `.ff` files into the app-private `filesDir`, preserving relative paths. It rejects unsafe path segments, verifies canonical destinations remain below the private root, writes through a temporary file, syncs it, and only then replaces a destination file. It does not bundle game assets, decrypt or redistribute them.
+
+This removes one prerequisite for testing the original filesystem against user-owned files, but **does not mount the original search-path table, parse FastFiles, load a map, initialize a renderer, or execute gameplay**. The JNI bridge and APK remain diagnostic. The import is intentionally restricted to `main/` and `zone/`; a source root must contain at least one `.iwd` and one `.ff` file.
+
+The code is covered by `tests/test_iw3_android_game_data_import.py`; Android Gradle CI must still compile the new Java helper and the emulator probe must be rerun after this UI change. Do not mark the APK playable based on an import-pass marker. The remaining critical work is integrating the authentic filesystem/dvar/bootstrap graph, loading licensed FastFiles and a real map, porting the original renderer, and wiring the Android input hook into the running client command loop on physical ARM64 hardware.
