@@ -190,16 +190,15 @@ if(IW3_EXTRACTED_LANGUAGE)
     target_compile_options(iw3_sp_language PRIVATE
         -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
 
-    # Compile the complete original StringEd loader as a provider for the
-    # authentic FS_InitFilesystem -> SEH_Init_StringEd / SEH_UpdateLanguageInfo
-    # chain. This archive is part of the ARM64 dependency audit only; it is not
-    # linked into the JNI diagnostic until FS_ListFiles and the remaining
-    # original services are wired into a real runtime.
-    if(NOT EXISTS "${IW3_ENGINE_SOURCE_ROOT}/stringed/stringed_ingame.cpp")
-        message(FATAL_ERROR "Original KisakCOD StringEd loader source required")
+    # Compile only the original StringEd package-loader bodies needed by
+    # FS_InitFilesystem -> SEH_Init_StringEd / SEH_UpdateLanguageInfo. The
+    # upstream TU also imports D3D database entry points; the source-hash-checked
+    # slice omits those unrelated functions without replacing the loader logic.
+    if(NOT IW3_EXTRACTED_STRINGED_INGAME OR NOT EXISTS "${IW3_EXTRACTED_STRINGED_INGAME}")
+        message(FATAL_ERROR "Original KisakCOD StringEd loader extraction required")
     endif()
     add_library(iw3_sp_stringed_ingame STATIC
-        "${IW3_ENGINE_SOURCE_ROOT}/stringed/stringed_ingame.cpp")
+        "${IW3_EXTRACTED_STRINGED_INGAME}")
     target_include_directories(iw3_sp_stringed_ingame PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}"
         "${IW3_REAL_HEADER_ROOT}"
