@@ -73,9 +73,11 @@ void __cdecl FS_FreeFileList(const char **list) {
 // FS_BuildOSPath is provided by the original body in the IWD lookup source slice.
 
 
-// The directory scanner's platform boundary is intentionally limited to the
-// English locale until the authentic stringed subsystem is ported. Non-English
-// localized IWDs fail closed rather than being assigned a fabricated index.
+// The diagnostic JNI library retains its narrow English-only fallback, but
+// the combined startup dependency audit must use the original language registry
+// extracted from KisakCOD stringed_hooks.cpp instead of these diagnostic helpers.
+#if !defined(IW3_IWD_DIRECTORY_LINK_AUDIT)
+// Diagnostic-only fallback; it is not used by the combined original-engine audit.
 int __cdecl SEH_GetLanguageIndexForName(const char *name, int *index) {
     if (!name || !index || I_stricmp(name, "english") != 0) return 0;
     *index = 0;
@@ -84,6 +86,7 @@ int __cdecl SEH_GetLanguageIndexForName(const char *name, int *index) {
 const char *__cdecl SEH_GetLanguageName(uint32_t language) {
     return language == 0 ? "english" : "";
 }
+#endif
 
 // Console output adapter for this isolated native file-system test. It logs
 // the original format string without interpreting platform-specific formats.
