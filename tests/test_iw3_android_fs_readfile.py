@@ -51,7 +51,8 @@ class OriginalFilesystemReadFileTests(unittest.TestCase):
         self.assertIn("libiw3_sp_fs_readfile.a", workflow)
         self.assertIn("IW3_ORIGINAL_FS_STARTUP_IWD_DIRECTORY_READFILE_HUNK_AARCH64_LINK_GREEN", workflow)
         self.assertIn("Hunk_AllocateTempMemory Hunk_FreeTempMemory", workflow)
-        self.assertIn("for symbol in SEH_InitLanguage; do", workflow)
+        self.assertIn("for symbol in SEH_InitLanguage SEH_UpdateCurrentLanguage; do", workflow)
+        self.assertIn("IW3_ORIGINAL_FS_STARTUP_LANGUAGE_INIT_AARCH64_LINK_GREEN", workflow)
         self.assertIn('echo "IW3_FS_STARTUP_RUNTIME_INVOKED=false"', workflow)
         self.assertIn('echo "IW3_PLAYABLE_APK=false"', workflow)
 
