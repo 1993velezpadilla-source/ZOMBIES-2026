@@ -59,9 +59,13 @@ FORBIDDEN = (
 
 def replace_once(body: str, old: str, new: str, label: str) -> str:
     count = body.count(old)
-    if count != 1:
-        raise ValueError(f"{label}: expected one source expression, found {count}: {old!r}")
-    return body.replace(old, new, 1)
+    if count == 1:
+        return body.replace(old, new, 1)
+    if count == 0 and body.count(new) == 1:
+        # The vendored engine source may already carry this reviewed LP64 fix.
+        # Accept it unchanged so the staging step stays idempotent.
+        return body
+    raise ValueError(f"{label}: expected one original or corrected expression, found old={count}, new={body.count(new)}: {old!r}")
 
 
 def transform(signature: str, body: str) -> tuple[str, list[str]]:
@@ -112,8 +116,10 @@ def transform(signature: str, body: str) -> tuple[str, list[str]]:
         ),
     }
     for old, new in rules.get(signature, ()):
+        before = body
         body = replace_once(body, old, new, signature)
-        changes.append(f"{old} => {new}")
+        if body != before:
+            changes.append(f"{old} => {new}")
     return body, changes
 
 
