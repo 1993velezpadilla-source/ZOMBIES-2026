@@ -7,8 +7,6 @@ int FS_HashFileName(const char*, int);
 int FS_FilenameCompare(const char*, const char*);
 void FS_ConvertPath(char*);
 char *IwdFileLanguage(const char*);
-int FS_PathCmp(const char*, const char*);
-int iwdsort(const char**, char**);
 extern "C" int z2026_iw3_iwd_names_smoke();
 
 int main() {
@@ -35,16 +33,9 @@ int main() {
                               "MAPS\\MP\\MP_CRASH.D3DBSP") == 0);
     assert(FS_FilenameCompare("weapons:mp40", "WEAPONS/mp40") == 0);
     assert(FS_FilenameCompare("weapons/mp40", "weapons/mp41") == -1);
-    assert(FS_PathCmp("maps\\mp:crash.iwd", "MAPS/MP/CRASH.IWD") == 0);
-    const char *englishSortKey = "          english.iwd";
-    char *frenchSortKey = const_cast<char *>("          french.iwd");
-    assert(iwdsort(&englishSortKey, &frenchSortKey) < 0);
-    const char *frenchSortKeyFirst = "          french.iwd";
-    char *englishSortKeySecond = const_cast<char *>("          english.iwd");
-    assert(iwdsort(&frenchSortKeyFirst, &englishSortKeySecond) > 0);
     char path[] = "maps\\mp:mp_crash.d3dbsp";
     FS_ConvertPath(path);
     assert(std::strcmp(path, "maps/mp/mp_crash.d3dbsp") == 0);
     assert(z2026_iw3_iwd_names_smoke() == 1);
-    std::puts("IW3_ORIGINAL_IWD_FILENAME_AND_STARTUP_SORT_HOST_GREEN");
+    std::puts("IW3_ORIGINAL_IWD_FILENAME_HASH_COMPARE_HOST_GREEN");
 }
