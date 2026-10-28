@@ -34,10 +34,18 @@ class OriginalLanguageRegistryTests(unittest.TestCase):
         self.assertTrue(evidence["original_SEH_UpdateCurrentLanguage_body_preserved_verbatim"])
         self.assertTrue(evidence["original_language_name_and_index_helpers_preserved_verbatim"])
         self.assertTrue(evidence["languageInfo_t_native_pointer_layout_guarded"])
+        self.assertTrue(evidence["original_FS_LanguageHasAssets_body_preserved_verbatim"])
+        self.assertTrue(evidence["original_SEH_StringEd_SetLanguageStrings_body_preserved_verbatim"])
+        self.assertTrue(evidence["original_SEH_UpdateLanguageInfo_body_preserved_verbatim"])
+        self.assertTrue(evidence["original_SEH_Init_StringEd_and_shutdown_bodies_preserved_verbatim"])
         self.assertFalse(evidence["full_stringed_database_and_translation_loading_ported"])
+        self.assertFalse(evidence["stringed_runtime_invoked"])
         self.assertFalse(evidence["playable_apk"])
         for marker in ("SEH_InitLanguage", "SEH_UpdateCurrentLanguage",
-                       "SEH_GetLanguageName", "SEH_GetLanguageIndexForName"):
+                       "SEH_GetLanguageName", "SEH_GetLanguageIndexForName",
+                       "FS_LanguageHasAssets", "SEH_StringEd_SetLanguageStrings",
+                       "SEH_UpdateLanguageInfo", "SEH_Init_StringEd",
+                       "SEH_Shutdown_StringEd", "SE_Init();", "SE_ShutDown();"):
             self.assertIn(marker, staged)
         self.assertNotIn('return language == 0 ? "english" : "";', staged)
 
@@ -48,11 +56,16 @@ class OriginalLanguageRegistryTests(unittest.TestCase):
         compat = (ROOT / "android/iw3-native/iw3_android_language_compat.h").read_text(encoding="utf-8")
 
         self.assertIn("add_library(iw3_sp_language STATIC", cmake)
+        self.assertIn("add_library(iw3_sp_stringed_ingame STATIC", cmake)
+        self.assertIn('stringed/stringed_ingame.cpp', cmake)
         self.assertIn("iw3_language_native_test", cmake)
         self.assertIn("prepare_real_engine_language.py", workflow)
         self.assertIn("IW3_EXTRACTED_LANGUAGE", workflow)
         self.assertIn("libiw3_sp_language.a", workflow)
         self.assertIn("IW3_ORIGINAL_FS_STARTUP_LANGUAGE_INIT_AARCH64_LINK_GREEN", workflow)
+        self.assertIn("libiw3_sp_stringed_ingame.a", workflow)
+        self.assertIn("IW3_ORIGINAL_STRINGED_INIT_CHAIN_AARCH64_LINK_GREEN", workflow)
+        self.assertIn('if ! grep -F "FS_ListFiles"', workflow)
         self.assertIn("#if !defined(IW3_IWD_DIRECTORY_LINK_AUDIT)", adapter)
         self.assertIn("static_assert(sizeof(languageInfo_t)", compat)
         self.assertIn("SEH_UpdateCurrentLanguage();", (ROOT / "tools/iw3_android/prepare_real_engine_language.py").read_text(encoding="utf-8"))
