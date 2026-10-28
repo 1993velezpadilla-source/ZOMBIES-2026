@@ -1163,3 +1163,10 @@ Validation on code HEAD `f68870919d4e70fe813118b9b4f2d6ce5f53c20c`:
 - Emulator touch run [40652578478](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40652578478) was still running at the time this section was written; do not count it as passed until the final workflow conclusion is green.
 
 Scope remains strict: the original frame archive is not linked into the JNI diagnostic APK. The Android Activity still does not execute full `FS_Startup()/FS_InitFilesystem()`, mount licensed game IWD/FastFiles, load a real map, render the original scene, or execute touch-driven gameplay on physical ARM64. `IW3_PLAYABLE_APK=false`; PR #4 stays open and unmerged.
+
+
+### Phase BT validation follow-up
+
+The fresh Android emulator run [40652578478](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40652578478) completed **PASS** on code HEAD `f68870919d4e70fe813118b9b4f2d6ce5f53c20c`. Its log now records the correct recovery coordinate `x=1073 y=710` for the Wait button, then selects the app view at `x=1140 y=540`. ADB DOWN/UP gestures produced native `usercmd_s` snapshots for attack (`buttons=1`), sprint (`buttons=2`) and slide+sprint chord (`buttons=514`); the runtime-evidence verifier completed and emitted `IW3_ORIGINAL_CPP_EXECUTED_INSIDE_ANDROID_EMULATOR_GREEN`. Artifact [12799595100](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40652578478/artifacts/12799595100) is the new diagnostic log/evidence package, **not a game**.
+
+JNI ARM64 packaging [40652578527](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40652578527) and the native ARM64 audit [40652578550](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40652578550) both completed PASS. The emulator run remains x86_64 and validates the adapter only; it does not make those input events part of the original engine frame. No original renderer, map/FastFile startup, physical ARM64 gameplay or playable APK is demonstrated.
