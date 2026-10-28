@@ -391,7 +391,7 @@ jobs:
             | tee "$RUNNER_TEMP/iw3-fs-dvar-iwd-undefined.txt"
           # These original engine and rooted-platform providers must resolve
           # together. This audit still does not invoke the startup functions.
-          for symbol in IwdFileLanguage Z_Malloc FS_LoadZipFile unzOpen unzGetGlobalInfo unzReadCurrentFile unzClose FS_AddSearchPath FS_AddIwdFilesForGameDirectory FS_AddGameDirectory Sys_ListFiles FS_FreeFileList FS_PathCmp iwdsort I_strncmp SEH_GetLanguageName SEH_GetLanguageIndexForName Com_PrintWarning; do
+          for symbol in IwdFileLanguage Z_Malloc FS_LoadZipFile unzOpen unzGetGlobalInfo unzReadCurrentFile unzClose FS_FileOpenReadBinary FS_FileClose FS_FileRead FS_FileSeek FS_FileGetFileSize FS_AddSearchPath FS_AddIwdFilesForGameDirectory FS_AddGameDirectory Sys_ListFiles FS_FreeFileList FS_PathCmp iwdsort I_strncmp SEH_GetLanguageName SEH_GetLanguageIndexForName Com_PrintWarning; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-iwd-defined.txt"
             if grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-iwd-undefined.txt"; then
               echo "Original IWD directory/mount dependency failed to resolve: $symbol" >&2
@@ -508,6 +508,8 @@ jobs:
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_iwd_mount.a
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_iwd_services.a
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_unzip.a
+            ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_iwd_directory_services.a
+            ${{ runner.temp }}/iw3-original-iwd-directory-services.json
             ${{ runner.temp }}/iw3-fs-dvar-iwd-combined.o
             ${{ runner.temp }}/iw3-fs-dvar-iwd-defined.txt
             ${{ runner.temp }}/iw3-fs-dvar-iwd-undefined.txt

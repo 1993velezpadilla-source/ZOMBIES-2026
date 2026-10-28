@@ -167,12 +167,12 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
         self.assertIn("add_library(iw3_sp_unzip STATIC", cmake)
         workflow = (ROOT / ".github/workflows/iw3-original-native-android.yml").read_text(encoding="utf-8")
         self.assertIn('"$startup_archive" "$dvar_full_archive" "$iwd_services_archive"', workflow)
-        self.assertIn('"$iwd_mount_archive" "$unzip_archive" --no-whole-archive', workflow)
+        self.assertIn('"$iwd_mount_archive" "$unzip_archive" "$iwd_directory_archive"', workflow)
+        self.assertIn("libiw3_sp_iwd_directory_services.a", workflow)
+        self.assertIn("IW3_ORIGINAL_FS_STARTUP_IWD_DIRECTORY_ADAPTER_AARCH64_LINK_GREEN", workflow)
         self.assertIn("for symbol in IwdFileLanguage Z_Malloc FS_LoadZipFile unzOpen", workflow)
-        self.assertIn(
-            "for symbol in iwdsort I_strncmp SEH_GetLanguageName FS_ReadFile SEH_InitLanguage Sys_ListFiles FS_FreeFileList SEH_GetLanguageIndexForName Com_PrintWarning",
-            workflow,
-        )
+        self.assertIn("for symbol in FS_ReadFile SEH_InitLanguage; do", workflow)
+        self.assertIn("FS_FileOpenReadBinary FS_FileClose FS_FileRead FS_FileSeek FS_FileGetFileSize", workflow)
         self.assertIn("IW3_ORIGINAL_FS_STARTUP_IWD_SERVICES_AARCH64_COMBINED_LINK_GREEN", workflow)
         self.assertIn('echo "IW3_PLAYABLE_APK=false"', workflow)
 

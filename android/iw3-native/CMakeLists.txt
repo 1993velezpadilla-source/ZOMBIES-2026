@@ -155,6 +155,7 @@ target_compile_options(iw3_sp_unzip PRIVATE
 add_library(iw3_sp_iwd_directory_services STATIC
     "${IW3_EXTRACTED_IWD_DIRECTORY_SERVICES}"
     "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_iwd_directory_io.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_unzip_io.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_platform.cpp")
 target_include_directories(iw3_sp_iwd_directory_services PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}"
