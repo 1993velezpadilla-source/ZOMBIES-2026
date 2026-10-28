@@ -38,6 +38,7 @@ GLOBAL_DECLARATIONS = (
 )
 HEADER = (
     '#include <universal/q_shared.h>\n'
+    '#include <qcommon/qcommon.h>\n'
     '#include <stringed/stringed_ingame.h>\n'
     '#include <universal/assertive.h>\n'
     '#include <universal/com_memory.h>\n'
