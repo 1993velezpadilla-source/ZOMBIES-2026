@@ -89,7 +89,7 @@ def prepare(engine: Path, output: Path) -> dict:
         function_source(source_text[path], signature)
         for signature, path in FUNCTIONS
     ]
-    rendered = HEADER + "\n\n".join(bodies) + "\n
+    rendered = HEADER + "\n\n".join(bodies) + "\n"
     for marker in REQUIRED:
         if marker not in rendered:
             raise ValueError("Original IWD service body changed: " + marker)
