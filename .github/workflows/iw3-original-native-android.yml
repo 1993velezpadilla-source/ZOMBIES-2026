@@ -390,7 +390,7 @@ jobs:
           done
           # These are now the explicit remaining engine services. Do not stub
           # them or invoke FS_Startup until their real providers are integrated.
-          for symbol in FS_PathCmp iwdsort I_strncmp SEH_GetLanguageName FS_ReadFile SEH_InitLanguage Sys_ListFiles FS_FreeFileList SEH_GetLanguageIndexForName Com_PrintWarning; do
+          for symbol in iwdsort I_strncmp SEH_GetLanguageName FS_ReadFile SEH_InitLanguage Sys_ListFiles FS_FreeFileList SEH_GetLanguageIndexForName Com_PrintWarning; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-iwd-undefined.txt"
           done
           echo "IW3_ORIGINAL_FS_STARTUP_IWD_SERVICES_AARCH64_COMBINED_LINK_GREEN"
