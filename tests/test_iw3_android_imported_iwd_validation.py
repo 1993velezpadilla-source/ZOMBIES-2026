@@ -9,6 +9,8 @@ BRIDGE = ROOT / "android/iw3-native/android_app/app/src/main/java/org/z2026/iw3n
 ACTIVITY = ROOT / "android/iw3-native/android_app/app/src/main/java/org/z2026/iw3nativeprobe/MainActivity.java"
 WORKFLOW = ROOT / ".github/workflows/iw3-original-android-jni.yml"
 NATIVE_WORKFLOW = ROOT / ".github/workflows/iw3-original-native-android.yml"
+MOUNT_SOURCE = ROOT / "third_party/KisakCOD/src/universal/com_files.cpp"
+MOUNT_GENERATOR = ROOT / "tools/iw3_android/prepare_real_engine_iwd_mount.py"
 EMULATOR = ROOT / "tools/iw3_android/run_emulator_probe.sh"
 
 
@@ -48,6 +50,28 @@ class ImportedIwdValidationTests(unittest.TestCase):
         self.assertIn("Z_Free(iwd->buildBuffer, 3)", body)
         self.assertIn("fs_iwdFileCount = old_count", body)
         self.assertIn("fs_checksumFeed = old_feed", body)
+
+    def test_original_loader_rejects_global_count_overflow_before_allocation(self):
+        source = MOUNT_SOURCE.read_text(encoding="utf-8")
+        body = function_body(source, "iwd_t *__cdecl FS_LoadZipFile(")
+        guard = body.index("if (fs_iwdFileCount < 0 ||")
+        allocation = body.index("buildBuffer = (fileInIwd_s*)Z_Malloc")
+        self.assertLess(guard, allocation)
+        self.assertIn(
+            "gi.number_entry > static_cast<uint32_t>(INT_MAX - fs_iwdFileCount)",
+            body,
+        )
+
+        smoke = SMOKE.read_text(encoding="utf-8")
+        fixture = function_body(smoke, "bool run_imported_iwd_index_fixture(")
+        self.assertIn("fs_iwdFileCount = INT_MAX;", fixture)
+        self.assertIn("overflow_guard_ok", fixture)
+        generator = MOUNT_GENERATOR.read_text(encoding="utf-8")
+        self.assertIn("iwd_entry_count_overflow_rejected_before_allocation", generator)
+        self.assertIn(
+            "gi.number_entry > static_cast<uint32_t>(INT_MAX - fs_iwdFileCount)",
+            generator,
+        )
 
     def test_imported_scan_is_rooted_and_scans_main_and_zone_iwds(self):
         source = SMOKE.read_text(encoding="utf-8")
