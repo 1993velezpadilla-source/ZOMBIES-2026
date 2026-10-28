@@ -1198,3 +1198,22 @@ The fresh workflows for the Phase BV source/test tree at 149f9d7c1106b662076c25e
 The previous emulator attempt [40667252665](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40667252665) failed before boot because Maven Central returned HTTP 429; that transient dependency-resolution failure did not recur in the fresh emulator run. It was not treated as an engine failure or a game pass.
 
 **Acceptance boundary unchanged:** the Android Activity still does not execute the complete original FS_Startup()/FS_InitFilesystem() graph, mount licensed IWD/FastFiles, load an actual map, display the original renderer, or execute original player/weapon/actor gameplay on physical ARM64. No playable ARM64 APK exists. Keep PR #4 open and unmerged.
+
+
+### Phase CA — original q_parse/session services staged into the filesystem-startup ARM64 audit (28 Oct 2026)
+
+The next concrete dependency exposed by the staged `FS_Startup` / StringEd chain was the original token parser. Added `tools/iw3_android/prepare_real_engine_q_parse.py`, which extracts the original `Com_InitParse`, `Com_InitParseInfo`, `Com_BeginParseSession`, `Com_GetParseThreadInfo`, `Com_EndParseSession`, `Com_SetCSV`, `Com_GetCurrentParseLine`, `Com_UngetToken`, parse-mark helpers, `Com_Parse`, `Com_ParseExt`, `SkipWhitespace`, `Com_ParseCSV`, and `Com_ParseOnLine` from `third_party/KisakCOD/src/universal/q_parse.cpp`. The original four-context `g_parse` state and punctuation table are extracted from the same upstream file and SHA-256 recorded. The vendored source is not rewritten.
+
+The slice no longer includes upstream `qcommon/threads.h`, which imports Windows-only headers. It declares only the existing thread-selector ABI; the actual thread services remain unresolved rather than being implemented in the engine archive. Added `iw3_sp_q_parse` as a compile/audit archive and a host CTest that executes the extracted original parser against quoted tokens, line comments/CRLF line counting, one-token unget, and CSV fields. The host harness supplies thread selectors and fail-closed fatal-error sinks only; those helpers are not part of the generated engine source or Android runtime.
+
+The native ARM64 workflow now includes the parser archive in the relocatable filesystem-startup/StringEd link and checks the combined object for parser function definitions. It does not add the parser archive to the JNI diagnostic target.
+
+**Verified evidence on code commit `f6a8389aa8af4f582af27b781e3d4b26c2b3d0f5`:**
+
+- Native source/ARM64 audit [run 40684658822](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40684658822): **21/21 CTest Release and 21/21 CTest with ASan/UBSan passed**, including `iw3_original_q_parse_host_runtime`; the NDK build produced the parser archive; the combined startup link emitted `IW3_ORIGINAL_Q_PARSE_AARCH64_LINK_GREEN` and `IW3_ORIGINAL_FS_STARTUP_AARCH64_RELOCATABLE_LINK_AUDIT_GREEN`.
+- Source preflight [run 40684658933](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40684658933): passed.
+- Audit artifact [12813988767](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40684658822/artifacts/12813988767): original-source modules and reports only; **not an APK**.
+
+During this pass, the first native attempt caught a Windows-only thread-header include, then the host link caught the fatal `Com_ScriptErrorDrop` path referenced by the original unget routine. The include was replaced with ABI declarations; the host harness now aborts if the exceptional double-unget error path is reached. A subsequent ARM64 audit initially inspected the startup archive's symbol list instead of the combined object's list; that audit was corrected to capture and inspect the combined definitions, and the latest run passed. These intermediate failures are preserved in Actions history.
+
+**Scope boundary:** the parser functions now compile for ARM64 and execute in the host regression, and their definitions participate in the relocatable startup audit. This still does **not** invoke `FS_Startup()` or `FS_InitFilesystem()` in Android. Original `Com_Error` / fatal parser reporting and thread-selection services, command argument state (`Cmd_Argc` / `Cmd_Argv`), the full Dvar and filesystem service graph, actual IWD mounting, licensed FastFiles/map loading, renderer, live touch-to-frame integration, and gameplay remain incomplete. The CI report continues to state `IW3_PLAYABLE_APK=false`; no playable APK exists. Keep PR #4 open and unmerged.
