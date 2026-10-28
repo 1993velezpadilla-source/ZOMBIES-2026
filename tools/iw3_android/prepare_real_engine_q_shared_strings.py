@@ -21,15 +21,12 @@ except ModuleNotFoundError:
 SOURCE = Path("src/universal/q_shared.cpp")
 FUNCTIONS = (
     "void I_strncat(char* dest, int size, const char* src)",
-    "void I_strncpyz(char* dest, const char* src, int destsize)",
-    "int I_stricmp(const char* s0, const char* s1)",
     "int Com_sprintf(char *dest, uint32_t size, const char *fmt, ...)",
 )
 REQUIRED_SOURCE = (
     "void I_strncat(char* dest, int size, const char* src)",
     "Com_Error(ERR_FATAL, \"I_strncat: already overflowed\");",
-    "void I_strncpyz(char* dest, const char* src, int destsize)",
-    "return I_strnicmp(s0, s1, 0x7FFFFFFF);",
+    "int Com_sprintf(char *dest, uint32_t size, const char *fmt, ...)",
     "result = _vsnprintf(dest, size, fmt, va);",
     "dest[size - 1] = 0;",
 )
@@ -75,9 +72,8 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
     for marker in FORBIDDEN:
         if marker in rendered_bodies:
             raise ValueError("Forbidden platform/fake-provider pattern remains: " + marker)
-    for signature in FUNCTIONS[:-1]:
-        if bodies[signature] != function_source(source, signature):
-            raise ValueError("Original string helper changed unexpectedly: " + signature)
+    if bodies[FUNCTIONS[0]] != function_source(source, FUNCTIONS[0]):
+        raise ValueError("Original I_strncat body changed unexpectedly")
     if "std::vsnprintf(dest, static_cast<std::size_t>(size), fmt, va);" not in adapted_fmt:
         raise ValueError("Com_sprintf is not using bounded portable formatting")
     if "va_end(va);" not in adapted_fmt:
@@ -105,7 +101,8 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
             signature: hashlib.sha256(function_source(source, signature).encode("utf-8")).hexdigest()
             for signature in FUNCTIONS
         },
-        "original_I_strncat_I_strncpyz_I_stricmp_bodies_staged_verbatim": True,
+        "original_I_strncat_body_staged_verbatim": True,
+        "I_strncpyz_and_I_stricmp_supplied_by_existing_original_iwd_services_archive": True,
         "original_Com_sprintf_body_staged_with_bounded_vsnprintf_adaptation": True,
         "com_sprintf_minus_one_on_truncation_preserved": True,
         "com_sprintf_zero_size_rejected_before_buffer_indexing": True,
