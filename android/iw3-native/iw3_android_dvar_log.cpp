@@ -11,6 +11,7 @@
 // Android platform sink for the original dvar registry's Com_Printf dependency.
 // This is deliberately scoped to the dvar dependency archive, not a replacement
 // for the engine's full Com_PrintMessage/console/log-file subsystem.
+#if !defined(IW3_ORIGINAL_COM_PRINT_PRINTF_LINK_AUDIT)
 void QDECL Com_Printf(int channel, const char *fmt, ...)
 {
     if (!fmt)
@@ -48,3 +49,4 @@ void QDECL Com_Printf(int channel, const char *fmt, ...)
     (void)std::fflush(stderr);
 #endif
 }
+#endif // !IW3_ORIGINAL_COM_PRINT_PRINTF_LINK_AUDIT

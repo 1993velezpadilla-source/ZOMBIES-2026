@@ -517,6 +517,11 @@ if(ANDROID)
         "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
         "${IW3_ENGINE_SOURCE_ROOT}/../deps")
     target_compile_definitions(iw3_sp_full_dvar PRIVATE KISAK_SP=1)
+    if(IW3_EXTRACTED_COM_PRINT_PRINTF)
+        # Use the authentic Com_Printf body in combined audits; retain the
+        # local log sink only for standalone dvar dependency checks.
+        target_compile_definitions(iw3_sp_full_dvar PRIVATE IW3_ORIGINAL_COM_PRINT_PRINTF_LINK_AUDIT=1)
+    endif()
     target_compile_options(iw3_sp_full_dvar PRIVATE
         -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
     # Preserve all original dvar code and the real Android sleep provider in

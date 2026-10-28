@@ -379,8 +379,9 @@ jobs:
           grep -F 'NET_Sleep(int)' "$RUNNER_TEMP/iw3-full-dvar-defined.txt"
           grep -F 'Dvar_RegisterString' "$RUNNER_TEMP/iw3-full-dvar-defined.txt"
           "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/ld.lld" \
-            -m aarch64linux -r --whole-archive "$dvar_full_archive" \
+            -m aarch64linux -r --whole-archive "$dvar_full_archive" "$print_warning_archive" "$print_printf_archive" \
             --no-whole-archive -o "$RUNNER_TEMP/iw3-full-dvar-combined.o"
+          "$llvm_nm" -C --defined-only "$RUNNER_TEMP/iw3-full-dvar-combined.o" | tee "$RUNNER_TEMP/iw3-full-dvar-combined-defined.txt"
           "$llvm_nm" -u -C "$RUNNER_TEMP/iw3-full-dvar-combined.o" | tee "$RUNNER_TEMP/iw3-full-dvar-unresolved.txt"
           if grep -F 'NET_Sleep(int)' "$RUNNER_TEMP/iw3-full-dvar-unresolved.txt"; then
             echo "Android NET_Sleep provider failed to resolve the original dvar dependency" >&2
@@ -391,7 +392,7 @@ jobs:
             exit 1
           fi
           # Other engine services must remain visible: this is not a full runtime link.
-          grep -F 'Com_Printf(int, char const*, ...)' "$RUNNER_TEMP/iw3-full-dvar-defined.txt"
+          grep -F 'Com_Printf(int, char const*, ...)' "$RUNNER_TEMP/iw3-full-dvar-combined-defined.txt"
           if grep -F 'Com_Printf' "$RUNNER_TEMP/iw3-full-dvar-unresolved.txt"; then
             echo "Android Com_Printf log provider failed to resolve the dvar output dependency" >&2
             exit 1

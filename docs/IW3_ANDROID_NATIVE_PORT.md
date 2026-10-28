@@ -1122,3 +1122,6 @@ This pass stages only the original `QDECL Com_Printf` body. The sole source adap
 - Added source-provenance and workflow-wiring regressions.
 
 **Status at commit time:** CI is required to validate this provider. Even after it passes, this closes one startup logging dependency only; the combined graph still has original command/parser, Dvar startup and fatal-error services unresolved. The Android Activity still does not invoke `FS_Startup()/FS_InitFilesystem()`, mount real game IWD/FastFiles, load a map, render the original scene, or run touch-driven gameplay on physical ARM64. The JNI package remains diagnostic only. Keep PR #4 open and unmerged.
+
+
+**Follow-up link correction:** the first ARM64 attempt exposed a duplicate `Com_Printf` definition from `iw3_android_dvar_log.cpp` when the authentic extracted provider was combined with the dvar archive. The fallback is now compiled only when the original provider is absent. The Dvar audit links the original `Com_Printf` plus the existing `Com_PrintMessage` sink and checks the combined object, rather than claiming the fallback is the original provider. The failed run is retained as evidence and is not counted as a pass.

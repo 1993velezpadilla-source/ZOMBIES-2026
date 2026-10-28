@@ -67,3 +67,12 @@ class OriginalComPrintfTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+    def test_original_printf_replaces_dvar_log_fallback_in_combined_audit(self):
+        cmake = (ROOT / "android/iw3-native/CMakeLists.txt").read_text(encoding="utf-8")
+        workflow = (ROOT / ".github/workflows/iw3-original-native-android.yml").read_text(encoding="utf-8")
+        dvar_log = (ROOT / "android/iw3-native/iw3_android_dvar_log.cpp").read_text(encoding="utf-8")
+        self.assertIn("IW3_ORIGINAL_COM_PRINT_PRINTF_LINK_AUDIT=1", cmake)
+        self.assertIn("#if !defined(IW3_ORIGINAL_COM_PRINT_PRINTF_LINK_AUDIT)", dvar_log)
+        self.assertIn('"$dvar_full_archive" "$print_warning_archive" "$print_printf_archive"', workflow)
+        self.assertIn("iw3-full-dvar-combined-defined.txt", workflow)
