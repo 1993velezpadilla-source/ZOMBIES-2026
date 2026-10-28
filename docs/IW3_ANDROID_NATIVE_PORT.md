@@ -1082,4 +1082,6 @@ The native workflow now compiles `libiw3_sp_com_print_warning.a`, includes it in
 
 The first ARM64 combined-link attempt exposed a duplicate diagnostic `Com_PrintWarning` in `iw3_android_iwd_directory_io.cpp`. That fallback is now guarded by `IW3_IWD_DIRECTORY_LINK_AUDIT`, so it remains available only to the narrow diagnostic path and cannot collide with the staged original warning body in the combined engine audit. A regression pins this separation.
 
+The first JNI integration rerun then showed that the app's Gradle CMake configure does not provide `IW3_EXTRACTED_COM_PRINT_WARNING`. The audit target and its host CTest are now conditional on that extraction variable: the dedicated native-audit workflow supplies it and must compile/link it, while the separate JNI diagnostic build is not forced to generate an audit-only source file. This preserves the distinction between the audit target and the diagnostic APK.
+
 **Validation is pending until the fresh CI runs for the new commit finish.** This closes one logging dependency only. The startup audit still is not a full runtime link; the Android Activity does not invoke `FS_Startup()/FS_InitFilesystem()`, mount licensed game FastFiles, load a map, render a 3D scene, or run player/weapon/actor gameplay on a physical ARM64 device. Keep PR #4 open and unmerged; the JNI package remains diagnostic only.

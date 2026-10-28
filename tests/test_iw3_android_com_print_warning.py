@@ -57,6 +57,8 @@ class OriginalComPrintWarningTests(unittest.TestCase):
         self.assertGreaterEqual(workflow.count("IW3_EXTRACTED_COM_PRINT_WARNING"), 2)
         self.assertIn("IW3_ORIGINAL_COM_PRINT_WARNING_AARCH64_RESOLVED", workflow)
         self.assertIn("iw3_sp_com_print_warning", cmake)
+        self.assertIn("if(IW3_EXTRACTED_COM_PRINT_WARNING)", cmake)
+        self.assertIn("if(IW3_EXTRACTED_COM_PRINT_WARNING)\n        add_executable(iw3_com_print_warning_host_test", cmake)
         self.assertNotIn(r"\${", cmake)
         self.assertIn("Com_PrintMessage", adapter)
         self.assertIn("__android_log_write", adapter)

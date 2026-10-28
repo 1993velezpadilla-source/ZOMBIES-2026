@@ -97,24 +97,26 @@ target_compile_definitions(iw3_sp_fs_startup PRIVATE KISAK_SP=1)
 target_compile_options(iw3_sp_fs_startup PRIVATE
     -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
 
-if(NOT IW3_EXTRACTED_COM_PRINT_WARNING OR NOT EXISTS "${IW3_EXTRACTED_COM_PRINT_WARNING}")
-    message(FATAL_ERROR
-        "Original KisakCOD Com_PrintWarning extraction required for the FS-startup dependency audit")
-endif()
-add_library(iw3_sp_com_print_warning STATIC
-    "${IW3_EXTRACTED_COM_PRINT_WARNING}"
-    "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_com_print_message.cpp")
-target_include_directories(iw3_sp_com_print_warning PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}"
-    "${IW3_REAL_HEADER_ROOT}"
-    "${IW3_ENGINE_SOURCE_ROOT}"
-    "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
-    "${IW3_ENGINE_SOURCE_ROOT}/../deps")
-target_compile_definitions(iw3_sp_com_print_warning PRIVATE KISAK_SP=1)
-target_compile_options(iw3_sp_com_print_warning PRIVATE
-    -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
-if(ANDROID)
-    target_link_libraries(iw3_sp_com_print_warning PUBLIC log)
+if(IW3_EXTRACTED_COM_PRINT_WARNING)
+    if(NOT EXISTS "${IW3_EXTRACTED_COM_PRINT_WARNING}")
+        message(FATAL_ERROR
+            "Original KisakCOD Com_PrintWarning extraction path does not exist")
+    endif()
+    add_library(iw3_sp_com_print_warning STATIC
+        "${IW3_EXTRACTED_COM_PRINT_WARNING}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_com_print_message.cpp")
+    target_include_directories(iw3_sp_com_print_warning PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+        "${IW3_REAL_HEADER_ROOT}"
+        "${IW3_ENGINE_SOURCE_ROOT}"
+        "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+        "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+    target_compile_definitions(iw3_sp_com_print_warning PRIVATE KISAK_SP=1)
+    target_compile_options(iw3_sp_com_print_warning PRIVATE
+        -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
+    if(ANDROID)
+        target_link_libraries(iw3_sp_com_print_warning PUBLIC log)
+    endif()
 endif()
 
 add_library(iw3_sp_frame STATIC "${IW3_ENGINE_SOURCE_ROOT}/game/g_runframe.cpp")
@@ -503,14 +505,16 @@ if(ANDROID)
 else()
     enable_testing()
 
-    add_executable(iw3_com_print_warning_host_test
-        "${CMAKE_CURRENT_SOURCE_DIR}/com_print_warning_native_test.cpp")
-    target_compile_options(iw3_com_print_warning_host_test PRIVATE -UNDEBUG -Wall -Wextra)
-    target_link_libraries(iw3_com_print_warning_host_test PRIVATE iw3_sp_com_print_warning)
-    add_test(NAME iw3_original_com_print_warning_android_sink
-             COMMAND iw3_com_print_warning_host_test)
-    set_tests_properties(iw3_original_com_print_warning_android_sink
-        PROPERTIES PASS_REGULAR_EXPRESSION "IW3_WARNING_PROBE_7")
+    if(IW3_EXTRACTED_COM_PRINT_WARNING)
+        add_executable(iw3_com_print_warning_host_test
+            "${CMAKE_CURRENT_SOURCE_DIR}/com_print_warning_native_test.cpp")
+        target_compile_options(iw3_com_print_warning_host_test PRIVATE -UNDEBUG -Wall -Wextra)
+        target_link_libraries(iw3_com_print_warning_host_test PRIVATE iw3_sp_com_print_warning)
+        add_test(NAME iw3_original_com_print_warning_android_sink
+                 COMMAND iw3_com_print_warning_host_test)
+        set_tests_properties(iw3_original_com_print_warning_android_sink
+            PROPERTIES PASS_REGULAR_EXPRESSION "IW3_WARNING_PROBE_7")
+    endif()
 
     add_executable(iw3_filter_host_test
         "${CMAKE_CURRENT_SOURCE_DIR}/filter_native_test.cpp")
