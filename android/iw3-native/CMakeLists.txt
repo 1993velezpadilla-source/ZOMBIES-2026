@@ -97,35 +97,37 @@ target_compile_definitions(iw3_sp_fs_startup PRIVATE KISAK_SP=1)
 target_compile_options(iw3_sp_fs_startup PRIVATE
     -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
 
-# Compile the authentic parser/session routines needed by filesystem startup.
-# Host tests execute these original bodies; the Android archive remains a dependency
-# audit and is deliberately not linked into the JNI diagnostic application.
-if(NOT IW3_EXTRACTED_Q_PARSE OR NOT EXISTS "${IW3_EXTRACTED_Q_PARSE}")
-    message(FATAL_ERROR "Original KisakCOD q_parse.cpp extraction required")
-endif()
-add_library(iw3_sp_q_parse STATIC "${IW3_EXTRACTED_Q_PARSE}")
-target_include_directories(iw3_sp_q_parse PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}"
-    "${IW3_REAL_HEADER_ROOT}"
-    "${IW3_ENGINE_SOURCE_ROOT}"
-    "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
-    "${IW3_ENGINE_SOURCE_ROOT}/../deps")
-target_compile_definitions(iw3_sp_q_parse PRIVATE KISAK_SP=1)
-target_compile_options(iw3_sp_q_parse PRIVATE
-    -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
-
-if(NOT ANDROID)
-    add_executable(iw3_q_parse_native_test parser_native_test.cpp)
-    target_include_directories(iw3_q_parse_native_test PRIVATE
+# Compile the authentic parser/session routines when the source-audit workflow
+# supplies the extracted file. The JNI diagnostic shares this CMakeLists but does
+# not stage/link this audit archive, so absence is not a configure-time failure.
+if(IW3_EXTRACTED_Q_PARSE)
+    if(NOT EXISTS "${IW3_EXTRACTED_Q_PARSE}")
+        message(FATAL_ERROR "Configured original KisakCOD q_parse.cpp extraction path does not exist")
+    endif()
+    add_library(iw3_sp_q_parse STATIC "${IW3_EXTRACTED_Q_PARSE}")
+    target_include_directories(iw3_sp_q_parse PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}"
         "${IW3_REAL_HEADER_ROOT}"
         "${IW3_ENGINE_SOURCE_ROOT}"
         "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
         "${IW3_ENGINE_SOURCE_ROOT}/../deps")
-    target_compile_definitions(iw3_q_parse_native_test PRIVATE KISAK_SP=1)
-    target_link_libraries(iw3_q_parse_native_test PRIVATE iw3_sp_q_parse)
-    target_compile_options(iw3_q_parse_native_test PRIVATE -UNDEBUG -Wall -Wextra)
-    add_test(NAME iw3_original_q_parse_host_runtime COMMAND iw3_q_parse_native_test)
+    target_compile_definitions(iw3_sp_q_parse PRIVATE KISAK_SP=1)
+    target_compile_options(iw3_sp_q_parse PRIVATE
+        -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
+
+    if(NOT ANDROID)
+        add_executable(iw3_q_parse_native_test parser_native_test.cpp)
+        target_include_directories(iw3_q_parse_native_test PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}"
+            "${IW3_REAL_HEADER_ROOT}"
+            "${IW3_ENGINE_SOURCE_ROOT}"
+            "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+            "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+        target_compile_definitions(iw3_q_parse_native_test PRIVATE KISAK_SP=1)
+        target_link_libraries(iw3_q_parse_native_test PRIVATE iw3_sp_q_parse)
+        target_compile_options(iw3_q_parse_native_test PRIVATE -UNDEBUG -Wall -Wextra)
+        add_test(NAME iw3_original_q_parse_host_runtime COMMAND iw3_q_parse_native_test)
+    endif()
 endif()
 
 if(IW3_EXTRACTED_COM_PRINT_WARNING)
