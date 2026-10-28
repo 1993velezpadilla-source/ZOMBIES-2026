@@ -200,22 +200,14 @@ void __cdecl TRACK_com_math()
     track_static_alloc_internal(bytedirs, 1944, "bytedirs", 10);
 }
 
-#if defined(__ANDROID__)
 float __cdecl Com_Random()
-#else
-float __cdecl random()
-#endif
 {
     return (rand() / 32768.0);
 }
 
 float __cdecl crandom()
 {
-    #if defined(__ANDROID__)
     return (Com_Random() * 2.0 - 1.0);
-#else
-    return (random() * 2.0 - 1.0);
-#endif
 }
 
 void __cdecl GaussianRandom(float *f0, float *f1)
