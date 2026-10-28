@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstddef>
+#include <cstdint>
 #include <script/scr_stringlist.h>
 #include "q_shared.h"
 #include "com_memory_state.h"
