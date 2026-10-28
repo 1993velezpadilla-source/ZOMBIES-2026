@@ -18,6 +18,102 @@ static int g_fatal_errors = 0;
 static std::vector<std::string> g_probed_paths;
 static std::vector<std::string> g_iwd_game_folders;
 
+static bool g_force_empty_homepath = false;
+static int g_registered_dvars = 0;
+static int g_cdkey_reads = 0;
+static int g_add_commands_calls = 0;
+static int g_path_command_calls = 0;
+static int g_clear_modified_calls = 0;
+static dvar_s g_dvar_slots[16]{};
+static const char *g_dvar_names[16]{};
+static int g_dvar_slot_count = 0;
+
+const dvar_t *fs_homepath = nullptr;
+const dvar_s *fs_debug = nullptr;
+const dvar_s *fs_restrict = nullptr;
+const dvar_s *fs_ignoreLocalized = nullptr;
+const dvar_s *fs_basepath = nullptr;
+const dvar_s *fs_copyfiles = nullptr;
+const dvar_s *fs_cdpath = nullptr;
+const dvar_s *fs_gameDirVar = nullptr;
+const dvar_s *fs_basegame = nullptr;
+int fs_iwdFileCount = 0;
+int fs_checksumFeed = 0;
+
+void __cdecl FS_Startup(char *gameName);
+
+static dvar_s *dvar_slot(const char *name) {
+    for (int i = 0; i < g_dvar_slot_count; ++i) {
+        if (std::strcmp(g_dvar_names[i], name) == 0) return &g_dvar_slots[i];
+    }
+    assert(g_dvar_slot_count < 16);
+    const int index = g_dvar_slot_count++;
+    g_dvar_names[index] = name;
+    g_dvar_slots[index].name = name;
+    ++g_registered_dvars;
+    return &g_dvar_slots[index];
+}
+
+const dvar_s *__cdecl Dvar_RegisterInt(const char *name, int value, DvarLimits, uint16_t, const char *) {
+    dvar_s *d = dvar_slot(name);
+    d->current.integer = value;
+    d->reset.integer = value;
+    return d;
+}
+
+const dvar_s *__cdecl Dvar_RegisterBool(const char *name, bool value, uint16_t, const char *) {
+    dvar_s *d = dvar_slot(name);
+    d->current.enabled = value;
+    d->reset.enabled = value;
+    return d;
+}
+
+const dvar_s *__cdecl Dvar_RegisterString(const char *name, const char *value, uint16_t, const char *) {
+    dvar_s *d = dvar_slot(name);
+    const char *initial = value ? value : "";
+    if (g_force_empty_homepath && std::strcmp(name, "fs_homepath") == 0) initial = "";
+    d->current.string = initial;
+    d->reset.string = initial;
+    return d;
+}
+
+void __cdecl Dvar_SetDomainFunc(dvar_s *dvar, bool (__cdecl *domainFunc)(dvar_s *, DvarValue)) {
+    assert(dvar);
+    dvar->domainFunc = domainFunc;
+}
+
+void __cdecl Dvar_ClearModified(dvar_s *dvar) {
+    assert(dvar);
+    dvar->modified = false;
+    ++g_clear_modified_calls;
+}
+
+bool __cdecl FS_GameDirDomainFunc(dvar_s *, DvarValue) { return true; }
+
+char *Sys_Cwd() {
+    static char root[] = "/private/iw3";
+    return root;
+}
+
+char *Sys_DefaultCDPath() {
+    static char empty[] = "";
+    return empty;
+}
+
+void QDECL Com_Printf(int, const char *, ...) {}
+void __cdecl Com_ReadCDKey() { ++g_cdkey_reads; }
+void FS_AddCommands() { ++g_add_commands_calls; }
+void FS_Path_f() { ++g_path_command_calls; }
+
+char *va(const char *format, ...) {
+    static thread_local char buffer[256];
+    va_list args;
+    va_start(args, format);
+    std::vsnprintf(buffer, sizeof(buffer), format, args);
+    va_end(args);
+    return buffer;
+}
+
 const char *__cdecl SEH_GetLanguageName(uint32_t language) {
     return language == 0 ? "english" : "";
 }
@@ -141,6 +237,51 @@ int main() {
     assert(nonlocalized_count == 1);
     assert(saw_english && saw_plain_main);
     assert(std::strcmp(fs_gamedir, "main") == 0);
+
+    while (fs_searchpaths) {
+        searchpath_s *next = fs_searchpaths->next;
+        std::free(fs_searchpaths->dir);
+        std::free(fs_searchpaths);
+        fs_searchpaths = next;
+    }
+
+    // Execute the authentic FS_RegisterDvars and FS_Startup bodies with only
+    // the platform/Dvar registry services supplied by this host harness.
+    // An explicit empty fs_homepath must not become a relative search root.
+    g_directory_probes = 0;
+    g_iwd_scans = 0;
+    g_probed_paths.clear();
+    g_iwd_game_folders.clear();
+    g_force_empty_homepath = true;
+    char main_game[] = "main";
+    FS_Startup(main_game);
+
+    assert(fs_basepath && std::strcmp(fs_basepath->current.string, "/private/iw3") == 0);
+    assert(fs_homepath && fs_homepath->current.string && fs_homepath->current.string[0] == '\0');
+    assert(g_registered_dvars == 9);
+    assert(g_cdkey_reads == 1);
+    assert(g_add_commands_calls == 1);
+    assert(g_path_command_calls == 1);
+    assert(g_clear_modified_calls == 1);
+    assert(g_directory_probes == 7);
+    assert(g_probed_paths.size() == 7);
+    assert(g_iwd_scans == 14);
+    assert(g_iwd_game_folders.size() == 14);
+
+    int startup_paths = 0;
+    bool saw_main = false;
+    bool saw_main_shared = false;
+    for (searchpath_s *entry = fs_searchpaths; entry; entry = entry->next) {
+        ++startup_paths;
+        assert(entry->dir);
+        assert(entry->dir->path[0] != '\0');
+        assert(std::strcmp(entry->dir->path, "/private/iw3") == 0);
+        if (std::strcmp(entry->dir->gamedir, "main") == 0) saw_main = true;
+        if (std::strcmp(entry->dir->gamedir, "main_shared") == 0) saw_main_shared = true;
+    }
+    assert(startup_paths == 14);
+    assert(saw_main && saw_main_shared);
+    std::puts("IW3_ORIGINAL_FS_STARTUP_EMPTY_HOMEPATH_PASS");
 
     while (fs_searchpaths) {
         searchpath_s *next = fs_searchpaths->next;

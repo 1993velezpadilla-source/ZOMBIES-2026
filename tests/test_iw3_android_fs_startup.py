@@ -62,6 +62,7 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
             self.assertFalse(report["startup_runtime_invoked"])
             self.assertFalse(report["licensed_fastfile_or_map_loaded"])
             self.assertFalse(report["renderer_or_gameplay_proven"])
+            self.assertTrue(report["empty_homepath_search_registration_skipped"])
             self.assertFalse(report["playable_apk"])
             for marker in REQUIRED:
                 self.assertIn(marker, staged)
@@ -71,6 +72,21 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
             self.assertIn('"startup_runtime_invoked": false', saved_report)
         self.assertEqual(source_path.read_bytes(), original)
 
+    def test_startup_never_registers_an_empty_homepath_as_a_relative_search_root(self):
+        source = (ENGINE / SOURCE).read_text(encoding="utf-8")
+        startup = function_source(source, "void __cdecl FS_Startup(char *gameName)")
+        guarded_homepath = (
+            "if (fs_homepath->current.string[0] != '\\0')\n"
+            "            FS_AddLocalizedGameDirectory((char *)fs_homepath->current.string, gameName);"
+        )
+        self.assertIn(guarded_homepath, startup)
+
+        generator = (ROOT / "tools/iw3_android/prepare_real_engine_fs_startup.py").read_text(encoding="utf-8")
+        native_test = (ROOT / "android/iw3-native/fs_localized_path_native_test.cpp").read_text(encoding="utf-8")
+        self.assertIn('"empty_homepath_search_registration_skipped": True', generator)
+        self.assertIn("FS_Startup(main_game);", native_test)
+        self.assertIn("assert(entry->dir->path[0] != '\\0');", native_test)
+        self.assertIn("IW3_ORIGINAL_FS_STARTUP_EMPTY_HOMEPATH_PASS", native_test)
     def test_original_game_directory_setup_uses_native_allocation_size(self):
         source = (ENGINE / SOURCE).read_text(encoding="utf-8")
         add_searchpath = function_source(

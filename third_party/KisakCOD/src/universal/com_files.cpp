@@ -2164,7 +2164,11 @@ void __cdecl FS_Startup(char *gameName)
     {
         v3 = va("%s_shared", gameName);
         FS_AddLocalizedGameDirectory((char *)fs_basepath->current.string, v3);
-        FS_AddLocalizedGameDirectory((char *)fs_homepath->current.string, gameName);
+        // An explicitly empty home path disables this search root. Registering
+        // it would create relative/empty-path searchpaths that Android's rooted
+        // POSIX file adapter must reject and that can alias unrelated directories.
+        if (fs_homepath->current.string[0] != '\0')
+            FS_AddLocalizedGameDirectory((char *)fs_homepath->current.string, gameName);
     }
     if (fs_basegame->current.string[0] != '\0'
         && !I_stricmp(gameName, "main")
