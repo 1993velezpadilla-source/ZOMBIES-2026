@@ -25,7 +25,7 @@ class AndroidFsStartupDirectoryTests(unittest.TestCase):
         self.assertIn("fs_startup_directory_native_test.cpp", cmake)
         self.assertIn("iw3_original_fs_directory_probe_rooted", cmake)
         self.assertIn("Sys_DirectoryHasContents; do", workflow)
-        self.assertIn('"$ld_lld" -m aarch64linux -r --whole-archive "$startup_archive" "$print_warning_archive" "$print_printf_archive" --no-whole-archive', workflow)
+        self.assertIn('"$ld_lld" -m aarch64linux -r --whole-archive "$startup_archive" "$parser_archive" "$print_warning_archive" "$print_printf_archive" --no-whole-archive', workflow)
         self.assertIn('iw3-fs-startup-combined.o', workflow)
         self.assertIn('iw3-fs-startup-undefined.txt', workflow)
         self.assertIn("Android rooted Sys_DirectoryHasContents adapter failed", workflow)
