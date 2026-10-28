@@ -460,12 +460,18 @@ jobs:
             fi
           done
           grep -F 'g_languages' "$RUNNER_TEMP/iw3-fs-dvar-iwd-defined.txt"
-          # Keep the next missing runtime services explicit. The HunkUser
-          # allocator and POSIX virtual-memory provider are now linked; these
-          # assertion/path-filter services are still not papered over.
-          for symbol in MyAssertHandler Com_FilterPath I_strnicmp; do
-            grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-iwd-undefined.txt"
+          # HunkUser now supplies the real assertion handler, and the original
+          # q_shared string provider supplies I_strnicmp. Require both to be
+          # defined and not unresolved. Com_FilterPath remains a real missing
+          # path-filter service; keep it visible rather than adding a stub.
+          for symbol in MyAssertHandler I_strnicmp; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-iwd-defined.txt"
+            if grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-iwd-undefined.txt"; then
+              echo "Original provider unexpectedly unresolved: $symbol" >&2
+              exit 1
+            fi
           done
+          grep -F "Com_FilterPath" "$RUNNER_TEMP/iw3-fs-dvar-iwd-undefined.txt"
           echo "IW3_ORIGINAL_FS_STARTUP_IWD_DIRECTORY_READFILE_HUNK_AARCH64_LINK_GREEN"
           echo "IW3_ORIGINAL_FS_STARTUP_LANGUAGE_INIT_AARCH64_LINK_GREEN"
           echo "IW3_ORIGINAL_STRINGED_INIT_CHAIN_AARCH64_LINK_GREEN"
