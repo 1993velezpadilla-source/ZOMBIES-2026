@@ -956,3 +956,22 @@ The failed native attempt was [run 40626969922](https://github.com/1993velezpadi
 The next runtime dependency boundary remains the original Hunk-user allocator family: `Hunk_UserCreate`, `Hunk_UserAlloc`, `Hunk_UserDestroy`, `Hunk_CopyString`, plus `Com_FilterPath` and `I_strnicmp`. The audit must continue exposing those until their authentic providers are ported and exercised.
 
 No full runtime start, licensed FastFile/map load, 3D scene render, physical ARM64 execution, or gameplay is proven. The diagnostic JNI APK is not the game; PR #4 stays open and unmerged.
+
+
+
+## Phase BJ — replace the D3D-coupled StringEd TU with source-verified loader bodies (2026-10-27; validation pending)
+
+The next native build showed that compiling the whole upstream `stringed_ingame.cpp` translation unit imports `database/database.h` and fails on `gfx_d3d/r_gfx.h: d3d9.h` in the Android/Linux build. That TU contains both the needed original StringEd loader and unrelated D3D/FastFile lookup entry points, so compiling it whole is not a valid Android integration boundary.
+
+Correction:
+
+- Added [prepare_real_engine_stringed.py](https://github.com/1993velezpadilla-source/ZOMBIES-2026/blob/feature/iw3-native-android-arm64-20261025/tools/iw3_android/prepare_real_engine_stringed.py) in commit [f45f27b](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/f45f27b9ace80f440af2fa9476f51230916da079). It hash-checks the vendored source and extracts the original `SE_Init`, `SE_ShutDown`, `SE_LoadLanguage`, `SE_Load`, `SE_GetFoundFile`, `SE_LoadFileData`, `SE_FreeFileDataAfterLoad`, `SE_BuildFileList`, `SE_R_ListFiles` and `SE_NewLanguage` bodies plus their source-owned globals. It excludes `database/database.h` and the unrelated `SE_GetString_FastFile` DB path; no loader logic is replaced.
+- Commit [c0844dd](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/c0844ddd69ca0d588c6674757b478c1930dcc991) changed the CMake provider to consume this extracted source. Commit [2617952](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/2617952a840be301351881b2260cec3fa82483a3) stages it and passes `IW3_EXTRACTED_STRINGED_INGAME` to both host and ARM64 configurations.
+- Commit [c6d616d](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/c6d616dc2104c8bfb68c11d26d57cb43cfcb5410) adds generator/link-boundary regressions. The follow-up [commit 77616cf](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/77616cf2df517ac7a77082b60e2d9e6211e295f3) updates the language test to assert the generated-source variable rather than the removed full-TU path.
+
+Validation notes:
+- Native run [40627217087](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40627217087) failed on the D3D header dependency, as expected for the full-TU experiment.
+- Native run [40627243110](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40627243110) failed earlier in preflight because a regression still expected the old full-source CMake path. That assertion was updated in `77616cf`.
+- The latest native/NDK run [40627267559](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40627267559) and the associated JNI/emulator jobs have not yet produced final results; do not mark this phase CI-green until they finish.
+
+The code is still a dependency audit, not a playable build. The original filesystem startup is not invoked by the Activity, no real FastFile/map is loaded, and no scene render or touch-driven weapon/actor loop is proven on ARM64. PR #4 remains open and unmerged.
