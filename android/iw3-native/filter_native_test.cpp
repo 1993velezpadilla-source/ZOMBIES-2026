@@ -6,7 +6,7 @@
 int main()
 {
     assert(Com_FilterPath("maps/*.bsp", "maps/mp_test.bsp", 0));
-    assert(Com_FilterPath("maps\\\\*.bsp", "maps/mp_test.bsp", 0));
+    assert(Com_FilterPath("maps\\*.bsp", "maps/mp_test.bsp", 0));
     assert(Com_FilterPath("maps:*.bsp", "maps\\mp_test.bsp", 0));
     assert(Com_FilterPath("MAPS/*.BSP", "maps/mp_test.bsp", 0));
     assert(!Com_FilterPath("MAPS/*.BSP", "maps/mp_test.bsp", 1));
