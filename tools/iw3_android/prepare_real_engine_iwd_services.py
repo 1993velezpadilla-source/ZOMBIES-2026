@@ -20,6 +20,8 @@ except ModuleNotFoundError:
 FILES = Path("src/universal/com_files.cpp")
 STATE_SOURCE = Path("src/universal/com_files_state.cpp")
 SHARED_STATE_GLOBALS = ("int fs_iwdFileCount = 0;", "int fs_checksumFeed = 0;")
+# These are the exact language-sort scratch globals from original com_files.cpp.
+LANGUAGE_GLOBALS = ("char szIwdLanguageName[2][64];", "int iString = 0;")
 FUNCTIONS = (
     ("bool I_isupper(int c)", Path("src/universal/q_shared.cpp")),
     ("void I_strncpyz(char* dest, const char* src, int destsize)", Path("src/universal/q_shared.cpp")),
@@ -33,6 +35,11 @@ FUNCTIONS = (
     ("void* Z_Malloc(int32_t size, const char* name, int32_t type)", Path("src/universal/com_memory.cpp")),
     ("void __cdecl Z_Free(void *ptr, int32_t type)", Path("src/universal/com_memory.cpp")),
     ("int __cdecl Com_BlockChecksumKey32(const uint8_t *data, uint32_t length, uint32_t initialCrc)", Path("src/qcommon/com_bsp_load_obj.cpp")),
+    ("char *__cdecl IwdFileLanguage(const char *pszIwdFileName)", FILES),
+    ("int __cdecl FS_PathCmp(const char *s1, const char *s2)", FILES),
+    ("int __cdecl iwdsort(const char **a, char **b)", FILES),
+    ("bool I_islower(int c)", Path("src/universal/q_shared.cpp")),
+    ("int __cdecl I_strncmp(const char *s0, const char *s1, int n)", Path("src/universal/q_shared.cpp")),
 )
 HEADER = (
     '#include <universal/q_shared.h>\n'
@@ -42,6 +49,7 @@ HEADER = (
     '#include <cstdlib>\n'
     '#include <cstring>\n'
     '#include <cstdint>\n'
+    '#include <cctype>\n'
     '#undef iassert\n'
     '#define iassert(expr) assert(expr)\n'
 )
@@ -56,6 +64,12 @@ REQUIRED = (
     "return ~crc;",
     "void __cdecl Com_Memset(void *dest_p, const int val, const size_t count)",
     "_copyDWord(dest, val |",
+    "char *__cdecl IwdFileLanguage(const char *pszIwdFileName)",
+    "int __cdecl FS_PathCmp(const char *s1, const char *s2)",
+    "int __cdecl iwdsort(const char **a, char **b)",
+    'I_strncmp(*a, "          ", 10)',
+    "return FS_PathCmp(aa, bb);",
+    "iString ^= 1u;",
 )
 FORBIDDEN = ("MyAssertHandler", "Com_BlockChecksumKey32(const unsigned char *data, int length, int key)")
 
@@ -69,6 +83,9 @@ def prepare(engine: Path, output: Path) -> dict:
         raise ValueError("Never overwrite authentic KisakCOD source")
 
     source_text = {path: raw.decode("utf-8") for path, raw in source_bytes.items()}
+    for marker in LANGUAGE_GLOBALS:
+        if marker not in source_text[FILES]:
+            raise ValueError("Original IWD language-sort state missing from com_files.cpp: " + marker)
     state_bytes = (engine / STATE_SOURCE).read_bytes()
     state_text = state_bytes.decode("utf-8")
     for marker in SHARED_STATE_GLOBALS:
@@ -82,7 +99,7 @@ def prepare(engine: Path, output: Path) -> dict:
         function_source(source_text[path], signature)
         for signature, path in FUNCTIONS
     ]
-    rendered = HEADER + "\n\n".join(bodies) + "\n"
+    rendered = HEADER + "\n".join(LANGUAGE_GLOBALS) + "\n\n" + "\n\n".join(bodies) + "\n"
     for marker in REQUIRED:
         if marker not in rendered:
             raise ValueError("Original IWD service body changed: " + marker)
@@ -107,6 +124,8 @@ def prepare(engine: Path, output: Path) -> dict:
         "original_allocator_and_free_staged": True,
         "original_checksum_algorithm_staged": True,
         "original_string_helpers_staged": True,
+        "original_iwd_language_and_sort_helpers_staged_verbatim": True,
+        "original_iwd_language_sort_state_staged_from_com_files_cpp": True,
         "iwd_state_globals_from_shared_engine_source": True,
         "assertion_adapter": "standard assert for isolated original string helpers",
         "source_staged_for_android_diagnostic_link": True,
