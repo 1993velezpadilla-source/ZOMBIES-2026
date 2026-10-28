@@ -30,6 +30,7 @@ class AndroidGameDataImportTests(unittest.TestCase):
         self.assertIn("MAX_DIRECTORY_DEPTH", source)
         self.assertIn("MAX_DOCUMENT_NODES", source)
         self.assertIn("MAX_SOURCE_FILES", source)
+        self.assertIn('"main".equals(relativePath) || "zone".equals(relativePath)', source)
         self.assertIn("Duplicate normalized game-data path", source)
         self.assertIn('name.indexOf(\'/\') < 0', source)
         self.assertIn("name.indexOf(0) < 0", source)
@@ -41,7 +42,7 @@ class AndroidGameDataImportTests(unittest.TestCase):
         self.assertIn("MAX_DIRECTORY_DEPTH = 16", source)
         self.assertIn("MAX_DOCUMENT_NODES = 32768", source)
         self.assertIn("MAX_SOURCE_FILES = 16384", source)
-        self.assertIn("Atomic rename on the same private filesystem", source)
+        self.assertIn("POSIX rename on the same private filesystem atomically replaces", source)
         self.assertNotIn("if (target.exists() && !target.delete())", source)
 
     def test_importer_never_packages_assets_or_claims_engine_loading(self):

@@ -214,7 +214,8 @@ public final class GameDataImporter {
                 if (directory) {
                     // Only main/ and zone/ are imported. Reject directory names
                     // that normalize onto an already-seen destination directory.
-                    if (relativePath.startsWith("main/") || relativePath.startsWith("zone/")) {
+                    if ("main".equals(relativePath) || "zone".equals(relativePath)
+                            || relativePath.startsWith("main/") || relativePath.startsWith("zone/")) {
                         if (!normalizedDestinationPaths.add(relativePath)) {
                             throw new IOException("Duplicate normalized game-data path: " + relativePath);
                         }
