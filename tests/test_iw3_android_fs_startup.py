@@ -198,7 +198,7 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
         self.assertIn("IW3_EXTRACTED_IWD_NAMES", cmake)
         self.assertIn("add_library(iw3_sp_unzip STATIC", cmake)
         workflow = (ROOT / ".github/workflows/iw3-original-native-android.yml").read_text(encoding="utf-8")
-        self.assertIn('"$startup_archive" "$print_warning_archive" "$dvar_full_archive" "$iwd_services_archive"', workflow)
+        self.assertIn('"$startup_archive" "$print_warning_archive" "$q_shared_strings_archive" "$dvar_full_archive" "$iwd_services_archive"', workflow)
         self.assertIn('"$iwd_mount_archive" "$unzip_archive" "$iwd_directory_archive"', workflow)
         self.assertIn("libiw3_sp_iwd_directory_services.a", workflow)
         self.assertIn("IW3_ORIGINAL_FS_STARTUP_IWD_DIRECTORY_READFILE_HUNK_AARCH64_LINK_GREEN", workflow)
