@@ -41,7 +41,8 @@ class Lp64ScriptLayoutTests(unittest.TestCase):
     def test_math_header_avoids_android_posix_random_collision(self):
         header = (ENGINE / "universal/com_math.h").read_text(encoding="utf-8")
         source = (ENGINE / "universal/com_math.cpp").read_text(encoding="utf-8")
-        self.assertIn("#if defined(__ANDROID__)\n// Avoid colliding with POSIX long random(void) on Android/Linux.\nfloat __cdecl Com_Random();", header)
+        self.assertIn("float __cdecl Com_Random();", header)
+        self.assertNotIn("float __cdecl random();", header)
         self.assertIn("float __cdecl Com_Random()", source)
         self.assertIn("return (Com_Random() * 2.0 - 1.0);", source)
         self.assertIn("#define KISAK_FORCEINLINE static inline __attribute__((always_inline))", header)
