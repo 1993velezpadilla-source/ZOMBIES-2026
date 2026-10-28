@@ -70,25 +70,8 @@ void __cdecl FS_FreeFileList(const char **list) {
     if (list) Z_Free(const_cast<char **>(list), 3);
 }
 
-void __cdecl FS_BuildOSPath(const char *base, const char *game,
-                            const char *qpath, char *ospath) {
-    if (!ospath) return;
-    ospath[0] = '\0';
-    std::string result;
-    auto append = [&result](const char *part) {
-        if (!part || !*part) return;
-        if (!result.empty() && result.back() != '/') result.push_back('/');
-        result += part;
-    };
-    append(base);
-    append(game);
-    if (qpath && *qpath) append(qpath);
-    else if (result.empty() || result.back() != '/') result.push_back('/');
-    // FS_AddIwdFilesForGameDirectory owns a 260-byte stack buffer. Fail closed
-    // instead of truncating a path that would identify a different archive.
-    if (result.size() >= 260) return;
-    std::memcpy(ospath, result.c_str(), result.size() + 1);
-}
+// duplicate FS_BuildOSPath adapter is provided by the verbatim KisakCOD FS startup/path-builder object.
+
 
 // The directory scanner's platform boundary is intentionally limited to the
 // English locale until the authentic stringed subsystem is ported. Non-English
@@ -109,6 +92,25 @@ void __cdecl Com_PrintWarning(int, const char *format, ...) {
 }
 void __cdecl Com_Printf(int, const char *format, ...) {
     if (format) std::fputs(format, stderr);
+}
+
+// The original FS_BuildOSPathForThread reports an ERR_FATAL when an engine path
+// exceeds its fixed limit. This narrow Android diagnostic boundary has no
+// engine-level error recovery loop yet, so preserve fail-closed fatal behavior
+// rather than returning a truncated path or pretending ERR_DROP is recoverable.
+void __cdecl Com_Error(errorParm_t code, const char *format, ...) {
+    char message[4096]{};
+    if (format) {
+        va_list args;
+        va_start(args, format);
+        const int written = std::vsnprintf(message, sizeof(message), format, args);
+        va_end(args);
+        if (written < 0) message[0] = '\0';
+        message[sizeof(message) - 1] = '\0';
+    }
+    std::fprintf(stderr, "IW3 fatal engine error (%d): %s\n",
+                 static_cast<int>(code), message);
+    std::abort();
 }
 
 int Com_sprintf(char *dest, uint32_t size, const char *format, ...) {
