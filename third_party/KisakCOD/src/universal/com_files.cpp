@@ -1429,6 +1429,15 @@ iwd_t *__cdecl FS_LoadZipFile(char *zipfile, char *basename)
         unzClose(uf);
         return 0;
     }
+    // fs_iwdFileCount is a signed process-global counter shared by all mounted
+    // IWDs. Reject a corrupt/oversized archive before allocation if adding its
+    // central-directory entry count could overflow that counter on LP64 too.
+    if (fs_iwdFileCount < 0 ||
+        gi.number_entry > static_cast<uint32_t>(INT_MAX - fs_iwdFileCount))
+    {
+        unzClose(uf);
+        return 0;
+    }
     // Empty archives cannot produce a usable IWD searchpath and would make
     // the original zero-byte allocation/name-table pointer undefined.
     if (!gi.number_entry || unzGoToFirstFile(uf) != UNZ_OK)
