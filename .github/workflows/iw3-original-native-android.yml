@@ -584,6 +584,12 @@ jobs:
             ${{ runner.temp }}/iw3-original-language.json
             ${{ runner.temp }}/iw3-source/iw3_language.cpp
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_language.a
+            ${{ runner.temp }}/iw3-original-stringed.json
+            ${{ runner.temp }}/iw3-source/iw3_stringed_ingame.cpp
+            ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_stringed_ingame.a
+            ${{ runner.temp }}/iw3-original-hunk-user.json
+            ${{ runner.temp }}/iw3-source/iw3_hunk_user.cpp
+            ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_hunk_user.a
             ${{ runner.temp }}/iw3-original-iwd-directory-services.json
             ${{ runner.temp }}/iw3-fs-dvar-iwd-combined.o
             ${{ runner.temp }}/iw3-fs-dvar-iwd-defined.txt
