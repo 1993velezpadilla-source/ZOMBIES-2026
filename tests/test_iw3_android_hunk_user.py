@@ -69,7 +69,9 @@ class OriginalHunkUserTests(unittest.TestCase):
         self.assertEqual(workflow.count('-DIW3_EXTRACTED_HUNK_USER="$RUNNER_TEMP/iw3-source/iw3_hunk_user.cpp"'), 2)
         self.assertIn("libiw3_sp_hunk_user.a", workflow)
         self.assertIn("IW3_ORIGINAL_HUNK_USER_LP64_AARCH64_LINK_GREEN", workflow)
-        self.assertIn("for symbol in MyAssertHandler Com_FilterPath I_strnicmp; do", workflow)
+        self.assertIn("for symbol in MyAssertHandler I_strnicmp; do", workflow)
+        self.assertIn('grep -F "Com_FilterPath" "$RUNNER_TEMP/iw3-fs-dvar-iwd-undefined.txt"', workflow)
+        self.assertIn('grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-iwd-defined.txt"', workflow)
         self.assertIn('echo "IW3_FS_STARTUP_RUNTIME_INVOKED=false"', workflow)
         self.assertIn('echo "IW3_PLAYABLE_APK=false"', workflow)
 
