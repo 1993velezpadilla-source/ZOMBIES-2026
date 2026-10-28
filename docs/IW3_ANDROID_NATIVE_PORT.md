@@ -854,3 +854,16 @@ Current validation after this correction:
 - [Android emulator probe 40616676055](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40616676055) — PASS on x86_64 emulator. Logs prove the diagnostic adapter observed attack=1/buttons=1, sprint buttons=2, and slide buttons=514 after actual ADB taps. This is not ARM64-device gameplay.
 
 No playable APK, real map load, 3D scene render, or physical ARM64 gameplay is claimed.
+
+
+### Phase BE — original Hunk temporary allocator made LP64-safe (2026-10-27)
+
+The next dependency after the original FS_ReadFile audit was Hunk_AllocateTempMemory / Hunk_FreeTempMemory. The authentic com_memory.cpp used uint32_t pointer masks for 4 KiB page boundaries and always added a 32-bit dummy field to hunkHeader_t; on ARM64 the pointer field is eight bytes, so that header would exceed the allocator's fixed 16-byte offset.
+
+This pass moves the Hunk counters/base pointers into one engine-owned com_memory_state.cpp used by the common engine source list, fixes the original temporary allocator's page-base arithmetic through uintptr_t, and keeps the allocation header exactly 16 bytes on both ILP32 and LP64. The original allocator bodies are staged into an ARM64 dependency-audit archive and combined with the FS/Dvar/IWD/readfile archives; no memory or language service is stubbed.
+
+Fresh preflight, host Release/ASan/UBSan and Android ARM64 CI are pending for this update. The expected link gate is that Hunk_AllocateTempMemory and Hunk_FreeTempMemory become defined; SEH_InitLanguage and the remaining virtual-memory/tracker services stay visible. The archive is not the runtime and is not linked into the diagnostic APK.
+
+The emulator probe now rechecks foreground/accessibility state before each gesture and uses short hold gestures so a recurring Quickstep launcher ANR cannot silently consume the remaining inputs. The latest prior emulator attempt passed ZIP/IWD/read diagnostics but failed the usercmd gesture assertions after the launcher overlay; this correction is not validated until the new emulator run finishes.
+
+Hard boundary: FS_Startup/FS_InitFilesystem have not been invoked in the complete Android runtime; no licensed map/FastFile, renderer scene, physical ARM64 gameplay, or playable APK is claimed. PR #4 remains open and unmerged.
