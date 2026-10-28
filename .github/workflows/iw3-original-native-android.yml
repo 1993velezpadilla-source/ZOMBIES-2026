@@ -413,6 +413,7 @@ jobs:
           language_archive="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_language.a"
           stringed_archive="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_stringed_ingame.a"
           filtered_archive="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_filtered_files.a"
+          filter_archive="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_filter.a"
           test -s "$iwd_services_archive"
           test -s "$iwd_mount_archive"
           test -s "$unzip_archive"
@@ -424,12 +425,13 @@ jobs:
           test -s "$language_archive"
           test -s "$stringed_archive"
           test -s "$filtered_archive"
+          test -s "$filter_archive"
           startup_iwd_combined="$RUNNER_TEMP/iw3-fs-dvar-iwd-combined.o"
           "$ld_lld" -m aarch64linux -r --whole-archive \
             "$startup_archive" "$dvar_full_archive" "$iwd_services_archive" \
             "$iwd_mount_archive" "$unzip_archive" "$iwd_directory_archive" \
             "$fs_read_archive" "$fs_readfile_archive" "$hunk_temp_archive" "$hunk_user_archive" \
-            "$language_archive" "$stringed_archive" "$filtered_archive" --no-whole-archive \
+            "$language_archive" "$stringed_archive" "$filtered_archive" "$filter_archive" --no-whole-archive \
             -o "$startup_iwd_combined"
           "$llvm_nm" -C --defined-only "$startup_iwd_combined" \
             | tee "$RUNNER_TEMP/iw3-fs-dvar-iwd-defined.txt"
@@ -460,10 +462,9 @@ jobs:
             fi
           done
           grep -F 'g_languages' "$RUNNER_TEMP/iw3-fs-dvar-iwd-defined.txt"
-          # HunkUser now supplies the real assertion handler, and the original
-          # q_shared string provider supplies I_strnicmp. Require both to be
-          # defined and not unresolved. Com_FilterPath remains a real missing
-          # path-filter service; keep it visible rather than adding a stub.
+          # HunkUser supplies the original assertion handler, q_shared supplies
+          # I_strnicmp, and the portable id Tech 3 filter provider resolves the
+          # wildcard calls required by the original FS_ListFilteredFiles body.
           for symbol in MyAssertHandler I_strnicmp; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-iwd-defined.txt"
             if grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-iwd-undefined.txt"; then
@@ -471,7 +472,14 @@ jobs:
               exit 1
             fi
           done
-          grep -F "Com_FilterPath" "$RUNNER_TEMP/iw3-fs-dvar-iwd-undefined.txt"
+          for symbol in 'Com_Filter(' 'Com_FilterPath('; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-iwd-defined.txt"
+            if grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-iwd-undefined.txt"; then
+              echo "Filesystem filter provider unexpectedly unresolved: $symbol" >&2
+              exit 1
+            fi
+          done
+          echo "IW3_ORIGINAL_FILTER_PATH_PROVIDER_AARCH64_LINK_GREEN"
           echo "IW3_ORIGINAL_FS_STARTUP_IWD_DIRECTORY_READFILE_HUNK_AARCH64_LINK_GREEN"
           echo "IW3_ORIGINAL_FS_STARTUP_LANGUAGE_INIT_AARCH64_LINK_GREEN"
           echo "IW3_ORIGINAL_STRINGED_INIT_CHAIN_AARCH64_LINK_GREEN"
@@ -601,6 +609,8 @@ jobs:
             ${{ runner.temp }}/iw3-fs-dvar-iwd-defined.txt
             ${{ runner.temp }}/iw3-fs-dvar-iwd-undefined.txt
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_filtered_files.a
+            ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_filter.a
+            android/iw3-native/iw3_android_filter.cpp
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_fs_startup.a
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_dvar_pointer_abi.a
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_dvar_android.a
