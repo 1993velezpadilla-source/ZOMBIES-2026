@@ -362,6 +362,42 @@ jobs:
           echo "IW3_REAL_GAME_DATA_MOUNTED=false"
           echo "IW3_PLAYABLE_APK=false"
 
+          # Next narrow integration gate: combine authentic startup + Dvar,
+          # IWD language/sort/allocator helpers, FS_LoadZipFile and ZIP parser.
+          # The combined relocatable object resolves only code actually present
+          # in these source archives; platform/language services remain visible.
+          iwd_services_archive="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_iwd_services.a"
+          iwd_mount_archive="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_iwd_mount.a"
+          unzip_archive="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_unzip.a"
+          test -s "$iwd_services_archive"
+          test -s "$iwd_mount_archive"
+          test -s "$unzip_archive"
+          startup_iwd_combined="$RUNNER_TEMP/iw3-fs-dvar-iwd-combined.o"
+          "$ld_lld" -m aarch64linux -r --whole-archive \
+            "$startup_archive" "$dvar_full_archive" "$iwd_services_archive" \
+            "$iwd_mount_archive" "$unzip_archive" --no-whole-archive \
+            -o "$startup_iwd_combined"
+          "$llvm_nm" -C --defined-only "$startup_iwd_combined" \
+            | tee "$RUNNER_TEMP/iw3-fs-dvar-iwd-defined.txt"
+          "$llvm_nm" -u -C "$startup_iwd_combined" \
+            | tee "$RUNNER_TEMP/iw3-fs-dvar-iwd-undefined.txt"
+          for symbol in IwdFileLanguage iwdsort I_strncmp FS_PathCmp Z_Malloc FS_LoadZipFile unzOpen unzGetGlobalInfo unzReadCurrentFile unzClose; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-iwd-defined.txt"
+            if grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-iwd-undefined.txt"; then
+              echo "Original IWD startup dependency failed to resolve: $symbol" >&2
+              exit 1
+            fi
+          done
+          # These are now the explicit remaining engine services. Do not stub
+          # them or invoke FS_Startup until their real providers are integrated.
+          for symbol in SEH_GetLanguageName FS_ReadFile SEH_InitLanguage Sys_ListFiles FS_FreeFileList SEH_GetLanguageIndexForName Com_PrintWarning; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-iwd-undefined.txt"
+          done
+          echo "IW3_ORIGINAL_FS_STARTUP_IWD_SERVICES_AARCH64_COMBINED_LINK_GREEN"
+          echo "IW3_FS_STARTUP_RUNTIME_INVOKED=false"
+          echo "IW3_REAL_GAME_DATA_MOUNTED=false"
+          echo "IW3_PLAYABLE_APK=false"
+
           so="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_math.so"
           test -s "$so"
           elf="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
@@ -461,6 +497,11 @@ jobs:
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_math.so
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_frame.a
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_iwd_mount.a
+            ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_iwd_services.a
+            ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_unzip.a
+            ${{ runner.temp }}/iw3-fs-dvar-iwd-combined.o
+            ${{ runner.temp }}/iw3-fs-dvar-iwd-defined.txt
+            ${{ runner.temp }}/iw3-fs-dvar-iwd-undefined.txt
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_filtered_files.a
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_fs_startup.a
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_dvar_pointer_abi.a
