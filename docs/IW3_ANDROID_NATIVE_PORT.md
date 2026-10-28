@@ -809,3 +809,27 @@ Corrective implementation:
 - Added a regression that runs the extractor, verifies the original wrapper body and provenance flags, and rejects the over-broad startup-object link.
 
 Failure evidence: [native ARM64 run 40608438801](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40608438801) failed in the host CMake link with the duplicate and unresolved symbols above. Fresh validation for the corrected narrow link is pending; no success is inferred from the failed run.
+
+
+### Phase BA — combined original IWD mount and ZIP link audit (2026-10-27)
+
+The next blocker was not another isolated compile error: the FS-startup audit had the authentic FS_LoadZipFile, allocator/checksum helpers, IWD language helper, and ZIP parser in separate source slices, so the dependency report could not show which of those providers resolved when linked together.
+
+Implementation on the PR branch:
+
+- Added the non-game audit target iw3_sp_iwd_services, combining the existing authentic IWD allocator/checksum/string service slice with the original IWD filename/language slice.
+- Added iw3_sp_unzip to compile the original KisakCOD unzip.cpp source as its own ARM64 audit archive.
+- Added a combined AArch64 relocatable link of the original FS-startup archive, full Dvar archive, IWD services/names, FS_LoadZipFile, and ZIP parser.
+- The combined link explicitly verifies definitions for IwdFileLanguage, Z_Malloc, FS_LoadZipFile, unzOpen, unzGetGlobalInfo, unzReadCurrentFile, and unzClose. It does not hide or stub the remaining services.
+- Kept iwdsort and I_strncmp in the explicit unresolved list. An earlier experiment copied those helpers into the service slice and the host linker caught duplicate definitions because they already belong to the IWD directory slice. The service generator was restored to its original boundary; the final audit reports those dependencies as pending rather than duplicating their definitions.
+
+Validation:
+
+- [Native ARM64 audit run 40615993341](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40615993341) — PASS. Host Release CTest 14/14; ASan/UBSan CTest 14/14; original Android ARM64 source targets compiled; the log contains IW3_ORIGINAL_FS_STARTUP_IWD_SERVICES_AARCH64_COMBINED_LINK_GREEN.
+- [Source preflight run 40615993363](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40615993363) — PASS.
+- [JNI integration run 40615993227](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40615993227) — the diagnostic Activity/JNI ARM64 build completed successfully. This is still a diagnostic package, not the game.
+- [Android emulator run 40615993206](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40615993206) — the original JNI diagnostic had compiled and was executing its emulator probe when this note was written; no final emulator result is claimed here.
+
+The combined link still intentionally reports these unresolved engine services: iwdsort, I_strncmp, SEH_GetLanguageName, FS_ReadFile, SEH_InitLanguage, Sys_ListFiles, FS_FreeFileList, SEH_GetLanguageIndexForName, and Com_PrintWarning. The next integration pass must choose a single provider for the original IWD directory helpers, then connect the authentic file-list allocator/platform enumeration and language/read services before calling FS_Startup() / FS_InitFilesystem() in a runtime.
+
+Scope boundary remains unchanged: IW3_FS_STARTUP_RUNTIME_INVOKED=false, IW3_REAL_GAME_DATA_MOUNTED=false, and IW3_PLAYABLE_APK=false. No real map, renderer scene, physical ARM64 gameplay, weapon/actor execution, or playable APK is proven. PR #4 stays open and unmerged.
