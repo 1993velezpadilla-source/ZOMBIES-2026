@@ -1241,3 +1241,33 @@ The Python regression verifies that the source guard, extraction requirement, an
 - The emulator evidence explicitly keeps `original_upstream_fsh_table_integrated=false`, `arm64_device_execution_proven=false`, and `gameplay_proven=false`.
 
 **Scope boundary:** this proves the original `FS_Startup()` path-registration body executes in a host regression with narrow service harnesses, and that the corrected source compiles in the existing ARM64 audit. It does not invoke the complete `FS_InitFilesystem()` chain in the Android Activity, link the full filesystem/Dvar/runtime service graph, mount licensed FastFiles, load a real map, render a 3D scene, or run weapons/actors on a physical ARM64 device. The Android JNI artifact remains diagnostic; `IW3_PLAYABLE_APK=false`. PR #4 stays open and unmerged.
+
+## Phase CC — original command-argument accessors in the startup audit (2026-10-28)
+
+The next concrete dependency edge was the original `Cmd_Argc()` / `Cmd_Argv(int)` pair used by the filesystem and Dvar startup graph. Added `tools/iw3_android/prepare_real_engine_cmd_args.py`, which extracts the two function bodies from `third_party/KisakCOD/src/qcommon/cmd.cpp` and records source/body/generated SHA-256 hashes. It does not extract or define `cmd_args`: that state remains owned by the complete upstream `cmd.cpp` translation unit, so the relocatable audit continues to expose the missing command-subsystem integration instead of concealing it with duplicate state.
+
+A host test now executes those exact accessor bodies against the real `CmdArgs` declaration from `cmd.h`, covering ordinary arguments, nested argument frames, and the original empty-string result for an out-of-range index. CMake builds the accessor archive and host test when the source-audit workflow stages it. The ARM64 workflow links that archive into the filesystem-startup, Dvar, and IWD dependency audits and requires both accessors to be defined while requiring `cmd_args` to remain visibly unresolved.
+
+Code/evidence commits:
+- `330aa4f` — original-source accessor extractor.
+- `440320a` — native accessor regression.
+- `d3a961b` — Python wiring regression.
+- `b49e005` — CMake archive and host test.
+- `1fe9c9c` — ARM64 extraction/link checks and evidence upload.
+- `b30620a`, `35979e8`, `8fb21d7` — corrected stale workflow-shape assertions after CI caught them.
+
+Validation confirmed on the latest native audit run:
+- Preflight: passed.
+- Python preflight suite: 171 tests passed.
+- CTest Release: 22/22 passed.
+- CTest ASan/UBSan: 22/22 passed.
+- Original command accessor archive compiled for Android ARM64.
+- Relocatable startup/Dvar audit emitted `IW3_ORIGINAL_CMD_ARG_ACCESSORS_AARCH64_LINK_GREEN`; `Cmd_Argc()` and `Cmd_Argv(int)` are defined, while `cmd_args` remains unresolved as intended.
+
+Native CI evidence: https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40692472320  
+Preflight evidence: https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40692472329  
+ARM64 audit artifact (compiled objects/reports only, not a game APK): https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40692472320/artifacts/12816838973
+
+The Android JNI integration build also completed successfully in run 40692472477, but it remains a diagnostic/build check, not proof that the original runtime is linked or playable. The emulator execution and Windows SP smoke were still running when this section was first recorded.
+
+**Remaining boundary:** `cmd_args` storage/initialization still belongs to the full original command subsystem. This accessor archive is deliberately excluded from JNI and is not a substitute runtime. `FS_Startup()` has not been demonstrated running in the app; no real FastFile/map load, original renderer, complete touch-to-game loop, weapon fire/damage, or physical ARM64 device gameplay has been proven. `IW3_PLAYABLE_APK=false` remains the status.
