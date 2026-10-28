@@ -8,6 +8,7 @@ JNI = ROOT / "android/iw3-native/iw3_android_jni.cpp"
 BRIDGE = ROOT / "android/iw3-native/android_app/app/src/main/java/org/z2026/iw3nativeprobe/EngineBridge.java"
 ACTIVITY = ROOT / "android/iw3-native/android_app/app/src/main/java/org/z2026/iw3nativeprobe/MainActivity.java"
 WORKFLOW = ROOT / ".github/workflows/iw3-original-android-jni.yml"
+NATIVE_WORKFLOW = ROOT / ".github/workflows/iw3-original-native-android.yml"
 EMULATOR = ROOT / "tools/iw3_android/run_emulator_probe.sh"
 
 
@@ -65,7 +66,7 @@ class ImportedIwdValidationTests(unittest.TestCase):
         self.assertIn("z2026_iw3_validate_imported_iwds", body)
         self.assertIn("archives == 1 && indexed_entries == 2", body)
         self.assertIn("root_restored && fixture_root_removed", body)
-        self.assertIn("IW3_PLAYABLE_APK", source)
+        self.assertIn("IW3_PLAYABLE_APK=false", NATIVE_WORKFLOW.read_text(encoding="utf-8"))
         self.assertIn("return ok ? 1 : 0", source)
 
     def test_import_result_invokes_original_indexer_after_staging(self):
