@@ -140,7 +140,7 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
         compat = (ROOT / "android/iw3-native/iw3_android_fs_startup_compat.h").read_text(encoding="utf-8")
         self.assertIn("const char **__cdecl FS_ListFilteredFiles(", compat)
         self.assertIn("searchpath_s *searchPath, const char *path, const char *extension,", compat)
-        self.assertIn("for symbol in Hunk_UserCreate Hunk_UserAlloc Hunk_UserDestroy Hunk_CopyString Com_FilterPath I_strnicmp; do", workflow)
+        self.assertIn("for symbol in MyAssertHandler Com_FilterPath I_strnicmp; do", workflow)
         self.assertNotIn('grep -F "FS_BuildOSPath" "$RUNNER_TEMP/iw3-fs-startup-undefined.txt"', workflow)
 
     def test_combined_audit_keeps_single_original_providers(self):
