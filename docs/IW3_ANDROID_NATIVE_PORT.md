@@ -1042,3 +1042,15 @@ Changes committed on `feature/iw3-native-android-arm64-20261025`:
 - Added a regression that runs `bash -n` against the emulator probe and rejects the malformed `PY)` terminator.
 
 The fresh CI runs triggered by these changes are the authority for whether the fixes pass; prior failed runs are retained as evidence and are not reclassified. This phase does not start `FS_Startup` in the Activity, mount licensed game data, load a FastFile/map, render a 3D scene, or prove gameplay on physical ARM64. The JNI APK remains diagnostic only; keep PR #4 open and unmerged.
+
+
+### Phase BN validation update — corrected gate and emulator probe now pass (2026-10-28)
+
+Fresh CI completed for code head `e752f09b15c50fcc93441a858237a2739f140cbd`:
+
+- [Native ARM64 source/link audit 40629029559](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40629029559) — PASS. Python suite: 136 tests; CTest Release: 16/16; ASan/UBSan CTest: 16/16; the complete original `g_runframe.cpp` archive, filtered-file archive, original FS/IWD/StringEd/Hunk providers, and combined AArch64 relocatable link passed. Artifact [12790975916](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40629029559/artifacts/12790975916) contains native modules and audit reports, not an APK.
+- [Source preflight 40629029599](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40629029599) — PASS.
+- [JNI ARM64 diagnostic package 40629029660](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40629029660) — PASS for AArch64 ELF/JNI/package/signature checks only. Artifact [12790129433](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40629029660/artifacts/12790129433) remains diagnostic, not a playable game.
+- [Android x86_64 emulator probe 40629029553](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40629029553) — PASS after the heredoc fix. Log artifact [12791190363](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40629029553/artifacts/12791190363) records the original ZIP/IWD parser and file/searchpath read paths executing, touch DOWN/UP read back through the authentic `usercmd_s` adapter, attack/sprint/slide button masks, and Activity pause/resume.
+
+The emulator evidence still explicitly reports `original_upstream_fsh_table_integrated=false`, `arm64_device_execution_proven=false`, and `gameplay_proven=false`. The ARM64 link gate now correctly treats `MyAssertHandler` and `I_strnicmp` as resolved original providers while retaining `Com_FilterPath` as an unresolved real service. The full FS startup runtime remains uninvoked; no licensed FastFile/map load, original renderer scene, or playable Android APK is proven. Keep PR #4 open and unmerged.
