@@ -190,6 +190,27 @@ if(IW3_EXTRACTED_LANGUAGE)
     target_compile_options(iw3_sp_language PRIVATE
         -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
 
+    # Compile the complete original StringEd loader as a provider for the
+    # authentic FS_InitFilesystem -> SEH_Init_StringEd / SEH_UpdateLanguageInfo
+    # chain. This archive is part of the ARM64 dependency audit only; it is not
+    # linked into the JNI diagnostic until FS_ListFiles and the remaining
+    # original services are wired into a real runtime.
+    if(NOT EXISTS "${IW3_ENGINE_SOURCE_ROOT}/stringed/stringed_ingame.cpp")
+        message(FATAL_ERROR "Original KisakCOD StringEd loader source required")
+    endif()
+    add_library(iw3_sp_stringed_ingame STATIC
+        "${IW3_ENGINE_SOURCE_ROOT}/stringed/stringed_ingame.cpp")
+    target_include_directories(iw3_sp_stringed_ingame PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+        "${IW3_REAL_HEADER_ROOT}"
+        "${IW3_ENGINE_SOURCE_ROOT}"
+        "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+        "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+    target_compile_definitions(iw3_sp_stringed_ingame PRIVATE KISAK_SP=1)
+    target_compile_options(iw3_sp_stringed_ingame PRIVATE
+        -ffunction-sections -fdata-sections -Wall -Wextra
+        -fsigned-char -frounding-math -fno-fast-math)
+
     if(NOT ANDROID)
         add_executable(iw3_language_native_test
             "${CMAKE_CURRENT_SOURCE_DIR}/language_native_test.cpp"
