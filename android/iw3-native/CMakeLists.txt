@@ -266,6 +266,7 @@ endif()
 add_library(iw3_sp_filter STATIC "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_filter.cpp")
 target_include_directories(iw3_sp_filter PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${IW3_ENGINE_SOURCE_ROOT}"
     "${IW3_ENGINE_SOURCE_ROOT}/universal"
     "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
     "${IW3_ENGINE_SOURCE_ROOT}/../deps")
@@ -486,6 +487,7 @@ else()
         "${CMAKE_CURRENT_SOURCE_DIR}/filter_native_test.cpp")
     target_include_directories(iw3_filter_host_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}"
+        "${IW3_ENGINE_SOURCE_ROOT}"
         "${IW3_ENGINE_SOURCE_ROOT}/universal"
         "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
         "${IW3_ENGINE_SOURCE_ROOT}/../deps")
