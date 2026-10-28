@@ -26,25 +26,6 @@ static HunkUser* g_debugUser;
 static int32_t g_largeLocalPos;
 static unsigned char g_largeLocalBuf[0x80000];
 
-struct hunkUsed_t // sizeof=0x8
-{                                       // ...
-	int32_t permanent;                      // ...
-	int32_t temp;                           // ...
-};
-struct hunkHeader_t // sizeof=0x10
-{
-	uint32_t magic;
-	int32_t size;
-	const char* name;
-	int32_t dummy;
-};
-
-static hunkUsed_t hunk_high;
-static hunkUsed_t hunk_low;
-
-unsigned char* s_hunkData;
-uint8_t *s_origHunkData;
-int32_t s_hunkTotal;
 
 void __cdecl Hunk_AddAsset(XAssetHeader header, _DWORD *data)
 {
@@ -597,6 +578,11 @@ uint8_t* __cdecl Hunk_AllocLowAlign(uint32_t size, int32_t alignment, const char
 
 uint32_t* __cdecl Hunk_AllocateTempMemory(int32_t size, const char* name)
 {
+    if (size < 0 || size > 0x7FFFFFFF - 16)
+    {
+        Com_Error(ERR_DROP, "Hunk_AllocateTempMemory: invalid size %i", size);
+        return nullptr;
+    }
     hunkHeader_t* hdr; // [esp+0h] [ebp-18h]
     uint8_t* buf; // [esp+4h] [ebp-14h]
     void* bufa; // [esp+4h] [ebp-14h]
@@ -613,7 +599,7 @@ uint32_t* __cdecl Hunk_AllocateTempMemory(int32_t size, const char* name)
         return (uint32_t*)Z_Malloc(size, name, 10);
     sizea = size + 16;
     prev_temp = hunk_low.temp;
-    beginBuf = (uint8_t*)((uint32_t)&s_hunkData[hunk_low.temp + 4095] & 0xFFFFF000);
+    beginBuf = Hunk_PageBase(&s_hunkData[hunk_low.temp + 4095]);
     hunk_low.temp = (hunk_low.temp + 15) & 0xFFFFFFF0;
     buf = &s_hunkData[hunk_low.temp];
     hunk_low.temp += sizea;
@@ -631,9 +617,9 @@ uint32_t* __cdecl Hunk_AllocateTempMemory(int32_t size, const char* name)
     }
     hdr = (hunkHeader_t*)buf;
     bufa = buf + 16;
-    if (((uint8_t)bufa & 0xF) != 0)
+    if ((reinterpret_cast<uintptr_t>(bufa) & 0xF) != 0)
         MyAssertHandler(".\\universal\\com_memory.cpp", 2303, 0, "%s", "!(((psize_int)buf) & 15)");
-    commitSize = ((uint32_t)&s_hunkData[hunk_low.temp + 4095] & 0xFFFFF000) - (uint32_t)beginBuf;
+    commitSize = static_cast<uint32_t>(reinterpret_cast<uintptr_t>(Hunk_PageBase(&s_hunkData[hunk_low.temp + 4095])) - reinterpret_cast<uintptr_t>(beginBuf));
     if (commitSize)
         Z_VirtualCommit(beginBuf, commitSize);
     hdr->magic = -1991018350;
@@ -668,10 +654,10 @@ void __cdecl Hunk_FreeTempMemory(char* buf)
                 0,
                 "%s",
                 "hdr == (void *)( s_hunkData + ((hunk_low.temp - hdr->size + 15) & ~15) )");
-        endBuf = (uint8_t*)((uint32_t)&s_hunkData[hunk_low.temp + 4095] & 0xFFFFF000);
+        endBuf = Hunk_PageBase(&s_hunkData[hunk_low.temp + 4095]);
         hunk_low.temp -= hdr->size;
         track_temp_free(hdr->size, hunk_low.permanent, hdr->name);
-        beginBuf = (uint8_t*)((uint32_t)&s_hunkData[hunk_low.temp + 4095] & 0xFFFFF000);
+        beginBuf = Hunk_PageBase(&s_hunkData[hunk_low.temp + 4095]);
         if (endBuf != beginBuf)
             Z_VirtualDecommit(beginBuf, endBuf - beginBuf);
     }
