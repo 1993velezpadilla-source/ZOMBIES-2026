@@ -9,6 +9,7 @@
 #include <vector>
 #include <cstdio>
 #include <cstdint>
+#include <climits>
 #include <cstring>
 #include <cctype>
 #include <unistd.h>
@@ -562,12 +563,35 @@ bool run_imported_iwd_index_fixture(const char *root) {
                                       archive_bytes.size()) ==
                 static_cast<int>(archive_bytes.size())) {
             archive_written = true;
+
+            // Exercise the authentic loader at the signed global-counter
+            // boundary before the normal indexing pass. A two-entry fixture
+            // must be rejected before allocation or counter mutation.
+            const int saved_count = fs_iwdFileCount;
+            const int saved_feed = fs_checksumFeed;
+            fs_iwdFileCount = INT_MAX;
+            fs_checksumFeed = 0;
+            iwd_t *overflow_iwd = FS_LoadZipFile(
+                relative_archive, relative_archive);
+            const bool overflow_guard_ok =
+                overflow_iwd == nullptr && fs_iwdFileCount == INT_MAX;
+            if (overflow_iwd) {
+                if (overflow_iwd->handle)
+                    unzClose(reinterpret_cast<unzFile>(overflow_iwd->handle));
+                if (overflow_iwd->buildBuffer)
+                    Z_Free(overflow_iwd->buildBuffer, 3);
+                Z_Free(overflow_iwd, 3);
+            }
+            fs_iwdFileCount = saved_count;
+            fs_checksumFeed = saved_feed;
+
             int archives = 0;
             int indexed_entries = 0;
             char failed_path[512]{};
-            validation_ok = z2026_iw3_validate_imported_iwds(
-                absolute_root, &archives, &indexed_entries,
-                failed_path, sizeof(failed_path)) == 1 &&
+            validation_ok = overflow_guard_ok &&
+                z2026_iw3_validate_imported_iwds(
+                    absolute_root, &archives, &indexed_entries,
+                    failed_path, sizeof(failed_path)) == 1 &&
                 archives == 1 && indexed_entries == 2 && failed_path[0] == '\0';
         }
     }
