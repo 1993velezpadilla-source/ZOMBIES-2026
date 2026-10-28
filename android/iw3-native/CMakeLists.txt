@@ -93,23 +93,6 @@ target_compile_definitions(iw3_sp_fs_startup PRIVATE KISAK_SP=1)
 target_compile_options(iw3_sp_fs_startup PRIVATE
     -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
 
-# Compile the same verbatim source slice a second time for the IWD diagnostic
-# link, leaving directory/searchpath providers to their single existing modules.
-# This links the original native-width FS_BuildOSPath implementation instead
-# of a platform reimplementation. FS_Startup/FS_InitFilesystem remain uninvoked.
-add_library(iw3_sp_fs_startup_runtime OBJECT "${IW3_EXTRACTED_FS_STARTUP}")
-target_include_directories(iw3_sp_fs_startup_runtime PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}"
-    "${IW3_REAL_HEADER_ROOT}"
-    "${IW3_ENGINE_SOURCE_ROOT}"
-    "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
-    "${IW3_ENGINE_SOURCE_ROOT}/../deps")
-target_compile_definitions(iw3_sp_fs_startup_runtime PRIVATE
-    KISAK_SP=1 IW3_FS_STARTUP_EXTERNAL_IWD_DIRECTORY=1)
-target_compile_options(iw3_sp_fs_startup_runtime PRIVATE
-    -ffunction-sections -fdata-sections -Wall -Wextra -fsigned-char
-    -frounding-math -fno-fast-math)
-
 add_library(iw3_sp_frame STATIC "${IW3_ENGINE_SOURCE_ROOT}/game/g_runframe.cpp")
 target_include_directories(iw3_sp_frame PRIVATE "${IW3_ENGINE_SOURCE_ROOT}")
 target_compile_definitions(iw3_sp_frame PRIVATE KISAK_SP=1)
@@ -189,7 +172,6 @@ endif()
 # branch and verifies both original close paths. The full com_files.cpp runtime
 # and its remaining platform services are not linked into this diagnostic.
 add_library(iw3_sp_math SHARED
-    $<TARGET_OBJECTS:iw3_sp_fs_startup_runtime>
     "${IW3_ENGINE_SOURCE_ROOT}/universal/com_files_handle_table.cpp"
     "${IW3_ENGINE_SOURCE_ROOT}/universal/com_files_state.cpp"
     "${IW3_EXTRACTED_FS_READ}"
