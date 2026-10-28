@@ -42,6 +42,25 @@ class PortableSinglePlayerGameHeaderTests(unittest.TestCase):
         for forbidden in ("server/server.h", "client/client.h", "gfx_d3d/"):
             self.assertNotIn(forbidden, header)
 
+    def test_pointer_bearing_sp_registry_records_keep_32bit_and_lp64_layouts(self):
+        header = (ENGINE / "game/game_public.h").read_text(encoding="utf-8")
+        expected = {
+            "client_fields_s": ("0x20", "0x14"),
+            "VehicleLocalPhysics": ("0x38", "0x34"),
+            "game_hudelem_field_t": ("0x28", "0x1C"),
+        }
+        guard = "#if defined(__LP64__) || defined(_LP64) || defined(_WIN64)"
+        for name, (lp64_size, win32_size) in expected.items():
+            with self.subTest(name=name):
+                block = (
+                    guard + "\n"
+                    + f"static_assert(sizeof({name}) == {lp64_size});" + "\n"
+                    + "#else\n"
+                    + f"static_assert(sizeof({name}) == {win32_size});" + "\n"
+                    + "#endif"
+                )
+                self.assertIn(block, header)
+
     def test_arm64_gate_still_compiles_original_trigger_body_not_a_stub(self):
         workflow = (ROOT / ".github/workflows/iw3-original-native-android.yml").read_text(encoding="utf-8")
         self.assertIn("prepare_real_engine_g_update_player_triggers.py", workflow)
