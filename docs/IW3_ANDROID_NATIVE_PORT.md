@@ -1108,3 +1108,17 @@ Validation for code HEAD `dbc3c3b260303df98849f219c0b2f8db4ac97819`:
 - Emulator diagnostic: passed (run `40644453405`); artifact `12796234478` contains the native execution log. The evidence validates original ZIP32/IWD fixture paths and touch-to-`usercmd_s` readback on an x86_64 emulator, but explicitly records `original_upstream_fsh_table_integrated=false`, `arm64_device_execution_proven=false` and `gameplay_proven=false`.
 
 This is a bounded dependency-closure step only. The combined object still retains unrelated engine command/parser, shutdown, CD-key and Dvar services; the Activity still does not invoke `FS_Startup()/FS_InitFilesystem()`, mount real game IWD/FastFiles, load a map, render the original scene, or run touch-driven gameplay on physical ARM64. `IW3_PLAYABLE_APK=false` remains explicit. PR #4 stays open and unmerged.
+
+
+## Phase BR — original Com_Printf service for Android filesystem startup (2026-10-28)
+
+The latest ARM64 startup/Dvar/IWD audit still had the authentic `FS_Startup()` call to `Com_Printf(channel, fmt, ...)` unresolved. KisakCOD provides that body in `src/qcommon/common.cpp`; compiling all of `common.cpp` would pull in unrelated client, renderer, script and platform dependencies.
+
+This pass stages only the original `QDECL Com_Printf` body. The sole source adaptation replaces MSVC `_vsnprintf` with bounded `std::vsnprintf` and calls `va_end`; it preserves the original channel, message type 0 and `Com_PrintMessage` sink. The sink remains the existing Android logcat / host-stderr platform boundary. The full `common.cpp` translation unit is not linked.
+
+- Added `tools/iw3_android/prepare_real_engine_com_print_printf.py` with source/body hashes and explicit `playable_apk=false`, `filesystem_startup_invoked=false` evidence.
+- Added a native CTest that invokes the extracted original formatter and checks the formatted message reaches the existing sink.
+- The ARM64 audit links the new provider alongside the original FS startup and warning archives and fails if `Com_Printf` remains undefined.
+- Added source-provenance and workflow-wiring regressions.
+
+**Status at commit time:** CI is required to validate this provider. Even after it passes, this closes one startup logging dependency only; the combined graph still has original command/parser, Dvar startup and fatal-error services unresolved. The Android Activity still does not invoke `FS_Startup()/FS_InitFilesystem()`, mount real game IWD/FastFiles, load a map, render the original scene, or run touch-driven gameplay on physical ARM64. The JNI package remains diagnostic only. Keep PR #4 open and unmerged.

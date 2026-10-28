@@ -119,6 +119,23 @@ if(IW3_EXTRACTED_COM_PRINT_WARNING)
     endif()
 endif()
 
+if(IW3_EXTRACTED_COM_PRINT_PRINTF)
+    if(NOT EXISTS "${IW3_EXTRACTED_COM_PRINT_PRINTF}")
+        message(FATAL_ERROR
+            "Original KisakCOD Com_Printf extraction path does not exist")
+    endif()
+    add_library(iw3_sp_com_print_printf STATIC "${IW3_EXTRACTED_COM_PRINT_PRINTF}")
+    target_include_directories(iw3_sp_com_print_printf PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+        "${IW3_REAL_HEADER_ROOT}"
+        "${IW3_ENGINE_SOURCE_ROOT}"
+        "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+        "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+    target_compile_definitions(iw3_sp_com_print_printf PRIVATE KISAK_SP=1)
+    target_compile_options(iw3_sp_com_print_printf PRIVATE
+        -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
+endif()
+
 add_library(iw3_sp_frame STATIC "${IW3_ENGINE_SOURCE_ROOT}/game/g_runframe.cpp")
 target_include_directories(iw3_sp_frame PRIVATE "${IW3_ENGINE_SOURCE_ROOT}")
 target_compile_definitions(iw3_sp_frame PRIVATE KISAK_SP=1)
@@ -534,6 +551,18 @@ else()
                  COMMAND iw3_com_print_warning_host_test)
         set_tests_properties(iw3_original_com_print_warning_android_sink
             PROPERTIES PASS_REGULAR_EXPRESSION "IW3_WARNING_PROBE_7")
+    endif()
+
+    if(IW3_EXTRACTED_COM_PRINT_PRINTF AND IW3_EXTRACTED_COM_PRINT_WARNING)
+        add_executable(iw3_com_print_printf_host_test
+            "${CMAKE_CURRENT_SOURCE_DIR}/com_print_printf_native_test.cpp")
+        target_compile_options(iw3_com_print_printf_host_test PRIVATE -UNDEBUG -Wall -Wextra)
+        target_link_libraries(iw3_com_print_printf_host_test PRIVATE
+            iw3_sp_com_print_printf iw3_sp_com_print_warning)
+        add_test(NAME iw3_original_com_print_printf_android_sink
+                 COMMAND iw3_com_print_printf_host_test)
+        set_tests_properties(iw3_original_com_print_printf_android_sink
+            PROPERTIES PASS_REGULAR_EXPRESSION "IW3_PRINTF_PROBE_7")
     endif()
 
     add_executable(iw3_filter_host_test

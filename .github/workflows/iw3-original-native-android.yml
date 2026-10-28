@@ -128,6 +128,10 @@ jobs:
             --engine third_party/KisakCOD \
             --output "$RUNNER_TEMP/iw3-source/iw3_com_print_warning.cpp" \
             --report "$RUNNER_TEMP/iw3-original-com-print-warning.json"
+          python3 tools/iw3_android/prepare_real_engine_com_print_printf.py \
+            --engine third_party/KisakCOD \
+            --output "$RUNNER_TEMP/iw3-source/iw3_com_print_printf.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-com-print-printf.json"
           python3 tools/iw3_android/prepare_real_engine_q_shared_strings.py \
             --engine third_party/KisakCOD \
             --output "$RUNNER_TEMP/iw3-source/iw3_q_shared_strings.cpp" \
@@ -177,6 +181,7 @@ jobs:
             -DIW3_EXTRACTED_HUNK_USER="$RUNNER_TEMP/iw3-source/iw3_hunk_user.cpp" \
             -DIW3_EXTRACTED_FS_STARTUP="$RUNNER_TEMP/iw3-source/iw3_fs_startup.cpp" \
             -DIW3_EXTRACTED_COM_PRINT_WARNING="$RUNNER_TEMP/iw3-source/iw3_com_print_warning.cpp" \
+            -DIW3_EXTRACTED_COM_PRINT_PRINTF="$RUNNER_TEMP/iw3-source/iw3_com_print_printf.cpp" \
             -DIW3_EXTRACTED_Q_SHARED_STRINGS="$RUNNER_TEMP/iw3-source/iw3_q_shared_strings.cpp" \
             -DIW3_EXTRACTED_DVAR_POINTER_ABI="$RUNNER_TEMP/iw3-source/iw3_dvar_pointer_abi.cpp" \
             -DIW3_EXTRACTED_DVAR_VEC4_COMPARE="$RUNNER_TEMP/iw3-source/iw3_dvar_vec4_compare.cpp" \
@@ -247,6 +252,7 @@ jobs:
             -DIW3_EXTRACTED_HUNK_USER="$RUNNER_TEMP/iw3-source/iw3_hunk_user.cpp" \
             -DIW3_EXTRACTED_FS_STARTUP="$RUNNER_TEMP/iw3-source/iw3_fs_startup.cpp" \
             -DIW3_EXTRACTED_COM_PRINT_WARNING="$RUNNER_TEMP/iw3-source/iw3_com_print_warning.cpp" \
+            -DIW3_EXTRACTED_COM_PRINT_PRINTF="$RUNNER_TEMP/iw3-source/iw3_com_print_printf.cpp" \
             -DIW3_EXTRACTED_Q_SHARED_STRINGS="$RUNNER_TEMP/iw3-source/iw3_q_shared_strings.cpp" \
             -DIW3_EXTRACTED_DVAR_POINTER_ABI="$RUNNER_TEMP/iw3-source/iw3_dvar_pointer_abi.cpp" \
             -DIW3_EXTRACTED_DVAR_VEC4_COMPARE="$RUNNER_TEMP/iw3-source/iw3_dvar_vec4_compare.cpp" \
@@ -294,13 +300,21 @@ jobs:
           # dependencies stay visible; this is still not a linked filesystem runtime.
           startup_archive="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_fs_startup.a"
           print_warning_archive="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_com_print_warning.a"
+          print_printf_archive="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_com_print_printf.a"
           test -s "$startup_archive"
           test -s "$print_warning_archive"
+          test -s "$print_printf_archive"
           "$llvm_nm" -C --defined-only "$startup_archive" | tee "$RUNNER_TEMP/iw3-fs-startup-defined.txt"
           for symbol in FS_AddSearchPath FS_AddGameDirectory FS_AddLocalizedGameDirectory FS_AddIwdFilesForGameDirectory FS_ReplaceSeparators FS_BuildOSPath FS_BuildOSPathForThread FS_RegisterDvars FS_Startup FS_SetRestrictions FS_IsBasePathValid FS_InitFilesystem Sys_Cwd Sys_DefaultCDPath Sys_DirectoryHasContents; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-startup-defined.txt"
           done
           echo "IW3_ORIGINAL_FS_STARTUP_IWD_ENUMERATION_AARCH64_RESOLVED"
+          "$llvm_nm" -C --defined-only "$RUNNER_TEMP/iw3-fs-startup-combined.o" | grep -F 'Com_Printf(int, char const*, ...)'
+          if grep -F 'Com_Printf(int, char const*, ...)' "$RUNNER_TEMP/iw3-fs-startup-undefined.txt"; then
+            echo "Original Com_Printf provider unexpectedly unresolved" >&2
+            exit 1
+          fi
+          echo "IW3_ORIGINAL_COM_PRINTF_AARCH64_LINK_GREEN"
           for symbol in 'FS_ReplaceSeparators(' 'FS_BuildOSPath(' 'FS_BuildOSPathForThread('; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-startup-defined.txt"
           done
@@ -310,7 +324,7 @@ jobs:
           "$llvm_nm" -u -C "$startup_archive" | tee "$RUNNER_TEMP/iw3-fs-startup-member-undefined.txt"
           ld_lld="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/ld.lld"
           test -x "$ld_lld"
-          "$ld_lld" -m aarch64linux -r --whole-archive "$startup_archive" "$print_warning_archive" --no-whole-archive \
+          "$ld_lld" -m aarch64linux -r --whole-archive "$startup_archive" "$print_warning_archive" "$print_printf_archive" --no-whole-archive \
             -o "$RUNNER_TEMP/iw3-fs-startup-combined.o"
           "$llvm_nm" -u -C "$RUNNER_TEMP/iw3-fs-startup-combined.o" | tee "$RUNNER_TEMP/iw3-fs-startup-undefined.txt"
           for symbol in Dvar_RegisterInt Dvar_RegisterString Dvar_RegisterBool Z_Malloc SEH_GetLanguageName FS_ReadFile SEH_InitLanguage FS_LoadZipFile Sys_ListFiles FS_FreeFileList IwdFileLanguage iwdsort I_strncmp SEH_GetLanguageIndexForName; do
@@ -391,7 +405,7 @@ jobs:
           # filesystem/language dependencies or claiming a runtime invocation.
           startup_dvar_combined="$RUNNER_TEMP/iw3-fs-dvar-startup-combined.o"
           "$ld_lld" -m aarch64linux -r --whole-archive \
-            "$startup_archive" "$print_warning_archive" "$dvar_full_archive" --no-whole-archive \
+            "$startup_archive" "$print_warning_archive" "$print_printf_archive" "$dvar_full_archive" --no-whole-archive \
             -o "$startup_dvar_combined"
           "$llvm_nm" -C --defined-only "$startup_dvar_combined" \
             | tee "$RUNNER_TEMP/iw3-fs-dvar-startup-defined.txt"
@@ -450,7 +464,7 @@ jobs:
           test -s "$q_shared_strings_archive"
           startup_iwd_combined="$RUNNER_TEMP/iw3-fs-dvar-iwd-combined.o"
           "$ld_lld" -m aarch64linux -r --whole-archive \
-            "$startup_archive" "$print_warning_archive" "$q_shared_strings_archive" "$dvar_full_archive" "$iwd_services_archive" \
+            "$startup_archive" "$print_warning_archive" "$print_printf_archive" "$q_shared_strings_archive" "$dvar_full_archive" "$iwd_services_archive" \
             "$iwd_mount_archive" "$unzip_archive" "$iwd_directory_archive" \
             "$fs_read_archive" "$fs_readfile_archive" "$hunk_temp_archive" "$hunk_user_archive" \
             "$language_archive" "$stringed_archive" "$filtered_archive" "$filter_archive" --no-whole-archive \
@@ -648,6 +662,9 @@ jobs:
             ${{ runner.temp }}/iw3-original-q-shared-strings.json
             android/iw3-native/iw3_android_filter.cpp
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_fs_startup.a
+            ${{ runner.temp }}/iw3-source/iw3_com_print_printf.cpp
+            ${{ runner.temp }}/iw3-original-com-print-printf.json
+            ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_com_print_printf.a
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_dvar_pointer_abi.a
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_dvar_android.a
             ${{ runner.temp }}/iw3-source/iw3_dvar_pointer_abi.cpp
