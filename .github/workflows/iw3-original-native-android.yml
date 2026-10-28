@@ -247,6 +247,7 @@ jobs:
             -DIW3_EXTRACTED_HUNK_USER="$RUNNER_TEMP/iw3-source/iw3_hunk_user.cpp" \
             -DIW3_EXTRACTED_FS_STARTUP="$RUNNER_TEMP/iw3-source/iw3_fs_startup.cpp" \
             -DIW3_EXTRACTED_COM_PRINT_WARNING="$RUNNER_TEMP/iw3-source/iw3_com_print_warning.cpp" \
+            -DIW3_EXTRACTED_Q_SHARED_STRINGS="$RUNNER_TEMP/iw3-source/iw3_q_shared_strings.cpp" \
             -DIW3_EXTRACTED_DVAR_POINTER_ABI="$RUNNER_TEMP/iw3-source/iw3_dvar_pointer_abi.cpp" \
             -DIW3_EXTRACTED_DVAR_VEC4_COMPARE="$RUNNER_TEMP/iw3-source/iw3_dvar_vec4_compare.cpp" \
             -DIW3_EXTRACTED_DVAR_POINTER_SMOKE="$RUNNER_TEMP/iw3-source/iw3_dvar_pointer_smoke.cpp" \
