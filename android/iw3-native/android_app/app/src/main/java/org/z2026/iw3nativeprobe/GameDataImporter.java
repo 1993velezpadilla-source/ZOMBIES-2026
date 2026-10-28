@@ -175,8 +175,12 @@ public final class GameDataImporter {
                     if (!"main".equals(normalizedDirectory) && !"zone".equals(normalizedDirectory)) continue;
                 }
 
+                // POSIX lookup is case-sensitive. Normalize directory
+                // components (main/zone/english) to the paths used by IW3,
+                // while preserving each original asset filename.
+                String pathSegment = directory ? displayName.toLowerCase(Locale.ROOT) : displayName;
                 String relativePath = parentPath.isEmpty()
-                        ? displayName : parentPath + "/" + displayName;
+                        ? pathSegment : parentPath + "/" + pathSegment;
                 if (directory) {
                     collect(resolver, treeUri, documentId, relativePath, depth + 1,
                             visitedDocumentIds, topLevelDirectories, files);
