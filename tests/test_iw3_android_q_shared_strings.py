@@ -61,7 +61,7 @@ class OriginalQSharedStringServicesTests(unittest.TestCase):
         self.assertNotIn("IW3_EXTRACTED_Q_SHARED_STRINGS", gradle)
         self.assertIn("IW3_PLAYABLE_APK=false", workflow)
         self.assertIn("#if !defined(IW3_IWD_DIRECTORY_LINK_AUDIT)", directory_io)
-        self.assertIn("Original q_shared.cpp Com_sprintf body", directory_io)
+        self.assertIn("original q_shared.cpp Com_sprintf body", directory_io)
         self.assertIn('("void I_strncpyz(char* dest, const char* src, int destsize)", Path("src/universal/q_shared.cpp"))', iwd_services_generator)
         self.assertIn('("int I_stricmp(const char* s0, const char* s1)", Path("src/universal/q_shared.cpp"))', iwd_services_generator)
 
