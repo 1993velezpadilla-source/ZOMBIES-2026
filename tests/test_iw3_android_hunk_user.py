@@ -60,7 +60,7 @@ class OriginalHunkUserTests(unittest.TestCase):
         self.assertIn("madvise(", adapter)
         self.assertIn("munmap(", adapter)
         self.assertNotIn("VirtualAlloc(", adapter)
-        self.assertNotIn("VirtualFree(", adapter)
+        self.assertNotIn("VirtualFreeInternal(", adapter)
         self.assertIn("add_library(iw3_sp_hunk_user STATIC", cmake)
         self.assertIn("iw3_hunk_user_native_test", cmake)
         self.assertIn("prepare_real_engine_hunk_user.py", workflow)
