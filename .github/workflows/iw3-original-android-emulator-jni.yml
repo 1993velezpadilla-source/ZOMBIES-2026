@@ -30,9 +30,13 @@ on:
 permissions:
   contents: read
 
+# Keep a diagnostic emulator run alive long enough to produce evidence.
+# This workflow is triggered by both push and pull_request; cancelling the active
+# AVD when a duplicate event arrives repeatedly prevented the runtime probe from
+# reaching its evidence-upload step.
 concurrency:
   group: z2026-iw3-android-runtime-jni-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   android-emulator-real-iw3-cpp-jni:
