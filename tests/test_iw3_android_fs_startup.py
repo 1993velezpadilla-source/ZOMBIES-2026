@@ -152,7 +152,7 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
         self.assertIn("FS_IwdIsPure", fs_read)
         self.assertIn("#if !defined(IW3_IWD_DIRECTORY_LINK_AUDIT)", lookup_io)
         self.assertIn("int __cdecl SEH_GetCurrentLanguage()", lookup_io)
-        self.assertIn("Hunk_UserCreate Hunk_UserAllocAlignStrict Hunk_UserSetPos Hunk_UserReset Hunk_UserDestroy Hunk_CopyString Z_VirtualReserve Z_VirtualCommit Z_VirtualDecommit Z_VirtualFree", workflow)
+        self.assertIn("Hunk_UserCreate Hunk_UserAlloc Hunk_UserAllocAlignStrict Hunk_UserSetPos Hunk_UserReset Hunk_UserDestroy Hunk_CopyString Z_VirtualReserve Z_VirtualCommit Z_VirtualDecommit Z_VirtualFree", workflow)
         self.assertIn('for symbol in MyAssertHandler Com_FilterPath I_strnicmp; do', workflow)
 
     def test_full_original_dvar_registry_resolves_fs_startup_registration_edges(self):
