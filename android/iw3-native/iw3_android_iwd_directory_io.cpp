@@ -88,11 +88,13 @@ const char *__cdecl SEH_GetLanguageName(uint32_t language) {
 }
 #endif
 
+#if !defined(IW3_IWD_DIRECTORY_LINK_AUDIT)
 // Console output adapter for this isolated native file-system test. It logs
 // the original format string without interpreting platform-specific formats.
 void __cdecl Com_PrintWarning(int, const char *format, ...) {
     if (format) { std::fputs("IW3 file warning: ", stderr); std::fputs(format, stderr); }
 }
+#endif
 #if !defined(IW3_IWD_DIRECTORY_LINK_AUDIT)
 // The diagnostic shared library has no full console subsystem. For the
 // combined startup audit, use the separately compiled Android Dvar log sink

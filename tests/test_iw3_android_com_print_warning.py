@@ -61,6 +61,9 @@ class OriginalComPrintWarningTests(unittest.TestCase):
         self.assertIn("Com_PrintMessage", adapter)
         self.assertIn("__android_log_write", adapter)
         self.assertIn("iw3_original_com_print_warning_android_sink", cmake)
+        directory_io = (ROOT / "android/iw3-native/iw3_android_iwd_directory_io.cpp").read_text(encoding="utf-8")
+        self.assertIn("#if !defined(IW3_IWD_DIRECTORY_LINK_AUDIT)\n// Console output adapter for this isolated native file-system test.", directory_io)
+        self.assertIn("#endif\n#if !defined(IW3_IWD_DIRECTORY_LINK_AUDIT)\n// The diagnostic shared library", directory_io)
 
 
 if __name__ == "__main__":

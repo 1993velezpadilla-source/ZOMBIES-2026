@@ -1069,15 +1069,17 @@ Regression coverage is both behavioral and structural: a native CTest exercises 
 
 ## Phase BP — original warning service and Android log sink (2026-10-28)
 
-The latest code head before this pass was \`180f55bb3a5a9b3a8445129272560caad2413c36\`. Its successful native audit still deliberately listed \`Com_PrintWarning\` as unresolved from the authentic \`FS_AddIwdFilesForGameDirectory()\` body. The provider exists in KisakCOD's \`src/qcommon/common.cpp\`, but that translation unit also pulls in client, renderer, script, sound and Windows-specific services, so compiling the whole file into the filesystem audit is not a valid shortcut.
+The latest code head before this pass was `180f55bb3a5a9b3a8445129272560caad2413c36`. Its successful native audit still deliberately listed `Com_PrintWarning` as unresolved from the authentic `FS_AddIwdFilesForGameDirectory()` body. The provider exists in KisakCOD's `src/qcommon/common.cpp`, but that translation unit also pulls in client, renderer, script, sound and Windows-specific services, so compiling the whole file into the filesystem audit is not a valid shortcut.
 
-This pass stages the original \`Com_PrintWarning(int, const char*, ...)\` body from \`common.cpp\` and makes only narrow platform adaptations:
-- the original \`"^3"\` warning prefix and output type \`2\` are preserved;
-- the MSVC \`_vsnprintf\` spelling is changed to bounded \`std::vsnprintf\`, with \`va_end\` added;
-- the two-byte prefix setup is expressed directly so this isolated warning function does not import an unrelated \`I_strncpyz\` dependency.
+This pass stages the original `Com_PrintWarning(int, const char*, ...)` body from `common.cpp` and makes only narrow platform adaptations:
+- the original `"^3"` warning prefix and output type `2` are preserved;
+- the MSVC `_vsnprintf` spelling is changed to bounded `std::vsnprintf`, with `va_end` added;
+- the two-byte prefix setup is expressed directly so this isolated warning function does not import an unrelated `I_strncpyz` dependency.
 
-The platform sink defines \`Com_PrintMessage\` for this audit boundary: Android routes channel/severity to logcat, and host tests route it to stderr. This is logging glue only; it does not provide game state, filesystem behavior, rendering, or gameplay. The full \`common.cpp\` translation unit is not linked.
+The platform sink defines `Com_PrintMessage` for this audit boundary: Android routes channel/severity to logcat, and host tests route it to stderr. This is logging glue only; it does not provide game state, filesystem behavior, rendering, or gameplay. The full `common.cpp` translation unit is not linked.
 
-The native workflow now compiles \`libiw3_sp_com_print_warning.a\`, includes it in the ARM64 relocatable FS-startup and combined startup/Dvar/IWD audits, and requires \`Com_PrintWarning\` to be defined rather than falsely treating it as a remaining unresolved service. A host CTest checks that the formatted warning reaches the platform sink. Python regressions verify source provenance, the exact portability edits, and that all runtime/gameplay evidence flags remain false.
+The native workflow now compiles `libiw3_sp_com_print_warning.a`, includes it in the ARM64 relocatable FS-startup and combined startup/Dvar/IWD audits, and requires `Com_PrintWarning` to be defined rather than falsely treating it as a remaining unresolved service. A host CTest checks that the formatted warning reaches the platform sink. Python regressions verify source provenance, the exact portability edits, and that all runtime/gameplay evidence flags remain false.
 
-**Validation is pending until the fresh CI runs for the new commit finish.** This closes one logging dependency only. The startup audit still is not a full runtime link; the Android Activity does not invoke \`FS_Startup()/FS_InitFilesystem()\`, mount licensed game FastFiles, load a map, render a 3D scene, or run player/weapon/actor gameplay on a physical ARM64 device. Keep PR #4 open and unmerged; the JNI package remains diagnostic only.
+The first ARM64 combined-link attempt exposed a duplicate diagnostic `Com_PrintWarning` in `iw3_android_iwd_directory_io.cpp`. That fallback is now guarded by `IW3_IWD_DIRECTORY_LINK_AUDIT`, so it remains available only to the narrow diagnostic path and cannot collide with the staged original warning body in the combined engine audit. A regression pins this separation.
+
+**Validation is pending until the fresh CI runs for the new commit finish.** This closes one logging dependency only. The startup audit still is not a full runtime link; the Android Activity does not invoke `FS_Startup()/FS_InitFilesystem()`, mount licensed game FastFiles, load a map, render a 3D scene, or run player/weapon/actor gameplay on a physical ARM64 device. Keep PR #4 open and unmerged; the JNI package remains diagnostic only.
