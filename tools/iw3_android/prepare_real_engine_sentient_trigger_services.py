@@ -37,6 +37,7 @@ HEADER = (
     "// Generated from authentic KisakCOD sentient.cpp bodies. Do not edit.\n"
     "#include <game/g_runframe.h>\n"
     "#include <game/sentient.h>\n"
+    "#define IW3_ANDROID_PORTABLE_PATHNODE_SERVICES 1\n"
     "#include <game/pathnode.h>\n"
     "#include <universal/com_math.h>\n"
     "int __cdecl Path_IsValidClaimNode(const pathnode_t *node);\n"

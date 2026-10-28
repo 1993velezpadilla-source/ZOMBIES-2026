@@ -64,7 +64,12 @@ class OriginalSentientTriggerServiceTests(unittest.TestCase):
 
     def test_generated_services_do_not_include_the_32bit_actor_layout_header(self):
         self.assertNotIn("#include <game/actor.h>", HEADER)
+        self.assertIn("#define IW3_ANDROID_PORTABLE_PATHNODE_SERVICES 1", HEADER)
         self.assertIn("int __cdecl Path_IsValidClaimNode(const pathnode_t *node);", HEADER)
+        pathnode_header = (ENGINE / "src/game/pathnode.h").read_text(encoding="utf-8")
+        self.assertIn("#ifndef IW3_ANDROID_PORTABLE_PATHNODE_SERVICES", pathnode_header)
+        self.assertIn("struct badplace_arc_t;", pathnode_header)
+        self.assertIn('#include <client/client.h>', pathnode_header)
         self.assertIn("Path_IsValidClaimNode(node)", REQUIRED)
 
     def test_lp64_pathnode_tree_and_portable_actor_alignment_headers(self):

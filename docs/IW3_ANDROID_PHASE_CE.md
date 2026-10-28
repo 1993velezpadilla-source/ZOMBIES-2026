@@ -24,3 +24,17 @@ The code changes are committed together so Actions can test one coherent revisio
 ## Scope boundary — no gameplay claim
 
 This phase fixes compile/ABI blockers only. It does not link or execute the complete Android runtime, load a licensed FastFile or map, render a real scene, connect touch input to the original game loop, or prove weapons/actors on a physical ARM64 device. The JNI diagnostic APK remains diagnostic, not a game. PR #4 must remain open and unmerged.
+
+
+## Phase CE follow-up — isolate the original path-node declarations from SP/D3D headers
+
+The first retry after the LP64 assertions were corrected progressed further, then failed because `pathnode.h` unconditionally included `actor_badplace.h` and `client/client.h` for SP. That transitively pulled in Win32 actor layout assertions, MSVC-only actor physics declarations, and D3D `GfxImage` layouts into the Android ARM64 compile of the three authentic sentient service bodies.
+
+The original `pathnode.h` now has a narrow opt-in `IW3_ANDROID_PORTABLE_PATHNODE_SERVICES` header mode. Default SP builds retain both original includes unchanged. The ARM64 service-audit translation unit defines the opt-in before including `pathnode.h`; the header forward-declares only `badplace_arc_t`, which is sufficient for the original pointer-only declaration. The generated service bodies and their call order remain verbatim from `sentient.cpp`; no actor, renderer, or gameplay stubs were added.
+
+Validation:
+- Source preflight for commit `c8e20f3` passed: [40744078228](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40744078228).
+- The ARM64 retry [40744078133](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40744078133) confirmed the prior path-node-size and `actor_animapi.h` errors were cleared, but exposed the transitive actor/D3D include issue described above. It failed and is not counted as green.
+- The new guard/test change is pending fresh native ARM64 and Windows SP runs.
+
+Scope remains compile/link only. The complete Android bootstrap, licensed FastFile/map load, original renderer, touch-driven gameplay, and physical ARM64 execution are still unproven. The JNI APK remains diagnostic only; PR #4 stays open and unmerged.

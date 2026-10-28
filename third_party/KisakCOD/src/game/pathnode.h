@@ -234,8 +234,15 @@ struct PathData // sizeof=0x28
 
 #ifdef KISAK_SP
 
+// The portable ARM64 audit of the original sentient/path-node services needs
+// pathnode runtime types and path service declarations, not the SP actor or
+// D3D client object graphs. Keep normal engine includes unchanged by default.
+#ifndef IW3_ANDROID_PORTABLE_PATHNODE_SERVICES
 #include "actor_badplace.h"
 #include <client/client.h>
+#else
+struct badplace_arc_t;
+#endif
 
 struct actor_s;
 
