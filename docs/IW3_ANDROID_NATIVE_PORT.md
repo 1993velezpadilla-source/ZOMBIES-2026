@@ -1467,3 +1467,14 @@ The activity now calls `nativeValidateImportedIwds(filesDir)` after import and r
 The native IWD-index fixture now also creates a ZIP32 entry whose length-coded filename contains an embedded NUL. It calls the authentic `FS_LoadZipFile` and requires rejection before index allocation/publication, with `fs_iwdFileCount` and `fs_checksumFeed` unchanged. The Android-only marker `IW3_JNI_MALFORMED_IWD_REJECTED_AND_CLEANUP_PASS` is required by `run_emulator_probe.sh`; the emulator gate therefore verifies the negative path rather than only successful parsing or APK packaging. Regression: `tests/test_iw3_android_iwd_fail_closed.py`. Details: [Phase CJ](IW3_ANDROID_PHASE_CJ.md).
 
 This is failure-path evidence for the original IWD indexer, **not** full filesystem startup. `FS_Startup/FS_InitFilesystem`, real FastFile/map loading, original rendering, live gameplay and physical ARM64 execution remain unproven. Keep PR #4 open/unmerged; the APK is diagnostic only.
+
+
+#### Phase CJ validation result (code HEAD `866f378c93d756ea393963d3384d07f0a54f2d59`)
+
+- Preflight [40787292165](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40787292165): PASS.
+- Native ARM64 audit [40787292168](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40787292168): PASS; 220 Python tests, CTest Release 22/22, ASan/UBSan CTest 22/22; original IWD indexer compiles for AArch64.
+- JNI package [40787292213](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40787292213): PASS; signed ARM64 diagnostic APK artifact [12859254508](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40787292213/artifacts/12859254508), **not a playable game**.
+- Emulator [40787292208](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40787292208): PASS; log includes `IW3_JNI_MALFORMED_IWD_REJECTED_AND_CLEANUP_PASS`, original IWD indexing/read and touch-to-`usercmd_s`; artifact [12859728152](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40787292208/artifacts/12859728152). Emulator is x86_64; `gameplay_proven=false` and `arm64_device_execution_proven=false`.
+- Windows SP build [40787292140](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40787292140): PASS. Killhouse smoke [40787292232](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40787292232): smoke workflow PASS, but real fire dispatch, damage/death callbacks and graphics remain false.
+
+Next runtime gate remains the authentic startup/command dependency graph: the combined audit still explicitly reports `IW3_FS_STARTUP_RUNTIME_INVOKED=false` and `IW3_PLAYABLE_APK=false`. Keep PR #4 open/unmerged.
