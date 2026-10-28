@@ -5,6 +5,8 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "third_party/KisakCOD/src/qcommon/files.cpp"
 CMAKE = ROOT / "android/iw3-native/CMakeLists.txt"
+WORKFLOW = ROOT / ".github/workflows/iw3-original-native-android.yml"
+GENERATOR = ROOT / "tools/iw3_android/prepare_real_engine_file_comparisons.py"
 
 
 def function_body(source: str, signature: str) -> str:
@@ -26,6 +28,8 @@ class OriginalFileComparisonPointerWidthTests(unittest.TestCase):
     def setUpClass(cls):
         cls.source = SOURCE.read_text(encoding="utf-8")
         cls.cmake = CMAKE.read_text(encoding="utf-8")
+        cls.workflow = WORKFLOW.read_text(encoding="utf-8")
+        cls.generator = GENERATOR.read_text(encoding="utf-8")
 
     def assert_native_pointer_end(self, name: str, signature: str):
         body = function_body(self.source, signature)
@@ -47,19 +51,18 @@ class OriginalFileComparisonPointerWidthTests(unittest.TestCase):
             "FS_CompareFFs", "int __cdecl FS_CompareFFs("
         )
 
-    def test_original_qcommon_files_translation_unit_is_compiled_for_android_abi(self):
-        self.assertIn(
-            'add_library(iw3_sp_full_qcommon_files OBJECT',
-            self.cmake,
+    def test_original_comparison_slices_are_compiled_without_renderer_only_headers(self):
+        self.assertIn("add_library(iw3_sp_file_comparisons STATIC", self.cmake)
+        self.assertIn("IW3_EXTRACTED_FILE_COMPARISONS", self.cmake)
+        self.assertNotIn("iw3_sp_full_qcommon_files", self.cmake)
+        self.assertIn("prepare_real_engine_file_comparisons.py", self.workflow)
+        self.assertEqual(
+            self.workflow.count('-DIW3_EXTRACTED_FILE_COMPARISONS='),
+            2,
         )
-        self.assertIn(
-            '"${IW3_ENGINE_SOURCE_ROOT}/qcommon/files.cpp"',
-            self.cmake,
-        )
-        self.assertIn(
-            "target_compile_definitions(iw3_sp_full_qcommon_files PRIVATE KISAK_SP=1)",
-            self.cmake,
-        )
+        self.assertIn("FS_CompareIwds", self.generator)
+        self.assertIn("FS_CompareFFs", self.generator)
+        self.assertIn("function_source", self.generator)
 
 
 if __name__ == "__main__":
