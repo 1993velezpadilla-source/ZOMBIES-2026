@@ -1437,7 +1437,7 @@ The next Android runtime blockers remain the original script services (`Scr_RunC
 
 ### Phase CF — user-owned COD4 data staging prerequisite (28 Oct 2026)
 
-The Android diagnostic now offers a Storage Access Framework directory picker for a game root selected by the user. `GameDataImporter` enumerates only the selected root's `main/` and `zone/` trees and copies `.iwd` and `.ff` files into the app-private `filesDir`, preserving relative paths. It rejects unsafe path segments, verifies canonical destinations remain below the private root, writes through a temporary file, syncs it, and only then replaces a destination file. It does not bundle game assets, decrypt or redistribute them.
+The Android diagnostic now offers a Storage Access Framework directory picker for a game root selected by the user. `GameDataImporter` enumerates only the selected root's `main/` and `zone/` trees and copies `.iwd` and `.ff` files into the app-private `filesDir`, preserving the game directory structure, normalizing directory components to lowercase for Android's case-sensitive filesystem, and preserving original asset filenames. It rejects unsafe path segments, verifies canonical destinations remain below the private root, writes through a temporary file, syncs it, and only then replaces a destination file. It does not bundle game assets, decrypt or redistribute them.
 
 This removes one prerequisite for testing the original filesystem against user-owned files, but **does not mount the original search-path table, parse FastFiles, load a map, initialize a renderer, or execute gameplay**. The JNI bridge and APK remain diagnostic. The import is intentionally restricted to `main/` and `zone/`; a source root must contain at least one `.iwd` and one `.ff` file.
 
