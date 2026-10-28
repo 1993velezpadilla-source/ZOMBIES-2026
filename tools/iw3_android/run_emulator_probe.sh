@@ -35,27 +35,78 @@ grep -F 'IW3_JNI_ACTIVITY_STARTED PASS' "$RUNNER_TEMP/iw3-emulator-native-logcat
 
 # Select an actual visible app view, instead of assuming a fixed coordinate
 # falls inside it after landscape rotation, density or emulator changes.
-adb shell uiautomator dump /sdcard/iw3-touch-window.xml
-adb pull /sdcard/iw3-touch-window.xml "$proof_dir/touch-window.xml"
-read -r touch_x touch_y < <(python3 - "$proof_dir/touch-window.xml" <<'PY'
+# The hosted emulator occasionally shows a Quickstep launcher ANR dialog over
+# the still-running app. Recover only that named system dialog by tapping its
+# actual Wait-button bounds; never dismiss an app ANR or invent touch coordinates.
+touch_x=""
+touch_y=""
+max_ui_attempts=5
+for attempt in $(seq 1 "$max_ui_attempts"); do
+    rm -f "$proof_dir/touch-window.xml"
+    adb shell rm -f /sdcard/iw3-touch-window.xml
+    adb shell uiautomator dump /sdcard/iw3-touch-window.xml >/dev/null 2>&1 || true
+    adb pull /sdcard/iw3-touch-window.xml "$proof_dir/touch-window.xml" >/dev/null 2>&1 || true
+    if [[ ! -s "$proof_dir/touch-window.xml" ]]; then
+        sleep 1
+        continue
+    fi
+    read -r ui_state ui_x ui_y < <(python3 - "$proof_dir/touch-window.xml" <<'PY'
 import re
 import sys
 import xml.etree.ElementTree as ET
+
 root = ET.parse(sys.argv[1]).getroot()
-for node in root.iter('node'):
+nodes = list(root.iter('node'))
+
+def center(node):
+    match = re.fullmatch(r'\[(\d+),(\d+)\]\[(\d+),(\d+)\]', node.get('bounds', ''))
+    if not match:
+        return None
+    x0, y0, x1, y1 = map(int, match.groups())
+    return ((x0 + x1) // 2, (y0 + y1) // 2) if x1 > x0 and y1 > y0 else None
+
+for node in nodes:
     if (node.get('package') == 'org.z2026.iw3nativeprobe'
             and (node.get('class') == 'android.widget.TextView'
                  or node.get('content-desc') == 'IW3 native diagnostic touch surface')):
-        match = re.fullmatch(r'\[(\d+),(\d+)\]\[(\d+),(\d+)\]', node.get('bounds', ''))
-        if match:
-            x0, y0, x1, y1 = map(int, match.groups())
-            if x1 > x0 and y1 > y0:
-                print((x0 + x1) // 2, (y0 + y1) // 2)
-                break
-else:
-    raise SystemExit('Native diagnostic view is not visible in the actual Android hierarchy')
+        point = center(node)
+        if point:
+            print('target', *point)
+            raise SystemExit(0)
+
+# A launcher ANR is external to the native Activity. Only recover this exact
+# system dialog; an ANR attributed to the app remains a test failure.
+if any(node.get('text') == "Quickstep isn't responding" for node in nodes):
+    for node in nodes:
+        if node.get('resource-id') == 'android:id/aerr_wait':
+            point = center(node)
+            if point:
+                print('quickstep_anr', *point)
+                raise SystemExit(0)
+
+print('retry 0 0')
 PY
 )
+    case "$ui_state" in
+        target)
+            touch_x="$ui_x"
+            touch_y="$ui_y"
+            break
+            ;;
+        quickstep_anr)
+            printf 'ANDROID_SYSTEM_UI_RECOVERY attempt=%s action=wait x=%s y=%s\n' "$attempt" "$ui_x" "$ui_y"
+            adb shell input tap "$ui_x" "$ui_y"
+            sleep 3
+            ;;
+        *)
+            sleep 1
+            ;;
+    esac
+done
+if [[ -z "$touch_x" || -z "$touch_y" ]]; then
+    echo "Native diagnostic view did not become visible after bounded UI recovery" >&2
+    exit 1
+fi
 printf 'ADB_REAL_TOUCH_TARGET x=%s y=%s\n' "$touch_x" "$touch_y"
 adb shell input touchscreen tap "$touch_x" "$touch_y"
 sleep 1
