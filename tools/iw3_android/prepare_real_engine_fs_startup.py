@@ -35,11 +35,6 @@ FUNCTIONS = (
     "bool __cdecl FS_IsBasePathValid()",
     "void __cdecl FS_InitFilesystem()",
 )
-
-EXTERNAL_DIRECTORY_SIGNATURES = (
-    "void __cdecl FS_AddSearchPath(searchpath_s *search)",
-    "void __cdecl FS_AddGameDirectory(char *path, char *dir, int bLanguageDirectory, int iLanguage)",
-)
 REQUIRED = (
     'search->dir = (directory_t *)Z_Malloc(sizeof(directory_t), "FS_AddGameDirectory", 3);',
     "void __cdecl FS_AddIwdFilesForGameDirectory(char *path, char *pszGameFolder)",
@@ -105,21 +100,11 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
     rendered_bodies = []
     for signature, body in zip(FUNCTIONS, bodies):
         if signature == "void __cdecl FS_AddIwdFilesForGameDirectory(char *path, char *pszGameFolder)":
-            # Keep the authentic enumerator in the audit archive and host
-            # source test, but let the diagnostic runtime use its single IWD
-            # directory-module provider when both source slices are linked.
+            # The dependency archive includes the original enumerator. The
+            # focused localized-path host test deliberately keeps its narrow
+            # service stub so it does not need to fabricate IWD archive state.
             rendered_bodies.append(
-                "#if !defined(IW3_FS_STARTUP_HOST_TEST) && "
-                "!defined(IW3_FS_STARTUP_EXTERNAL_IWD_DIRECTORY)\n"
-                + body + "\n#endif"
-            )
-        elif signature in EXTERNAL_DIRECTORY_SIGNATURES:
-            # The IWD directory/searchpath modules own these exact upstream
-            # bodies in the combined diagnostic link; do not emit duplicate
-            # definitions from the startup slice.
-            rendered_bodies.append(
-                "#if !defined(IW3_FS_STARTUP_EXTERNAL_IWD_DIRECTORY)\n"
-                + body + "\n#endif"
+                "#if !defined(IW3_FS_STARTUP_HOST_TEST)\n" + body + "\n#endif"
             )
         else:
             rendered_bodies.append(body)
