@@ -20,7 +20,7 @@ except ModuleNotFoundError:
 FILES = Path("src/universal/com_files.cpp")
 STATE_SOURCE = Path("src/universal/com_files_state.cpp")
 SHARED_STATE_GLOBALS = ("int fs_iwdFileCount = 0;", "int fs_checksumFeed = 0;")
-remove duplicate language stateFUNCTIONS = (
+FUNCTIONS = (
     ("bool I_isupper(int c)", Path("src/universal/q_shared.cpp")),
     ("void I_strncpyz(char* dest, const char* src, int destsize)", Path("src/universal/q_shared.cpp")),
     ("int I_strnicmp(const char* s0, const char* s1, int n)", Path("src/universal/q_shared.cpp")),
