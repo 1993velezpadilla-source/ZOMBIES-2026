@@ -833,3 +833,23 @@ Validation:
 The combined link still intentionally reports these unresolved engine services: iwdsort, I_strncmp, SEH_GetLanguageName, FS_ReadFile, SEH_InitLanguage, Sys_ListFiles, FS_FreeFileList, SEH_GetLanguageIndexForName, and Com_PrintWarning. The next integration pass must choose a single provider for the original IWD directory helpers, then connect the authentic file-list allocator/platform enumeration and language/read services before calling FS_Startup() / FS_InitFilesystem() in a runtime.
 
 Scope boundary remains unchanged: IW3_FS_STARTUP_RUNTIME_INVOKED=false, IW3_REAL_GAME_DATA_MOUNTED=false, and IW3_PLAYABLE_APK=false. No real map, renderer scene, physical ARM64 gameplay, weapon/actor execution, or playable APK is proven. PR #4 stays open and unmerged.
+
+
+### Phase BB — instrument the diagnostic touch-to-usercmd proof (2026-10-27)
+
+The prior emulator run [40615993206](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40615993206) did launch the JNI Activity and passed the original ZIP parser, IWD search-path, game-directory, and FS-read probes. It then failed at the final touch assertions: the probe searched for IW3_JNI_USERCMD snapshot lines, but the JNI touch entry point had never emitted those lines. That was a test-observability defect, not proof of gameplay.
+
+Correction:
+
+- The diagnostic JNI touch entry now calls the existing native touch adapter, then takes a snapshot from the original IW3 SP usercmd_s layout and logs the observed attack bit and button mask.
+- The log is emitted only when both the touch event and snapshot succeed; failures are logged distinctly.
+- Added a regression test tying the JNI log format to the emulator script's attack, sprint, and slide checks. The source continues to identify the Activity as diagnostic, not a game engine.
+
+This only makes the diagnostic input probe observable; it does not connect these snapshots to the full original client/server frame loop.
+
+Current validation after this correction:
+- [Preflight 40616520465](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40616520465) — PASS.
+- [Native ARM64 audit 40616520583](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40616520583) — native compilation/audit steps completed successfully; final job status was still being collected at the time of this note.
+- [JNI build 40616520462](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40616520462) and [emulator probe 40616520473](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40616520473) — in progress at the time of this note.
+
+No playable APK, real map load, 3D scene render, or physical ARM64 gameplay is claimed.
