@@ -776,9 +776,8 @@ Reviewed the latest branch and CI before editing. The last emulator proof at [40
 
 Implemented in this pass:
 - The emulator probe now retries view discovery a bounded five times. It only recovers the exact Quickstep launcher ANR system dialog by tapping the dialog's actual android:id/aerr_wait bounds from UIAutomator. It does not click through an app ANR and does not substitute arbitrary screen coordinates.
-- The startup source generator can now omit duplicate FS_AddSearchPath, FS_AddGameDirectory, and FS_AddIwdFilesForGameDirectory definitions when compiled for the combined IWD diagnostic link; the standalone startup audit still compiles its complete source slice.
-- The IWD diagnostic shared library now links the original, native-width FS_ReplaceSeparators / FS_BuildOSPath / FS_BuildOSPathForThread bodies extracted from the vendored KisakCOD com_files.cpp. Removed the separate platform reimplementation of FS_BuildOSPath, avoiding duplicate semantics and ensuring the rooted Android IWD scanner uses the engine's tested 256-byte fail-closed path builder.
-- Added a narrow Com_Error boundary for this diagnostic link. It formats the fatal message and aborts rather than truncating a path or pretending that the full engine error-recovery loop is already ported.
+- The IWD lookup source slice already carried the original FS_ReplaceSeparators and FS_BuildOSPathForThread bodies. Added the missing original FS_BuildOSPath wrapper to that same generated source, so the rooted IWD scanner uses the engine's 256-byte fail-closed path semantics without linking the entire uninitialized FS_Startup object.
+- Removed the competing platform FS_BuildOSPath implementation. The existing lookup IO module remains the single Com_Error provider; the diagnostic fails closed on fatal path overflow rather than returning a truncated path.
 - Added source regressions for the launcher recovery and single-provider path-builder link.
 
 Validation status: fresh preflight, Android ARM64 native/ABI, JNI package and emulator workflows are triggered by these changes. Their final results have not yet been inspected, so this phase is not marked CI-green yet. The last known completed evidence remains:
@@ -797,3 +796,16 @@ The first CI attempt after the Phase AZ edits failed in source preflight, before
 - Failed attempt: [native ARM64 run 40608349575](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40608349575), step “Verify original upstream IW3 source and synthesize header-only ABI overlay”; 115 Python tests ran, one failed because of the obsolete message assertion.
 - Corrected the regression to require the new bounded-recovery failure message.
 - Fresh CI for the corrected test commit is pending. No ARM64 CMake/link result is inferred from the failed preflight run.
+
+
+### Phase AZ linker correction — keep the diagnostic link narrow (2026-10-27)
+
+The first native CMake build after Phase AZ failed at the host link stage. The attempt had added the whole extracted FS-startup source object to the diagnostic shared library. CI correctly exposed duplicate definitions of Com_Error, FS_ReplaceSeparators and FS_BuildOSPathForThread, plus unresolved Dvar and other FS_Startup services. That attempt is not counted as a successful link or runtime integration.
+
+Corrective implementation:
+- Removed the full-startup object from the diagnostic shared library; the separate ARM64 FS-startup archive audit remains unchanged.
+- Extended the existing original IWD lookup extractor to include only the missing verbatim FS_BuildOSPath wrapper. Its existing original FS_BuildOSPathForThread and FS_ReplaceSeparators bodies remain the single providers for those helpers.
+- Removed the second Com_Error implementation from the directory adapter; the existing lookup IO adapter is the sole provider.
+- Added a regression that runs the extractor, verifies the original wrapper body and provenance flags, and rejects the over-broad startup-object link.
+
+Failure evidence: [native ARM64 run 40608438801](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40608438801) failed in the host CMake link with the duplicate and unresolved symbols above. Fresh validation for the corrected narrow link is pending; no success is inferred from the failed run.
