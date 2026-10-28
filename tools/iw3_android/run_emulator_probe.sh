@@ -113,7 +113,8 @@ for node in nodes:
             raise SystemExit(0)
 
 print("retry 0 0")
-PY)
+PY
+)
     case "$ui_state" in
         target)
             touch_x="$ui_x"
@@ -187,7 +188,8 @@ if any(node.get("package") == "org.z2026.iw3nativeprobe" and
     print("app 0 0")
     raise SystemExit(0)
 print("missing 0 0")
-PY)
+PY
+)
         case "$ui_state" in
             app) return 0 ;;
             quickstep_anr)
