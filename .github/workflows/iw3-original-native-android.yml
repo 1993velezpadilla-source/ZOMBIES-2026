@@ -753,8 +753,12 @@ jobs:
           grep -F 'G_RunFrame(ServerFrameExtent, int)' "$RUNNER_TEMP/iw3-g-update-player-triggers-defined.txt"
           grep -F 'G_UpdatePlayer(gentity_s*)' "$RUNNER_TEMP/iw3-g-update-player-triggers-defined.txt"
           grep -F 'G_UpdatePlayerTriggers(gentity_s*)' "$RUNNER_TEMP/iw3-g-update-player-triggers-defined.txt"
-          if grep -E 'G_UpdatePlayer(gentity_s\*\)|G_UpdatePlayerTriggers(gentity_s\*\))' "$RUNNER_TEMP/iw3-g-update-player-triggers-undefined.txt"; then
-            echo "Original G_RunFrame player/trigger update edge failed to resolve" >&2
+          if grep -F 'G_UpdatePlayer(gentity_s*)' "$RUNNER_TEMP/iw3-g-update-player-triggers-undefined.txt"; then
+            echo "Original G_UpdatePlayer edge failed to resolve" >&2
+            exit 1
+          fi
+          if grep -F 'G_UpdatePlayerTriggers(gentity_s*)' "$RUNNER_TEMP/iw3-g-update-player-triggers-undefined.txt"; then
+            echo "Original G_UpdatePlayerTriggers edge failed to resolve" >&2
             exit 1
           fi
 
