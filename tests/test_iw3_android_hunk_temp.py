@@ -96,5 +96,24 @@ class OriginalHunkTempAllocatorTests(unittest.TestCase):
         self.assertIn("for symbol in SEH_InitLanguage SEH_UpdateCurrentLanguage; do", workflow)
         self.assertIn("IW3_ORIGINAL_FS_STARTUP_LANGUAGE_INIT_AARCH64_LINK_GREEN", workflow)
 
+    def test_cm_hunk_high_wrapper_preserves_native_pointer_type(self):
+        source = (ENGINE / "src/qcommon/cm_load_obj.cpp").read_text(encoding="utf-8")
+        self.assertIn(
+            "uint8_t* __cdecl CM_Hunk_AllocateTempMemoryHigh(int size, const char *name)",
+            source,
+        )
+        self.assertIn(
+            "return Hunk_AllocateTempMemoryHigh(size, name);",
+            source,
+        )
+        self.assertNotIn(
+            "uint32_t __cdecl CM_Hunk_AllocateTempMemoryHigh(int size, const char *name)",
+            source,
+        )
+        self.assertIn(
+            "leafBrushesCopy = (unsigned short*)CM_Hunk_AllocateTempMemoryHigh(",
+            source,
+        )
+
 if __name__ == "__main__":
     unittest.main()
