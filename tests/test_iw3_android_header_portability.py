@@ -20,6 +20,29 @@ class OriginalHeaderPortabilityTests(unittest.TestCase):
         self.assertIn("#include <server/server_frame.h>", header)
         self.assertIn("int __cdecl G_RunFrame(ServerFrameExtent extent, int timeCap);", header)
 
+    def test_shared_sp_server_apis_have_one_public_declaration_contract(self):
+        public = (ENGINE / "src/server/sv_public.h").read_text(encoding="utf-8")
+        server = (ENGINE / "src/server/server.h").read_text(encoding="utf-8")
+        self.assertEqual(public.count("struct gentity_s;"), 1)
+        self.assertEqual(public.count("struct usercmd_s;"), 1)
+        declarations = (
+            "gentity_s *__cdecl SV_GetEntityState(int entnum);",
+            "int __cdecl SV_WaitServerSnapshot();",
+            "void __cdecl SV_RecordClientCommand(const char *s);",
+            "void __cdecl SV_ExecuteClientCommand(const char *s);",
+            "void __cdecl SV_RecordClientThink(usercmd_s *cmd);",
+            "void __cdecl SV_ClientThink(usercmd_s *cmd);",
+            "void __cdecl SV_TrackPlayerDied();",
+            "void __cdecl SV_AddToPlayerScore(int amount);",
+        )
+        for declaration in declarations:
+            self.assertEqual(public.count(declaration), 1, declaration)
+            self.assertEqual(server.count(declaration), 1, declaration)
+
+        for relative in ("src/client/cl_input.cpp", "src/cgame/cg_snapshot.cpp"):
+            source = (ENGINE / relative).read_text(encoding="utf-8")
+            self.assertIn("#include <server/sv_public.h>", source)
+
 
 if __name__ == "__main__":
     unittest.main()
