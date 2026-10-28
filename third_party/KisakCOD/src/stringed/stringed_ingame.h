@@ -363,8 +363,8 @@ struct CStringEdPackage // sizeof=0x78
 
     int ReadLine(char **psParsePos, char *psDest)
     {
-        int v3; // eax
-        int v4; // eax
+        char *v3; // native-width line terminator
+        const char *v4; // native-width newline scan
         char v5; // cl
         char *v7; // [esp+28h] [ebp-18h]
         char *v8; // [esp+2Ch] [ebp-14h]
@@ -376,7 +376,7 @@ struct CStringEdPackage // sizeof=0x78
         v3 = (int)strchr(*psParsePos, '\n');
         if (v3)
         {
-            iCharsToCopy = v3 - (_DWORD)*psParsePos;
+            iCharsToCopy = static_cast<uint32_t>(v3 - *psParsePos);
             I_strncpyz(psDest, *psParsePos, iCharsToCopy);
             //strncpy(psDest, *psParsePos, iCharsToCopy);
             psDest[iCharsToCopy] = 0;
