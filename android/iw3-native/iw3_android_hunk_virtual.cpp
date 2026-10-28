@@ -133,7 +133,7 @@ void __cdecl Z_VirtualDecommit(void *ptr, int size)
 void __cdecl Z_VirtualFree(void *ptr)
 {
     if (!ptr)
-        return;
+        VirtualMemoryFatal("Z_VirtualFree null pointer", EINVAL);
 
     std::lock_guard<std::mutex> lock(g_virtualMemoryMutex);
     const uintptr_t address = reinterpret_cast<uintptr_t>(ptr);
