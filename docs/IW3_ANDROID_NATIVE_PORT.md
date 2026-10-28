@@ -1125,3 +1125,20 @@ This pass stages only the original `QDECL Com_Printf` body. The sole source adap
 
 
 **Follow-up link correction:** the first ARM64 attempt exposed a duplicate `Com_Printf` definition from `iw3_android_dvar_log.cpp` when the authentic extracted provider was combined with the dvar archive. The fallback is now compiled only when the original provider is absent. The Dvar audit links the original `Com_Printf` plus the existing `Com_PrintMessage` sink and checks the combined object, rather than claiming the fallback is the original provider. The failed run is retained as evidence and is not counted as a pass.
+
+## Phase BS — native-width filesystem string dvars in original command paths (2026-10-28)
+
+While tracing the next command-subsystem dependency needed for a real Android bootstrap, the original `src/qcommon/cmd.cpp` still contained two path constructions in `Cmd_Dumpraw_f()` that cast `fs_basepath->current.integer` to `char *`. This reads a string-valued Dvar through its 32-bit integer union member and can truncate the path pointer on LP64.
+
+The original KisakCOD source now uses `fs_basepath->current.string` for both the `raw\\` and `zone\\english\\` directory roots. The paths, command behavior and formatting are otherwise unchanged. This is a source portability correction, not a substitute command system, and `cmd.cpp` is **not yet part of the Android runtime link**.
+
+Regression coverage in `tests/test_iw3_android_command_string_dvar_abi.py` scopes the check to the original dump command, requires both string-member accesses, rejects the old integer-pointer casts, and ensures numeric dvars elsewhere remain allowed.
+
+- Engine-source correction: [`4b47d9e`](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/4b47d9e382e292b8e4b120b5c5c734f9e72a63b8).
+- Regression test: [`01c6366`](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/01c6366103dda43012a41cc8c15250c96b5e9056).
+- Native Android source/link workflow [40648357515](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40648357515) passed on code head `01c6366103dda43012a41cc8c15250c96b5e9056`: Python suite **149 tests passed**, Release CTest **20/20**, ASan/UBSan CTest **20/20**, and the original-source ARM64 ELF/link audit passed. Artifact [12798521789](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40648357515/artifacts/12798521789) contains source modules and audit reports, **not an APK**.
+- JNI ARM64 diagnostic packaging [40648357468](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40648357468) passed compile/package/signature checks; artifact [12798775741](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40648357468/artifacts/12798775741) is explicitly named `NOT-A-GAME`.
+
+At the time of this note, the fresh x86_64 Android emulator run [40648357598](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40648357598), Windows SP build [40648357628](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40648357628), and temporary offline SP killhouse runtime [40648357580](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40648357580) were still running; no result is claimed for those jobs yet.
+
+**Scope boundary:** the correction addresses two genuine native-width pointer reads in original command code. It does not close the startup command/parser service graph or integrate `FS_Startup()/FS_InitFilesystem()` into the Android Activity. The native audit itself explicitly reports `IW3_FS_STARTUP_RUNTIME_INVOKED=false`, `IW3_REAL_GAME_DATA_MOUNTED=false`, and `IW3_PLAYABLE_APK=false`. Licensed FastFiles/map loading, original renderer output, and touch-driven player/weapon/actor gameplay on physical ARM64 remain unproven. Keep PR #4 open and unmerged.
