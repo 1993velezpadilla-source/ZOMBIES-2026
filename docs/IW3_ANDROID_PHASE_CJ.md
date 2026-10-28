@@ -19,9 +19,14 @@ Code commits:
 - `d99a63e1fec643d316e58445febbb628c86da7b8` — require the marker in emulator evidence.
 - `36fa30a9790f8b1ed8b5454bee0cdd8d9ef3c3d9` — source and CI regression tests.
 
-## Validation status
+## Validation completed on code commit `866f378c93d756ea393963d3384d07f0a54f2d59`
 
-The source preflight run for code commit `36fa30a9790f8b1ed8b5454bee0cdd8d9ef3c3d9` passed. The native ARM64, JNI, emulator and SP workflows were triggered and were still pending at the time of this note; do not count them as passed until their final conclusions are inspected.
+- Preflight: [40787292165](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40787292165) — **PASS**.
+- Native ARM64/source audit: [40787292168](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40787292168) — **PASS**; 220 Python tests, CTest Release 22/22, ASan/UBSan CTest 22/22, original FS_LoadZipFile compiled as AArch64, original startup dependency audit retained the explicit `IW3_FS_STARTUP_RUNTIME_INVOKED=false` marker.
+- JNI package: [40787292213](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40787292213) — **PASS**; Android APK contains `lib/arm64-v8a/libiw3_sp_math.so`, ELF64/AArch64 and exported JNI symbols. Artifact [12859254508](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40787292213/artifacts/12859254508) is explicitly a diagnostic APK, not the game.
+- Android emulator execution: [40787292208](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40787292208) — **PASS**; log contains `IW3_JNI_MALFORMED_IWD_REJECTED_AND_CLEANUP_PASS`, original ZIP/IWD index and read markers, touch-to-`usercmd_s`, sprint/slide and pause/resume. Artifact [12859728152](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40787292208/artifacts/12859728152) preserves the log/screenshots. Emulator ABI is **x86_64**, not physical ARM64.
+- Original Windows SP build: [40787292140](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40787292140) — **PASS**.
+- Killhouse SP smoke: [40787292232](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40787292232) — workflow **PASS**, but the report still says `actual_weapon_fire_callback=false`, `bullet_fire_dispatched=false`, `actor_damage_callback=false`, `actor_death_callback=false`, and `actual_graphics_verified=false`.
 
 ## Scope boundary / next blocker
 
