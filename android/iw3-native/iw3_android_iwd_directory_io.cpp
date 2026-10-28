@@ -90,9 +90,14 @@ const char *__cdecl SEH_GetLanguageName(uint32_t language) {
 void __cdecl Com_PrintWarning(int, const char *format, ...) {
     if (format) { std::fputs("IW3 file warning: ", stderr); std::fputs(format, stderr); }
 }
+#if !defined(IW3_IWD_DIRECTORY_LINK_AUDIT)
+// The diagnostic shared library has no full console subsystem. For the
+// combined startup audit, use the separately compiled Android Dvar log sink
+// as the single Com_Printf definition instead of defining it twice.
 void __cdecl Com_Printf(int, const char *format, ...) {
     if (format) std::fputs(format, stderr);
 }
+#endif
 
 // The original FS_BuildOSPathForThread reports an ERR_FATAL when an engine path
 // exceeds its fixed limit. This narrow Android diagnostic boundary has no

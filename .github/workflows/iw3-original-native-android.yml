@@ -84,6 +84,10 @@ jobs:
             --engine third_party/KisakCOD \
             --output "$RUNNER_TEMP/iw3-source/iw3_iwd_directory.cpp" \
             --report "$RUNNER_TEMP/iw3-original-iwd-directory.json"
+          python3 tools/iw3_android/prepare_real_engine_iwd_directory_services.py \
+            --engine third_party/KisakCOD \
+            --output "$RUNNER_TEMP/iw3-source/iw3_iwd_directory_services.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-iwd-directory-services.json"
           python3 tools/iw3_android/prepare_real_engine_iwd_lookup.py \
             --engine third_party/KisakCOD \
             --output "$RUNNER_TEMP/iw3-source/iw3_iwd_lookup.cpp" \
@@ -135,6 +139,7 @@ jobs:
             -DIW3_EXTRACTED_IWD_SERVICES="$RUNNER_TEMP/iw3-source/iw3_iwd_services.cpp" \
             -DIW3_EXTRACTED_IWD_SEARCHPATH="$RUNNER_TEMP/iw3-source/iw3_iwd_searchpath.cpp" \
             -DIW3_EXTRACTED_IWD_DIRECTORY="$RUNNER_TEMP/iw3-source/iw3_iwd_directory.cpp" \
+            -DIW3_EXTRACTED_IWD_DIRECTORY_SERVICES="$RUNNER_TEMP/iw3-source/iw3_iwd_directory_services.cpp" \
             -DIW3_EXTRACTED_IWD_LOOKUP="$RUNNER_TEMP/iw3-source/iw3_iwd_lookup.cpp" \
             -DIW3_EXTRACTED_FS_READ="$RUNNER_TEMP/iw3-source/iw3_fs_read.cpp" \
             -DIW3_EXTRACTED_FS_STARTUP="$RUNNER_TEMP/iw3-source/iw3_fs_startup.cpp" \
@@ -197,6 +202,7 @@ jobs:
             -DIW3_EXTRACTED_IWD_SERVICES="$RUNNER_TEMP/iw3-source/iw3_iwd_services.cpp" \
             -DIW3_EXTRACTED_IWD_SEARCHPATH="$RUNNER_TEMP/iw3-source/iw3_iwd_searchpath.cpp" \
             -DIW3_EXTRACTED_IWD_DIRECTORY="$RUNNER_TEMP/iw3-source/iw3_iwd_directory.cpp" \
+            -DIW3_EXTRACTED_IWD_DIRECTORY_SERVICES="$RUNNER_TEMP/iw3-source/iw3_iwd_directory_services.cpp" \
             -DIW3_EXTRACTED_IWD_LOOKUP="$RUNNER_TEMP/iw3-source/iw3_iwd_lookup.cpp" \
             -DIW3_EXTRACTED_FS_READ="$RUNNER_TEMP/iw3-source/iw3_fs_read.cpp" \
             -DIW3_EXTRACTED_FS_STARTUP="$RUNNER_TEMP/iw3-source/iw3_fs_startup.cpp" \
@@ -369,31 +375,34 @@ jobs:
           iwd_services_archive="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_iwd_services.a"
           iwd_mount_archive="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_iwd_mount.a"
           unzip_archive="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_unzip.a"
+          iwd_directory_archive="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_iwd_directory_services.a"
           test -s "$iwd_services_archive"
           test -s "$iwd_mount_archive"
           test -s "$unzip_archive"
+          test -s "$iwd_directory_archive"
           startup_iwd_combined="$RUNNER_TEMP/iw3-fs-dvar-iwd-combined.o"
           "$ld_lld" -m aarch64linux -r --whole-archive \
             "$startup_archive" "$dvar_full_archive" "$iwd_services_archive" \
-            "$iwd_mount_archive" "$unzip_archive" --no-whole-archive \
-            -o "$startup_iwd_combined"
+            "$iwd_mount_archive" "$unzip_archive" "$iwd_directory_archive" \
+            --no-whole-archive -o "$startup_iwd_combined"
           "$llvm_nm" -C --defined-only "$startup_iwd_combined" \
             | tee "$RUNNER_TEMP/iw3-fs-dvar-iwd-defined.txt"
           "$llvm_nm" -u -C "$startup_iwd_combined" \
             | tee "$RUNNER_TEMP/iw3-fs-dvar-iwd-undefined.txt"
-          for symbol in IwdFileLanguage Z_Malloc FS_LoadZipFile unzOpen unzGetGlobalInfo unzReadCurrentFile unzClose; do
+          # These original engine and rooted-platform providers must resolve
+          # together. This audit still does not invoke the startup functions.
+          for symbol in IwdFileLanguage Z_Malloc FS_LoadZipFile unzOpen unzGetGlobalInfo unzReadCurrentFile unzClose FS_AddSearchPath FS_AddIwdFilesForGameDirectory FS_AddGameDirectory Sys_ListFiles FS_FreeFileList FS_PathCmp iwdsort I_strncmp SEH_GetLanguageName SEH_GetLanguageIndexForName Com_PrintWarning; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-iwd-defined.txt"
             if grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-iwd-undefined.txt"; then
-              echo "Original IWD startup dependency failed to resolve: $symbol" >&2
+              echo "Original IWD directory/mount dependency failed to resolve: $symbol" >&2
               exit 1
             fi
           done
-          # These are now the explicit remaining engine services. Do not stub
-          # them or invoke FS_Startup until their real providers are integrated.
-          for symbol in iwdsort I_strncmp SEH_GetLanguageName FS_ReadFile SEH_InitLanguage Sys_ListFiles FS_FreeFileList SEH_GetLanguageIndexForName Com_PrintWarning; do
+          # Keep the next genuine runtime dependencies visible; do not stub them.
+          for symbol in FS_ReadFile SEH_InitLanguage; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-iwd-undefined.txt"
           done
-          echo "IW3_ORIGINAL_FS_STARTUP_IWD_SERVICES_AARCH64_COMBINED_LINK_GREEN"
+          echo "IW3_ORIGINAL_FS_STARTUP_IWD_DIRECTORY_ADAPTER_AARCH64_LINK_GREEN"
           echo "IW3_FS_STARTUP_RUNTIME_INVOKED=false"
           echo "IW3_REAL_GAME_DATA_MOUNTED=false"
           echo "IW3_PLAYABLE_APK=false"

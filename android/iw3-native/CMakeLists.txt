@@ -47,6 +47,10 @@ endif()
 if(NOT IW3_EXTRACTED_IWD_DIRECTORY OR NOT EXISTS "${IW3_EXTRACTED_IWD_DIRECTORY}")
     message(FATAL_ERROR "Original FS_AddIwdFilesForGameDirectory source extraction required")
 endif()
+
+if(NOT IW3_EXTRACTED_IWD_DIRECTORY_SERVICES OR NOT EXISTS "${IW3_EXTRACTED_IWD_DIRECTORY_SERVICES}")
+    message(FATAL_ERROR "Original IWD sort/path comparison helpers required for combined directory-service audit")
+endif()
 if(NOT IW3_EXTRACTED_IWD_LOOKUP OR NOT EXISTS "${IW3_EXTRACTED_IWD_LOOKUP}")
     message(FATAL_ERROR "Original FS_FOpenFileReadForThread lookup-prefix extraction required")
 endif()
@@ -142,6 +146,25 @@ target_include_directories(iw3_sp_unzip PRIVATE
     "${IW3_ENGINE_SOURCE_ROOT}/../deps")
 target_compile_definitions(iw3_sp_unzip PRIVATE KISAK_SP=1)
 target_compile_options(iw3_sp_unzip PRIVATE
+    -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
+
+# Link the original IWD directory-scanner helpers with the Android rooted
+# directory adapter. The full AddIwdFiles/AddGameDirectory bodies remain in
+# the startup archive, avoiding duplicate definitions. This archive is for
+# dependency auditing only and is not linked into the diagnostic APK.
+add_library(iw3_sp_iwd_directory_services STATIC
+    "${IW3_EXTRACTED_IWD_DIRECTORY_SERVICES}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_iwd_directory_io.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_platform.cpp")
+target_include_directories(iw3_sp_iwd_directory_services PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${IW3_REAL_HEADER_ROOT}"
+    "${IW3_ENGINE_SOURCE_ROOT}"
+    "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+    "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+target_compile_definitions(iw3_sp_iwd_directory_services PRIVATE
+    KISAK_SP=1 IW3_IWD_DIRECTORY_LINK_AUDIT=1)
+target_compile_options(iw3_sp_iwd_directory_services PRIVATE
     -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
 
 # Compile the complete original location-filter function with native-width
