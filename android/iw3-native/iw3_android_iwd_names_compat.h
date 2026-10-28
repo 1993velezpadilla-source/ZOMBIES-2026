@@ -13,3 +13,4 @@ char *__cdecl IwdFileLanguage(const char *pszIwdFileName);
 int __cdecl FS_PathCmp(const char *s1, const char *s2);
 int __cdecl iwdsort(const char **a, char **b);
 int __cdecl I_strncmp(const char *s0, const char *s1, int n);
+int __cdecl I_stricmp(const char *s0, const char *s1);
