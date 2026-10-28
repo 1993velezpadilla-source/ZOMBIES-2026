@@ -169,7 +169,7 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
         self.assertIn('"$startup_archive" "$dvar_full_archive" "$iwd_services_archive"', workflow)
         self.assertIn('"$iwd_mount_archive" "$unzip_archive" "$iwd_directory_archive"', workflow)
         self.assertIn("libiw3_sp_iwd_directory_services.a", workflow)
-        self.assertIn("IW3_ORIGINAL_FS_STARTUP_IWD_DIRECTORY_ADAPTER_AARCH64_LINK_GREEN", workflow)
+        self.assertIn("IW3_ORIGINAL_FS_STARTUP_IWD_DIRECTORY_AND_READFILE_AARCH64_LINK_GREEN", workflow)
         self.assertIn("for symbol in IwdFileLanguage Z_Malloc FS_LoadZipFile unzOpen", workflow)
         self.assertIn("FS_ReadFile FS_FOpenFileRead FS_CheckFileSystemStarted FS_AllocMem", workflow)
         self.assertIn("for symbol in Hunk_AllocateTempMemory Hunk_FreeTempMemory SEH_InitLanguage; do", workflow)
