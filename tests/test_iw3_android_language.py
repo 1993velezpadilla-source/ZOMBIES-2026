@@ -57,7 +57,7 @@ class OriginalLanguageRegistryTests(unittest.TestCase):
         self.assertIn("static_assert(sizeof(languageInfo_t)", compat)
         self.assertIn('echo "IW3_FS_STARTUP_RUNTIME_INVOKED=false"', workflow)
         self.assertIn('echo "IW3_PLAYABLE_APK=false"', workflow)
-        self.assertNotIn("for symbol in SEH_InitLanguage; do\\n            grep -F \"$symbol\" \"$RUNNER_TEMP/iw3-fs-dvar-iwd-undefined.txt\"", workflow)
+        self.assertNotIn('for symbol in SEH_InitLanguage; do\n            grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-iwd-undefined.txt"\n          done', workflow)
 
 
 if __name__ == "__main__":
