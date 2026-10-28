@@ -381,7 +381,7 @@ jobs:
             | tee "$RUNNER_TEMP/iw3-fs-dvar-iwd-defined.txt"
           "$llvm_nm" -u -C "$startup_iwd_combined" \
             | tee "$RUNNER_TEMP/iw3-fs-dvar-iwd-undefined.txt"
-          for symbol in IwdFileLanguage iwdsort I_strncmp FS_PathCmp Z_Malloc FS_LoadZipFile unzOpen unzGetGlobalInfo unzReadCurrentFile unzClose; do
+          for symbol in IwdFileLanguage Z_Malloc FS_LoadZipFile unzOpen unzGetGlobalInfo unzReadCurrentFile unzClose; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-iwd-defined.txt"
             if grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-iwd-undefined.txt"; then
               echo "Original IWD startup dependency failed to resolve: $symbol" >&2
@@ -390,7 +390,7 @@ jobs:
           done
           # These are now the explicit remaining engine services. Do not stub
           # them or invoke FS_Startup until their real providers are integrated.
-          for symbol in SEH_GetLanguageName FS_ReadFile SEH_InitLanguage Sys_ListFiles FS_FreeFileList SEH_GetLanguageIndexForName Com_PrintWarning; do
+          for symbol in FS_PathCmp iwdsort I_strncmp SEH_GetLanguageName FS_ReadFile SEH_InitLanguage Sys_ListFiles FS_FreeFileList SEH_GetLanguageIndexForName Com_PrintWarning; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-iwd-undefined.txt"
           done
           echo "IW3_ORIGINAL_FS_STARTUP_IWD_SERVICES_AARCH64_COMBINED_LINK_GREEN"
