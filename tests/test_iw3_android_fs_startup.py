@@ -155,7 +155,8 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
 
         names_generator = (ROOT / "tools/iw3_android/prepare_real_engine_iwd_names.py").read_text(encoding="utf-8")
         self.assertIn('("char *__cdecl IwdFileLanguage(const char *pszIwdFileName)", FILES)', names_generator)
-        self.assertIn('GLOBALS = "char szIwdLanguageName[2][64];\\\\nint iString = 0;\\\\n"', names_generator)
+        self.assertIn('GLOBALS = "char szIwdLanguageName[2][64];', names_generator)
+        self.assertIn('"iwd_language_sort_state_staged_from_original": True', names_generator)
 
         cmake = (ROOT / "android/iw3-native/CMakeLists.txt").read_text(encoding="utf-8")
         self.assertIn('add_library(iw3_sp_iwd_services STATIC "${IW3_EXTRACTED_IWD_SERVICES}" "${IW3_EXTRACTED_IWD_NAMES}")', cmake)
