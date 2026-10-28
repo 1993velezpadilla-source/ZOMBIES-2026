@@ -69,7 +69,7 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
         "#include <universal/q_parse.h>\n"
         "#include <universal/assertive.h>\n"
         "#include <qcommon/qcommon.h>\n"
-        "#include <qcommon/threads.h>\n"
+        "bool __cdecl Sys_IsMainThread();\nbool __cdecl Sys_IsRenderThread();\nbool __cdecl Sys_IsDatabaseThread();\nbool __cdecl Sys_IsServerThread();\n"
         "#include <cstring>\n"
         "#include <string.h>\n\n"
         + parse_global + "\n\n"
