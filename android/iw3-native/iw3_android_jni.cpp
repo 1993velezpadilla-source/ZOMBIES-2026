@@ -22,6 +22,8 @@ extern "C" int z2026_iw3_snap_float_smoke();
 extern "C" int z2026_iw3_hitloc_copy_smoke();
 extern "C" int z2026_iw3_iwd_names_smoke();
 extern "C" int z2026_iw3_fs_startup_path_smoke();
+extern "C" int z2026_iw3_validate_imported_iwds(const char *root, int *archive_count, int *entry_count, char *failed_path, std::size_t failed_path_capacity);
+extern "C" int z2026_iw3_iwd_index_fixture_smoke(const char *directory);
 extern "C" int z2026_iw3_unzip_smoke(const char *directory, int *iwd_mount_ok, int *iwd_searchpath_ok, int *iwd_directory_scan_ok, int *iwd_lookup_ok, int *iwd_fs_read_ok, int *iwd_fs_disk_read_ok);
 extern "C" int z2026_iw3_casefold_smoke();
 extern "C" int z2026_iw3_configstring_num(const char*);
@@ -49,6 +51,30 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeSetDataRoot(
 
 
 IW3_JNI_EXPORT jstring JNICALL
+Java_org_z2026_iw3nativeprobe_EngineBridge_nativeValidateImportedIwds(
+        JNIEnv *env, jclass, jstring absoluteRoot) {
+    if (!absoluteRoot) return env->NewStringUTF("IMPORTED_IWD_INDEX_FAIL invalid-root");
+    const char *root = env->GetStringUTFChars(absoluteRoot, nullptr);
+    if (!root) return env->NewStringUTF("IMPORTED_IWD_INDEX_FAIL root-unavailable");
+    int archives = 0;
+    int entries = 0;
+    char failed[512]{};
+    const int rc = z2026_iw3_validate_imported_iwds(
+        root, &archives, &entries, failed, sizeof(failed));
+    env->ReleaseStringUTFChars(absoluteRoot, root);
+    char report[768]{};
+    std::snprintf(report, sizeof(report),
+                  "IMPORTED_IWD_INDEX_%s archives=%d entries=%d failed=%s",
+                  rc ? "PASS" : "FAIL", archives, entries,
+                  failed[0] ? failed : "none");
+    __android_log_print(rc ? ANDROID_LOG_INFO : ANDROID_LOG_ERROR,
+                        "IW3NativeGate", "IW3_JNI_IMPORTED_IWD_INDEX_%s archives=%d entries=%d failed=%s",
+                        rc ? "PASS" : "FAIL", archives, entries,
+                        failed[0] ? failed : "none");
+    return env->NewStringUTF(report);
+}
+
+IW3_JNI_EXPORT jstring JNICALL
 Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(
         JNIEnv *env, jclass, jstring writableDirectory) {
     int unzip_ok = 0;
@@ -66,9 +92,13 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(
             env->ReleaseStringUTFChars(writableDirectory, directory);
         }
     }
+    const int imported_iwd_index_fixture_ok = z2026_iw3_iwd_index_fixture_smoke(directory);
     __android_log_print(unzip_ok ? ANDROID_LOG_INFO : ANDROID_LOG_ERROR,
                         "IW3NativeGate", "IW3_JNI_UNZIP_PARSER_%s",
                         unzip_ok ? "PASS" : "FAIL");
+    __android_log_print(imported_iwd_index_fixture_ok ? ANDROID_LOG_INFO : ANDROID_LOG_ERROR,
+                        "IW3NativeGate", "IW3_JNI_IMPORTED_IWD_INDEX_FIXTURE_%s",
+                        imported_iwd_index_fixture_ok ? "PASS" : "FAIL");
     __android_log_print(casefold_ok ? ANDROID_LOG_INFO : ANDROID_LOG_ERROR,
                         "IW3NativeGate", "IW3_JNI_Q_SHARED_CASEFOLD_%s",
                         casefold_ok ? "PASS" : "FAIL");
@@ -145,9 +175,9 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(
                         usercmd_ok ? "READY" : "FAIL");
     const int perk_index = z2026_iw3_configstring_num("specialty_rof");
     const std::uint64_t monotonic_time = z2026_platform_monotonic_ns();
-    const int success = unzip_ok && iwd_mount_ok && iwd_searchpath_ok && iwd_directory_scan_ok && iwd_lookup_ok && iwd_fs_read_ok && iwd_fs_disk_read_ok && math_ok && surface_ok && config_ok && frame_copy_ok && pool_ok && snap_ok && hitloc_ok && iwd_names_ok && fs_startup_path_ok && file_ok && usercmd_ok &&
+    const int success = unzip_ok && imported_iwd_index_fixture_ok && iwd_mount_ok && iwd_searchpath_ok && iwd_directory_scan_ok && iwd_lookup_ok && iwd_fs_read_ok && iwd_fs_disk_read_ok && math_ok && surface_ok && config_ok && frame_copy_ok && pool_ok && snap_ok && hitloc_ok && iwd_names_ok && fs_startup_path_ok && file_ok && usercmd_ok &&
                         perk_index == 2034 && monotonic_time > 0;
-    char report[1536];
+    char report[2048];
     std::snprintf(report, sizeof(report),
                   "ORIGINAL KISAKCOD IW3 C++ CODE TEST\n"
                   "JNI: %s\n"
@@ -162,6 +192,7 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(
                   "Original FS startup basepath -> Android filesDir: %s\n"
                   "Original IW3 ZIP32 stored/deflate parser: %s\n"
                   "Original FS_LoadZipFile IWD index: %s\n"
+                  "Original FS_LoadZipFile main/zone index fixture: %s\n"
                   "Original FS_AddSearchPath fixture insertion: %s\n"
                   "Original FS_AddIwdFilesForGameDirectory scan: %s\n"
                   "Original FS_FOpenFileReadForThread lookup-only branch: %s\n"
@@ -186,6 +217,7 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(
                   fs_startup_path_ok ? "PASS" : "FAIL",
                   unzip_ok ? "PASS" : "FAIL",
                   iwd_mount_ok ? "PASS" : "FAIL",
+                  imported_iwd_index_fixture_ok ? "PASS" : "FAIL",
                   iwd_searchpath_ok ? "PASS" : "FAIL",
                   iwd_directory_scan_ok ? "PASS" : "FAIL",
                   iwd_lookup_ok ? "PASS" : "FAIL",

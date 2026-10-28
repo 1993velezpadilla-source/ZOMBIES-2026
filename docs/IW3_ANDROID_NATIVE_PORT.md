@@ -1442,3 +1442,12 @@ The Android diagnostic now offers a Storage Access Framework directory picker fo
 This removes one prerequisite for testing the original filesystem against user-owned files, but **does not mount the original search-path table, parse FastFiles, load a map, initialize a renderer, or execute gameplay**. The JNI bridge and APK remain diagnostic. The import is intentionally restricted to `main/` and `zone/`; a source root must contain at least one `.iwd` and one `.ff` file.
 
 The code is covered by `tests/test_iw3_android_game_data_import.py`; Android Gradle CI must still compile the new Java helper and the emulator probe must be rerun after this UI change. Do not mark the APK playable based on an import-pass marker. The remaining critical work is integrating the authentic filesystem/dvar/bootstrap graph, loading licensed FastFiles and a real map, porting the original renderer, and wiring the Android input hook into the running client command loop on physical ARM64 hardware.
+
+
+### Phase CH — validate staged IWD archives with original FS_LoadZipFile (28 Oct 2026)
+
+Baseline inspected: `799952b6a8a5ebe1133f273235294721ef77b492`; PR #4 remained open/unmerged. The SAF importer staged user-owned `.iwd/.ff` files, but no post-import native check attempted to index the imported IWDs. Added a bounded scan of root-level `main/*.iwd` and `zone/*.iwd` that calls the original `FS_LoadZipFile`, validates the real index/hash/checksum fields and entry names, then closes/frees the original archive state and restores `fs_iwdFileCount/fs_checksumFeed`.
+
+The activity now calls `nativeValidateImportedIwds(filesDir)` after import and reports validated archive/entry counts or the failing path. CI also executes the same path against a temporary synthetic IWD under an isolated app-private root; this proves the original indexer and cleanup path run, but it is explicitly a fixture, not proprietary game data.
+
+**Still not gameplay:** this is IWD indexing, not full searchpath startup or FastFile/map loading. `FS_Startup/FS_InitFilesystem` are not invoked by the app, the original renderer and live command/frame loop are not integrated, and no physical ARM64 gameplay is proven. The APK remains diagnostic only. PR #4 must remain open and unmerged.

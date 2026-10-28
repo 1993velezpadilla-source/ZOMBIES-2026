@@ -122,9 +122,21 @@ public final class MainActivity extends Activity {
                         GameDataImporter.importTree(this, treeUri, getFilesDir());
                 String evidence = "IW3_GAME_DATA_IMPORT_PASS iwd=" + summary.iwdFiles
                         + " fastfiles=" + summary.fastFiles + " bytes=" + summary.bytesCopied;
+                String indexReport;
+                try {
+                    indexReport = EngineBridge.nativeValidateImportedIwds(
+                            getFilesDir().getAbsolutePath());
+                } catch (Throwable validationFailure) {
+                    indexReport = "IMPORTED_IWD_INDEX_FAIL "
+                            + validationFailure.getClass().getSimpleName() + ": "
+                            + validationFailure.getMessage();
+                }
                 Log.i(TAG, evidence);
+                Log.i(TAG, indexReport);
+                final String finalIndexReport = indexReport;
                 runOnUiThread(() -> label.append("\n\n" + evidence
-                        + "\nFiles staged in app-private main/ and zone/. "
+                        + "\n" + finalIndexReport
+                        + "\nThis checks original FS_LoadZipFile indexing only. "
                         + "Original FS/FastFile/map loading is still pending."));
             } catch (Throwable failure) {
                 Log.e(TAG, "IW3_GAME_DATA_IMPORT_FAIL", failure);

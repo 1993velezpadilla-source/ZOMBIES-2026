@@ -23,6 +23,11 @@ extern char __cdecl FS_FilesAreLoadedGlobally(const char *filename);
 #define IW3_UNZIP_EXPORT
 #endif
 
+extern "C" IW3_UNZIP_EXPORT int z2026_iw3_validate_imported_iwds(
+    const char *root, int *archive_count, int *entry_count,
+    char *failed_path, std::size_t failed_path_capacity);
+extern "C" IW3_UNZIP_EXPORT int z2026_iw3_iwd_index_fixture_smoke(const char *directory);
+
 namespace {
 using Bytes = std::vector<std::uint8_t>;
 struct Entry {
@@ -175,6 +180,47 @@ bool read_via_original_fs_read(iwd_t *iwd, const Entry &expected) {
     return roles_ok && handles_cleared &&
            primary_got == expected_length && clone_got == expected_length &&
            primary_text == expected.payload && clone_text == expected.payload;
+}
+
+
+bool validate_original_iwd_index(const char *relative_path, int *indexed_entries) {
+    if (indexed_entries) *indexed_entries = 0;
+    if (!relative_path || !relative_path[0] || relative_path[0] == '/' ||
+        std::strlen(relative_path) >= 240 || std::strchr(relative_path, '\\') ||
+        std::strstr(relative_path, "../") || std::strstr(relative_path, "/..") ||
+        std::strstr(relative_path, "//")) return false;
+
+    char path_copy[256]{};
+    char basename_copy[256]{};
+    const int path_len = std::snprintf(path_copy, sizeof(path_copy), "%s", relative_path);
+    const int base_len = std::snprintf(basename_copy, sizeof(basename_copy), "%s", relative_path);
+    if (path_len <= 0 || static_cast<std::size_t>(path_len) >= sizeof(path_copy) ||
+        base_len <= 0 || static_cast<std::size_t>(base_len) >= sizeof(basename_copy)) return false;
+
+    const int old_count = fs_iwdFileCount;
+    const int old_feed = fs_checksumFeed;
+    fs_checksumFeed = 0;
+    iwd_t *iwd = FS_LoadZipFile(path_copy, basename_copy);
+    bool ok = iwd != nullptr;
+    int count = iwd ? iwd->numfiles : 0;
+    if (iwd) {
+        ok = ok && count > 0 && count <= 200000 &&
+             iwd->buildBuffer != nullptr && iwd->hashTable != nullptr &&
+             iwd->hashSize > 0 && (iwd->hashSize & (iwd->hashSize - 1)) == 0 &&
+             iwd->checksum == iwd->pure_checksum;
+        for (int i = 0; ok && i < count; ++i) {
+            const char *name = iwd->buildBuffer[i].name;
+            ok = name != nullptr && name[0] != '\0' && std::strlen(name) < 1024;
+        }
+        if (iwd->handle && unzClose(reinterpret_cast<unzFile>(iwd->handle)) != UNZ_OK)
+            ok = false;
+        if (iwd->buildBuffer) Z_Free(iwd->buildBuffer, 3);
+        Z_Free(iwd, 3);
+    }
+    fs_iwdFileCount = old_count;
+    fs_checksumFeed = old_feed;
+    if (ok && indexed_entries) *indexed_entries = count;
+    return ok;
 }
 
 bool index_original_iwd(const char *path, const std::array<Entry, 2> &expected, bool *searchpath_ok, bool *fs_read_ok) {
@@ -477,6 +523,62 @@ bool scan_original_iwd_directory(const char *root,
     if (wrote && z2026_platform_unlink_file(relative_archive) != 0) ok = false;
     if (z2026_platform_rmdir(subdir) != 0) ok = false;
     return ok;
+}
+
+
+bool run_imported_iwd_index_fixture(const char *root) {
+    if (!root || root[0] != '/' || std::strlen(root) > 700) return false;
+    std::array<Entry, 2> entries{{
+        {"maps/iw3_import_index_probe.txt", "KISAKCOD_ORIGINAL_FS_LOADZIPFILE_INDEX", 0, {}, 0, 0},
+        {"images/iw3_import_index_probe.txt", "KISAKCOD_ORIGINAL_IWD_INDEX_64BIT", 8, {}, 0, 0}
+    }};
+    Bytes archive_bytes;
+    if (!make_zip(archive_bytes, entries)) return false;
+
+    char subdir[64]{};
+    char absolute_root[1024]{};
+    char relative_archive[160]{};
+    const long pid = static_cast<long>(::getpid());
+    const int subdir_len = std::snprintf(subdir, sizeof(subdir), "iw3-index-fixture-%ld", pid);
+    if (subdir_len <= 0 || static_cast<std::size_t>(subdir_len) >= sizeof(subdir) ||
+        z2026_platform_mkdir(subdir) != 0) return false;
+    const int root_len = std::snprintf(absolute_root, sizeof(absolute_root),
+                                       "%s/%s", root, subdir);
+    const int archive_len = std::snprintf(relative_archive, sizeof(relative_archive),
+                                          "main/iw3-index-fixture-%ld.iwd", pid);
+    bool root_changed = false;
+    bool main_created = false;
+    bool zone_created = false;
+    bool archive_written = false;
+    bool validation_ok = false;
+    if (root_len > 0 && static_cast<std::size_t>(root_len) < sizeof(absolute_root) &&
+        archive_len > 0 && static_cast<std::size_t>(archive_len) < sizeof(relative_archive) &&
+        z2026_platform_set_data_root(absolute_root) == 0) {
+        root_changed = true;
+        main_created = z2026_platform_mkdir("main") == 0;
+        zone_created = z2026_platform_mkdir("zone") == 0;
+        if (main_created && zone_created &&
+            z2026_platform_write_file(relative_archive, archive_bytes.data(),
+                                      archive_bytes.size()) ==
+                static_cast<int>(archive_bytes.size())) {
+            archive_written = true;
+            int archives = 0;
+            int indexed_entries = 0;
+            char failed_path[512]{};
+            validation_ok = z2026_iw3_validate_imported_iwds(
+                absolute_root, &archives, &indexed_entries,
+                failed_path, sizeof(failed_path)) == 1 &&
+                archives == 1 && indexed_entries == 2 && failed_path[0] == '\0';
+        }
+    }
+    if (root_changed) {
+        if (archive_written) z2026_platform_unlink_file(relative_archive);
+        if (main_created) z2026_platform_rmdir("main");
+        if (zone_created) z2026_platform_rmdir("zone");
+    }
+    const bool root_restored = z2026_platform_set_data_root(root) == 0;
+    const bool fixture_root_removed = z2026_platform_rmdir(subdir) == 0;
+    return validation_ok && root_restored && fixture_root_removed;
 }
 
 } // namespace

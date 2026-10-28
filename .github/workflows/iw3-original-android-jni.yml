@@ -171,6 +171,7 @@ jobs:
           for symbol in \
             Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport \
             Java_org_z2026_iw3nativeprobe_EngineBridge_nativeSetDataRoot \
+            Java_org_z2026_iw3nativeprobe_EngineBridge_nativeValidateImportedIwds \
             Java_org_z2026_iw3nativeprobe_EngineBridge_nativeTouch \
             Java_org_z2026_iw3nativeprobe_EngineBridge_nativeLifecycle \
             z2026_iw3_configstring_num z2026_iw3_angle_vectors \
@@ -178,7 +179,9 @@ jobs:
             z2026_iw3_real_pool_smoke \
             z2026_iw3_hitloc_copy_smoke \
             z2026_iw3_iwd_names_smoke \
-            z2026_iw3_unzip_smoke; do
+            z2026_iw3_unzip_smoke \
+            z2026_iw3_validate_imported_iwds \
+            z2026_iw3_iwd_index_fixture_smoke; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-jni-symbols.txt" || exit 1
           done
           "$sdk/build-tools/35.0.1/apksigner" verify --verbose "$apk"
