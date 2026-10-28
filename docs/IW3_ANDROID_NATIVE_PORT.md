@@ -890,3 +890,22 @@ Validation for code HEAD `b0739a33d1e012ab9dc60fbd1acffcc4137276a2` is now compl
 
 The first Phase BF native attempt failed because the extracted initializer called `SEH_UpdateCurrentLanguage()` before its declaration and two old regressions still expected the previous unresolved-symbol loop. The compatibility header and those tests were corrected; the successful runs above are on the resulting code HEAD.
 Hard acceptance gates remain open: the combined audit is not the runtime. The app still does not invoke the complete original `FS_Startup()`/`FS_InitFilesystem()` call path, mount licensed game FastFiles or load a map, render a real 3D scene, or run touch-driven weapons/actors through the complete original frame loop on a physical ARM64 device. The JNI artifact remains diagnostic. Keep PR #4 open and unmerged; `IW3_PLAYABLE_APK=false` remains explicit.
+
+
+
+## Phase BG — connect the original StringEd initialization chain to the FS-startup audit (2026-10-27; validation pending)
+
+Reviewed PR #4 at code head `b0739a33` and inspected the completed native/JNI/emulator Actions jobs before making this change. The previous combined ARM64 audit had the original `SEH_InitLanguage` registry functions, IWD mount, ZIP reader, file-read helpers and Hunk allocator, but it did not include the StringEd package loader that `FS_InitFilesystem()` calls through `SEH_Init_StringEd()` and `SEH_UpdateLanguageInfo()`.
+
+Implemented on `feature/iw3-native-android-arm64-20261025`:
+
+- Commit [220a5f0](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/220a5f0df6185b6c04570cc30d438799cf43d4a5) extends the existing source-hash-checked extractor to preserve the original `FS_LanguageHasAssets`, `SEH_StringEd_SetLanguageStrings`, `SEH_UpdateLanguageInfo`, `SEH_Init_StringEd` and `SEH_Shutdown_StringEd` bodies from `stringed_hooks.cpp`. It includes the original filesystem/StringEd declarations rather than introducing substitute language logic.
+- Commit [c53ab17](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/c53ab176e1e1a5393814dfa69467bc24548c71cf) adds `iw3_sp_stringed_ingame`, compiled from the complete vendored `src/stringed/stringed_ingame.cpp`. The original `SE_Init`, `SE_ShutDown`, `SE_LoadLanguage`, `SE_Load` and file-data helpers remain upstream code.
+- Commit [b8814ea](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/b8814ea1af06cf560c88be226e9551cdec21b017) adds that archive to the AArch64 relocatable FS/Dvar/IWD/ZIP/readfile/Hunk/language link and requires the original StringEd startup symbols to be defined.
+- Commit [1c2759f](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/1c2759fb7becf7a1799e29b1b4dadc09bae8a980) adds regression checks for the original hook chain, its CMake provider and the new link marker.
+
+The audit deliberately requires `FS_ListFiles` to remain visible as unresolved at this stage. The original StringEd loader calls it to enumerate localized-string files; this pass must not misreport that missing filesystem provider as a completed localization runtime.
+
+**Validation status:** the fresh source preflight, Android NDK ARM64 audit, JNI diagnostic build and emulator diagnostic have been triggered for the updated branch. Their final results have not yet been inspected; this phase is not marked CI-green until those jobs complete.
+
+**Scope boundary:** this is dependency integration, not gameplay. The app still does not invoke the complete original `FS_InitFilesystem()` chain; the new StringEd archive is not linked into the JNI APK. No licensed FastFile/map load, renderer scene, physical ARM64 execution of the game loop, or touch-driven weapon/actor gameplay is proven. The JNI artifact remains diagnostic only. Keep PR #4 open and unmerged.
