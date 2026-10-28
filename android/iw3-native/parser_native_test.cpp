@@ -2,12 +2,16 @@
 #include <universal/q_parse.h>
 #include <universal/assertive.h>
 #include <qcommon/qcommon.h>
-#include <qcommon/threads.h>
 
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+
+bool __cdecl Sys_IsMainThread();
+bool __cdecl Sys_IsRenderThread();
+bool __cdecl Sys_IsDatabaseThread();
+bool __cdecl Sys_IsServerThread();
 
 bool __cdecl Sys_IsMainThread() { return true; }
 bool __cdecl Sys_IsRenderThread() { return false; }
