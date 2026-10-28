@@ -436,7 +436,12 @@ jobs:
               exit 1
             fi
           done
-          grep -F 'cmd_args' "$RUNNER_TEMP/iw3-full-dvar-unresolved.txt"
+          grep -E '[[:space:]]cmd_args$' "$RUNNER_TEMP/iw3-full-dvar-combined-defined.txt"
+          if grep -E '[[:space:]]cmd_args$' "$RUNNER_TEMP/iw3-full-dvar-unresolved.txt"; then
+            echo "Original cmd_args storage unexpectedly unresolved in Dvar combined object" >&2
+            exit 1
+          fi
+          echo "IW3_ORIGINAL_CMD_ARGS_STATE_DVAR_COMBINED_AARCH64_LINK_GREEN"
           if grep -F 'Vec4Compare' "$RUNNER_TEMP/iw3-full-dvar-unresolved.txt"; then
             echo "Original Vec4Compare dependency should have been resolved from the extracted KisakCOD body" >&2
             exit 1
@@ -470,7 +475,12 @@ jobs:
               exit 1
             fi
           done
-          grep -F 'cmd_args' "$RUNNER_TEMP/iw3-fs-dvar-startup-undefined.txt"
+          grep -E '[[:space:]]cmd_args$' "$RUNNER_TEMP/iw3-fs-dvar-startup-defined.txt"
+          if grep -E '[[:space:]]cmd_args$' "$RUNNER_TEMP/iw3-fs-dvar-startup-undefined.txt"; then
+            echo "Original cmd_args storage unexpectedly unresolved in Dvar/startup combined object" >&2
+            exit 1
+          fi
+          echo "IW3_ORIGINAL_CMD_ARGS_STATE_DVAR_COMBINED_AARCH64_LINK_GREEN"
           for symbol in Dvar_RegisterInt Dvar_RegisterString Dvar_RegisterBool; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-startup-defined.txt"
             if grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-startup-undefined.txt"; then
@@ -850,7 +860,12 @@ jobs:
               exit 1
             fi
           done
-          grep -F 'cmd_args' "$RUNNER_TEMP/iw3-full-dvar-unresolved.txt"
+          grep -E '[[:space:]]cmd_args$' "$RUNNER_TEMP/iw3-full-dvar-combined-defined.txt"
+          if grep -E '[[:space:]]cmd_args$' "$RUNNER_TEMP/iw3-full-dvar-unresolved.txt"; then
+            echo "Original cmd_args storage unexpectedly unresolved in Dvar combined object" >&2
+            exit 1
+          fi
+          echo "IW3_ORIGINAL_CMD_ARGS_STATE_DVAR_COMBINED_AARCH64_LINK_GREEN"
           if grep -F 'Vec4Compare' "$RUNNER_TEMP/iw3-full-dvar-unresolved.txt"; then
             echo "Original Vec4Compare dependency should have been resolved from the extracted KisakCOD body" >&2
             exit 1
@@ -884,7 +899,12 @@ jobs:
               exit 1
             fi
           done
-          grep -F 'cmd_args' "$RUNNER_TEMP/iw3-fs-dvar-startup-undefined.txt"
+          grep -E '[[:space:]]cmd_args$' "$RUNNER_TEMP/iw3-fs-dvar-startup-defined.txt"
+          if grep -E '[[:space:]]cmd_args$' "$RUNNER_TEMP/iw3-fs-dvar-startup-undefined.txt"; then
+            echo "Original cmd_args storage unexpectedly unresolved in Dvar/startup combined object" >&2
+            exit 1
+          fi
+          echo "IW3_ORIGINAL_CMD_ARGS_STATE_DVAR_COMBINED_AARCH64_LINK_GREEN"
           for symbol in Dvar_RegisterInt Dvar_RegisterString Dvar_RegisterBool; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-startup-defined.txt"
             if grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-startup-undefined.txt"; then
@@ -1268,7 +1288,12 @@ jobs:
               exit 1
             fi
           done
-          grep -F 'cmd_args' "$RUNNER_TEMP/iw3-full-dvar-unresolved.txt"
+          grep -E '[[:space:]]cmd_args$' "$RUNNER_TEMP/iw3-full-dvar-combined-defined.txt"
+          if grep -E '[[:space:]]cmd_args$' "$RUNNER_TEMP/iw3-full-dvar-unresolved.txt"; then
+            echo "Original cmd_args storage unexpectedly unresolved in Dvar combined object" >&2
+            exit 1
+          fi
+          echo "IW3_ORIGINAL_CMD_ARGS_STATE_DVAR_COMBINED_AARCH64_LINK_GREEN"
           if grep -F 'Vec4Compare' "$RUNNER_TEMP/iw3-full-dvar-unresolved.txt"; then
             echo "Original Vec4Compare dependency should have been resolved from the extracted KisakCOD body" >&2
             exit 1
@@ -1302,7 +1327,12 @@ jobs:
               exit 1
             fi
           done
-          grep -F 'cmd_args' "$RUNNER_TEMP/iw3-fs-dvar-startup-undefined.txt"
+          grep -E '[[:space:]]cmd_args$' "$RUNNER_TEMP/iw3-fs-dvar-startup-defined.txt"
+          if grep -E '[[:space:]]cmd_args$' "$RUNNER_TEMP/iw3-fs-dvar-startup-undefined.txt"; then
+            echo "Original cmd_args storage unexpectedly unresolved in Dvar/startup combined object" >&2
+            exit 1
+          fi
+          echo "IW3_ORIGINAL_CMD_ARGS_STATE_DVAR_COMBINED_AARCH64_LINK_GREEN"
           for symbol in Dvar_RegisterInt Dvar_RegisterString Dvar_RegisterBool; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-startup-defined.txt"
             if grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-startup-undefined.txt"; then
