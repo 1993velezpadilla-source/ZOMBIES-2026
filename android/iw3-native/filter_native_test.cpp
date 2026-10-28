@@ -14,7 +14,7 @@ int main()
     assert(!Com_FilterPath("maps/mp_?.bsp", "maps/mp_ab.bsp", 0));
     assert(Com_FilterPath("maps/[a-c]est.bsp", "maps/best.bsp", 0));
     assert(!Com_FilterPath("maps/[a-c]est.bsp", "maps/zest.bsp", 0));
-    assert(Com_FilterPath("maps/[[test.bsp", "maps/[test.bsp", 0));
+    assert(Com_FilterPath("[[a-c]]", "b", 0));
     assert(!Com_FilterPath("maps/[abc", "maps/a", 0));
     assert(!Com_FilterPath(nullptr, "maps/a.bsp", 0));
     assert(!Com_FilterPath("maps/*.bsp", nullptr, 0));
