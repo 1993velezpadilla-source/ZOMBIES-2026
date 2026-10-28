@@ -32,6 +32,18 @@ class TouchSurfaceAccessibilityTests(unittest.TestCase):
         self.assertIn("Native diagnostic view did not become visible after bounded UI recovery", source)
         self.assertNotIn("fallback to arbitrary coordinate", source.lower())
 
+    def test_uiautomator_bounds_are_scaled_to_physical_pixels_and_modal_anr_wins(self):
+        source = PROBE.read_text(encoding="utf-8")
+        self.assertIn('"$proof_dir/screen-before-touch.png" <<\'PY\'', source)
+        self.assertIn("ui_max_x = max(bounds[2] for bounds in all_bounds)", source)
+        self.assertIn("ui_max_y = max(bounds[3] for bounds in all_bounds)", source)
+        self.assertIn("scale_x = screen_w / ui_max_x", source)
+        self.assertIn("scale_y = screen_h / ui_max_y", source)
+        self.assertLess(
+            source.index('if any(node.get("text") == "Quickstep isn\'t responding"'),
+            source.index("for node in nodes:\\n    if (node.get('package') == 'org.z2026.iw3nativeprobe'"),
+        )
+
     def test_sparse_android_pointer_ids_are_mapped_to_native_touch_slots(self):
         native = PLATFORM.read_text(encoding="utf-8")
         activity = ACTIVITY.read_text(encoding="utf-8")

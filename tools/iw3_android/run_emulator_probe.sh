@@ -50,43 +50,70 @@ for attempt in $(seq 1 "$max_ui_attempts"); do
         sleep 1
         continue
     fi
-    read -r ui_state ui_x ui_y < <(python3 - "$proof_dir/touch-window.xml" <<'PY'
+    read -r ui_state ui_x ui_y < <(python3 - "$proof_dir/touch-window.xml" "$proof_dir/screen-before-touch.png" <<'PY'
 import re
+import struct
 import sys
 import xml.etree.ElementTree as ET
 
 root = ET.parse(sys.argv[1]).getroot()
 nodes = list(root.iter('node'))
+with open(sys.argv[2], "rb") as f:
+    header = f.read(24)
+if len(header) != 24 or header[:8] != b"\x89PNG\r\n\x1a\n":
+    raise SystemExit("Cannot scale UIAutomator bounds without the real screenshot")
+screen_w, screen_h = struct.unpack(">II", header[16:24])
+bounds_re = re.compile(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]")
 
-def center(node):
-    match = re.fullmatch(r'\[(\d+),(\d+)\]\[(\d+),(\d+)\]', node.get('bounds', ''))
+def parsed_bounds(node):
+    match = bounds_re.fullmatch(node.get("bounds", ""))
     if not match:
         return None
     x0, y0, x1, y1 = map(int, match.groups())
-    return ((x0 + x1) // 2, (y0 + y1) // 2) if x1 > x0 and y1 > y0 else None
+    return (x0, y0, x1, y1) if x1 > x0 and y1 > y0 else None
 
-for node in nodes:
-    if (node.get('package') == 'org.z2026.iw3nativeprobe'
-            and (node.get('class') == 'android.widget.TextView'
-                 or node.get('content-desc') == 'IW3 native diagnostic touch surface')):
-        point = center(node)
-        if point:
-            print('target', *point)
-            raise SystemExit(0)
+all_bounds = [parsed_bounds(node) for node in nodes]
+all_bounds = [bounds for bounds in all_bounds if bounds]
+if not all_bounds:
+    print("retry 0 0")
+    raise SystemExit(0)
+# UIAutomator reports logical/display coordinates on some emulator images,
+# while adb input consumes physical framebuffer pixels. Scale from the real
+# screenshot instead of tapping the unscaled bounds.
+ui_max_x = max(bounds[2] for bounds in all_bounds)
+ui_max_y = max(bounds[3] for bounds in all_bounds)
+scale_x = screen_w / ui_max_x
+scale_y = screen_h / ui_max_y
 
-# A launcher ANR is external to the native Activity. Only recover this exact
-# system dialog; an ANR attributed to the app remains a test failure.
-if any(node.get('text') == "Quickstep isn't responding" for node in nodes):
+def center(node):
+    bounds = parsed_bounds(node)
+    if not bounds:
+        return None
+    x0, y0, x1, y1 = bounds
+    return (int(round(((x0 + x1) / 2) * scale_x)),
+            int(round(((y0 + y1) / 2) * scale_y)))
+
+# Handle a launcher ANR before selecting an app view that may still be present
+# underneath the modal dialog in the accessibility tree.
+if any(node.get("text") == "Quickstep isn't responding" for node in nodes):
     for node in nodes:
-        if node.get('resource-id') == 'android:id/aerr_wait':
+        if node.get("resource-id") == "android:id/aerr_wait":
             point = center(node)
             if point:
-                print('quickstep_anr', *point)
+                print("quickstep_anr", *point)
                 raise SystemExit(0)
 
-print('retry 0 0')
-PY
-)
+for node in nodes:
+    if (node.get("package") == "org.z2026.iw3nativeprobe"
+            and (node.get("class") == "android.widget.TextView"
+                 or node.get("content-desc") == "IW3 native diagnostic touch surface")):
+        point = center(node)
+        if point:
+            print("target", *point)
+            raise SystemExit(0)
+
+print("retry 0 0")
+PY)
     case "$ui_state" in
         target)
             touch_x="$ui_x"
