@@ -1342,3 +1342,24 @@ The latest frame audit had the authentic `G_RunFrame` and `G_UpdatePlayer` bodie
 The native workflow now compiles both original player-update functions with the Android NDK and relocatably links their objects with `libiw3_sp_frame.a`. The link gate requires both functions and `G_RunFrame` to be defined, and requires the player/trigger update symbols to be absent from the combined undefined-symbol table. The actual node, claim and trigger providers remain unresolved and are explicitly checked as such; no stubs were introduced.
 
 This phase is a source/ABI/linkage milestone only. It does not execute the functions in Android, initialize the complete server runtime, load a real IWD/FastFile/map, render a scene, or prove touch-driven combat. The emulator is not a physical ARM64 device. The JNI package remains diagnostic and is not a playable game; keep PR #4 open and unmerged until all gameplay gates are evidenced.
+
+### Phase Y — LP64 headers blocking the original player/trigger frame compile (28 Oct 2026; CI running)
+
+The first current-head ARM64 compile of the authentic `G_UpdatePlayerTriggers` body exposed header-level portability failures before the symbol audit could run:
+
+- `scr_variable.h` hard-coded Win32 sizes for pointer-bearing script VM records. The original 32-bit assertions remain unchanged on 32-bit builds; LP64 now has explicit measured assertions for `VariableStackBuffer`, `VariableUnion`, `VariableValue`, `VariableValueInternal_u`, `VariableValueInternal`, `scrVarDebugPub_t`, `scrVarGlob_t`, `scr_classStruct_t`, `VariableDebugInfo`, and `ThreadDebugInfo`.
+- `net_chan.h` used MSVC-only `__declspec(align(4))`; it now uses standard C++ `alignas(4)`.
+- `com_math.h` used MSVC-only `__forceinline`; its three coercion helpers now use a compiler-specific `KISAK_FORCEINLINE` definition with equivalent inline intent.
+- The engine's float-returning `random()` collided with POSIX `long random(void)` on Android. The original engine RNG was renamed to `Com_Random` in `com_math.h/.cpp` and all 36 source callsites in the vendored engine were updated. A source regression scans the engine tree for any remaining callsites that would accidentally bind to libc.
+
+These are portability fixes to the original engine source; no substitute engine or no-op service was added. The LP64 script layout assertions only permit the affected translation units to compile. They do **not** prove that the script VM's pointer-bearing records, script execution, or the complete runtime are safe on ARM64; those still require end-to-end auditing and execution.
+
+Regression added: `tests/test_iw3_android_lp64_script_layouts.py`. The first run caught a stale test expectation after the RNG symbol was made unconditional; that assertion was corrected.
+
+Validation currently queued/in progress for code commit `6b4c799fb0ccf094b0e1f2f88f9d580ba6471aea`:
+- Native ARM64 source/audit: [40736429762](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40736429762) — queued at last inspection.
+- Source preflight: [40736429817](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40736429817) — queued at last inspection.
+- JNI diagnostic build: [40736429746](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40736429746) — in progress at last inspection.
+
+Do not count the intermediate failed preflight as the final result, and do not count queued runs as passing. No new evidence from this phase proves `FS_Startup()` execution, real FastFile/map loading, renderer output, live frame consumption of touch commands, weapon/actor gameplay, or physical ARM64 execution. The JNI package remains diagnostic only; PR #4 stays open and unmerged.
+
