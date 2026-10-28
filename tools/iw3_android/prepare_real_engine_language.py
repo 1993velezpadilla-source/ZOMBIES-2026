@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Stage authentic KisakCOD language-init and name/index helpers for ARM64 audit.
+"""Stage authentic KisakCOD language selection and StringEd startup hooks for ARM64 audit.
 
-Only the original SEH_InitLanguage, SEH_UpdateCurrentLanguage,
-SEH_GetLanguageName, SEH_GetLanguageIndexForName and their source-owned globals
-are extracted. This does not claim the full StringEd database or translated
-asset subsystem is ported.
+The extracted hooks preserve upstream bodies. The complete original
+stringed_ingame.cpp is compiled separately as its provider archive; neither
+this source slice nor that archive proves the runtime loaded localization data.
 """
 from __future__ import annotations
 
@@ -25,6 +24,11 @@ FUNCTIONS = (
     "const dvar_s *SEH_UpdateCurrentLanguage()",
     "const char *__cdecl SEH_GetLanguageName(uint32_t iLanguage)",
     "int __cdecl SEH_GetLanguageIndexForName(const char *pszLanguageName, int *piLanguageIndex)",
+    "int __cdecl FS_LanguageHasAssets(int iLanguage)",
+    "int __cdecl SEH_StringEd_SetLanguageStrings(uint32_t iLanguage)",
+    "void __cdecl SEH_UpdateLanguageInfo()",
+    "void __cdecl SEH_Init_StringEd()",
+    "void __cdecl SEH_Shutdown_StringEd()",
 )
 TABLE_START = "languageInfo_t g_languages[15] ="
 GLOBAL_DECLARATIONS = (
@@ -38,6 +42,8 @@ GLOBAL_DECLARATIONS = (
 HEADER = (
     '#include <universal/q_shared.h>\n'
     '#include <qcommon/qcommon.h>\n'
+    '#include <universal/com_files.h>\n'
+    '#include <stringed/stringed_ingame.h>\n'
     '#include "iw3_android_language_compat.h"\n'
     '#include <cstdint>\n'
 )
@@ -52,6 +58,13 @@ REQUIRED = (
     "return g_languages[iLanguage].pszName;",
     "if (!I_stricmp(pszLanguageName, g_languages[i].pszName))",
     "g_languages[0].pszName",
+    "if (FS_LanguageHasAssets(i))",
+    "SE_LoadLanguage(loc_forceEnglish->current.enabled)",
+    "SEH_StringEd_SetLanguageStrings(loc_language->current.unsignedInt)",
+    "void __cdecl SEH_Init_StringEd()",
+    "SE_Init();",
+    "void __cdecl SEH_Shutdown_StringEd()",
+    "SE_ShutDown();",
 )
 FORBIDDEN = (
     'return language == 0 ? "english" : "";',
@@ -112,8 +125,13 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
         "original_SEH_InitLanguage_body_preserved_verbatim": True,
         "original_SEH_UpdateCurrentLanguage_body_preserved_verbatim": True,
         "original_language_name_and_index_helpers_preserved_verbatim": True,
+        "original_FS_LanguageHasAssets_body_preserved_verbatim": True,
+        "original_SEH_StringEd_SetLanguageStrings_body_preserved_verbatim": True,
+        "original_SEH_UpdateLanguageInfo_body_preserved_verbatim": True,
+        "original_SEH_Init_StringEd_and_shutdown_bodies_preserved_verbatim": True,
         "languageInfo_t_native_pointer_layout_guarded": True,
         "full_stringed_database_and_translation_loading_ported": False,
+        "stringed_runtime_invoked": False,
         "filesystem_startup_runtime_invoked": False,
         "real_game_data_mounted": False,
         "map_loading_proven": False,
