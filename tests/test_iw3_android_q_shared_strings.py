@@ -34,7 +34,8 @@ class OriginalQSharedStringServicesTests(unittest.TestCase):
             self.assertIn("if (result >= 0 && static_cast<uint32_t>(result) >= size) result = -1;", staged)
             self.assertIn("dest[size - 1] = 0;", staged)
             self.assertNotIn("_vsnprintf(", staged)
-            self.assertTrue(report["original_I_strncat_I_strncpyz_I_stricmp_bodies_staged_verbatim"])
+            self.assertTrue(report["original_I_strncat_body_staged_verbatim"])
+            self.assertTrue(report["I_strncpyz_and_I_stricmp_supplied_by_existing_original_iwd_services_archive"])
             self.assertTrue(report["com_sprintf_minus_one_on_truncation_preserved"])
             self.assertFalse(report["filesystem_startup_invoked"])
             self.assertFalse(report["playable_apk"])
@@ -46,6 +47,8 @@ class OriginalQSharedStringServicesTests(unittest.TestCase):
         workflow = (ROOT / ".github/workflows/iw3-original-native-android.yml").read_text(encoding="utf-8")
         cmake = (ROOT / "android/iw3-native/CMakeLists.txt").read_text(encoding="utf-8")
         gradle = (ROOT / "android/iw3-native/android_app/app/build.gradle").read_text(encoding="utf-8")
+        directory_io = (ROOT / "android/iw3-native/iw3_android_iwd_directory_io.cpp").read_text(encoding="utf-8")
+        iwd_services_generator = (ROOT / "tools/iw3_android/prepare_real_engine_iwd_services.py").read_text(encoding="utf-8")
 
         self.assertIn("prepare_real_engine_q_shared_strings.py", workflow)
         self.assertIn("IW3_EXTRACTED_Q_SHARED_STRINGS", workflow)
@@ -57,6 +60,10 @@ class OriginalQSharedStringServicesTests(unittest.TestCase):
         self.assertIn("IW3_EXTRACTED_Q_SHARED_STRINGS", cmake)
         self.assertNotIn("IW3_EXTRACTED_Q_SHARED_STRINGS", gradle)
         self.assertIn("IW3_PLAYABLE_APK=false", workflow)
+        self.assertIn("#if !defined(IW3_IWD_DIRECTORY_LINK_AUDIT)", directory_io)
+        self.assertIn("Original q_shared.cpp Com_sprintf body", directory_io)
+        self.assertIn('("void I_strncpyz(char* dest, const char* src, int destsize)", Path("src/universal/q_shared.cpp"))', iwd_services_generator)
+        self.assertIn('("int I_stricmp(const char* s0, const char* s1)", Path("src/universal/q_shared.cpp"))', iwd_services_generator)
 
 
 if __name__ == "__main__":
