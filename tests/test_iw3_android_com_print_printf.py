@@ -55,7 +55,8 @@ class OriginalComPrintfTests(unittest.TestCase):
         self.assertIn("IW3_ORIGINAL_COM_PRINTF_AARCH64_LINK_GREEN", workflow)
         self.assertIn("iw3_sp_com_print_printf", cmake)
         self.assertIn("iw3_original_com_print_printf_android_sink", cmake)
-        self.assertIn("Com_PrintMessage(channel, string, 0);", cmake + workflow)
+        generator = (ROOT / "tools/iw3_android/prepare_real_engine_com_print_printf.py").read_text(encoding="utf-8")
+        self.assertIn("Com_PrintMessage(channel, string, 0);", generator)
 
     def test_source_only_probe_never_claims_gameplay(self):
         workflow = (ROOT / ".github/workflows/iw3-original-native-android.yml").read_text(encoding="utf-8")
