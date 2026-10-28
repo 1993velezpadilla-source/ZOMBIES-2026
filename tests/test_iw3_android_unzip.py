@@ -132,7 +132,10 @@ class OriginalIW3UnzipPortTests(unittest.TestCase):
         self.assertIn("IW3_JNI_UNZIP_PARSER_PASS", 
                       (ROOT / "tools/iw3_android/verify_runtime_evidence.py").read_text())
         probe = (ROOT / "tools/iw3_android/run_emulator_probe.sh").read_text(encoding="utf-8")
-        self.assertIn('node.get("class") == "android.widget.TextView"', probe)
+        target_parser = (ROOT / "tools/iw3_android/parse_touch_target.py").read_text(encoding="utf-8")
+        self.assertIn('node.get("class") == "android.widget.TextView"', target_parser)
+        self.assertIn("parse_touch_target.py", probe)
+        self.assertNotIn("ui_max_x = max(bounds[2] for bounds in all_bounds)", probe)
         self.assertNotIn("startswith('ORIGINAL KISAKCOD IW3 C++ CODE TEST')", probe)
 
 if __name__ == "__main__":
