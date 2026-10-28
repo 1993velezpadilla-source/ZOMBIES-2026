@@ -706,3 +706,79 @@ extern "C" IW3_UNZIP_EXPORT int z2026_iw3_unzip_smoke(const char *directory, int
     if (z2026_platform_unlink_file(path) != 0) ok = false;
     return ok ? 1 : 0;
 }
+
+
+extern "C" IW3_UNZIP_EXPORT int z2026_iw3_validate_imported_iwds(
+        const char *root, int *archive_count, int *entry_count,
+        char *failed_path, std::size_t failed_path_capacity) {
+    int validated_archives = 0;
+    int validated_entries = 0;
+    if (archive_count) *archive_count = 0;
+    if (entry_count) *entry_count = 0;
+    if (failed_path && failed_path_capacity) failed_path[0] = '\0';
+    auto fail = [&](const char *where) {
+        if (failed_path && failed_path_capacity)
+            std::snprintf(failed_path, failed_path_capacity, "%s", where ? where : "<unknown>");
+        if (archive_count) *archive_count = validated_archives;
+        if (entry_count) *entry_count = validated_entries;
+        return 0;
+    };
+    if (!root || root[0] != '/' || std::strlen(root) > 700 ||
+        z2026_platform_set_data_root(root) != 0) return fail("<invalid app-private root>");
+
+    const char *directories[] = {"main", "zone"};
+    std::vector<char> names(1024 * 1024);
+    for (const char *directory : directories) {
+        std::size_t reported_count = 0;
+        const int byte_count = z2026_platform_list_iwd_files(
+            directory, names.data(), names.size(), &reported_count);
+        if (byte_count < 0 || static_cast<std::size_t>(byte_count) > names.size())
+            return fail(directory);
+        std::size_t offset = 0;
+        std::size_t parsed_count = 0;
+        while (offset < static_cast<std::size_t>(byte_count)) {
+            const char *name = names.data() + offset;
+            const void *terminator = std::memchr(
+                name, '\0', static_cast<std::size_t>(byte_count) - offset);
+            if (!terminator) return fail(directory);
+            const std::size_t length = static_cast<const char *>(terminator) - name;
+            if (length == 0 || length > 255 || std::strchr(name, '/') ||
+                std::strchr(name, '\\') || std::strcmp(name, ".") == 0 ||
+                std::strcmp(name, "..") == 0) return fail(directory);
+            if (length < 4 ||
+                std::tolower(static_cast<unsigned char>(name[length - 4])) != '.' ||
+                std::tolower(static_cast<unsigned char>(name[length - 3])) != 'i' ||
+                std::tolower(static_cast<unsigned char>(name[length - 2])) != 'w' ||
+                std::tolower(static_cast<unsigned char>(name[length - 1])) != 'd')
+                return fail(directory);
+
+            const std::string relative_path = std::string(directory) + "/" + name;
+            int entries = 0;
+            if (!validate_original_iwd_index(relative_path.c_str(), &entries)) {
+                if (failed_path && failed_path_capacity)
+                    std::snprintf(failed_path, failed_path_capacity, "%s", relative_path.c_str());
+                if (archive_count) *archive_count = validated_archives;
+                if (entry_count) *entry_count = validated_entries;
+                return 0;
+            }
+            if (entries <= 0 || validated_entries > 1000000 - entries)
+                return fail(relative_path.c_str());
+            ++validated_archives;
+            validated_entries += entries;
+            ++parsed_count;
+            offset += length + 1;
+        }
+        if (parsed_count != reported_count) return fail(directory);
+    }
+    if (validated_archives == 0) return fail("<no root-level IWD files in main/ or zone/>");
+    if (archive_count) *archive_count = validated_archives;
+    if (entry_count) *entry_count = validated_entries;
+    return 1;
+}
+
+extern "C" IW3_UNZIP_EXPORT int z2026_iw3_iwd_index_fixture_smoke(const char *directory) {
+    if (!directory || directory[0] != '/' || std::strlen(directory) > 700 ||
+        z2026_platform_set_data_root(directory) != 0) return 0;
+    return run_imported_iwd_index_fixture(directory) ? 1 : 0;
+}
+
