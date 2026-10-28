@@ -140,6 +140,10 @@ jobs:
             --engine third_party/KisakCOD \
             --output "$RUNNER_TEMP/iw3-source/iw3_filtered_files_location.cpp" \
             --report "$RUNNER_TEMP/iw3-original-filtered-files-location.json"
+          python3 tools/iw3_android/prepare_real_engine_file_comparisons.py \
+            --engine third_party/KisakCOD \
+            --output "$RUNNER_TEMP/iw3-source/iw3_file_comparisons.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-file-comparisons.json"
           python3 tools/iw3_android/prepare_real_engine_dvar_pointer_abi.py \
             --engine third_party/KisakCOD \
             --output "$RUNNER_TEMP/iw3-source/iw3_dvar_pointer_abi.cpp" \
@@ -149,6 +153,7 @@ jobs:
             --engine third_party/KisakCOD \
             --output "$RUNNER_TEMP/iw3-source/iw3_dvar_vec4_compare.cpp" \
             --report "$RUNNER_TEMP/iw3-original-dvar-vec4.json"
+          echo "IW3_ORIGINAL_FILE_COMPARISONS_STAGED" \
           echo "IW3_ORIGINAL_FILE_READ_LIFECYCLE_STAGED_NOT_LINKED"
           echo "IW3_ORIGINAL_FS_READ_ABI_AUDIT_SOURCE_STAGED"
           echo "IW3_ACTUAL_SOURCE_USED_FROM_KISAKCOD"
@@ -187,6 +192,7 @@ jobs:
             -DIW3_EXTRACTED_DVAR_VEC4_COMPARE="$RUNNER_TEMP/iw3-source/iw3_dvar_vec4_compare.cpp" \
             -DIW3_EXTRACTED_DVAR_POINTER_SMOKE="$RUNNER_TEMP/iw3-source/iw3_dvar_pointer_smoke.cpp" \
             -DIW3_EXTRACTED_FILTERED_FILES="$RUNNER_TEMP/iw3-source/iw3_filtered_files_location.cpp" \
+            -DIW3_EXTRACTED_FILE_COMPARISONS="$RUNNER_TEMP/iw3-source/iw3_file_comparisons.cpp" \
             -DIW3_ENTITY_LOOP_INC="$RUNNER_TEMP/iw3-source/iw3_g_runframe_entity_loop.inc" \
             -DIW3_REAL_HEADER_ROOT="$GITHUB_WORKSPACE/third_party/KisakCOD/src/universal"
           cmake --build "$RUNNER_TEMP/iw3-build-host" -j 2
@@ -258,6 +264,7 @@ jobs:
             -DIW3_EXTRACTED_DVAR_VEC4_COMPARE="$RUNNER_TEMP/iw3-source/iw3_dvar_vec4_compare.cpp" \
             -DIW3_EXTRACTED_DVAR_POINTER_SMOKE="$RUNNER_TEMP/iw3-source/iw3_dvar_pointer_smoke.cpp" \
             -DIW3_EXTRACTED_FILTERED_FILES="$RUNNER_TEMP/iw3-source/iw3_filtered_files_location.cpp" \
+            -DIW3_EXTRACTED_FILE_COMPARISONS="$RUNNER_TEMP/iw3-source/iw3_file_comparisons.cpp" \
             -DIW3_ENTITY_LOOP_INC="$RUNNER_TEMP/iw3-source/iw3_g_runframe_entity_loop.inc" \
             -DIW3_REAL_HEADER_ROOT="$GITHUB_WORKSPACE/third_party/KisakCOD/src/universal"
           cmake --build "$RUNNER_TEMP/iw3-build-arm64" -j 2
