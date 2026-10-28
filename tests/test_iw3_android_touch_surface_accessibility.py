@@ -23,6 +23,15 @@ class TouchSurfaceAccessibilityTests(unittest.TestCase):
         self.assertIn("Native diagnostic view is not visible in the actual Android hierarchy", source)
         self.assertNotIn("fallback to arbitrary coordinate", source.lower())
 
+    def test_probe_recovers_only_a_launcher_anr_using_real_wait_button_bounds(self):
+        source = PROBE.read_text(encoding="utf-8")
+        self.assertIn("max_ui_attempts=5", source)
+        self.assertIn("Quickstep isn't responding", source)
+        self.assertIn("android:id/aerr_wait", source)
+        self.assertIn('adb shell input tap "$ui_x" "$ui_y"', source)
+        self.assertIn("Native diagnostic view did not become visible after bounded UI recovery", source)
+        self.assertNotIn("fallback to arbitrary coordinate", source.lower())
+
     def test_sparse_android_pointer_ids_are_mapped_to_native_touch_slots(self):
         native = PLATFORM.read_text(encoding="utf-8")
         activity = ACTIVITY.read_text(encoding="utf-8")
