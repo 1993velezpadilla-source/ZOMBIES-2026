@@ -172,6 +172,42 @@ if(IW3_EXTRACTED_IWD_DIRECTORY_SERVICES)
 
 endif()
 
+# Compile the authentic language initializer and registry helpers from the
+# original StringEd hooks. This archive is consumed by the combined ARM64
+# startup/Dvar/IWD audit; it is deliberately not linked into the JNI diagnostic.
+if(IW3_EXTRACTED_LANGUAGE)
+    if(NOT EXISTS "${IW3_EXTRACTED_LANGUAGE}")
+        message(FATAL_ERROR "Original KisakCOD language source extraction path does not exist")
+    endif()
+    add_library(iw3_sp_language STATIC "${IW3_EXTRACTED_LANGUAGE}")
+    target_include_directories(iw3_sp_language PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+        "${IW3_REAL_HEADER_ROOT}"
+        "${IW3_ENGINE_SOURCE_ROOT}"
+        "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+        "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+    target_compile_definitions(iw3_sp_language PRIVATE KISAK_SP=1)
+    target_compile_options(iw3_sp_language PRIVATE
+        -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
+
+    if(NOT ANDROID)
+        add_executable(iw3_language_native_test
+            "${CMAKE_CURRENT_SOURCE_DIR}/language_native_test.cpp"
+            "${IW3_EXTRACTED_LANGUAGE}")
+        target_include_directories(iw3_language_native_test PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}"
+            "${IW3_REAL_HEADER_ROOT}"
+            "${IW3_ENGINE_SOURCE_ROOT}"
+            "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+            "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+        target_compile_options(iw3_language_native_test PRIVATE
+            -UNDEBUG -ffunction-sections -fdata-sections -Wall -Wextra)
+        target_link_options(iw3_language_native_test PRIVATE -Wl,--gc-sections)
+        add_test(NAME iw3_original_language_registry_and_lookup
+                 COMMAND iw3_language_native_test)
+    endif()
+endif()
+
 # Compile the complete original location-filter function with native-width
 # searchpath_s size/alignment. Its real Hunk/list services remain unresolved in
 # this audit archive; it is intentionally not linked into the JNI diagnostic.
