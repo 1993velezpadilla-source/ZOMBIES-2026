@@ -90,6 +90,37 @@ int main()
     expect_token(&csv, "");
     Com_EndParseSession();
 
+    Com_BeginParseSession("android-fs-startup-skip-rest-of-line");
+    const char *skipLine = "discard these tokens\r\nkeep 7";
+    Com_SkipRestOfLine(&skipLine);
+    if (Com_GetCurrentParseLine() != 2)
+    {
+        std::fprintf(stderr, "skip-rest-of-line counter mismatch: got %d\n",
+                     Com_GetCurrentParseLine());
+        return 3;
+    }
+    expect_token(&skipLine, "keep");
+    expect_token(&skipLine, "7");
+    expect_token(&skipLine, "");
+    Com_EndParseSession();
+
+    Com_BeginParseSession("android-fs-startup-skip-rest-of-line-eof");
+    const char *noNewline = "discard to end";
+    Com_SkipRestOfLine(&noNewline);
+    if (!noNewline || *noNewline != '\0')
+    {
+        std::fprintf(stderr, "skip-rest-of-line did not stop at EOF\n");
+        return 4;
+    }
+    const char *nullInput = nullptr;
+    Com_SkipRestOfLine(&nullInput);
+    if (nullInput != nullptr)
+    {
+        std::fprintf(stderr, "skip-rest-of-line changed a null input\n");
+        return 5;
+    }
+    Com_EndParseSession();
+
     std::puts("IW3_ORIGINAL_Q_PARSE_HOST_RUNTIME_PASS");
     return 0;
 }
