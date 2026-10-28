@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <cstring>
 #include "iw3_android_platform.h"
+#include "iw3_android_usercmd_compat.h"
 
 extern "C" int z2026_iw3_math_smoke();
 extern "C" int z2026_iw3_surface_smoke();
@@ -203,7 +204,28 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(
 IW3_JNI_EXPORT jint JNICALL
 Java_org_z2026_iw3nativeprobe_EngineBridge_nativeTouch(
         JNIEnv *, jclass, jint id, jfloat x, jfloat y, jboolean pressed) {
-    return z2026_platform_touch_event(static_cast<int>(id), x, y, pressed ? 1 : 0);
+    const int touch_result =
+        z2026_platform_touch_event(static_cast<int>(id), x, y, pressed ? 1 : 0);
+    int fields[10]{};
+    const int snapshot_result = z2026_platform_usercmd_snapshot(0, fields, 10);
+    if (touch_result == 0 && snapshot_result == 0) {
+        const int buttons = fields[1];
+        __android_log_print(
+            ANDROID_LOG_INFO,
+            "IW3NativeGate",
+            "IW3_JNI_USERCMD attack=%d buttons=%d touch_result=%d",
+            (buttons & BUTTON_ATTACK) != 0 ? 1 : 0,
+            buttons,
+            touch_result);
+    } else {
+        __android_log_print(
+            ANDROID_LOG_WARN,
+            "IW3NativeGate",
+            "IW3_JNI_USERCMD_SNAPSHOT_FAILED touch_result=%d snapshot_result=%d",
+            touch_result,
+            snapshot_result);
+    }
+    return touch_result;
 }
 
 IW3_JNI_EXPORT jint JNICALL
