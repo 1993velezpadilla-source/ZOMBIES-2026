@@ -44,7 +44,7 @@ class TouchSurfaceAccessibilityTests(unittest.TestCase):
         self.assertIn("scale_y = screen_h / ui_max_y", source)
         self.assertLess(
             source.index('if any(node.get("text") == "Quickstep isn\'t responding"'),
-            source.index("for node in nodes:\\n    if (node.get('package') == 'org.z2026.iw3nativeprobe'"),
+            source.index('if any(node.get("package") == "org.z2026.iw3nativeprobe"'),
         )
 
     def test_sparse_android_pointer_ids_are_mapped_to_native_touch_slots(self):
