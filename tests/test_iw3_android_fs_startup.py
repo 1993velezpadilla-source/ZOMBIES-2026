@@ -147,23 +147,18 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
             report = prepare_iwd_services(ENGINE, output)
             staged = output.read_text(encoding="utf-8")
 
-        for symbol in (
-            "IwdFileLanguage",
-            "FS_PathCmp",
-            "iwdsort",
-            "I_islower",
-            "I_strncmp",
-            "Z_Malloc",
-        ):
+        for symbol in ("FS_PathCmp", "iwdsort", "I_strncmp", "Z_Malloc"):
             self.assertIn(symbol, staged)
-        self.assertIn("char szIwdLanguageName[2][64];", staged)
-        self.assertIn("int iString = 0;", staged)
-        self.assertTrue(report["original_iwd_language_and_sort_helpers_staged_verbatim"])
-        self.assertTrue(report["original_iwd_language_sort_state_staged_from_com_files_cpp"])
+        self.assertTrue(report["original_iwd_sort_helpers_staged_verbatim"])
+        self.assertTrue(report["original_iwd_language_provider_expected_from_iwd_names_archive"])
         self.assertFalse(report["playable_apk"])
 
+        names_generator = (ROOT / "tools/iw3_android/prepare_real_engine_iwd_names.py").read_text(encoding="utf-8")
+        self.assertIn('("char *__cdecl IwdFileLanguage(const char *pszIwdFileName)", FILES)', names_generator)
+        self.assertIn('GLOBALS = "char szIwdLanguageName[2][64];\\\\nint iString = 0;\\\\n"', names_generator)
+
         cmake = (ROOT / "android/iw3-native/CMakeLists.txt").read_text(encoding="utf-8")
-        self.assertIn('add_library(iw3_sp_iwd_services STATIC "${IW3_EXTRACTED_IWD_SERVICES}")', cmake)
+        self.assertIn('add_library(iw3_sp_iwd_services STATIC "${IW3_EXTRACTED_IWD_SERVICES}" "${IW3_EXTRACTED_IWD_NAMES}")', cmake)
         self.assertIn('add_library(iw3_sp_unzip STATIC "${IW3_EXTRACTED_UNZIP}")', cmake)
         workflow = (ROOT / ".github/workflows/iw3-original-native-android.yml").read_text(encoding="utf-8")
         self.assertIn('"$startup_archive" "$dvar_full_archive" "$iwd_services_archive"', workflow)
