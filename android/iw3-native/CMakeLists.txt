@@ -494,21 +494,26 @@ if(ANDROID)
     target_compile_options(iw3_sp_full_filesystem PRIVATE
         -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
 
-    # Compile the original qcommon/files.cpp translation unit for the native
-    # Android ABI as an object-only portability gate. This catches LP64 pointer
-    # truncation in the original server-file comparison helpers; it does not
-    # link this subsystem into the JNI diagnostic/runtime.
-    add_library(iw3_sp_full_qcommon_files OBJECT
-        "${IW3_ENGINE_SOURCE_ROOT}/qcommon/files.cpp")
-    target_include_directories(iw3_sp_full_qcommon_files PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}"
-        "${IW3_REAL_HEADER_ROOT}"
-        "${IW3_ENGINE_SOURCE_ROOT}"
-        "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
-        "${IW3_ENGINE_SOURCE_ROOT}/../deps")
-    target_compile_definitions(iw3_sp_full_qcommon_files PRIVATE KISAK_SP=1)
-    target_compile_options(iw3_sp_full_qcommon_files PRIVATE
-        -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
+    # The full qcommon/files.cpp translation unit imports Windows/D3D renderer
+    # headers, so compiling that entire TU as an Android object is not a valid
+    # portability gate. Compile only the two original server-file comparison
+    # bodies, extracted verbatim with declarations-only ABI glue.
+    if(IW3_EXTRACTED_FILE_COMPARISONS)
+        if(NOT EXISTS "${IW3_EXTRACTED_FILE_COMPARISONS}")
+            message(FATAL_ERROR "Original FS_CompareIwds/FS_CompareFFs extraction path does not exist")
+        endif()
+        add_library(iw3_sp_file_comparisons STATIC
+            "${IW3_EXTRACTED_FILE_COMPARISONS}")
+        target_include_directories(iw3_sp_file_comparisons PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}"
+            "${IW3_REAL_HEADER_ROOT}"
+            "${IW3_ENGINE_SOURCE_ROOT}"
+            "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+            "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+        target_compile_definitions(iw3_sp_file_comparisons PRIVATE KISAK_SP=1)
+        target_compile_options(iw3_sp_file_comparisons PRIVATE
+            -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
+    endif()
 
     # Compile the complete authentic dvar translation unit for Android ARM64.
     # This is an object-only portability gate: it is not linked into the JNI
