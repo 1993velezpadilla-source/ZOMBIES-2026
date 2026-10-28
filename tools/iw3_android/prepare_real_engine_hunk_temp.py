@@ -14,6 +14,12 @@ SOURCE = Path("src/universal/com_memory.cpp")
 STATE = Path("src/universal/com_memory_state.cpp")
 STATE_HEADER = Path("src/universal/com_memory_state.h")
 FUNCTIONS = (
+    "void __cdecl Hunk_ClearToMarkLow(int32_t mark)",
+    "uint8_t* __cdecl Hunk_AllocAlign(uint32_t size, int32_t alignment, const char* name, int32_t type)",
+    "uint8_t* __cdecl Hunk_AllocateTempMemoryHigh(int32_t size, const char* name)",
+    "void Hunk_ClearTempMemoryHigh()",
+    "uint8_t* __cdecl Hunk_AllocLowAlign(uint32_t size, int32_t alignment, const char* name, int32_t type)",
+    "void Hunk_ClearTempMemory()",
     "uint32_t* __cdecl Hunk_AllocateTempMemory(int32_t size, const char* name)",
     "void __cdecl Hunk_FreeTempMemory(char* buf)",
 )
@@ -28,7 +34,11 @@ HEADER = (
     'extern void Z_VirtualCommit(void *ptr, int size);\n'
     'extern void Z_VirtualDecommit(void *ptr, int size);\n'
 )
-FORBIDDEN = ("(uint32_t)&s_hunkData", "(uint32_t)beginBuf", "(uint8_t)bufa", "0xFFFFF000")
+FORBIDDEN = (
+    "(uint32_t)&s_hunkData", "(uint32_t)beginBuf", "(uint8_t)bufa",
+    "(uint32_t)buf", "(uint32_t)pos", "0xFFFFF000", "(_BYTE)s_hunkData",
+    "(int)pos", "user[114].name", "0xFE0u",
+)
 
 def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict:
     engine = engine.resolve()
@@ -72,7 +82,10 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
         "function_sha256": {signature: hashlib.sha256(body.encode("utf-8")).hexdigest()
                             for signature, body in zip(FUNCTIONS, bodies)},
         "original_hunk_temp_allocator_bodies_extracted_from_vendored_engine": True,
+        "original_core_hunk_allocator_bodies_extracted_from_vendored_engine": True,
         "pointer_page_alignment_uses_uintptr_t": True,
+        "high_temp_allocator_returns_native_pointer": True,
+        "core_allocator_page_math_uses_native_pointer_width": True,
         "temporary_header_fixed_at_16_bytes_on_32_and_64_bit": True,
         "single_engine_owned_hunk_state": True,
         "hunk_allocator_archive_compiled_for_aarch64_audit": True,
