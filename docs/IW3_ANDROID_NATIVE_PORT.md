@@ -1294,3 +1294,31 @@ Code changes:
 **Verified on code commit `c6544a303dc94bd9e6cf9282dbfd29f5b8d75ceb`:** source preflight [run 40698933518](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40698933518) passed. The native ARM64/source audit [run 40698933224](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40698933224) passed after its cancelled first attempt was rerun: Release CTest **22/22**, ASan/UBSan CTest **22/22**, the original parser host runtime regression passed, and the Android NDK AArch64 link audit emitted `IW3_ORIGINAL_Q_PARSE_SKIP_LINE_AARCH64_LINK_GREEN`. The log records the original `Com_SkipRestOfLine(const char **)` body hash and its definition in the combined startup audit. Native evidence artifact [12820473331](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40698933224/artifacts/12820473331) contains compiled objects and reports, **not an APK**. The JNI diagnostic build was still in cleanup at the time of this update; the emulator run [40698933244] was cancelled before producing a job/evidence artifact and is not counted as passed.
 
 **Scope boundary:** this closes one authentic parser dependency if the new link gate passes. It does not link the full command-state object, full Dvar registry, all filesystem/platform services or the original frame into a working Android runtime. It does not invoke the complete `FS_InitFilesystem()` path in the app, mount licensed FastFiles, load a map, render the original 3D scene, or demonstrate touch-driven weapons/actors on a physical ARM64 device. `IW3_PLAYABLE_APK=false`; keep PR #4 open and unmerged.
+
+
+### Phase R — original command-argument state storage joins the ARM64 audit (28 Oct 2026)
+
+The latest dependency inspection showed that the original **Cmd_Argc()** and **Cmd_Argv()** bodies were defined in the relocatable startup/Dvar audit, but their genuine global state, **cmd_args**, remained unresolved. The state is declared in the vendored **src/qcommon/cmd.cpp** as **CmdArgs cmd_args;**; it is not a synthetic runtime object.
+
+Changes on the feature branch:
+
+- **tools/iw3_android/prepare_real_engine_cmd_args.py** now extracts that exact declaration from the original source, requires exactly one match, hashes the declaration, and stages it beside the unchanged original **Cmd_Argc** / **Cmd_Argv** bodies. The generator imports **re** for the strict source check.
+- **android/iw3-native/cmd_args_native_test.cpp** no longer defines its own **CmdArgs cmd_args{}**. The host regression now consumes the extracted original global and checks its static zero-initialized state before exercising nested argument access.
+- **tests/test_iw3_android_cmd_args.py** checks single-source ownership, the host-test setup, and the explicit state-link gates.
+- **.github/workflows/iw3-original-native-android.yml** now requires **cmd_args** to be present in the defined-symbol table and absent from the unresolved-symbol table in the startup-only, full-Dvar, and startup+Dvar relocatable combinations. This does not mean the tokenizer or command dispatcher has been integrated.
+
+Relevant commits: **277fdf59** (extract original storage), **82edc954** (host runtime regression), **5f383cd1** (source/test gate), **70b6cd97** (CMake scope), **6e10dff6** (regex import), and **c75f475e** (restore the compact workflow from the last known-good revision and re-apply the state-resolution gates).
+
+The first two workflow-file edits produced no-job failure runs while the native workflow file had unintentionally expanded from 777 lines to 1,638 lines. I restored the workflow from its known-good blob (**130f934d**, 777 lines) and applied the three intended checks line-by-line; the current file is 792 lines and GitHub has again scheduled the named native ARM64 workflow. Those no-job failures are not counted as successful tests.
+
+**CI status at documentation time (code HEAD c75f475e12ff3729ccb3b797a42f331d58663178):**
+
+- Source/RotU preflight [run 40702723430](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40702723430): **passed**.
+- Native ARM64/source audit [push run 40702714391](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40702714391): host compile/execution and address/UB sanitizer step passed; NDK setup passed; final AArch64 link and module audits were still running.
+- Native ARM64/source audit [PR run 40702723429](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40702723429): still running.
+- JNI diagnostic package [run 40702723527](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40702723527): ARM64 compile step still running.
+- Android x86_64 emulator probe [run 40702714539](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40702714539): still running; no new runtime artifact is counted yet.
+
+The source preflight includes the new command-state regressions and passed. The native CMake host stage and sanitizers also passed before the cross-compile step. The final state-symbol gates have not yet been counted as passing until the AArch64 audit completes.
+
+**Scope boundary:** this resolves one authentic global-state dependency in the *audit objects* only. It does not include the original command tokenizer/dispatcher, does not call FS_Startup() / FS_InitFilesystem() in the Android app, and does not load licensed FastFiles or a real map. There is still no original 3D renderer, no complete touch-to-game-loop connection, no observed physical ARM64 gameplay, and no playable APK. Keep PR #4 open and unmerged.
