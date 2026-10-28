@@ -8,8 +8,6 @@
 #include <cstdlib>
 #include <cstring>
 
-CmdArgs cmd_args{};
-
 void MyAssertHandler(const char *, int, int, const char *, ...)
 {
     std::abort();
@@ -17,6 +15,9 @@ void MyAssertHandler(const char *, int, int, const char *, ...)
 
 int main()
 {
+    // cmd_args is the zero-initialized global storage extracted from original cmd.cpp.
+    assert(cmd_args.nesting == 0);
+    assert(cmd_args.argc[0] == 0);
     const char *outer[] = {"set", "fs_game", "mods/test"};
     const char *inner[] = {"map"};
     cmd_args.nesting = 0;
