@@ -28,6 +28,7 @@ FUNCTIONS = (
     ("bool __cdecl FS_IsBackupSubStr(const char *filenameSubStr)", SOURCE),
     ("char __cdecl FS_SanitizeFilename(const char *filename, char *sanitizedName, int sanitizedNameSize)", SOURCE),
     ("BOOL __cdecl FS_UseSearchPath(const searchpath_s *pSearch)", SOURCE),
+    ("void __cdecl FS_BuildOSPath(const char *base, const char *game, const char *qpath, char *ospath)", SOURCE),
     ("void __cdecl FS_BuildOSPathForThread(const char *base, const char *game, const char *qpath, char *ospath, FsThread thread)", SOURCE),
     ("void __cdecl FS_ReplaceSeparators(char *path)", SOURCE),
 )
@@ -42,6 +43,15 @@ GLOBALS = (
 )
 PREFIX_START = "    if (!filename)"
 PREFIX_END = "    *file = FS_HandleForFile(thread);"
+PATH_HELPER_SIGNATURES = (
+    "void __cdecl FS_BuildOSPath(const char *base, const char *game, const char *qpath, char *ospath)",
+    "void __cdecl FS_BuildOSPathForThread(const char *base, const char *game, const char *qpath, char *ospath, FsThread thread)",
+    "void __cdecl FS_ReplaceSeparators(char *path)",
+)
+PATH_HELPER_REQUIRED = (
+    "FS_BuildOSPathForThread(base, game, qpath, ospath, FS_THREAD_MAIN);",
+    "FS_ReplaceSeparators(ospath);",
+)
 REQUIRED = (
     "FS_CheckFileSystemStarted();",
     "if (!FS_SanitizeFilename(filename, sanitizedName, 256))",
@@ -112,6 +122,14 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
             raise ValueError("Lookup-only extraction crossed into handle/read path: " + marker)
 
     bodies = [definition_source(text, signature) for signature, _ in FUNCTIONS]
+    path_bodies = [
+        body for (signature, _), body in zip(FUNCTIONS, bodies)
+        if signature in PATH_HELPER_SIGNATURES
+    ]
+    path_text = "\\n".join(path_bodies)
+    for marker in PATH_HELPER_REQUIRED:
+        if marker not in path_text:
+            raise ValueError("Original IWD path helper contract missing: " + marker)
     rendered = (
         HEADER + GLOBALS + "\n\n".join(bodies) + "\n\n"
         "extern \"C\" int z2026_iw3_original_searchpath_lookup(\n"
@@ -144,6 +162,15 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
         "original_filename_sanitizer_preserved": True,
         "original_iwd_hash_and_filename_compare_used": True,
         "directory_fallback_uses_original_os_path_builder_and_rooted_file_adapter": True,
+        "original_FS_BuildOSPath_body_staged_verbatim": any(
+            signature == PATH_HELPER_SIGNATURES[0] and signature in body
+            for (signature, _), body in zip(FUNCTIONS, bodies)
+        ),
+        "original_path_builder_helper_bodies_staged_verbatim": all(
+            any(signature == expected and expected in body
+                for (signature, _), body in zip(FUNCTIONS, bodies))
+            for expected in PATH_HELPER_SIGNATURES
+        ),
         "file_handle_allocation_ported": False,
         "original_FS_Read_ported": False,
         "fastfile_map_loading_proven": False,
