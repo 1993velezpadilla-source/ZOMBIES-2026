@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 """Stage authentic KisakCOD filesystem startup bodies for an ARM64 dependency audit.
 
-This extracts the original path builder, directory setup, and FS startup bodies
-from KisakCOD. FS_BuildOSPathForThread uses bounded native-width lengths and
-fails closed at the 256-byte engine path boundary. Android path defaults are
-supplied by a separate narrow platform adapter. The generated archive is
-not linked into the diagnostic APK until the real dvar registry and remaining
-engine services are ported.
+This extracts original path, directory, file-list, and FS startup bodies from
+KisakCOD. FS_BuildOSPathForThread uses bounded native-width lengths and fails
+closed at the 256-byte engine path boundary. The FS_ListFiles wrapper is now
+linked to the original filtered-file implementation in the dependency audit;
+its Hunk-user and filtering services remain unresolved until ported.
 """
 from __future__ import annotations
 
@@ -26,6 +25,13 @@ FUNCTIONS = (
     "void __cdecl FS_AddGameDirectory(char *path, char *dir, int bLanguageDirectory, int iLanguage)",
     "void __cdecl FS_AddLocalizedGameDirectory(char *path, char *dir)",
     "void __cdecl FS_AddIwdFilesForGameDirectory(char *path, char *pszGameFolder)",
+    "char __cdecl FS_SanitizeFilename(const char *filename, char *sanitizedName, int sanitizedNameSize)",
+    "BOOL __cdecl FS_UseSearchPath(const searchpath_s *pSearch)",
+    "int __cdecl FS_AddFileToList(HunkUser *user, const char *name, const char **list, int nfiles)",
+    "int __cdecl FS_ReturnPath(const char *zname, char *zpath, int *depth)",
+    "int __cdecl FS_IwdIsPure(iwd_t *iwd)",
+    "const char **__cdecl FS_ListFiles(const char *path, const char *extension, FsListBehavior_e behavior, int *numfiles)",
+    "bool __cdecl FS_CheckLocation(const char *path, int lookInFlags)",
     "void __cdecl FS_ReplaceSeparators(char *path)",
     "void __cdecl FS_BuildOSPath(const char *base, const char *game, const char *qpath, char *ospath)",
     "void __cdecl FS_BuildOSPathForThread(const char *base, const char *game, const char *qpath, char *ospath, FsThread thread)",
@@ -44,6 +50,13 @@ REQUIRED = (
     "qsort(s0, numfiles, sizeof(s0[0]),",
     "ZipFile = FS_LoadZipFile(ospath, s0[i]);",
     "FS_FreeFileList((const char **)list);",
+    "char __cdecl FS_SanitizeFilename(const char *filename, char *sanitizedName, int sanitizedNameSize)",
+    "return !pSearch->bLocalized || pSearch->language == SEH_GetCurrentLanguage();",
+    "list[nfiles] = Hunk_CopyString(user, name);",
+    "int __cdecl FS_ReturnPath(const char *zname, char *zpath, int *depth)",
+    "int __cdecl FS_IwdIsPure(iwd_t *iwd)",
+    "return FS_ListFilteredFiles(fs_searchpaths, path, extension, 0, behavior, numfiles);",
+    "bool __cdecl FS_CheckLocation(const char *path, int lookInFlags)",
     "FS_AddSearchPath(search);",
     "FS_AddGameDirectory(path, dir, 1, i);",
     "FS_AddGameDirectory(path, dir, 0, 0);",
@@ -131,6 +144,13 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
         "original_FS_AddGameDirectory_body_staged_verbatim": True,
         "original_FS_AddLocalizedGameDirectory_body_staged_verbatim": True,
         "original_FS_AddIwdFilesForGameDirectory_body_staged_verbatim": True,
+        "original_FS_SanitizeFilename_body_staged_verbatim": True,
+        "original_FS_UseSearchPath_body_staged_verbatim": True,
+        "original_FS_AddFileToList_body_staged_verbatim": True,
+        "original_FS_ReturnPath_body_staged_verbatim": True,
+        "original_FS_IwdIsPure_body_staged_verbatim": True,
+        "original_FS_ListFiles_body_staged_verbatim": True,
+        "original_FS_CheckLocation_body_staged_verbatim": True,
         "original_iwd_directory_enumeration_in_startup_archive": True,
         "iwd_directory_scan_fails_closed_on_missing_listing": True,
         "iwd_sort_uses_native_pointer_width": True,
