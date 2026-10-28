@@ -150,6 +150,18 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
         self.assertIn("IW3_ORIGINAL_FS_STARTUP_IWD_ENUMERATION_AARCH64_RESOLVED", workflow)
         self.assertNotIn("Dvar_RegisterInt Dvar_RegisterString Dvar_RegisterBool FS_AddIwdFilesForGameDirectory Z_Malloc", workflow)
 
+    def test_original_path_builder_is_linked_into_iwd_diagnostic_without_duplicate_directory_providers(self):
+        generator = (ROOT / "tools/iw3_android/prepare_real_engine_fs_startup.py").read_text(encoding="utf-8")
+        cmake = (ROOT / "android/iw3-native/CMakeLists.txt").read_text(encoding="utf-8")
+        directory_io = (ROOT / "android/iw3-native/iw3_android_iwd_directory_io.cpp").read_text(encoding="utf-8")
+        self.assertIn("IW3_FS_STARTUP_EXTERNAL_IWD_DIRECTORY", generator)
+        self.assertIn("add_library(iw3_sp_fs_startup_runtime OBJECT", cmake)
+        self.assertIn("IW3_FS_STARTUP_EXTERNAL_IWD_DIRECTORY=1", cmake)
+        self.assertIn("$<TARGET_OBJECTS:iw3_sp_fs_startup_runtime>", cmake)
+        self.assertNotIn("void __cdecl FS_BuildOSPath(const char *base, const char *game,", directory_io)
+        self.assertIn("void __cdecl Com_Error(errorParm_t code, const char *format, ...)", directory_io)
+        self.assertIn("std::abort();", directory_io)
+
     def test_android_path_service_uses_configured_private_root_not_process_cwd(self):
         platform = (ROOT / "android/iw3-native/iw3_android_platform.cpp").read_text(encoding="utf-8")
         header = (ROOT / "android/iw3-native/iw3_android_platform.h").read_text(encoding="utf-8")
