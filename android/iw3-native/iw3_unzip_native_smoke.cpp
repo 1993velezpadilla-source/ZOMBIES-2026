@@ -13,6 +13,9 @@
 #include <cstring>
 #include <cctype>
 #include <unistd.h>
+#if defined(__ANDROID__)
+#include <android/log.h>
+#endif
 
 extern const char *__cdecl I_stristr(const char *s0, const char *substr);
 extern int __cdecl I_stricmpwild(const char *wild, const char *s);
@@ -585,10 +588,52 @@ bool run_imported_iwd_index_fixture(const char *root) {
             fs_iwdFileCount = saved_count;
             fs_checksumFeed = saved_feed;
 
+            // The original loader must reject an embedded-NUL central-directory
+            // name before publishing any index state. ZIP names are length-coded,
+            // while the engine lookup table stores C strings; accepting this
+            // archive would make its visible name differ from the ZIP name.
+            std::array<Entry, 2> malformed_entries{{
+                {std::string("maps/bad\\0name.txt", 17), "bad-name", 0, {}, 0, 0},
+                {"maps/good.txt", "good", 0, {}, 0, 0}
+            }};
+            Bytes malformed_bytes;
+            char malformed_path[128]{};
+            const int malformed_path_len = std::snprintf(
+                malformed_path, sizeof(malformed_path),
+                "main/iw3-index-nul-%ld.iwd", pid);
+            bool malformed_written = false;
+            bool malformed_rejected = false;
+            if (make_zip(malformed_bytes, malformed_entries) &&
+                malformed_path_len > 0 &&
+                static_cast<std::size_t>(malformed_path_len) < sizeof(malformed_path) &&
+                z2026_platform_write_file(malformed_path, malformed_bytes.data(),
+                    malformed_bytes.size()) == static_cast<int>(malformed_bytes.size())) {
+                malformed_written = true;
+                const int before_count = fs_iwdFileCount;
+                const int before_feed = fs_checksumFeed;
+                fs_checksumFeed = 0x13579BDF;
+                iwd_t *malformed_iwd = FS_LoadZipFile(
+                    malformed_path, malformed_path);
+                malformed_rejected = malformed_iwd == nullptr &&
+                    fs_iwdFileCount == before_count &&
+                    fs_checksumFeed == 0x13579BDF;
+                if (malformed_iwd) {
+                    if (malformed_iwd->handle)
+                        unzClose(reinterpret_cast<unzFile>(malformed_iwd->handle));
+                    if (malformed_iwd->buildBuffer)
+                        Z_Free(malformed_iwd->buildBuffer, 3);
+                    Z_Free(malformed_iwd, 3);
+                }
+                fs_iwdFileCount = before_count;
+                fs_checksumFeed = before_feed;
+                if (z2026_platform_unlink_file(malformed_path) != 0)
+                    malformed_rejected = false;
+            }
+
             int archives = 0;
             int indexed_entries = 0;
             char failed_path[512]{};
-            validation_ok = overflow_guard_ok &&
+            validation_ok = overflow_guard_ok && malformed_rejected &&
                 z2026_iw3_validate_imported_iwds(
                     absolute_root, &archives, &indexed_entries,
                     failed_path, sizeof(failed_path)) == 1 &&
@@ -803,6 +848,13 @@ extern "C" IW3_UNZIP_EXPORT int z2026_iw3_validate_imported_iwds(
 extern "C" IW3_UNZIP_EXPORT int z2026_iw3_iwd_index_fixture_smoke(const char *directory) {
     if (!directory || directory[0] != '/' || std::strlen(directory) > 700 ||
         z2026_platform_set_data_root(directory) != 0) return 0;
-    return run_imported_iwd_index_fixture(directory) ? 1 : 0;
+    const bool ok = run_imported_iwd_index_fixture(directory);
+#if defined(__ANDROID__)
+    if (ok) {
+        __android_log_write(ANDROID_LOG_INFO, "IW3NativeGate",
+            "IW3_JNI_MALFORMED_IWD_REJECTED_AND_CLEANUP_PASS");
+    }
+#endif
+    return ok ? 1 : 0;
 }
 
