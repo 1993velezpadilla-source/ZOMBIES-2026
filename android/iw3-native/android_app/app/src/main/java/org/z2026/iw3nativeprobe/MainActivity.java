@@ -94,7 +94,7 @@ public final class MainActivity extends Activity {
             startActivityForResult(intent, REQUEST_IMPORT_GAME_DATA);
         } catch (Throwable failure) {
             Log.e(TAG, "IW3_GAME_DATA_PICKER_FAILED", failure);
-            label.append("\\n\\nCannot open Android document picker: "
+            label.append("\n\nCannot open Android document picker: "
                     + failure.getClass().getSimpleName());
         }
     }
@@ -103,7 +103,7 @@ public final class MainActivity extends Activity {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode != REQUEST_IMPORT_GAME_DATA) return;
         if (resultCode != RESULT_OK || data == null || data.getData() == null) {
-            label.append("\\n\\nGame-data import cancelled.");
+            label.append("\n\nGame-data import cancelled.");
             return;
         }
 
@@ -115,7 +115,7 @@ public final class MainActivity extends Activity {
             Log.w(TAG, "Could not persist document-tree permission; importing this selection now", failure);
         }
 
-        label.append("\\n\\nScanning selected COD4 game root...");
+        label.append("\n\nScanning selected COD4 game root...");
         new Thread(() -> {
             try {
                 GameDataImporter.Summary summary =
@@ -123,12 +123,12 @@ public final class MainActivity extends Activity {
                 String evidence = "IW3_GAME_DATA_IMPORT_PASS iwd=" + summary.iwdFiles
                         + " fastfiles=" + summary.fastFiles + " bytes=" + summary.bytesCopied;
                 Log.i(TAG, evidence);
-                runOnUiThread(() -> label.append("\\n\\n" + evidence
-                        + "\\nFiles staged in app-private main/ and zone/. "
+                runOnUiThread(() -> label.append("\n\n" + evidence
+                        + "\nFiles staged in app-private main/ and zone/. "
                         + "Original FS/FastFile/map loading is still pending."));
             } catch (Throwable failure) {
                 Log.e(TAG, "IW3_GAME_DATA_IMPORT_FAIL", failure);
-                runOnUiThread(() -> label.append("\\n\\nGame-data import failed: "
+                runOnUiThread(() -> label.append("\n\nGame-data import failed: "
                         + failure.getClass().getSimpleName() + ": " + failure.getMessage()));
             }
         }, "iw3-game-data-import").start();
