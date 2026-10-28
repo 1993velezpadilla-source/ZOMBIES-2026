@@ -156,6 +156,7 @@ if(IW3_EXTRACTED_IWD_DIRECTORY_SERVICES)
     add_library(iw3_sp_iwd_directory_services STATIC
         "${IW3_EXTRACTED_IWD_DIRECTORY_SERVICES}"
         "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_iwd_directory_io.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_iwd_lookup_io.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_unzip_io.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_platform.cpp")
     target_include_directories(iw3_sp_iwd_directory_services PRIVATE
@@ -206,6 +207,22 @@ target_include_directories(iw3_sp_fs_read PRIVATE
 target_compile_definitions(iw3_sp_fs_read PRIVATE KISAK_SP=1)
 target_compile_options(iw3_sp_fs_read PRIVATE
     -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
+
+if(IW3_EXTRACTED_FS_READFILE)
+    if(NOT EXISTS "${IW3_EXTRACTED_FS_READFILE}")
+        message(FATAL_ERROR "Original FS_ReadFile lifecycle extraction path does not exist")
+    endif()
+    add_library(iw3_sp_fs_readfile STATIC "${IW3_EXTRACTED_FS_READFILE}")
+    target_include_directories(iw3_sp_fs_readfile PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+        "${IW3_REAL_HEADER_ROOT}"
+        "${IW3_ENGINE_SOURCE_ROOT}"
+        "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+        "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+    target_compile_definitions(iw3_sp_fs_readfile PRIVATE KISAK_SP=1)
+    target_compile_options(iw3_sp_fs_readfile PRIVATE
+        -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
+endif()
 
 # Compile the corrected original dvar string/enum pointer paths and callback ABI
 # as an LP64 source audit. This archive is not linked into the JNI diagnostic.

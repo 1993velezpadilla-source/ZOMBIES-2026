@@ -44,11 +44,9 @@ int fs_fakeChkSum;
 
 int fs_numServerIwds;
 int fs_serverIwds[1024];
-int com_fileAccessed;
 void *g_writeLogEvent;
 int marker_com_files;
 void *g_writeLogCompleteEvent;
-int fs_loadStack;
 const char *fs_serverIwdNames[1024];
 
 // File-system state is defined in com_files_state.cpp; the declarations live

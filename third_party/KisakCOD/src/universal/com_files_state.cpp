@@ -7,5 +7,7 @@
 int fs_iwdFileCount = 0;
 int fs_checksumFeed = 0;
 int bLanguagesListed = 0;
+int com_fileAccessed = 0;
+int fs_loadStack = 0;
 char fs_gamedir[256] = {};
 searchpath_s *fs_searchpaths = nullptr;
