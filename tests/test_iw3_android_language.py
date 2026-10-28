@@ -68,7 +68,7 @@ class OriginalLanguageRegistryTests(unittest.TestCase):
 
         self.assertIn("add_library(iw3_sp_language STATIC", cmake)
         self.assertIn("add_library(iw3_sp_stringed_ingame STATIC", cmake)
-        self.assertIn('stringed/stringed_ingame.cpp', cmake)
+        self.assertIn("IW3_EXTRACTED_STRINGED_INGAME", cmake)
         self.assertIn("iw3_language_native_test", cmake)
         self.assertIn("prepare_real_engine_language.py", workflow)
         self.assertIn("IW3_EXTRACTED_LANGUAGE", workflow)
