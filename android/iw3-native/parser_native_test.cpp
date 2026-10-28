@@ -32,6 +32,14 @@ void QDECL Com_Error(errorParm_t code, const char *fmt, ...)
     std::abort();
 }
 
+// Fatal parser-error sink for this host-only test harness. It aborts if reached;
+ // the generated engine archive retains the real unresolved error service.
+void Com_ScriptErrorDrop(const char *msg, ...)
+{
+    (void)msg;
+    std::abort();
+}
+
 void MyAssertHandler(const char *filename, int line, int type, const char *fmt, ...)
 {
     (void)filename;
