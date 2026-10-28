@@ -33,6 +33,7 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
             self.assertTrue(report["original_FS_AddGameDirectory_body_staged_verbatim"])
             self.assertTrue(report["original_FS_AddLocalizedGameDirectory_body_staged_verbatim"])
             self.assertTrue(report["original_FS_AddIwdFilesForGameDirectory_body_staged_verbatim"])
+            self.assertTrue(report["original_FS_IsBackupSubStr_body_staged_verbatim"])
             self.assertTrue(report["original_FS_SanitizeFilename_body_staged_verbatim"])
             self.assertTrue(report["original_FS_UseSearchPath_body_staged_verbatim"])
             self.assertTrue(report["original_FS_AddFileToList_body_staged_verbatim"])
@@ -137,6 +138,9 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
         self.assertIn("libiw3_sp_filtered_files.a", workflow)
         self.assertIn("FS_ListFiles FS_CheckLocation FS_ListFilteredFiles FS_ListFilteredFilesInLocation", workflow)
         self.assertIn("IW3_ORIGINAL_FS_LISTFILES_FILTERED_CHAIN_AARCH64_LINK_GREEN", workflow)
+        compat = (ROOT / "android/iw3-native/iw3_android_fs_startup_compat.h").read_text(encoding="utf-8")
+        self.assertIn("const char **__cdecl FS_ListFilteredFiles(", compat)
+        self.assertIn("searchpath_s *searchPath, const char *path, const char *extension,", compat)
         self.assertIn("for symbol in Hunk_UserCreate Hunk_UserAlloc Hunk_UserDestroy Hunk_CopyString Com_FilterPath I_strnicmp; do", workflow)
         self.assertNotIn('grep -F "FS_BuildOSPath" "$RUNNER_TEMP/iw3-fs-startup-undefined.txt"', workflow)
 
