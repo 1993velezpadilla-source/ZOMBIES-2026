@@ -2,6 +2,7 @@
 
 #include <script/scr_stringlist.h>
 #include "q_shared.h"
+#include "com_memory_state.h"
 #include <qcommon/mem_track.h>
 
 #define HUNK_MAX_ALIGNEMT 4096
