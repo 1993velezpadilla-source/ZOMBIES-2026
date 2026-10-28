@@ -44,9 +44,11 @@ HEADER = (
     '#include <universal/q_shared.h>\n'
     '#include <qcommon/qcommon.h>\n'
     '#include <universal/com_files.h>\n'
-    '#include <stringed/stringed_ingame.h>\n'
     '#include "iw3_android_language_compat.h"\n'
     '#include <cstdint>\n'
+    'void __cdecl SE_Init();\n'
+    'void __cdecl SE_ShutDown();\n'
+    'char *__cdecl SE_LoadLanguage(bool forceEnglish);\n'
 )
 REQUIRED = (
     'Dvar_RegisterInt("loc_language"',
