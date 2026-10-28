@@ -143,6 +143,17 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
         self.assertIn("for symbol in Hunk_UserCreate Hunk_UserAlloc Hunk_UserDestroy Hunk_CopyString Com_FilterPath I_strnicmp; do", workflow)
         self.assertNotIn('grep -F "FS_BuildOSPath" "$RUNNER_TEMP/iw3-fs-startup-undefined.txt"', workflow)
 
+    def test_combined_audit_keeps_single_original_providers(self):
+        startup = (ROOT / "tools/iw3_android/prepare_real_engine_fs_startup.py").read_text(encoding="utf-8")
+        fs_read = (ROOT / "tools/iw3_android/prepare_real_engine_fs_read.py").read_text(encoding="utf-8")
+        lookup_io = (ROOT / "android/iw3-native/iw3_android_iwd_lookup_io.cpp").read_text(encoding="utf-8")
+        workflow = (ROOT / ".github/workflows/iw3-original-native-android.yml").read_text(encoding="utf-8")
+        self.assertNotIn('"int __cdecl FS_IwdIsPure(iwd_t *iwd)', startup)
+        self.assertIn("FS_IwdIsPure", fs_read)
+        self.assertIn("#if !defined(IW3_IWD_DIRECTORY_LINK_AUDIT)", lookup_io)
+        self.assertIn("int __cdecl SEH_GetCurrentLanguage()", lookup_io)
+        self.assertIn('for symbol in Hunk_UserCreate Hunk_UserAlloc Hunk_UserDestroy Hunk_CopyString Com_FilterPath I_strnicmp; do', workflow)
+
     def test_full_original_dvar_registry_resolves_fs_startup_registration_edges(self):
         workflow = (ROOT / ".github/workflows/iw3-original-native-android.yml").read_text(encoding="utf-8")
         self.assertIn('startup_archive="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_fs_startup.a"', workflow)
