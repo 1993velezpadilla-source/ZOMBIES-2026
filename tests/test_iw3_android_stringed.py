@@ -42,6 +42,7 @@ class OriginalStringedLoaderTests(unittest.TestCase):
         self.assertFalse(evidence["localized_assets_loaded"])
         self.assertFalse(evidence["playable_apk"])
         self.assertIn("#include <qcommon/qcommon.h>", staged)
+        self.assertIn("#define ARRAYSIZE(a) (sizeof(a) / sizeof((a)[0]))", staged)
         self.assertNotIn("#include <database/database.h>", staged)
         self.assertNotIn("DB_FindXAssetHeader", staged)
         self.assertNotIn("SE_GetString_FastFile", staged)
