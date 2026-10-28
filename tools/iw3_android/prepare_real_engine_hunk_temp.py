@@ -18,12 +18,15 @@ FUNCTIONS = (
     "void __cdecl Hunk_FreeTempMemory(char* buf)",
 )
 HEADER = (
-    '#include <universal/com_memory.h>\n'
     '#include <universal/com_memory_state.h>\n'
     '#include <qcommon/qcommon.h>\n'
     '#include <qcommon/mem_track.h>\n'
     '#include <assertive.h>\n'
     '#include <cstdint>\n'
+    'extern void *Z_Malloc(int size, const char *name, int type);\n'
+    'extern void Z_Free(void *ptr, int type);\n'
+    'extern void Z_VirtualCommit(void *ptr, int size);\n'
+    'extern void Z_VirtualDecommit(void *ptr, int size);\n'
 )
 FORBIDDEN = ("(uint32_t)&s_hunkData", "(uint32_t)beginBuf", "(uint8_t)bufa", "0xFFFFF000")
 
