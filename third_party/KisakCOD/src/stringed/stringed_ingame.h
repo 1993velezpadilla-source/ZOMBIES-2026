@@ -373,7 +373,7 @@ struct CStringEdPackage // sizeof=0x78
 
         if (!**psParsePos)
             return 0;
-        v3 = (int)strchr(*psParsePos, '\n');
+        v3 = strchr(*psParsePos, '\n');
         if (v3)
         {
             iCharsToCopy = static_cast<uint32_t>(v3 - *psParsePos);
@@ -382,7 +382,7 @@ struct CStringEdPackage // sizeof=0x78
             psDest[iCharsToCopy] = 0;
             for (*psParsePos += iCharsToCopy; **psParsePos; ++*psParsePos)
             {
-                v4 = (int)strchr("\r\n", **psParsePos);
+                v4 = strchr("\r\n", **psParsePos);
                 if (!v4)
                     break;
             }
