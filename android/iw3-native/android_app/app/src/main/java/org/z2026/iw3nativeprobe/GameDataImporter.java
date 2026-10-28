@@ -168,10 +168,11 @@ public final class GameDataImporter {
 
                 boolean directory = DocumentsContract.Document.MIME_TYPE_DIR.equals(mimeType);
                 if (depth == 0 && directory) {
-                    topLevelDirectories.add(displayName);
+                    String normalizedDirectory = displayName.toLowerCase(Locale.ROOT);
+                    topLevelDirectories.add(normalizedDirectory);
                     // COD4 assets needed by the original SP filesystem live in
                     // main/ and zone/. Avoid walking unrelated user directories.
-                    if (!"main".equals(displayName) && !"zone".equals(displayName)) continue;
+                    if (!"main".equals(normalizedDirectory) && !"zone".equals(normalizedDirectory)) continue;
                 }
 
                 String relativePath = parentPath.isEmpty()
