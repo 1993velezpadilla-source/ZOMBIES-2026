@@ -867,3 +867,23 @@ Fresh preflight, host Release/ASan/UBSan and Android ARM64 CI are pending for th
 The emulator probe now rechecks foreground/accessibility state before each gesture and uses short hold gestures so a recurring Quickstep launcher ANR cannot silently consume the remaining inputs. The latest prior emulator attempt passed ZIP/IWD/read diagnostics but failed the usercmd gesture assertions after the launcher overlay; this correction is not validated until the new emulator run finishes.
 
 Hard boundary: FS_Startup/FS_InitFilesystem have not been invoked in the complete Android runtime; no licensed map/FastFile, renderer scene, physical ARM64 gameplay, or playable APK is claimed. PR #4 remains open and unmerged.
+
+
+## Phase BF — original StringEd language initializer in the ARM64 startup audit (2026-10-28)
+
+Reviewed the current PR head `d722b83122ec0ca4a9c76f342060e0f02b6fc2ec` and the latest native/ JNI/emulator Actions runs before editing. The latest combined ARM64 FS/Dvar/IWD/ZIP/readfile/Hunk audit resolved the original temporary Hunk allocator, but still reported `SEH_InitLanguage` as an unresolved dependency. The JNI and x86_64 emulator runs were successful diagnostics only; neither proves the game runtime.
+
+Implemented on `feature/iw3-native-android-arm64-20261025`:
+
+- Added `prepare_real_engine_language.py`, which extracts the exact original `SEH_InitLanguage`, `SEH_UpdateCurrentLanguage`, `SEH_GetLanguageName`, and `SEH_GetLanguageIndexForName` bodies and the original 15-entry language table from KisakCOD's `src/stringed/stringed_hooks.cpp`. It records source/table/function hashes and refuses to overwrite vendored source.
+- Added `iw3_android_language_compat.h` with a native pointer-width guard for `languageInfo_t`: 8 bytes on ILP32, 16 bytes on LP64. The old upstream comment described only the Win32 layout; the extracted table now compiles with the correct ARM64 layout.
+- Added the original language source as the optional `iw3_sp_language` audit archive and a host CTest that checks all 15 names, case-insensitive name-to-index lookup, unknown-name fallback, and out-of-range name fallback.
+- In the combined ARM64 audit build only, the English-only diagnostic definitions of `SEH_GetLanguageName` and `SEH_GetLanguageIndexForName` are now excluded. The JNI diagnostic retains its narrow fallback; the combined link instead uses the authentic source functions. No fake language initializer or replacement registry was added.
+- Extended the combined AArch64 relocatable link to require `SEH_InitLanguage`, `SEH_UpdateCurrentLanguage`, and the original language table to be defined alongside the already-resolved Dvar registration and IWD services.
+
+Validation status for this new Phase BF code: the generator, CMake target, native test, workflow and regressions have been pushed to the feature branch. Fresh preflight, ARM64 source/ABI, JNI diagnostic and emulator workflows must finish on the new HEAD before this phase can be marked CI-green. The prior code-head evidence remains:
+- [Native ARM64 run 40621758986](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40621758986) — PASS on the previous head; host Release CTest and ASan/UBSan each 14/14, original Hunk allocator resolved, and `SEH_InitLanguage` was the explicit remaining unresolved symbol.
+- [JNI diagnostic run 40621758823](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40621758823) — PASS for ARM64 compilation/package/signature only; not a playable APK.
+- [x86_64 emulator run 40621758962](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40621758962) — PASS for the diagnostic parser/IWD/touch probes only; not physical ARM64 gameplay.
+
+Hard acceptance gates remain open: the combined audit is not the runtime. The app still does not invoke the complete original `FS_Startup()`/`FS_InitFilesystem()` call path, mount licensed game FastFiles or load a map, render a real 3D scene, or run touch-driven weapons/actors through the complete original frame loop on a physical ARM64 device. The JNI artifact remains diagnostic. Keep PR #4 open and unmerged; `IW3_PLAYABLE_APK=false` remains explicit.
