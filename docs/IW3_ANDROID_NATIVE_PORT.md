@@ -1460,3 +1460,10 @@ The activity now calls `nativeValidateImportedIwds(filesDir)` after import and r
 - Validation: 217 Python tests, CTest Release 22/22, CTest ASan/UBSan 22/22; ARM64 audit and JNI build passed; emulator log includes `IW3_JNI_IMPORTED_IWD_INDEX_FIXTURE_PASS`.
 - Evidence: [ARM64 audit](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40783665908), [JNI build](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40783665869), [emulator execution](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40783665919).
 - Scope remains diagnostic: emulator x86_64; startup invocation, real game data/FastFiles/map, original rendering and real gameplay are not proven. `IW3_PLAYABLE_APK=false`.
+
+
+### Phase CJ — malformed IWD fail-closed runtime regression (28 Oct 2026)
+
+The native IWD-index fixture now also creates a ZIP32 entry whose length-coded filename contains an embedded NUL. It calls the authentic `FS_LoadZipFile` and requires rejection before index allocation/publication, with `fs_iwdFileCount` and `fs_checksumFeed` unchanged. The Android-only marker `IW3_JNI_MALFORMED_IWD_REJECTED_AND_CLEANUP_PASS` is required by `run_emulator_probe.sh`; the emulator gate therefore verifies the negative path rather than only successful parsing or APK packaging. Regression: `tests/test_iw3_android_iwd_fail_closed.py`. Details: [Phase CJ](IW3_ANDROID_PHASE_CJ.md).
+
+This is failure-path evidence for the original IWD indexer, **not** full filesystem startup. `FS_Startup/FS_InitFilesystem`, real FastFile/map loading, original rendering, live gameplay and physical ARM64 execution remain unproven. Keep PR #4 open/unmerged; the APK is diagnostic only.
