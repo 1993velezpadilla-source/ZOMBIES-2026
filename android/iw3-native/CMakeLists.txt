@@ -112,6 +112,38 @@ target_compile_definitions(iw3_sp_iwd_mount PRIVATE KISAK_SP=1)
 target_compile_options(iw3_sp_iwd_mount PRIVATE
     -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
 
+# Separate ARM64 audit archives for the authentic IWD language/sort/allocator
+# helpers and ZIP parser. They are not added to the diagnostic APK; they let
+# the relocatable link audit resolve real dependencies without hiding the
+# remaining platform and language-service edges.
+if(NOT ${IW3_EXTRACTED_IWD_SERVICES} OR NOT EXISTS "${IW3_EXTRACTED_IWD_SERVICES}")
+    message(FATAL_ERROR "Original IWD language/sort/allocator service extraction required")
+endif()
+add_library(iw3_sp_iwd_services STATIC "${IW3_EXTRACTED_IWD_SERVICES}")
+target_include_directories(iw3_sp_iwd_services PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${IW3_REAL_HEADER_ROOT}"
+    "${IW3_ENGINE_SOURCE_ROOT}"
+    "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+    "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+target_compile_definitions(iw3_sp_iwd_services PRIVATE KISAK_SP=1)
+target_compile_options(iw3_sp_iwd_services PRIVATE
+    -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
+
+if(NOT ${IW3_EXTRACTED_UNZIP} OR NOT EXISTS "${IW3_EXTRACTED_UNZIP}")
+    message(FATAL_ERROR "Original ZIP parser extraction required for IWD link audit")
+endif()
+add_library(iw3_sp_unzip STATIC "${IW3_EXTRACTED_UNZIP}")
+target_include_directories(iw3_sp_unzip PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${IW3_REAL_HEADER_ROOT}"
+    "${IW3_ENGINE_SOURCE_ROOT}"
+    "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+    "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+target_compile_definitions(iw3_sp_unzip PRIVATE KISAK_SP=1)
+target_compile_options(iw3_sp_unzip PRIVATE
+    -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
+
 # Compile the complete original location-filter function with native-width
 # searchpath_s size/alignment. Its real Hunk/list services remain unresolved in
 # this audit archive; it is intentionally not linked into the JNI diagnostic.
