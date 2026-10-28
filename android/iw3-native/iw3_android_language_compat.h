@@ -15,6 +15,9 @@ static_assert(sizeof(languageInfo_t) == (sizeof(void *) == 8 ? 16u : 8u),
               "KisakCOD languageInfo_t must use native pointer layout");
 
 extern languageInfo_t g_languages[15];
+struct dvar_s;
+void __cdecl SEH_InitLanguage();
+const dvar_s *__cdecl SEH_UpdateCurrentLanguage();
 const char *__cdecl SEH_GetLanguageName(uint32_t iLanguage);
 int __cdecl SEH_GetLanguageIndexForName(const char *pszLanguageName,
                                         int *piLanguageIndex);
