@@ -20,7 +20,7 @@ class TouchSurfaceAccessibilityTests(unittest.TestCase):
     def test_runtime_probe_targets_that_visible_view(self):
         source = PROBE.read_text(encoding="utf-8")
         self.assertIn("IW3 native diagnostic touch surface", source)
-        self.assertIn("Native diagnostic view is not visible in the actual Android hierarchy", source)
+        self.assertIn("Native diagnostic view did not become visible after bounded UI recovery", source)
         self.assertNotIn("fallback to arbitrary coordinate", source.lower())
 
     def test_probe_recovers_only_a_launcher_anr_using_real_wait_button_bounds(self):
