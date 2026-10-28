@@ -65,7 +65,7 @@ def prepare(engine: Path, output: Path) -> dict:
         if marker not in state:
             raise ValueError("Shared filesystem state is missing: " + marker)
     for symbol in ("com_fileAccessed", "fs_loadStack"):
-        if re.search(r"(?m)^\\s*int\\s+" + symbol + r"\\s*;\\s*$", source):
+        if re.search(r"(?m)^\s*int\s+" + symbol + r"\s*;\s*$", source):
             raise ValueError("Original global still has a private definition in com_files.cpp: " + symbol)
     bodies = [function_source(source, signature) for signature, _ in FUNCTIONS]
     rendered = HEADER + "\n\n".join(bodies) + "\n"
