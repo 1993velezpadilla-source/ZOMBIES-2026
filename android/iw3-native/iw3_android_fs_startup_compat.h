@@ -34,6 +34,9 @@ extern char lastValidGame[256];
 void __cdecl FS_AddSearchPath(searchpath_s *search);
 void __cdecl FS_AddGameDirectory(char *path, char *dir, int bLanguageDirectory, int iLanguage);
 void __cdecl FS_AddIwdFilesForGameDirectory(char *path, char *pszGameFolder);
+const char **__cdecl FS_ListFilteredFiles(
+    searchpath_s *searchPath, const char *path, const char *extension,
+    const char *filter, FsListBehavior_e behavior, int *numfiles);
 int Sys_DirectoryHasContents(const char *directory);
 void FS_RegisterDvars();
 void __cdecl Com_ReadCDKey();
