@@ -38,3 +38,12 @@ Validation:
 - The new guard/test change is pending fresh native ARM64 and Windows SP runs.
 
 Scope remains compile/link only. The complete Android bootstrap, licensed FastFile/map load, original renderer, touch-driven gameplay, and physical ARM64 execution are still unproven. The JNI APK remains diagnostic only; PR #4 stays open and unmerged.
+
+
+## Phase CE follow-up 2 — restore the SP server public header's pointer dependency
+
+The retried Win32 SP build advanced past the earlier `ServerFrameExtent` error after `g_local.h` began including `server/server_frame.h` directly. It then stopped in `server/sv_public.h`: three reliable-command prototypes used `client_t *` before that type was declared. The definition is owned by `server/server.h`; this public header only needs an incomplete pointer type.
+
+Added the original-header forward declaration `struct client_t;` before those prototypes. Added a small regression test for the declaration order and wired the SP source-only build workflow to run for changes to `third_party/KisakCOD/src/**` on the IW3 Android feature branch, so future header changes receive actual Win32 SP compile feedback instead of silently skipping that build.
+
+The preceding Win32 SP retry [40744078187](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40744078187) failed at the missing `client_t` declaration. This new correction is pending fresh validation. It is separate from the Android ARM64 compile fix; neither failure nor success here proves Android gameplay.

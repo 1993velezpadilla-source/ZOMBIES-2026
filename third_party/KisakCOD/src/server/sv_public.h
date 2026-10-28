@@ -4,6 +4,8 @@
 #error This file is for SinglePlayer only 
 #endif
 
+// The reliable-command APIs only need a pointer here; server.h owns the definition.
+struct client_t;
 
 // sv_init
 void __cdecl TRACK_sv_init();
