@@ -60,6 +60,10 @@ jobs:
             --engine third_party/KisakCOD \
             --output "$RUNNER_TEMP/iw3-source/iw3_g_update_player_triggers.cpp" \
             --report "$RUNNER_TEMP/iw3-original-g-update-player-triggers.json"
+          python3 tools/iw3_android/prepare_real_engine_sentient_trigger_services.py \
+            --engine third_party/KisakCOD \
+            --output "$RUNNER_TEMP/iw3-source/iw3_sentient_trigger_services.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-sentient-trigger-services.json"
           python3 tools/iw3_android/prepare_real_engine_pool.py \
             --engine third_party/KisakCOD \
             --output "$RUNNER_TEMP/iw3-source/pool_allocator.cpp" \
@@ -721,11 +725,14 @@ jobs:
           frame_archive="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_frame.a"
           player_source="$RUNNER_TEMP/iw3-source/iw3_g_update_player.cpp"
           trigger_source="$RUNNER_TEMP/iw3-source/iw3_g_update_player_triggers.cpp"
+          sentient_source="$RUNNER_TEMP/iw3-source/iw3_sentient_trigger_services.cpp"
           player_object="$RUNNER_TEMP/iw3-original-g-update-player-arm64.o"
           trigger_object="$RUNNER_TEMP/iw3-original-g-update-player-triggers-arm64.o"
+          sentient_object="$RUNNER_TEMP/iw3-original-sentient-trigger-services-arm64.o"
           test -s "$frame_archive"
           test -s "$player_source"
           test -s "$trigger_source"
+          test -s "$sentient_source"
 
           common_flags=(
             -std=c++20 -DKISAK_SP=1 -Wall -Wextra -UNDEBUG -O2
@@ -736,8 +743,9 @@ jobs:
           )
           "$ndk/bin/aarch64-linux-android26-clang++" "${common_flags[@]}" -c "$player_source" -o "$player_object"
           "$ndk/bin/aarch64-linux-android26-clang++" "${common_flags[@]}" -c "$trigger_source" -o "$trigger_object"
+          "$ndk/bin/aarch64-linux-android26-clang++" "${common_flags[@]}" -c "$sentient_source" -o "$sentient_object"
 
-          for object in "$player_object" "$trigger_object"; do
+          for object in "$player_object" "$trigger_object" "$sentient_object"; do
             "$ndk/bin/llvm-readelf" -h "$object" | tee "$RUNNER_TEMP/$(basename "$object").elf.txt"
             grep -F 'Class:                             ELF64' "$RUNNER_TEMP/$(basename "$object").elf.txt"
             grep -F 'Machine:                           AArch64' "$RUNNER_TEMP/$(basename "$object").elf.txt"
@@ -745,7 +753,7 @@ jobs:
 
           combined="$RUNNER_TEMP/iw3-original-g-runframe-plus-player-triggers-arm64.o"
           "$ndk/bin/ld.lld" -m aarch64linux -r --whole-archive \
-            "$frame_archive" "$player_object" "$trigger_object" --no-whole-archive -o "$combined"
+            "$frame_archive" "$player_object" "$trigger_object" "$sentient_object" --no-whole-archive -o "$combined"
           "$ndk/bin/llvm-nm" -C --defined-only "$combined" \
             | tee "$RUNNER_TEMP/iw3-g-update-player-triggers-defined.txt"
           "$ndk/bin/llvm-nm" -C -u "$combined" \
@@ -753,6 +761,9 @@ jobs:
           grep -F 'G_RunFrame(ServerFrameExtent, int)' "$RUNNER_TEMP/iw3-g-update-player-triggers-defined.txt"
           grep -F 'G_UpdatePlayer(gentity_s*)' "$RUNNER_TEMP/iw3-g-update-player-triggers-defined.txt"
           grep -F 'G_UpdatePlayerTriggers(gentity_s*)' "$RUNNER_TEMP/iw3-g-update-player-triggers-defined.txt"
+          grep -F 'Sentient_NearestNodeDirty(sentient_s*, bool)' "$RUNNER_TEMP/iw3-g-update-player-triggers-defined.txt"
+          grep -F 'Sentient_InvalidateNearestNode(sentient_s*)' "$RUNNER_TEMP/iw3-g-update-player-triggers-defined.txt"
+          grep -F 'Sentient_BanNearNodes(sentient_s*)' "$RUNNER_TEMP/iw3-g-update-player-triggers-defined.txt"
           if grep -F 'G_UpdatePlayer(gentity_s*)' "$RUNNER_TEMP/iw3-g-update-player-triggers-undefined.txt"; then
             echo "Original G_UpdatePlayer edge failed to resolve" >&2
             exit 1
@@ -764,10 +775,12 @@ jobs:
 
           # The providers below remain authentic unresolved engine dependencies;
           # no no-op implementations are added to manufacture a complete runtime.
-          for symbol in 'CL_WritePacket()' 'SV_ReadPacket(int)' 'Sentient_UpdatePlayerTrail(gentity_s*)' 'Sentient_NearestNodeDirty(sentient_s*, bool)' 'Sentient_InvalidateNearestNode(sentient_s*)' 'Sentient_BanNearNodes(sentient_s*)' 'Client_ClaimNode(gentity_s*)' 'G_DoTouchTriggers(gentity_s*)' 'Vec2DistanceSq(' 'MyAssertHandler'; do
+          for symbol in 'CL_WritePacket()' 'SV_ReadPacket(int)' 'Sentient_UpdatePlayerTrail(gentity_s*)' 'Client_ClaimNode(gentity_s*)' 'G_DoTouchTriggers(gentity_s*)' 'Path_IsValidClaimNode(pathnode_t const*)' 'Path_NodesInCylinder(' 'Path_MarkNodeInvalid(pathnode_t*, team_t)' 'Vec2DistanceSq(' 'Vec2Normalize(float*)' 'MyAssertHandler'; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-g-update-player-triggers-undefined.txt"
           done
           echo "IW3_ORIGINAL_G_UPDATE_PLAYER_AND_TRIGGERS_AARCH64_FRAME_EDGES_RESOLVED_GREEN"
+          echo "IW3_ORIGINAL_SENTIENT_TRIGGER_SERVICES_AARCH64_LINK_GREEN"
+          echo "IW3_SENTIENT_TRIGGER_SERVICES_RUNTIME_EXECUTED=false"
           echo "IW3_G_UPDATE_PLAYER_TRIGGERS_RUNTIME_EXECUTED=false"
           echo "IW3_REAL_MAP_LOADED=false"
           echo "IW3_GAMEPLAY_PROVEN=false"
@@ -790,6 +803,9 @@ jobs:
             ${{ runner.temp }}/iw3-original-g-update-player-triggers.json
             ${{ runner.temp }}/iw3-original-g-update-player-triggers-arm64.o
             ${{ runner.temp }}/iw3-original-g-runframe-plus-player-triggers-arm64.o
+            ${{ runner.temp }}/iw3-source/iw3_sentient_trigger_services.cpp
+            ${{ runner.temp }}/iw3-original-sentient-trigger-services.json
+            ${{ runner.temp }}/iw3-original-sentient-trigger-services-arm64.o
             ${{ runner.temp }}/iw3-g-update-player-triggers-defined.txt
             ${{ runner.temp }}/iw3-g-update-player-triggers-undefined.txt
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_iwd_mount.a
