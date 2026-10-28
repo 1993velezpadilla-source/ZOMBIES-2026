@@ -76,7 +76,7 @@ char __cdecl Com_Filter(const char *filter, char *name, int casesensitive)
         }
         else if (*filter == '[' && filter[1] == '[')
         {
-            // Original id Tech 3 pattern syntax: "[[" escapes a literal '['.
+            // Preserve the original id Tech 3 double-open-bracket branch: advance once, then let the next iteration parse the following bracket using the same class rules.
             ++filter;
         }
         else if (*filter == '[')
