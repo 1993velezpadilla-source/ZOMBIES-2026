@@ -20,8 +20,9 @@ int main()
     assert(!Com_FilterPath("maps/*.bsp", nullptr, 0));
 
     std::string longLiteral(MAX_TOKEN_CHARS + 8, 'a');
-    std::string longName(MAX_TOKEN_CHARS + 8, 'a');
-    assert(!Com_Filter(longLiteral.c_str(), longName.data(), 1));
+    std::string longFilter = "*" + longLiteral;
+    std::string longName = "x" + longLiteral;
+    assert(!Com_Filter(longFilter.c_str(), longName.data(), 1));
 
     // The original path helper truncates to MAX_QPATH-1 before matching.
     std::string prefix(MAX_QPATH - 1, 'x');
