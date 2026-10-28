@@ -28,7 +28,7 @@ REQUIRED = (
     "const char *v7;",
     "v7 = &string[strlen(string) + 1];",
     "static_cast<int>(v7 - v5)",
-    "FS_serverReferencedIwdNames",
+    "fs_serverReferencedIwdNames",
     "fs_serverReferencedFFCheckSums",
 )
 FORBIDDEN = (
