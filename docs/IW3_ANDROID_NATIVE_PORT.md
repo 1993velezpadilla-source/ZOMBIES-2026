@@ -1389,3 +1389,28 @@ The header now keeps the original 32-bit assertions under the 32-bit branch and 
 ### Scope boundary
 
 This resolves the three header compile failures; it does not execute the frame in Android. The combined object deliberately retains real sentient/path-node/trigger and packet services as unresolved. No full Android runtime initialization, real IWD/FastFile/map load, original 3D renderer, live touch-to-frame connection, physical ARM64 execution, or weapon/actor gameplay is proven. `IW3_PLAYABLE_APK=false`; PR #4 remains open and unmerged.
+
+
+## Phase AA — original entity-frame dispatch edge staged for ARM64 (28 Oct 2026)
+
+The last green frame audit defined the original `G_RunFrame`, `G_UpdatePlayer`, and `G_UpdatePlayerTriggers`, but still listed `G_RunFrameForEntity(gentity_s*)` as an unported service. That function is central to per-entity processing: it dispatches the original missile, item, mover, think, actor-target and damage-debug paths.
+
+This pass adds `tools/iw3_android/prepare_real_engine_g_runframe_entity.py`. It extracts both `G_RunFrameForEntityInternal` and `G_RunFrameForEntity` verbatim from the vendored `src/game/g_main.cpp`, records source/body/generated SHA-256 hashes, and verifies the external declarations and the original missile/item/mover provider definitions against their real source/header files. The isolated translation unit uses the real frame state header and the complete original `scr_vehicle_s` layout from `bg_local.h`; the `MAX_VEHICLES` constant is checked against the original `g_main.h`. No entity, weapon, script or render service implementation was stubbed.
+
+The native ARM64 workflow now stages the extraction, compiles it with the Android NDK, checks the object is ELF64/AArch64, and performs a second relocatable link with the authentic frame/player/trigger/sentient audit objects. The new gate requires both entity-frame functions to be defined and absent from the combined undefined-symbol table. It explicitly expects real external missile/item/mover/client/script/render services to remain unresolved; this is a dependency-edge audit, not a complete runtime link.
+
+Code commits:
+- `9ca462d437811a71c3107dbfe3442718d011e159` — original-source extractor.
+- `78054a26fc9a0ada4465ae6c85eb864f198b28a6` — source-preservation and provenance regressions.
+- `38056da0d9cdd8d3033c045d626ba5534659366e` — isolated temporary output in the test.
+- `5608385bd10ce8f41bd3462b43a92c7a69fc6ac4` — Android NDK compile/link gate and artifact retention.
+
+Validation status at documentation time:
+- Source/RotU preflight run [40755542954](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40755542954): **passed**.
+- Native ARM64 source/link audit [40755542806](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40755542806): **pending**; no compile/link result is claimed yet.
+- JNI diagnostic package [40755543234](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40755543234): **pending**.
+- Android emulator probe [40755542917](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40755542917): **pending**.
+
+The earlier green native audit at `fa4f55c70840081e05bd9eff1cc3bb3fc72ec746` passed 192 Python preflight tests, Release CTest 22/22, ASan/UBSan CTest 22/22, and the AArch64 compile/link gate for the original frame/player/trigger functions. Its artifact [12839735900](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40740627238/artifacts/12839735900) contains compiled objects and reports, not a game APK.
+
+**Scope boundary:** the new entity-frame provider has not yet passed its current CI compile/link gate. Even if that gate passes, it does not execute the frame in Android, initialize the full runtime, mount licensed IWD/FastFiles, load a real map, render the original 3D scene, connect touch to live frame execution, or prove weapon/actor gameplay on physical ARM64. `IW3_PLAYABLE_APK=false`; keep PR #4 open and unmerged.
