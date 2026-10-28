@@ -70,7 +70,7 @@ void __cdecl FS_FreeFileList(const char **list) {
     if (list) Z_Free(const_cast<char **>(list), 3);
 }
 
-// duplicate FS_BuildOSPath adapter is provided by the verbatim KisakCOD FS startup/path-builder object.
+// FS_BuildOSPath is provided by the original body in the IWD lookup source slice.
 
 
 // The directory scanner's platform boundary is intentionally limited to the
@@ -98,20 +98,7 @@ void __cdecl Com_Printf(int, const char *format, ...) {
 // exceeds its fixed limit. This narrow Android diagnostic boundary has no
 // engine-level error recovery loop yet, so preserve fail-closed fatal behavior
 // rather than returning a truncated path or pretending ERR_DROP is recoverable.
-void __cdecl Com_Error(errorParm_t code, const char *format, ...) {
-    char message[4096]{};
-    if (format) {
-        va_list args;
-        va_start(args, format);
-        const int written = std::vsnprintf(message, sizeof(message), format, args);
-        va_end(args);
-        if (written < 0) message[0] = '\0';
-        message[sizeof(message) - 1] = '\0';
-    }
-    std::fprintf(stderr, "IW3 fatal engine error (%d): %s\n",
-                 static_cast<int>(code), message);
-    std::abort();
-}
+
 
 int Com_sprintf(char *dest, uint32_t size, const char *format, ...) {
     if (!dest || size == 0 || !format) return -1;
