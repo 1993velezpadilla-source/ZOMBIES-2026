@@ -199,6 +199,5 @@ public final class GameDataImporter {
     private static boolean safeSegment(String name) {
         return name != null && !name.isEmpty() && !".".equals(name) && !"..".equals(name)
                 && name.indexOf('/') < 0 && name.indexOf('\\') < 0 && name.indexOf(0) < 0;
-                && name.indexOf('\u0000') < 0;
     }
 }
