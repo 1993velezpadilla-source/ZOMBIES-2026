@@ -50,6 +50,16 @@ class OriginalLanguageRegistryTests(unittest.TestCase):
             self.assertIn(marker, staged)
         self.assertNotIn('return language == 0 ? "english" : "";', staged)
 
+    def test_original_stringed_readline_keeps_native_pointer_width(self):
+        header = (ROOT / "third_party/KisakCOD/src/stringed/stringed_ingame.h").read_text(encoding="utf-8")
+        self.assertIn("char *v3; // native-width line terminator", header)
+        self.assertIn("const char *v4; // native-width newline scan", header)
+        self.assertIn("v3 = strchr(*psParsePos, '\\n');", header)
+        self.assertIn("static_cast<uint32_t>(v3 - *psParsePos)", header)
+        self.assertIn('v4 = strchr("\\r\\n", **psParsePos);', header)
+        self.assertNotIn("(int)strchr", header)
+        self.assertNotIn("v3 - (_DWORD)*psParsePos", header)
+
     def test_language_audit_uses_original_provider_not_english_only_adapter(self):
         cmake = (ROOT / "android/iw3-native/CMakeLists.txt").read_text(encoding="utf-8")
         workflow = (ROOT / ".github/workflows/iw3-original-native-android.yml").read_text(encoding="utf-8")
