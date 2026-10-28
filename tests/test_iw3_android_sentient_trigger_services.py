@@ -67,6 +67,27 @@ class OriginalSentientTriggerServiceTests(unittest.TestCase):
         self.assertIn("int __cdecl Path_IsValidClaimNode(const pathnode_t *node);", HEADER)
         self.assertIn("Path_IsValidClaimNode(node)", REQUIRED)
 
+    def test_lp64_pathnode_tree_and_portable_actor_alignment_headers(self):
+        pathnode = (ENGINE / "src/game/pathnode.h").read_text(encoding="utf-8")
+        anim = (ENGINE / "src/game/actor_animapi.h").read_text(encoding="utf-8")
+        game_local = (ENGINE / "src/game/g_local.h").read_text(encoding="utf-8")
+
+        self.assertIn(
+            "static_assert(sizeof(pathnode_tree_nodes_t) == (sizeof(void *) == 8 ? 16 : 8));",
+            pathnode,
+        )
+        self.assertIn("static_assert(sizeof(pathnode_tree_info_t) == 2 * sizeof(void *));", pathnode)
+        self.assertIn(
+            "static_assert(sizeof(pathnode_tree_t) == (sizeof(void *) == 8 ? 24 : 16));",
+            pathnode,
+        )
+        self.assertIn("struct alignas(4) scr_animscript_t", anim)
+        self.assertNotIn("struct __declspec(align(4)) scr_animscript_t", anim)
+        self.assertIn("static_assert(sizeof(scr_animscript_t) == 8);", anim)
+        self.assertIn("static_assert(alignof(scr_animscript_t) == 4);", anim)
+        self.assertIn("#include <server/server_frame.h>", game_local)
+        self.assertIn("int __cdecl G_RunFrame(ServerFrameExtent extent, int timeCap);", game_local)
+
     def test_generator_refuses_to_overwrite_original_engine_source(self):
         with self.assertRaises(ValueError):
             prepare(ENGINE, ENGINE / SOURCE)

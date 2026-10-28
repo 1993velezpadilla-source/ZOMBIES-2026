@@ -18,11 +18,13 @@ enum ai_animmode_t : __int32
     AI_ANIM_POINT_RELATIVE = 0x9,
 };
 
-struct __declspec(align(4)) scr_animscript_t
+struct alignas(4) scr_animscript_t
 {
     int func;
     unsigned __int16 name;
 };
+static_assert(sizeof(scr_animscript_t) == 8);
+static_assert(alignof(scr_animscript_t) == 4);
 
 struct AnimScriptList
 {
