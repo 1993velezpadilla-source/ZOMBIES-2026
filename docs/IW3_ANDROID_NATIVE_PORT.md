@@ -934,3 +934,25 @@ Validation currently available for code HEAD `4374e718c6d100c0ca2bebce1d2c1d466d
 The next dependency boundary is now explicit: `Hunk_UserCreate`, `Hunk_UserAlloc`, `Hunk_UserDestroy`, `Hunk_CopyString`, `Com_FilterPath` and `I_strnicmp` must remain visible until their original providers are integrated. The source audit must fail if these are accidentally hidden or falsely marked resolved.
 
 **No runtime completion is claimed.** The full `FS_InitFilesystem()` call path is still not invoked in the Android Activity; no real licensed FastFile/map is loaded; no renderer scene or touch-driven weapons/actors are demonstrated on an ARM64 device. The JNI APK is still diagnostic only. Keep PR #4 open and unmerged.
+
+
+
+## Phase BI — repair LP64 StringEd parser and complete the filtered-list compile boundary (2026-10-27; validation pending)
+
+The first native build after adding the original StringEd provider failed in two concrete places, and those failures were inspected rather than marked green:
+
+1. The generated language-hook translation unit included `stringed_ingame.h`, pulling inline parser code into the wrong audit source and exposing 32-bit pointer casts at lines 376, 379 and 385.
+2. The original FS startup slice used `FS_IsBackupSubStr` and `FS_ListFilteredFiles` before declarations/providers were visible to that translation unit.
+
+Corrections:
+
+- [Commit 485a64e](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/485a64eaa81ab75a4d22c0d739228c47a4f85ad1) removed the full StringEd header from the language-hook slice and declared only the original `SE_Init`, `SE_ShutDown` and `SE_LoadLanguage` entry points needed by the hook bodies.
+- [Commit 8d55035](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/8d55035d7cd6a8ee89d42db1cc73686751c53a9b) and [commit 5e3fff0](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/5e3fff052ffd225ebe97f2972f69a7f629f2aa2e) corrected the original inline `CStringEdPackage::ReadLine()` to keep `strchr` results as pointers and calculate the line length with pointer subtraction. No 32-bit pointer cast remains in that path.
+- [Commit 9622c8b](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/9622c8b9efb7854dcc3b41cb85b41d7453ae306e) stages the original `FS_IsBackupSubStr` body, and [commit 062ff9e](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/062ff9e73f2f465b98039773affed185ecd498a8) adds the declaration for the authentic `FS_ListFilteredFiles` provider.
+- [Commit 6e5af4d](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/6e5af4db12f36b15d011350a0c9712601f8cea53) adds source regressions for the FS listing boundary; [commit 27e30b6](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/27e30b60eea7934bad529f82a4af143cdfa38c4d) adds a regression against reintroducing the StringEd pointer truncation.
+
+The failed native attempt was [run 40626969922](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40626969922); its log showed the above compiler errors. The source-preflight run [40626969931](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40626969931) passed for the earlier code state, but the latest corrections still require fresh native/NDK validation. The current code head is `27e30b60eea7934bad529f82a4af143cdfa38c4d`; do not treat the older failed build as validation of these corrections.
+
+The next runtime dependency boundary remains the original Hunk-user allocator family: `Hunk_UserCreate`, `Hunk_UserAlloc`, `Hunk_UserDestroy`, `Hunk_CopyString`, plus `Com_FilterPath` and `I_strnicmp`. The audit must continue exposing those until their authentic providers are ported and exercised.
+
+No full runtime start, licensed FastFile/map load, 3D scene render, physical ARM64 execution, or gameplay is proven. The diagnostic JNI APK is not the game; PR #4 stays open and unmerged.
