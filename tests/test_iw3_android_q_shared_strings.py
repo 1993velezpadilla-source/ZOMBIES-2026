@@ -49,6 +49,7 @@ class OriginalQSharedStringServicesTests(unittest.TestCase):
 
         self.assertIn("prepare_real_engine_q_shared_strings.py", workflow)
         self.assertIn("IW3_EXTRACTED_Q_SHARED_STRINGS", workflow)
+        self.assertGreaterEqual(workflow.count("-DIW3_EXTRACTED_Q_SHARED_STRINGS="), 2)
         self.assertIn("libiw3_sp_q_shared_strings.a", workflow)
         self.assertIn("Com_sprintf(", workflow)
         self.assertIn("iw3_sp_q_shared_strings", cmake)
