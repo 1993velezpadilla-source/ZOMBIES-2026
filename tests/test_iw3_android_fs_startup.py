@@ -170,7 +170,7 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
         self.assertIn('"$iwd_mount_archive" "$unzip_archive" --no-whole-archive', workflow)
         self.assertIn("for symbol in IwdFileLanguage Z_Malloc FS_LoadZipFile unzOpen", workflow)
         self.assertIn(
-            "for symbol in FS_PathCmp iwdsort I_strncmp SEH_GetLanguageName FS_ReadFile SEH_InitLanguage Sys_ListFiles FS_FreeFileList SEH_GetLanguageIndexForName Com_PrintWarning",
+            "for symbol in iwdsort I_strncmp SEH_GetLanguageName FS_ReadFile SEH_InitLanguage Sys_ListFiles FS_FreeFileList SEH_GetLanguageIndexForName Com_PrintWarning",
             workflow,
         )
         self.assertIn("IW3_ORIGINAL_FS_STARTUP_IWD_SERVICES_AARCH64_COMBINED_LINK_GREEN", workflow)
