@@ -55,10 +55,12 @@ class OriginalGRunFrameForEntityExtractionTests(unittest.TestCase):
         self.assertFalse(report["playable_apk"])
 
     def test_original_entity_services_and_declarations_are_checked(self):
-        report = prepare(ENGINE, Path("/tmp/iw3_g_runframe_entity_test.cpp"))
+        with TemporaryDirectory() as temp:
+            output = Path(temp) / "iw3_g_runframe_entity_test.cpp"
+            report = prepare(ENGINE, output)
+            generated = output.read_text(encoding="utf-8")
         self.assertEqual(len(report["external_declarations_verified_against_original_headers"]), len(DECLARATIONS))
         self.assertEqual(len(report["original_entity_service_definitions_verified"]), len(PROVIDER_DEFINITIONS))
-        generated = Path("/tmp/iw3_g_runframe_entity_test.cpp").read_text(encoding="utf-8")
         for marker in (
             "G_RunMissile(ent);",
             "G_RunItem(v4);",
