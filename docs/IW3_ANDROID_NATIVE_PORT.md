@@ -1027,3 +1027,18 @@ Implemented:
 The first preflight for the new target failed on a stale test expecting HunkUser to remain unresolved; that expectation was updated in `5653387`. The current native ARM64 workflow [40628363959](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40628363959) is pending and has not yet validated the latest combined link. The separate source preflight [40628363924](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40628363924) passed, but it is not the native build result.
 
 The combined audit still deliberately leaves `MyAssertHandler`, `Com_FilterPath` and `I_strnicmp` visible as unresolved engine services. No full `FS_InitFilesystem()` execution, real licensed FastFile/map load, renderer scene, physical ARM64 game-loop run or touch-driven combat is proven. The APK remains diagnostic only; PR #4 stays open and unmerged.
+
+
+## Phase BN — repair stale ARM64 provider gate and emulator probe shell syntax (2026-10-28)
+
+Inspected the latest CI before changing code. The previous native ARM64 run [40628489327](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40628489327) failed after the combined object had already compiled: the gate still required `MyAssertHandler` and `I_strnicmp` to remain undefined even though the real HunkUser/StringEd/q_shared provider set now defines them. The same run's defined-symbol listing showed both providers as `T`; `Com_FilterPath` remains undefined and is kept as an explicit next dependency. This was a stale assertion, not a reason to add a stub.
+
+The emulator run [40628489402](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40628489402) compiled and started the JNI diagnostic, and logcat showed the existing ZIP/IWD probe markers passing, but the shell reported an unterminated Python heredoc at line 53. Two process-substitution blocks ended with `PY)` on one line; Bash requires the heredoc delimiter alone, followed by the closing `)` on its own line.
+
+Changes committed on `feature/iw3-native-android-arm64-20261025`:
+- Native workflow now requires `MyAssertHandler` and `I_strnicmp` in the combined defined-symbol report and rejects them if still undefined; it separately requires `Com_FilterPath` to remain visible as unresolved. No missing service is stubbed.
+- Fixed both Python heredoc terminators in `tools/iw3_android/run_emulator_probe.sh`.
+- Updated the HunkUser and filesystem-startup regression assertions to match the real provider contract.
+- Added a regression that runs `bash -n` against the emulator probe and rejects the malformed `PY)` terminator.
+
+The fresh CI runs triggered by these changes are the authority for whether the fixes pass; prior failed runs are retained as evidence and are not reclassified. This phase does not start `FS_Startup` in the Activity, mount licensed game data, load a FastFile/map, render a 3D scene, or prove gameplay on physical ARM64. The JNI APK remains diagnostic only; keep PR #4 open and unmerged.
