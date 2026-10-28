@@ -296,6 +296,26 @@ target_compile_definitions(iw3_sp_filter PRIVATE KISAK_SP=1)
 target_compile_options(iw3_sp_filter PRIVATE
     -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
 
+# Stage original q_shared string/format helpers as a separate dependency provider.
+# This archive is for the native source/link audit only and is not linked into
+# the JNI diagnostic APK unless a future runtime target explicitly consumes it.
+if(IW3_EXTRACTED_Q_SHARED_STRINGS)
+    if(NOT EXISTS "${IW3_EXTRACTED_Q_SHARED_STRINGS}")
+        message(FATAL_ERROR "Original q_shared string service extraction path does not exist")
+    endif()
+    add_library(iw3_sp_q_shared_strings STATIC "${IW3_EXTRACTED_Q_SHARED_STRINGS}")
+    target_include_directories(iw3_sp_q_shared_strings PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+        "${IW3_REAL_HEADER_ROOT}"
+        "${IW3_ENGINE_SOURCE_ROOT}"
+        "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+        "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+    target_compile_definitions(iw3_sp_q_shared_strings PRIVATE KISAK_SP=1)
+    target_compile_options(iw3_sp_q_shared_strings PRIVATE
+        -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math
+        -ffunction-sections -fdata-sections)
+endif()
+
 # Compile the complete original location-filter function with native-width
 # searchpath_s size/alignment. Its real Hunk/list services remain unresolved in
 # this audit archive; it is intentionally not linked into the JNI diagnostic.
@@ -528,6 +548,26 @@ else()
     target_compile_options(iw3_filter_host_test PRIVATE -UNDEBUG -Wall -Wextra)
     target_link_libraries(iw3_filter_host_test PRIVATE iw3_sp_filter)
     add_test(NAME iw3_original_filter_path_semantics COMMAND iw3_filter_host_test)
+
+    if(IW3_EXTRACTED_Q_SHARED_STRINGS)
+        add_executable(iw3_q_shared_strings_host_test
+            "${CMAKE_CURRENT_SOURCE_DIR}/q_shared_strings_native_test.cpp")
+        target_include_directories(iw3_q_shared_strings_host_test PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}"
+            "${IW3_REAL_HEADER_ROOT}"
+            "${IW3_ENGINE_SOURCE_ROOT}"
+            "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+            "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+        target_compile_definitions(iw3_q_shared_strings_host_test PRIVATE KISAK_SP=1)
+        target_compile_options(iw3_q_shared_strings_host_test PRIVATE
+            -UNDEBUG -Wall -Wextra -ffunction-sections -fdata-sections)
+        target_link_options(iw3_q_shared_strings_host_test PRIVATE -Wl,--gc-sections)
+        target_link_libraries(iw3_q_shared_strings_host_test PRIVATE iw3_sp_q_shared_strings)
+        add_test(NAME iw3_original_q_shared_string_services COMMAND iw3_q_shared_strings_host_test)
+        set_tests_properties(iw3_original_q_shared_string_services
+            PROPERTIES PASS_REGULAR_EXPRESSION "IW3_ORIGINAL_Q_SHARED_STRING_SERVICES_HOST_TEST_PASS")
+    endif()
+
     add_executable(iw3_dvar_sleep_host_test
         "${CMAKE_CURRENT_SOURCE_DIR}/dvar_sleep_native_test.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_dvar_io.cpp")
