@@ -110,6 +110,9 @@ void __cdecl Com_Printf(int, const char *format, ...) {
 // rather than returning a truncated path or pretending ERR_DROP is recoverable.
 
 
+#if !defined(IW3_IWD_DIRECTORY_LINK_AUDIT)
+// The diagnostic shared library uses this narrow formatter. The ARM64
+// dependency audit instead links the original q_shared.cpp Com_sprintf body.
 int Com_sprintf(char *dest, uint32_t size, const char *format, ...) {
     if (!dest || size == 0 || !format) return -1;
     va_list args;
@@ -121,6 +124,7 @@ int Com_sprintf(char *dest, uint32_t size, const char *format, ...) {
     if (written < 0) dest[0] = '\0';
     return written;
 }
+#endif
 
 void __cdecl MyAssertHandler(const char *filename, int line, int type,
                              const char *format, ...) {
