@@ -224,6 +224,27 @@ if(IW3_EXTRACTED_FS_READFILE)
         -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
 endif()
 
+# Compile the authentic Hunk temporary allocator bodies after correcting their
+# original 32-bit pointer masks and sharing the engine-owned Hunk state. This
+# archive is used only by the combined ARM64 dependency audit, not the JNI APK.
+if(IW3_EXTRACTED_HUNK_TEMP)
+    if(NOT EXISTS "${IW3_EXTRACTED_HUNK_TEMP}")
+        message(FATAL_ERROR "Original Hunk temporary allocator extraction path does not exist")
+    endif()
+    add_library(iw3_sp_hunk_temp STATIC
+        "${IW3_EXTRACTED_HUNK_TEMP}"
+        "${IW3_ENGINE_SOURCE_ROOT}/universal/com_memory_state.cpp")
+    target_include_directories(iw3_sp_hunk_temp PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+        "${IW3_REAL_HEADER_ROOT}"
+        "${IW3_ENGINE_SOURCE_ROOT}"
+        "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+        "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+    target_compile_definitions(iw3_sp_hunk_temp PRIVATE KISAK_SP=1)
+    target_compile_options(iw3_sp_hunk_temp PRIVATE
+        -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
+endif()
+
 # Compile the corrected original dvar string/enum pointer paths and callback ABI
 # as an LP64 source audit. This archive is not linked into the JNI diagnostic.
 if(IW3_EXTRACTED_DVAR_POINTER_ABI)
