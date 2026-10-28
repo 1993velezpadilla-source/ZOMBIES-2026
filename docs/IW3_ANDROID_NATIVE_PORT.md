@@ -1088,7 +1088,7 @@ The first JNI integration rerun then showed that the app's Gradle CMake configur
 
 
 
-## Phase BQ — original q_shared startup string providers (2026-10-28; ARM64 audit green, emulator pending)
+## Phase BQ — original q_shared startup string providers (2026-10-28; ARM64 and emulator diagnostics green; gameplay pending)
 
 The prior startup+Dvar audit still showed `I_strncat` and `Com_sprintf` as missing providers. `I_strncpyz` and `I_stricmp` already come from the original IWD-services extraction in the expanded graph, so adding second copies of them would be incorrect. This pass stages only the two still-missing bodies from `third_party/KisakCOD/src/universal/q_shared.cpp`, rather than adding handwritten engine substitutes.
 
@@ -1105,6 +1105,6 @@ Validation for code HEAD `dbc3c3b260303df98849f219c0b2f8db4ac97819`:
 - Host ASan/UBSan CTest: 19/19 passed.
 - Native Android ARM64 compile and combined-link audit: passed (run `40644453400`), including `IW3_ORIGINAL_Q_SHARED_STRING_SERVICES_AARCH64_LINK_GREEN` and `IW3_ORIGINAL_SOURCE_ANDROID_ARM64_ELF_GREEN`.
 - JNI diagnostic package build: passed (run `40644453404`); artifact `12796668334` is explicitly labeled NOT A GAME.
-- Emulator execution probes: still running at the last inspection (runs `40644453405` and `40644461493`); not counted as passed yet.
+- Emulator diagnostic: passed (run `40644453405`); artifact `12796234478` contains the native execution log. The evidence validates original ZIP32/IWD fixture paths and touch-to-`usercmd_s` readback on an x86_64 emulator, but explicitly records `original_upstream_fsh_table_integrated=false`, `arm64_device_execution_proven=false` and `gameplay_proven=false`.
 
 This is a bounded dependency-closure step only. The combined object still retains unrelated engine command/parser, shutdown, CD-key and Dvar services; the Activity still does not invoke `FS_Startup()/FS_InitFilesystem()`, mount real game IWD/FastFiles, load a map, render the original scene, or run touch-driven gameplay on physical ARM64. `IW3_PLAYABLE_APK=false` remains explicit. PR #4 stays open and unmerged.
