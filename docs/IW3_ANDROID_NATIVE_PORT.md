@@ -848,8 +848,9 @@ Correction:
 This only makes the diagnostic input probe observable; it does not connect these snapshots to the full original client/server frame loop.
 
 Current validation after this correction:
-- [Preflight 40616520465](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40616520465) — PASS.
-- [Native ARM64 audit 40616520583](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40616520583) — native compilation/audit steps completed successfully; final job status was still being collected at the time of this note.
-- [JNI build 40616520462](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40616520462) and [emulator probe 40616520473](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40616520473) — in progress at the time of this note.
+- [Source preflight 40616676075](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40616676075) — PASS.
+- [Native ARM64 audit 40616676124](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40616676124) — PASS; Release CTest 14/14, ASan/UBSan CTest 14/14, original ARM64 modules compiled, and the combined FS/IWD/ZIP link marker is green.
+- [JNI integration 40616675993](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40616675993) — PASS for the diagnostic ARM64 Activity/JNI package only.
+- [Android emulator probe 40616676055](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40616676055) — PASS on x86_64 emulator. Logs prove the diagnostic adapter observed attack=1/buttons=1, sprint buttons=2, and slide buttons=514 after actual ADB taps. This is not ARM64-device gameplay.
 
 No playable APK, real map load, 3D scene render, or physical ARM64 gameplay is claimed.
