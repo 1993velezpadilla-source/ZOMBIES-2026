@@ -36,10 +36,10 @@ GLOBAL_DECLARATIONS = (
     "int g_currentAsian;",
 )
 HEADER = (
-    '#include <universal/q_shared.h>\\n'
-    '#include <qcommon/qcommon.h>\\n'
-    '#include "iw3_android_language_compat.h"\\n'
-    '#include <cstdint>\\n'
+    '#include <universal/q_shared.h>\n'
+    '#include <qcommon/qcommon.h>\n'
+    '#include "iw3_android_language_compat.h"\n'
+    '#include <cstdint>\n'
 )
 REQUIRED = (
     'Dvar_RegisterInt("loc_language"',
@@ -75,17 +75,17 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
     if table_start < 0 or table_end < 0:
         raise ValueError("Original 15-entry KisakCOD language table is missing")
     table = source[table_start:table_end + 2]
-    language_names = re.findall(r'\\{\\s*"([^"]+)"\\s*,\\s*0\\s*\\}', table)
+    language_names = re.findall(r'\{\s*"([^"]+)"\s*,\s*0\s*\}', table)
     if len(language_names) != 15:
         raise ValueError(f"Expected 15 original language names, found {len(language_names)}")
 
     for declaration in GLOBAL_DECLARATIONS:
         if source.count(declaration) != 1:
             raise ValueError("Expected one original language global: " + declaration)
-    globals_source = "\\n".join(GLOBAL_DECLARATIONS)
+    globals_source = "\n".join(GLOBAL_DECLARATIONS)
 
     bodies = [function_source(source, signature) for signature in FUNCTIONS]
-    rendered = HEADER + table + "\\n\\n" + globals_source + "\\n\\n" + "\\n\\n".join(bodies) + "\\n"
+    rendered = HEADER + table + "\n\n" + globals_source + "\n\n" + "\n\n".join(bodies) + "\n"
     for marker in REQUIRED:
         if marker not in rendered:
             raise ValueError("Original language initialization contract missing: " + marker)
@@ -122,7 +122,7 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
     }
     if report_path is not None:
         report_path.parent.mkdir(parents=True, exist_ok=True)
-        report_path.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\\n",
+        report_path.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\n",
                                encoding="utf-8")
     return evidence
 
