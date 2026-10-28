@@ -975,3 +975,15 @@ Validation notes:
 - The latest native/NDK run [40627267559](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40627267559) and the associated JNI/emulator jobs have not yet produced final results; do not mark this phase CI-green until they finish.
 
 The code is still a dependency audit, not a playable build. The original filesystem startup is not invoked by the Activity, no real FastFile/map is loaded, and no scene render or touch-driven weapon/actor loop is proven on ARM64. PR #4 remains open and unmerged.
+
+
+
+## Phase BK — correct StringEd source-staging command separation (2026-10-27; fresh CI pending)
+
+The first run of the D3D-free StringEd extraction did not reach compilation: the workflow accidentally ended the language staging command with a shell continuation, so argparse treated the next `python3 prepare_real_engine_stringed.py` invocation as extra arguments. This was a workflow syntax defect, not a source-parser result.
+
+- Failed run: [40627267559](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40627267559), step `Verify original upstream IW3 source and synthesize header-only ABI overlay`.
+- Fix: [commit b16b35c](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/b16b35c75dcb5bc9554d50f4808d914b14b0eee5) removes the trailing continuation between the separate language and StringEd generator commands.
+- The current code head is `b16b35c75dcb5bc9554d50f4808d914b14b0eee5`. Fresh native/NDK/JNI/emulator results have not yet been inspected; the prior failure is not evidence for or against the corrected staging step.
+
+The acceptance boundary is unchanged: the StringEd bodies must come from the original source, the combined audit must preserve unresolved Hunk-user/filter services, and the diagnostic APK must not be called a playable game.
