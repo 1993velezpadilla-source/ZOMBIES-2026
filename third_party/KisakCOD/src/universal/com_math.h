@@ -164,7 +164,12 @@ void __cdecl TRACK_com_math();
 // == RANDOM == 
 void __cdecl Rand_Init(int seed);
 
+#if defined(__ANDROID__)
+// Avoid colliding with POSIX long random(void) on Android/Linux.
+float __cdecl Com_Random();
+#else
 float __cdecl random();
+#endif
 float __cdecl crandom();
 
 float __cdecl flrand(float min, float max);
@@ -456,7 +461,15 @@ void __cdecl ClosestApproachOfTwoLines(
     float* t);
 
 // KISAK ADDITION: pray that the optimizer doesn't shit the bed
-__forceinline static float COERCE_FLOAT(unsigned val) {
+#if defined(_MSC_VER)
+#define KISAK_FORCEINLINE static __forceinline
+#elif defined(__GNUC__) || defined(__clang__)
+#define KISAK_FORCEINLINE static inline __attribute__((always_inline))
+#else
+#define KISAK_FORCEINLINE static inline
+#endif
+
+KISAK_FORCEINLINE float COERCE_FLOAT(unsigned val) {
     union {
         unsigned v;
         float f;
@@ -464,7 +477,7 @@ __forceinline static float COERCE_FLOAT(unsigned val) {
     return lol.f;
 }
 
-__forceinline static uint32_t COERCE_UNSIGNED_INT(float val) {
+KISAK_FORCEINLINE uint32_t COERCE_UNSIGNED_INT(float val) {
     union {
         float f;
         unsigned v;
@@ -472,7 +485,7 @@ __forceinline static uint32_t COERCE_UNSIGNED_INT(float val) {
     return lol.v;
 }
 
-__forceinline static int COERCE_INT(float val) {
+KISAK_FORCEINLINE int COERCE_INT(float val) {
     union {
         float f;
         int v;
@@ -480,6 +493,7 @@ __forceinline static int COERCE_INT(float val) {
     return lol.v;
 }
 
+#undef KISAK_FORCEINLINE
 
 
 // LWSS: There appear to be a lot more functions on XBox.
