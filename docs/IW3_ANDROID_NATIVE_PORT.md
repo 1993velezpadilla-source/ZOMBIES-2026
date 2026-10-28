@@ -1085,3 +1085,16 @@ The first ARM64 combined-link attempt exposed a duplicate diagnostic `Com_PrintW
 The first JNI integration rerun then showed that the app's Gradle CMake configure does not provide `IW3_EXTRACTED_COM_PRINT_WARNING`. The audit target and its host CTest are now conditional on that extraction variable: the dedicated native-audit workflow supplies it and must compile/link it, while the separate JNI diagnostic build is not forced to generate an audit-only source file. This preserves the distinction between the audit target and the diagnostic APK.
 
 **Validation is pending until the fresh CI runs for the new commit finish.** This closes one logging dependency only. The startup audit still is not a full runtime link; the Android Activity does not invoke `FS_Startup()/FS_InitFilesystem()`, mount licensed game FastFiles, load a map, render a 3D scene, or run player/weapon/actor gameplay on a physical ARM64 device. Keep PR #4 open and unmerged; the JNI package remains diagnostic only.
+
+
+
+## Phase BQ — original q_shared startup string providers (2026-10-28; fresh CI pending)
+
+The latest successful ARM64 audit on `54a1763` still left direct string/format imports unresolved in the combined original FS-startup/Dvar/IWD object: `I_strncat`, `I_strncpyz`, `I_stricmp` and `Com_sprintf`. The authentic implementations are present in `third_party/KisakCOD/src/universal/q_shared.cpp`, so this pass stages those original bodies rather than adding handwritten engine substitutes.
+
+- Added `tools/iw3_android/prepare_real_engine_q_shared_strings.py`. It extracts the four original functions and records source/body hashes without modifying vendored `q_shared.cpp`.
+- Only `Com_sprintf` receives a narrow portability adaptation: MSVC `_vsnprintf` becomes bounded `std::vsnprintf`; a zero-sized destination returns `-1) before indexing; and C99's required-length result is translated back to the original `-1)-on-truncation contract. The original string-copy/compare bodies remain verbatim.
+- Added a native CTest for bounded copy/append, formatting, truncation and zero-size behavior, plus Python source-provenance and workflow-wiring regressions.
+- The native workflow builds `libiw3_sp_q_shared_strings.a`, includes it in the combined AArch64 relocatable audit, and requires the four symbols to be defined and absent from that object's undefined-symbol list. The JNI Gradle configuration does not receive this audit-only extraction and the archive is not linked into the diagnostic APK.
+
+The new source preflight, host/ASan/UBSan, ARM64 link-audit, JNI diagnostic and emulator jobs must finish before this phase is marked green. This is a bounded dependency closure step only. The combined object still retains unrelated engine command/parser, shutdown, CD-key and Dvar services; the Activity still does not invoke `FS_Startup()/FS_InitFilesystem()), mount real game IWD/FastFiles, load a map, render the original scene, or run touch-driven gameplay on physical ARM64. `IW3_PLAYABLE_APK=false` remains explicit. PR #4 stays open and unmerged.
