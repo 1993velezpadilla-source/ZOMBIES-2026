@@ -8,6 +8,7 @@
 #include <qcommon/cmd.h>
 #include <cgame/cg_main.h>
 #include <game/g_local.h>
+#include <server/sv_public.h>
 #include <aim_assist/aim_assist.h>
 #include <win32/win_local.h>
 #include <qcommon/msg.h>
