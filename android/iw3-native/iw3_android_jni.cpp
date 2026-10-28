@@ -85,14 +85,15 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(
     int iwd_fs_read_ok = 0;
     int iwd_fs_disk_read_ok = 0;
     const int casefold_ok = z2026_iw3_casefold_smoke();
+    int imported_iwd_index_fixture_ok = 0;
     if (writableDirectory) {
         const char *directory = env->GetStringUTFChars(writableDirectory, nullptr);
         if (directory) {
             unzip_ok = z2026_iw3_unzip_smoke(directory, &iwd_mount_ok, &iwd_searchpath_ok, &iwd_directory_scan_ok, &iwd_lookup_ok, &iwd_fs_read_ok, &iwd_fs_disk_read_ok);
+            imported_iwd_index_fixture_ok = z2026_iw3_iwd_index_fixture_smoke(directory);
             env->ReleaseStringUTFChars(writableDirectory, directory);
         }
     }
-    const int imported_iwd_index_fixture_ok = z2026_iw3_iwd_index_fixture_smoke(directory);
     __android_log_print(unzip_ok ? ANDROID_LOG_INFO : ANDROID_LOG_ERROR,
                         "IW3NativeGate", "IW3_JNI_UNZIP_PARSER_%s",
                         unzip_ok ? "PASS" : "FAIL");

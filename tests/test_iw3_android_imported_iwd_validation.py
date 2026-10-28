@@ -77,6 +77,12 @@ class ImportedIwdValidationTests(unittest.TestCase):
         self.assertIn("Original FS/FastFile/map loading is still pending.", activity)
         self.assertIn("nativeValidateImportedIwds(String appPrivateRoot)", bridge)
         self.assertIn("does not mount the game searchpath or load a map", bridge)
+        jni = JNI.read_text(encoding="utf-8")
+        report_body = function_body(
+            jni, "Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(")
+        self.assertLess(
+            report_body.index("z2026_iw3_iwd_index_fixture_smoke(directory)"),
+            report_body.index("ReleaseStringUTFChars(writableDirectory, directory)"))
 
     def test_ci_requires_jni_and_original_index_symbols_and_runtime_marker(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
