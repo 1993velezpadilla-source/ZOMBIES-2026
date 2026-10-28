@@ -116,6 +116,10 @@ jobs:
             --engine third_party/KisakCOD \
             --output "$RUNNER_TEMP/iw3-source/iw3_stringed_ingame.cpp" \
             --report "$RUNNER_TEMP/iw3-original-stringed.json"
+          python3 tools/iw3_android/prepare_real_engine_hunk_user.py \
+            --engine third_party/KisakCOD \
+            --output "$RUNNER_TEMP/iw3-source/iw3_hunk_user.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-hunk-user.json"
           python3 tools/iw3_android/prepare_real_engine_fs_startup.py \
             --engine third_party/KisakCOD \
             --output "$RUNNER_TEMP/iw3-source/iw3_fs_startup.cpp" \
@@ -162,6 +166,7 @@ jobs:
             -DIW3_EXTRACTED_HUNK_TEMP="$RUNNER_TEMP/iw3-source/iw3_hunk_temp.cpp" \
             -DIW3_EXTRACTED_LANGUAGE="$RUNNER_TEMP/iw3-source/iw3_language.cpp" \
             -DIW3_EXTRACTED_STRINGED_INGAME="$RUNNER_TEMP/iw3-source/iw3_stringed_ingame.cpp" \
+            -DIW3_EXTRACTED_HUNK_USER="$RUNNER_TEMP/iw3-source/iw3_hunk_user.cpp" \
             -DIW3_EXTRACTED_FS_STARTUP="$RUNNER_TEMP/iw3-source/iw3_fs_startup.cpp" \
             -DIW3_EXTRACTED_DVAR_POINTER_ABI="$RUNNER_TEMP/iw3-source/iw3_dvar_pointer_abi.cpp" \
             -DIW3_EXTRACTED_DVAR_VEC4_COMPARE="$RUNNER_TEMP/iw3-source/iw3_dvar_vec4_compare.cpp" \
@@ -229,6 +234,7 @@ jobs:
             -DIW3_EXTRACTED_HUNK_TEMP="$RUNNER_TEMP/iw3-source/iw3_hunk_temp.cpp" \
             -DIW3_EXTRACTED_LANGUAGE="$RUNNER_TEMP/iw3-source/iw3_language.cpp" \
             -DIW3_EXTRACTED_STRINGED_INGAME="$RUNNER_TEMP/iw3-source/iw3_stringed_ingame.cpp" \
+            -DIW3_EXTRACTED_HUNK_USER="$RUNNER_TEMP/iw3-source/iw3_hunk_user.cpp" \
             -DIW3_EXTRACTED_FS_STARTUP="$RUNNER_TEMP/iw3-source/iw3_fs_startup.cpp" \
             -DIW3_EXTRACTED_DVAR_POINTER_ABI="$RUNNER_TEMP/iw3-source/iw3_dvar_pointer_abi.cpp" \
             -DIW3_EXTRACTED_DVAR_VEC4_COMPARE="$RUNNER_TEMP/iw3-source/iw3_dvar_vec4_compare.cpp" \
