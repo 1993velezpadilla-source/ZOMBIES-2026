@@ -14,6 +14,7 @@
 #include "cg_view.h"
 #include <game/actor.h>
 #include <game/g_local.h>
+#include <server/sv_public.h>
 #include <gfx_d3d/r_model.h>
 #include "cg_servercmds.h"
 
