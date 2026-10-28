@@ -1,4 +1,5 @@
 // Executes the authentic KisakCOD parser bodies with only OS/error sinks adapted.
+#include <universal/q_shared.h>
 #include <universal/q_parse.h>
 #include <universal/assertive.h>
 #include <qcommon/qcommon.h>
