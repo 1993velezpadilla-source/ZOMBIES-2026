@@ -48,7 +48,7 @@ class Lp64ScriptLayoutTests(unittest.TestCase):
 
     def test_no_other_engine_callsite_depends_on_posix_random_name(self):
         # Strip comments first so a note in source does not count as a callsite.
-        pattern = re.compile(r"\\brandom\\s*\\(")
+        pattern = re.compile(r"\brandom\s*\(")
         ignored = {
             ENGINE / "universal/com_math.cpp",
             ENGINE / "universal/com_math.h",
@@ -61,7 +61,7 @@ class Lp64ScriptLayoutTests(unittest.TestCase):
                 text = path.read_text(encoding="utf-8")
             except (UnicodeDecodeError, OSError):
                 continue
-            text = re.sub(r"/\\*.*?\\*/|//[^\\n]*", "", text, flags=re.S)
+            text = re.sub(r"/\*.*?\*/|//[^\n]*", "", text, flags=re.S)
             if pattern.search(text):
                 hits.append(str(path.relative_to(ROOT)))
         self.assertEqual(hits, [], "Rename these engine callsites to the portable engine RNG: " + ", ".join(hits))
