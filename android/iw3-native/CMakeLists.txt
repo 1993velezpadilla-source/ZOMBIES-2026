@@ -116,7 +116,7 @@ target_compile_options(iw3_sp_iwd_mount PRIVATE
 # helpers and ZIP parser. They are not added to the diagnostic APK; they let
 # the relocatable link audit resolve real dependencies without hiding the
 # remaining platform and language-service edges.
-if(NOT ${IW3_EXTRACTED_IWD_SERVICES} OR NOT EXISTS "${IW3_EXTRACTED_IWD_SERVICES}")
+if(NOT IW3_EXTRACTED_IWD_SERVICES OR NOT EXISTS "${IW3_EXTRACTED_IWD_SERVICES}")
     message(FATAL_ERROR "Original IWD language/sort/allocator service extraction required")
 endif()
 add_library(iw3_sp_iwd_services STATIC "${IW3_EXTRACTED_IWD_SERVICES}")
@@ -130,7 +130,7 @@ target_compile_definitions(iw3_sp_iwd_services PRIVATE KISAK_SP=1)
 target_compile_options(iw3_sp_iwd_services PRIVATE
     -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
 
-if(NOT ${IW3_EXTRACTED_UNZIP} OR NOT EXISTS "${IW3_EXTRACTED_UNZIP}")
+if(NOT IW3_EXTRACTED_UNZIP OR NOT EXISTS "${IW3_EXTRACTED_UNZIP}")
     message(FATAL_ERROR "Original ZIP parser extraction required for IWD link audit")
 endif()
 add_library(iw3_sp_unzip STATIC "${IW3_EXTRACTED_UNZIP}")
