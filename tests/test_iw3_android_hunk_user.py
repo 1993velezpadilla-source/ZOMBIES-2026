@@ -46,6 +46,30 @@ class OriginalHunkUserTests(unittest.TestCase):
         ):
             self.assertNotIn(forbidden, staged)
 
+    def test_vendored_hunk_user_functions_are_already_lp64_safe(self):
+        source = (ENGINE / "src/universal/com_memory.cpp").read_text(encoding="utf-8")
+        for marker in (
+            "user->end = reinterpret_cast<uintptr_t>(user) + static_cast<uintptr_t>(maxSize);",
+            "user->pos = reinterpret_cast<uintptr_t>(user->buf);",
+            "uintptr_t pos;",
+            "uintptr_t result;",
+            "Z_VirtualCommit(reinterpret_cast<void *>(pos), static_cast<int32_t>(current->pos - pos));",
+            "user->pos = reinterpret_cast<uintptr_t>(pos);",
+            "pos = reinterpret_cast<uintptr_t>(user) + 4096u;",
+            "Z_VirtualDecommit(reinterpret_cast<void *>(pos), static_cast<int32_t>(user->pos - pos));",
+        ):
+            self.assertIn(marker, source)
+        for forbidden in (
+            "user->end = (int)user + maxSize;",
+            "user->pos = (int)user->buf;",
+            "int32_t pos; // [esp+4h] [ebp-10h]",
+            "int32_t result; // [esp+8h] [ebp-Ch]",
+            "(uint32_t)pos",
+            "(int)pos",
+            "user[114].name",
+        ):
+            self.assertNotIn(forbidden, source)
+
     def test_hunk_user_header_and_virtual_memory_adapter_are_native_width(self):
         header = (ROOT / "third_party/KisakCOD/src/universal/com_memory.h").read_text(encoding="utf-8")
         adapter = (ROOT / "android/iw3-native/iw3_android_hunk_virtual.cpp").read_text(encoding="utf-8")
