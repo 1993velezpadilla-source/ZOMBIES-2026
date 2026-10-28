@@ -41,6 +41,8 @@ class AndroidFsStartupDirectoryTests(unittest.TestCase):
         generator = (ROOT / "tools/iw3_android/prepare_real_engine_iwd_directory_services.py").read_text(encoding="utf-8")
         adapter = (ROOT / "android/iw3-native/iw3_android_iwd_directory_io.cpp").read_text(encoding="utf-8")
         self.assertIn("add_library(iw3_sp_iwd_directory_services STATIC", cmake)
+        self.assertIn("if(IW3_EXTRACTED_IWD_DIRECTORY_SERVICES)", cmake)
+        self.assertIn('-DIW3_EXTRACTED_IWD_DIRECTORY_SERVICES="$RUNNER_TEMP/iw3-source/iw3_iwd_directory_services.cpp"', workflow)
         self.assertIn("IW3_EXTRACTED_IWD_DIRECTORY_SERVICES", cmake)
         self.assertIn("iw3_android_platform.cpp", cmake)
         self.assertIn("prepare_real_engine_iwd_directory_services.py", workflow)
