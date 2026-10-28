@@ -788,3 +788,12 @@ Validation status: fresh preflight, Android ARM64 native/ABI, JNI package and em
 - [Emulator 40601328227](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40601328227) — FAIL at UIAutomator discovery due to the Quickstep ANR dialog; original JNI/IWD probes before that point passed. This run is not counted as a full emulator-probe pass.
 
 Scope boundary remains explicit: this links the authentic path builder into the existing diagnostic IWD shared library; it does not call FS_Startup() or FS_InitFilesystem(). No licensed FastFile/map has been loaded, no original renderer scene is shown, no touch-driven weapon/actor gameplay is proven, and no complete runtime has been exercised on physical ARM64. Keep PR #4 open and unmerged; the JNI APK remains diagnostic only.
+
+
+### Phase AZ validation correction — align the regression with bounded UI recovery (2026-10-27)
+
+The first CI attempt after the Phase AZ edits failed in source preflight, before any NDK build. The new emulator script intentionally replaced its one-shot “Native diagnostic view is not visible in the actual Android hierarchy” failure with a bounded-retry failure message, but the existing accessibility regression still required the old literal. The path-builder integration regression passed; this was a stale test assertion, not a C++ compile result.
+
+- Failed attempt: [native ARM64 run 40608349575](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40608349575), step “Verify original upstream IW3 source and synthesize header-only ABI overlay”; 115 Python tests ran, one failed because of the obsolete message assertion.
+- Corrected the regression to require the new bounded-recovery failure message.
+- Fresh CI for the corrected test commit is pending. No ARM64 CMake/link result is inferred from the failed preflight run.
