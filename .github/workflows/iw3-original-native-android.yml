@@ -510,6 +510,12 @@ jobs:
               exit 1
             fi
           done
+          grep -F 'Com_ReadCDKey()' "$RUNNER_TEMP/iw3-fs-dvar-startup-defined.txt"
+          if grep -F 'Com_ReadCDKey()' "$RUNNER_TEMP/iw3-fs-dvar-startup-undefined.txt"; then
+            echo "Original FS startup Com_ReadCDKey provider unexpectedly unresolved" >&2
+            exit 1
+          fi
+          echo "IW3_ORIGINAL_FS_STARTUP_CDKEY_PROVIDER_AARCH64_LINK_GREEN"
           # These are now the explicit next integration edges; do not paper over
           # them with stubs or claim FS_Startup/FS_InitFilesystem has executed.
           for symbol in Z_Malloc SEH_GetLanguageName FS_ReadFile SEH_InitLanguage FS_LoadZipFile Sys_ListFiles FS_FreeFileList IwdFileLanguage iwdsort I_strncmp SEH_GetLanguageIndexForName; do
