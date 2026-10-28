@@ -23,8 +23,26 @@ class AndroidGameDataImportTests(unittest.TestCase):
         self.assertIn('directory ? displayName.toLowerCase(Locale.ROOT) : displayName', source)
         self.assertIn("getCanonicalPath()", source)
         self.assertIn('targetPath.startsWith(rootPath + File.separator)', source)
+        self.assertIn('parentPath.startsWith(rootPath + File.separator)', source)
+        self.assertIn("File.createTempFile(target.getName() + \".iw3-import-\", \".part\", parent)", source)
+        self.assertIn("Os.rename(partial.getAbsolutePath(), target.getAbsolutePath())", source)
+        self.assertNotIn("target.delete()", source)
+        self.assertIn("MAX_DIRECTORY_DEPTH", source)
+        self.assertIn("MAX_DOCUMENT_NODES", source)
+        self.assertIn("MAX_SOURCE_FILES", source)
+        self.assertIn("Duplicate normalized game-data path", source)
         self.assertIn('name.indexOf(\'/\') < 0', source)
         self.assertIn("name.indexOf(0) < 0", source)
+
+    def test_importer_uses_atomic_per_file_replace_and_bounds_saf_walk(self):
+        source = IMPORTER.read_text(encoding="utf-8")
+        self.assertIn("Os.rename(", source)
+        self.assertIn("File.createTempFile(", source)
+        self.assertIn("MAX_DIRECTORY_DEPTH = 16", source)
+        self.assertIn("MAX_DOCUMENT_NODES = 32768", source)
+        self.assertIn("MAX_SOURCE_FILES = 16384", source)
+        self.assertIn("Atomic rename on the same private filesystem", source)
+        self.assertNotIn("if (target.exists() && !target.delete())", source)
 
     def test_importer_never_packages_assets_or_claims_engine_loading(self):
         source = IMPORTER.read_text(encoding="utf-8")

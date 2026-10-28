@@ -2,6 +2,9 @@ package org.z2026.iw3nativeprobe;
 
 import android.content.ContentResolver;
 import android.content.Context;
+import android.system.ErrnoException;
+import android.system.Os;
+import android.util.Log;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.DocumentsContract;
@@ -28,6 +31,12 @@ public final class GameDataImporter {
         DocumentsContract.Document.COLUMN_DISPLAY_NAME,
         DocumentsContract.Document.COLUMN_MIME_TYPE
     };
+
+    // A SAF provider is external input: bound traversal even if it exposes a
+    // cyclic or adversarial document tree.
+    private static final int MAX_DIRECTORY_DEPTH = 16;
+    private static final int MAX_DOCUMENT_NODES = 32768;
+    private static final int MAX_SOURCE_FILES = 16384;
 
     private GameDataImporter() {}
 
@@ -77,8 +86,9 @@ public final class GameDataImporter {
         List<SourceFile> sourceFiles = new ArrayList<>();
         Set<String> visitedDocumentIds = new HashSet<>();
         Set<String> topLevelDirectories = new HashSet<>();
+        Set<String> normalizedDestinationPaths = new HashSet<>();
         collect(resolver, treeUri, rootDocumentId, "", 0, visitedDocumentIds,
-                topLevelDirectories, sourceFiles);
+                topLevelDirectories, normalizedDestinationPaths, sourceFiles);
 
         if (!topLevelDirectories.contains("main") || !topLevelDirectories.contains("zone")) {
             throw new IOException("Select the game root containing both main/ and zone/");
@@ -105,42 +115,55 @@ public final class GameDataImporter {
 
         for (SourceFile source : sourceFiles) {
             File target = new File(root, source.relativePath);
-            String targetPath = target.getCanonicalPath();
-            if (!targetPath.startsWith(rootPath + File.separator)) {
-                throw new IOException("Refusing path outside app-private root");
-            }
             File parent = target.getParentFile();
             if (parent == null || (!parent.isDirectory() && !parent.mkdirs())) {
                 throw new IOException("Cannot create game-data subdirectory");
             }
 
-            File partial = new File(parent, target.getName() + ".iw3-import-part");
-            if (partial.exists() && !partial.delete()) {
-                throw new IOException("Cannot clear stale partial import");
+            // Resolve existing parent/target components before opening anything.
+            // A symlink that escapes filesDir must never become an import target.
+            String parentPath = parent.getCanonicalPath();
+            if (!parentPath.startsWith(rootPath + File.separator)) {
+                throw new IOException("Refusing parent outside app-private root");
             }
-            long fileBytes = 0;
-            try (InputStream input = resolver.openInputStream(source.uri);
-                 FileOutputStream output = new FileOutputStream(partial, false)) {
-                if (input == null) throw new IOException("Document provider returned no stream");
-                byte[] buffer = new byte[64 * 1024];
-                int read;
-                while ((read = input.read(buffer)) != -1) {
-                    output.write(buffer, 0, read);
-                    fileBytes += read;
-                }
-                output.getFD().sync();
-            } catch (IOException failure) {
-                partial.delete();
-                throw failure;
+            String targetPath = target.getCanonicalPath();
+            if (!targetPath.startsWith(rootPath + File.separator)) {
+                throw new IOException("Refusing path outside app-private root");
             }
 
-            if (target.exists() && !target.delete()) {
-                partial.delete();
-                throw new IOException("Cannot replace previously imported game-data file");
-            }
-            if (!partial.renameTo(target)) {
-                partial.delete();
-                throw new IOException("Cannot finalize imported game-data file");
+            // Create a unique file exclusively in the destination directory.
+            // Unlike a fixed ".part" name, this cannot follow a stale/dangling
+            // symlink left at a predictable temporary path.
+            File partial = File.createTempFile(target.getName() + ".iw3-import-", ".part", parent);
+            boolean finalized = false;
+            long fileBytes = 0;
+            try {
+                try (InputStream input = resolver.openInputStream(source.uri);
+                     FileOutputStream output = new FileOutputStream(partial, false)) {
+                    if (input == null) throw new IOException("Document provider returned no stream");
+                    byte[] buffer = new byte[64 * 1024];
+                    int read;
+                    while ((read = input.read(buffer)) != -1) {
+                        output.write(buffer, 0, read);
+                        fileBytes += read;
+                    }
+                    output.getFD().sync();
+                }
+
+                // POSIX rename on the same private filesystem atomically replaces
+                // an older file. If rename fails, the old target remains intact.
+                try {
+                    Os.rename(partial.getAbsolutePath(), target.getAbsolutePath());
+                    finalized = true;
+                } catch (ErrnoException renameFailure) {
+                    throw new IOException("Cannot atomically finalize imported game-data file",
+                            renameFailure);
+                }
+            } finally {
+                if (!finalized && partial.exists() && !partial.delete()) {
+                    Log.w("IW3NativeGate", "Could not remove failed import temporary file: "
+                            + partial.getName());
+                }
             }
             bytesCopied += fileBytes;
             if (source.iwd) copiedIwd++;
@@ -152,8 +175,15 @@ public final class GameDataImporter {
 
     private static void collect(ContentResolver resolver, Uri treeUri, String parentId,
             String parentPath, int depth, Set<String> visitedDocumentIds,
-            Set<String> topLevelDirectories, List<SourceFile> files) throws IOException {
+            Set<String> topLevelDirectories, Set<String> normalizedDestinationPaths,
+            List<SourceFile> files) throws IOException {
+        if (depth > MAX_DIRECTORY_DEPTH) {
+            throw new IOException("Selected game-data tree exceeds safe directory depth");
+        }
         if (!visitedDocumentIds.add(parentId)) return;
+        if (visitedDocumentIds.size() > MAX_DOCUMENT_NODES) {
+            throw new IOException("Selected game-data tree exceeds safe document count");
+        }
 
         Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, parentId);
         try (Cursor cursor = resolver.query(childrenUri, COLUMNS, null, null, null)) {
@@ -182,8 +212,16 @@ public final class GameDataImporter {
                 String relativePath = parentPath.isEmpty()
                         ? pathSegment : parentPath + "/" + pathSegment;
                 if (directory) {
+                    // Only main/ and zone/ are imported. Reject directory names
+                    // that normalize onto an already-seen destination directory.
+                    if (relativePath.startsWith("main/") || relativePath.startsWith("zone/")) {
+                        if (!normalizedDestinationPaths.add(relativePath)) {
+                            throw new IOException("Duplicate normalized game-data path: " + relativePath);
+                        }
+                    }
                     collect(resolver, treeUri, documentId, relativePath, depth + 1,
-                            visitedDocumentIds, topLevelDirectories, files);
+                            visitedDocumentIds, topLevelDirectories,
+                            normalizedDestinationPaths, files);
                     continue;
                 }
 
@@ -192,6 +230,12 @@ public final class GameDataImporter {
                 boolean fastFile = lower.endsWith(".ff");
                 if ((iwd || fastFile) && (relativePath.startsWith("main/")
                         || relativePath.startsWith("zone/"))) {
+                    if (files.size() >= MAX_SOURCE_FILES) {
+                        throw new IOException("Selected game-data tree contains too many IWD/FastFile files");
+                    }
+                    if (!normalizedDestinationPaths.add(relativePath)) {
+                        throw new IOException("Duplicate normalized game-data path: " + relativePath);
+                    }
                     Uri documentUri = DocumentsContract.buildDocumentUriUsingTree(treeUri, documentId);
                     files.add(new SourceFile(documentUri, relativePath, iwd));
                 }
