@@ -987,3 +987,24 @@ The first run of the D3D-free StringEd extraction did not reach compilation: the
 - The current code head is `b16b35c75dcb5bc9554d50f4808d914b14b0eee5`. Fresh native/NDK/JNI/emulator results have not yet been inspected; the prior failure is not evidence for or against the corrected staging step.
 
 The acceptance boundary is unchanged: the StringEd bodies must come from the original source, the combined audit must preserve unresolved Hunk-user/filter services, and the diagnostic APK must not be called a playable game.
+
+
+
+## Phase BL — remove duplicate providers from the combined original startup link (2026-10-27; fresh CI pending)
+
+The first ARM64 combined-link attempt after the StringEd/filtered-list additions failed with two duplicate symbols. The linker identified the exact providers:
+
+- `SEH_GetCurrentLanguage()` was defined by the original StringEd hook slice and the English-only diagnostic implementation in `iw3_android_iwd_lookup_io.cpp`.
+- `FS_IwdIsPure(iwd_t*)` was defined by both the new startup slice and the already-existing original `FS_Read` archive.
+
+Fixes:
+
+- [Commit 05bbc27](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/05bbc2751ffd46f050df32e6ec0a09a357cf3140) removes the redundant `FS_IwdIsPure` extraction from the startup archive. The combined audit uses the existing original provider from the FS-read archive.
+- [Commit 32cf2e2](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/32cf2e221e627eaf7a9369fb36534a9a353f1251) wraps the English-only `SEH_GetCurrentLanguage()` provider with `#if !defined(IW3_IWD_DIRECTORY_LINK_AUDIT)`. It remains available to the isolated diagnostic library, while the combined startup audit must bind the original language implementation.
+- [Commit c66bf3b](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/c66bf3b93e7df1d74c176d294bbcede11f13e81b) removes the obsolete duplicate-provider regression expectation; [commit 4d2284a](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/4d2284a723b679462aba8d05142e8a68122ae038) adds a test protecting the diagnostic-only language guard.
+
+Evidence: [native run 40627406847](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40627406847) failed at the combined link with those two duplicate-symbol diagnostics. The current code head is `4d2284a723b679462aba8d05142e8a68122ae038`; fresh native/NDK, JNI and emulator jobs are queued/running and are not yet counted as passed.
+
+The source preflight and host sanitizer suite had passed earlier in this pass, including the D3D-free StringEd loader archive and 15/15 CTest cases, but the ARM64 combined link is not green until the new run confirms the duplicate providers are gone. The next expected unresolved engine providers are still Hunk-user allocation and path-filter functions; do not replace them with empty implementations.
+
+No Android Activity invocation of full `FS_InitFilesystem()`, licensed FastFile/map load, 3D scene, or gameplay loop is proven. The JNI artifact remains diagnostic, and PR #4 remains open and unmerged.
