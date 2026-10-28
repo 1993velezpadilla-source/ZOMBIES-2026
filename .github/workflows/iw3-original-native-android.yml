@@ -111,7 +111,7 @@ jobs:
           python3 tools/iw3_android/prepare_real_engine_language.py \
             --engine third_party/KisakCOD \
             --output "$RUNNER_TEMP/iw3-source/iw3_language.cpp" \
-            --report "$RUNNER_TEMP/iw3-original-language.json" \
+            --report "$RUNNER_TEMP/iw3-original-language.json"
           python3 tools/iw3_android/prepare_real_engine_stringed.py \
             --engine third_party/KisakCOD \
             --output "$RUNNER_TEMP/iw3-source/iw3_stringed_ingame.cpp" \
