@@ -1363,3 +1363,29 @@ Validation currently queued/in progress for code commit `6b4c799fb0ccf094b0e1f2f
 
 Do not count the intermediate failed preflight as the final result, and do not count queued runs as passing. No new evidence from this phase proves `FS_Startup()` execution, real FastFile/map loading, renderer output, live frame consumption of touch commands, weapon/actor gameplay, or physical ARM64 execution. The JNI package remains diagnostic only; PR #4 stays open and unmerged.
 
+
+
+## Phase Z — LP64 layouts for original SP game registry records (28 Oct 2026)
+
+The current ARM64 trigger-update compile exposed three remaining Win32-only size assertions in the authentic `game/game_public.h` after the SP game-state headers were decoupled from the D3D client/server headers:
+
+- `client_fields_s`: Win32 `0x14`; native LP64 `0x20` (five pointer/int/enum/function-pointer fields).
+- `VehicleLocalPhysics`: Win32 `0x34`; native LP64 `0x38` because its embedded `trace_t` has the native-width layout.
+- `game_hudelem_field_t`: Win32 `0x1C`; native LP64 `0x28` (name plus setter/getter pointers).
+
+The header now keeps the original 32-bit assertions under the 32-bit branch and records the measured LP64 sizes under `__LP64__`, `_LP64`, or `_WIN64`. No field order, gameplay logic, or upstream function body was changed. The regression `tests/test_iw3_android_game_public_portable_headers.py` requires each record to retain both ABI branches.
+
+### Verified on code commit `fa4f55c70840081e05bd9eff1cc3bb3fc72ec746`
+
+- Native ARM64 PR run [40740627238](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40740627238): **PASS**.
+- Native ARM64 push run [40740618654](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40740618654): **PASS**.
+- Source/preflight suite: **192 Python tests passed**.
+- CTest Release: **22/22 passed**.
+- CTest ASan/UBSan: **22/22 passed**.
+- Android NDK compilation and ELF checks passed for the original frame and the original `G_UpdatePlayer` / `G_UpdatePlayerTriggers` bodies.
+- Combined relocatable ARM64 audit emitted `IW3_ORIGINAL_G_UPDATE_PLAYER_AND_TRIGGERS_AARCH64_FRAME_EDGES_RESOLVED_GREEN`.
+- Native evidence artifact [12839735900](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40740627238/artifacts/12839735900) contains compiled objects/reports only, **not an APK**.
+
+### Scope boundary
+
+This resolves the three header compile failures; it does not execute the frame in Android. The combined object deliberately retains real sentient/path-node/trigger and packet services as unresolved. No full Android runtime initialization, real IWD/FastFile/map load, original 3D renderer, live touch-to-frame connection, physical ARM64 execution, or weapon/actor gameplay is proven. `IW3_PLAYABLE_APK=false`; PR #4 remains open and unmerged.
