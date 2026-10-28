@@ -30,6 +30,7 @@ class OriginalLanguageRegistryTests(unittest.TestCase):
         ]
         self.assertEqual(evidence["language_names"], expected)
         self.assertTrue(evidence["original_language_table_preserved_verbatim"])
+        self.assertTrue(evidence["original_SEH_GetCurrentLanguage_body_preserved_verbatim"])
         self.assertTrue(evidence["original_SEH_InitLanguage_body_preserved_verbatim"])
         self.assertTrue(evidence["original_SEH_UpdateCurrentLanguage_body_preserved_verbatim"])
         self.assertTrue(evidence["original_language_name_and_index_helpers_preserved_verbatim"])
@@ -41,7 +42,7 @@ class OriginalLanguageRegistryTests(unittest.TestCase):
         self.assertFalse(evidence["full_stringed_database_and_translation_loading_ported"])
         self.assertFalse(evidence["stringed_runtime_invoked"])
         self.assertFalse(evidence["playable_apk"])
-        for marker in ("SEH_InitLanguage", "SEH_UpdateCurrentLanguage",
+        for marker in ("SEH_GetCurrentLanguage", "SEH_InitLanguage", "SEH_UpdateCurrentLanguage",
                        "SEH_GetLanguageName", "SEH_GetLanguageIndexForName",
                        "FS_LanguageHasAssets", "SEH_StringEd_SetLanguageStrings",
                        "SEH_UpdateLanguageInfo", "SEH_Init_StringEd",
