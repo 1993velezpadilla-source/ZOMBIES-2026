@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Stage verbatim KisakCOD IWD filename and language helpers for Android.
 
-Extract actual FS_HashFileName, FS_FilenameCompare, FS_ConvertPath and
-IwdFileLanguage from src/universal/com_files.cpp, plus the real I_islower
-dependency from src/universal/q_shared.cpp. This is not an archive reader or
-playable game.
+Extract the original IWD filename/language helpers and directory sort chain:
+FS_HashFileName, FS_FilenameCompare, FS_ConvertPath, IwdFileLanguage,
+FS_PathCmp, iwdsort and I_strncmp. This closes authentic startup sort edges;
+it is not an archive reader or playable game.
 """
 from __future__ import annotations
 import argparse
@@ -24,6 +24,9 @@ FUNCTIONS = (
     ("int __cdecl FS_FilenameCompare(const char *s1, const char *s2)", FILES),
     ("void __cdecl FS_ConvertPath(char *s)", FILES),
     ("char *__cdecl IwdFileLanguage(const char *pszIwdFileName)", FILES),
+    ("int __cdecl FS_PathCmp(const char *s1, const char *s2)", FILES),
+    ("int __cdecl iwdsort(const char **a, char **b)", FILES),
+    ("int __cdecl I_strncmp(const char *s0, const char *s1, int n)", SHARED),
 )
 HEADER = '#include "iw3_android_iwd_names_compat.h"\n'
 GLOBALS = "char szIwdLanguageName[2][64];\nint iString = 0;\n"
@@ -36,6 +39,11 @@ REQUIRED = (
     "isalpha(static_cast<unsigned char>(pszIwdFileName[iCurrChar]))",
     "char szIwdLanguageName[2][64];",
     "int iString = 0;",
+    "int __cdecl FS_PathCmp(const char *s1, const char *s2)",
+    "int __cdecl iwdsort(const char **a, char **b)",
+    "int __cdecl I_strncmp(const char *s0, const char *s1, int n)",
+    "return FS_PathCmp(aa, bb);",
+    'if (!I_strncmp(*a, "          ", 10) && !I_strncmp(bb, "          ", 10))',
 )
 FORBIDDEN = (
     "letter = tolower(fname[i]);",
@@ -78,6 +86,10 @@ def prepare(engine: Path, output: Path) -> dict:
         "iwd_filename_hash_high_bit_safe": True,
         "iwd_language_sort_key_high_bit_safe": True,
         "iwd_language_sort_state_staged_from_original": True,
+        "original_FS_PathCmp_body_staged": True,
+        "original_iwdsort_body_staged": True,
+        "original_I_strncmp_body_staged": True,
+        "iwd_startup_sort_dependencies_closed": True,
         "iwd_zip_archive_mount_ported": False,
         "fastfile_map_loading_ported": False,
         "gameplay_proven": False,
