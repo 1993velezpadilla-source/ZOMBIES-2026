@@ -134,8 +134,80 @@ if [[ -z "$touch_x" || -z "$touch_y" ]]; then
     echo "Native diagnostic view did not become visible after bounded UI recovery" >&2
     exit 1
 fi
+ensure_app_ready() {
+    local attempt ui_state ui_x ui_y
+    for attempt in $(seq 1 5); do
+        adb shell uiautomator dump /sdcard/iw3-touch-window.xml >/dev/null 2>&1 || true
+        adb pull /sdcard/iw3-touch-window.xml "$proof_dir/touch-window.xml" >/dev/null 2>&1 || true
+        if [[ ! -s "$proof_dir/touch-window.xml" ]]; then
+            adb shell am start -W -n org.z2026.iw3nativeprobe/.MainActivity >/dev/null
+            sleep 1
+            continue
+        fi
+        read -r ui_state ui_x ui_y < <(python3 - "$proof_dir/touch-window.xml" "$proof_dir/screen-before-touch.png" <<'PY'
+import re
+import struct
+import sys
+import xml.etree.ElementTree as ET
+root = ET.parse(sys.argv[1]).getroot()
+nodes = list(root.iter("node"))
+with open(sys.argv[2], "rb") as f:
+    header = f.read(24)
+if len(header) != 24 or header[:8] != b"\x89PNG\r\n\x1a\n":
+    raise SystemExit("Cannot scale UI bounds from screenshot")
+screen_w, screen_h = struct.unpack(">II", header[16:24])
+bounds_re = re.compile(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]")
+def bounds(node):
+    m = bounds_re.fullmatch(node.get("bounds", ""))
+    if not m: return None
+    x0, y0, x1, y1 = map(int, m.groups())
+    return (x0, y0, x1, y1) if x1 > x0 and y1 > y0 else None
+all_bounds = [bounds(node) for node in nodes]
+all_bounds = [b for b in all_bounds if b]
+if not all_bounds:
+    print("missing 0 0")
+    raise SystemExit(0)
+max_x = max(b[2] for b in all_bounds)
+max_y = max(b[3] for b in all_bounds)
+sx, sy = screen_w / max_x, screen_h / max_y
+def center(node):
+    b = bounds(node)
+    if not b: return None
+    x0, y0, x1, y1 = b
+    return int(round((x0+x1)*0.5*sx)), int(round((y0+y1)*0.5*sy))
+if any(node.get("text") == "Quickstep isn't responding" for node in nodes):
+    for node in nodes:
+        if node.get("resource-id") == "android:id/aerr_wait":
+            point = center(node)
+            if point:
+                print("quickstep_anr", *point)
+                raise SystemExit(0)
+if any(node.get("package") == "org.z2026.iw3nativeprobe" and
+       node.get("content-desc") == "IW3 native diagnostic touch surface" for node in nodes):
+    print("app 0 0")
+    raise SystemExit(0)
+print("missing 0 0")
+PY)
+        case "$ui_state" in
+            app) return 0 ;;
+            quickstep_anr)
+                printf 'ANDROID_SYSTEM_UI_RECOVERY_BEFORE_GESTURE attempt=%s action=wait x=%s y=%s\n' "$attempt" "$ui_x" "$ui_y"
+                adb shell input tap "$ui_x" "$ui_y"
+                sleep 2
+                ;;
+            *)
+                adb shell am start -W -n org.z2026.iw3nativeprobe/.MainActivity >/dev/null
+                sleep 1
+                ;;
+        esac
+    done
+    echo "Android diagnostic view lost foreground after bounded recovery" >&2
+    return 1
+}
+
+ensure_app_ready
 printf 'ADB_REAL_TOUCH_TARGET x=%s y=%s\n' "$touch_x" "$touch_y"
-adb shell input touchscreen tap "$touch_x" "$touch_y"
+adb shell input touchscreen swipe "$touch_x" "$touch_y" "$touch_x" "$touch_y" 400
 sleep 1
 # Determine the rotated framebuffer from the real screenshot, not device assumptions.
 read -r screen_w screen_h < <(python3 - "$proof_dir/screen-before-touch.png" <<'PY'
@@ -152,17 +224,20 @@ PY
 sprint_x=$((screen_w * 8 / 100))
 sprint_y=$((screen_h * 88 / 100))
 printf 'ADB_REAL_SPRINT_TOUCH x=%s y=%s framebuffer=%sx%s\n' "$sprint_x" "$sprint_y" "$screen_w" "$screen_h"
-adb shell input touchscreen tap "$sprint_x" "$sprint_y"
+ensure_app_ready
+adb shell input touchscreen swipe "$sprint_x" "$sprint_y" "$sprint_x" "$sprint_y" 600
 sleep 0.5
 slide_x=$((screen_w * 27 / 100))
 slide_y=$((screen_h * 88 / 100))
 printf 'ADB_REAL_SLIDE_TOUCH x=%s y=%s framebuffer=%sx%s\n' "$slide_x" "$slide_y" "$screen_w" "$screen_h"
-adb shell input touchscreen tap "$slide_x" "$slide_y"
+ensure_app_ready
+adb shell input touchscreen swipe "$slide_x" "$slide_y" "$slide_x" "$slide_y" 600
 sleep 0.5
 attack_x=$((screen_w * 90 / 100))
 attack_y=$((screen_h * 85 / 100))
 printf 'ADB_REAL_ATTACK_TOUCH x=%s y=%s framebuffer=%sx%s\n' "$attack_x" "$attack_y" "$screen_w" "$screen_h"
-adb shell input touchscreen tap "$attack_x" "$attack_y"
+ensure_app_ready
+adb shell input touchscreen swipe "$attack_x" "$attack_y" "$attack_x" "$attack_y" 600
 sleep 1
 adb logcat -d -s IW3NativeGate:I AndroidRuntime:E DEBUG:E '*:S' \
     > "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
