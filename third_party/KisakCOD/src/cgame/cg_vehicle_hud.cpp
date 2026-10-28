@@ -986,7 +986,7 @@ void CG_DrawBouncingDiamond(int localClientNum, rectDef_s *rect, float *color)
         float distSqr = dx * dx + dy * dy;
 
         if (reset || distSqr > bounceRadius * bounceRadius) {
-            float angle = random() * 360.0f * (float)(M_PI / 180.0);
+            float angle = Com_Random() * 360.0f * (float)(M_PI / 180.0);
             float sinA = sinf(angle);
             float cosA = cosf(angle);
 
