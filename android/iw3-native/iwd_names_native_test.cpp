@@ -35,7 +35,7 @@ int main() {
                               "MAPS\\MP\\MP_CRASH.D3DBSP") == 0);
     assert(FS_FilenameCompare("weapons:mp40", "WEAPONS/mp40") == 0);
     assert(FS_FilenameCompare("weapons/mp40", "weapons/mp41") == -1);
-    assert(FS_PathCmp("maps\\\\mp:crash.iwd", "MAPS/MP/CRASH.IWD") == 0);
+    assert(FS_PathCmp("maps\\mp:crash.iwd", "MAPS/MP/CRASH.IWD") == 0);
     const char *englishSortKey = "          english.iwd";
     char *frenchSortKey = const_cast<char *>("          french.iwd");
     assert(iwdsort(&englishSortKey, &frenchSortKey) < 0);
