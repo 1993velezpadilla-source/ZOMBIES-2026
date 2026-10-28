@@ -1,6 +1,7 @@
 """Guard the Android diagnostic touch surface against UIAutomator invisibility."""
 from pathlib import Path
 import unittest
+import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
 ACTIVITY = ROOT / "android/iw3-native/android_app/app/src/main/java/org/z2026/iw3nativeprobe/MainActivity.java"
@@ -46,6 +47,14 @@ class TouchSurfaceAccessibilityTests(unittest.TestCase):
             source.index('if any(node.get("text") == "Quickstep isn\'t responding"'),
             source.index('if any(node.get("package") == "org.z2026.iw3nativeprobe"'),
         )
+
+    def test_probe_shell_syntax_and_heredoc_terminators_are_valid(self):
+        source = PROBE.read_text(encoding="utf-8")
+        self.assertNotIn("\nPY)\n", source)
+        result = subprocess.run(
+            ["bash", "-n", str(PROBE)],
+            cwd=ROOT, capture_output=True, text=True, check=False)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_sparse_android_pointer_ids_are_mapped_to_native_touch_slots(self):
         native = PLATFORM.read_text(encoding="utf-8")
