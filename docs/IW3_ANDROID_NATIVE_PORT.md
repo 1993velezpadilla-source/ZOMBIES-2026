@@ -1065,3 +1065,19 @@ This pass adds `android/iw3-native/iw3_android_filter.cpp`, a portable provider 
 Regression coverage is both behavioral and structural: a native CTest exercises wildcard, range, case-sensitivity, separator normalization, malformed patterns and bounds; Python preflight verifies that the provider is compiled and included in the combined AArch64 audit. The native workflow now links `libiw3_sp_filter.a` into the relocatable original FS/Dvar/IWD/ZIP/FS_ReadFile/Hunk/StringEd/filtered-file object and requires both `Com_Filter(` and `Com_FilterPath(` to be defined and absent from the undefined-symbol list. The stale HunkUser regression was updated to reflect this new provider contract.
 
 **Validation status at documentation time:** the new commits have triggered source preflight, host/ASan/UBSan, Android ARM64 link audit, JNI diagnostic and x86_64 emulator jobs. They are not counted as green until the new runs finish. Even if all pass, the combined object is only dependency evidence: the Android Activity still does not invoke full `FS_Startup()/FS_InitFilesystem()`, mount licensed game IWD/FastFiles, load a map, render a scene, or execute player/weapon/actor gameplay on physical ARM64. The JNI APK remains diagnostic only. PR #4 remains open and unmerged.
+
+
+## Phase BP — original warning service and Android log sink (2026-10-28)
+
+The latest code head before this pass was \`180f55bb3a5a9b3a8445129272560caad2413c36\`. Its successful native audit still deliberately listed \`Com_PrintWarning\` as unresolved from the authentic \`FS_AddIwdFilesForGameDirectory()\` body. The provider exists in KisakCOD's \`src/qcommon/common.cpp\`, but that translation unit also pulls in client, renderer, script, sound and Windows-specific services, so compiling the whole file into the filesystem audit is not a valid shortcut.
+
+This pass stages the original \`Com_PrintWarning(int, const char*, ...)\` body from \`common.cpp\` and makes only narrow platform adaptations:
+- the original \`"^3"\` warning prefix and output type \`2\` are preserved;
+- the MSVC \`_vsnprintf\` spelling is changed to bounded \`std::vsnprintf\`, with \`va_end\` added;
+- the two-byte prefix setup is expressed directly so this isolated warning function does not import an unrelated \`I_strncpyz\` dependency.
+
+The platform sink defines \`Com_PrintMessage\` for this audit boundary: Android routes channel/severity to logcat, and host tests route it to stderr. This is logging glue only; it does not provide game state, filesystem behavior, rendering, or gameplay. The full \`common.cpp\` translation unit is not linked.
+
+The native workflow now compiles \`libiw3_sp_com_print_warning.a\`, includes it in the ARM64 relocatable FS-startup and combined startup/Dvar/IWD audits, and requires \`Com_PrintWarning\` to be defined rather than falsely treating it as a remaining unresolved service. A host CTest checks that the formatted warning reaches the platform sink. Python regressions verify source provenance, the exact portability edits, and that all runtime/gameplay evidence flags remain false.
+
+**Validation is pending until the fresh CI runs for the new commit finish.** This closes one logging dependency only. The startup audit still is not a full runtime link; the Android Activity does not invoke \`FS_Startup()/FS_InitFilesystem()\`, mount licensed game FastFiles, load a map, render a 3D scene, or run player/weapon/actor gameplay on a physical ARM64 device. Keep PR #4 open and unmerged; the JNI package remains diagnostic only.
