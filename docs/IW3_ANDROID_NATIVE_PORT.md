@@ -909,3 +909,28 @@ The audit deliberately requires `FS_ListFiles` to remain visible as unresolved a
 **Validation status:** the fresh source preflight, Android NDK ARM64 audit, JNI diagnostic build and emulator diagnostic have been triggered for the updated branch. Their final results have not yet been inspected; this phase is not marked CI-green until those jobs complete.
 
 **Scope boundary:** this is dependency integration, not gameplay. The app still does not invoke the complete original `FS_InitFilesystem()` chain; the new StringEd archive is not linked into the JNI APK. No licensed FastFile/map load, renderer scene, physical ARM64 execution of the game loop, or touch-driven weapon/actor gameplay is proven. The JNI artifact remains diagnostic only. Keep PR #4 open and unmerged.
+
+
+
+## Phase BH — resolve original FS_ListFiles into the StringEd dependency chain (2026-10-27; CI pending)
+
+After staging the original StringEd hooks, the next unresolved symbol was `FS_ListFiles`: `SE_R_ListFiles()` calls it recursively to enumerate localized-string files. This pass extends the authentic startup source slice rather than adding a replacement directory scanner.
+
+Implementation:
+
+- Commit [7e8df1e](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/7e8df1e26ec0215bda3cb96315576f991653634e) adds original `FS_ListFiles`, `FS_CheckLocation`, `FS_AddFileToList`, `FS_ReturnPath`, `FS_SanitizeFilename`, `FS_UseSearchPath` and `FS_IwdIsPure` bodies from `com_files.cpp` to the startup dependency archive.
+- Commit [15c6dfc](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/15c6dfc55d3e59629734624216c9af850e4bd599) adds the original `SEH_GetCurrentLanguage()` body needed by `FS_UseSearchPath()`.
+- Commit [c8ec509](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/c8ec5099d7923cc327f3a6bcebaaa3e44c59c9c7) adds the existing original `iw3_sp_filtered_files` archive to the combined AArch64 link. The audit now requires `FS_ListFiles`, `FS_ListFilteredFiles`, `FS_ListFilteredFilesInLocation` and the original search helpers to be defined, and no longer treats `FS_ListFiles` as an expected unresolved symbol.
+- Commits [4b5fdd2](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/4b5fdd26589d292fb26acd8d1e339e03afdc2844) and [c2da310](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/c2da310e7950cdc23914485d920d4457882b213f) add regression coverage for this link boundary.
+- The first extraction attempt failed because helper prototypes and definitions shared a signature. Commits [b9a7b49](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/b9a7b4942046ecf38d1a87b673b02357bfebc7b7) and [4374e71](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/4374e718c6d100c0ca2bebce1d2c1d466d672425) corrected the extractor to match definition-only signatures ending at the newline after the declaration; the signature does not include the opening brace, so the complete function body is retained.
+
+Validation currently available for code HEAD `4374e718c6d100c0ca2bebce1d2c1d466d672425`:
+
+- [Source preflight 40626826243](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40626826243) — PASS.
+- [Native ARM64 audit 40626826402](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40626826402) — running; final compile/link result not yet available.
+- [JNI diagnostic build 40626826236](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40626826236) — running.
+- [x86_64 emulator diagnostic 40626826295](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40626826295) — running.
+
+The next dependency boundary is now explicit: `Hunk_UserCreate`, `Hunk_UserAlloc`, `Hunk_UserDestroy`, `Hunk_CopyString`, `Com_FilterPath` and `I_strnicmp` must remain visible until their original providers are integrated. The source audit must fail if these are accidentally hidden or falsely marked resolved.
+
+**No runtime completion is claimed.** The full `FS_InitFilesystem()` call path is still not invoked in the Android Activity; no real licensed FastFile/map is loaded; no renderer scene or touch-driven weapons/actors are demonstrated on an ARM64 device. The JNI APK is still diagnostic only. Keep PR #4 open and unmerged.
