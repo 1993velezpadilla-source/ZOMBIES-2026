@@ -18,8 +18,16 @@ class OriginalIwdFailClosedTests(unittest.TestCase):
         )
         guard = "if (!file_info.size_filename || strlen(filename_inzip) != file_info.size_filename)"
         self.assertIn(guard, body)
-        self.assertLess(body.index(guard), body.index("Z_Malloc(buildBytes"))
-        self.assertIn("unzClose(uf);", body[body.index(guard):body.index("Z_Malloc(buildBytes")])
+        guard_positions = [
+            offset for offset in range(len(body))
+            if body.startswith(guard, offset)
+        ]
+        self.assertEqual(len(guard_positions), 2)
+        allocation = body.index("Z_Malloc(buildBytes")
+        self.assertLess(guard_positions[0], allocation)
+        self.assertGreater(guard_positions[1], allocation)
+        self.assertLess(guard_positions[1], body.index("fs_iwdFileCount += gi.number_entry"))
+        self.assertIn("unzClose(uf);", body[guard_positions[0]:allocation])
 
     def test_android_smoke_executes_the_original_rejection_and_checks_global_state(self):
         smoke = NATIVE_SMOKE.read_text(encoding="utf-8")
