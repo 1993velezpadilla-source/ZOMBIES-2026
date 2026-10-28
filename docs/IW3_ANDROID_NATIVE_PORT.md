@@ -1322,3 +1322,14 @@ The first two workflow-file edits produced no-job failure runs while the native 
 The new source regressions, host runtime test and sanitizer checks passed. The original cmd_args storage is now resolved in the audit objects; the command tokenizer/dispatcher and actual startup invocation remain unintegrated.
 
 **Scope boundary:** this resolves one authentic global-state dependency in the *audit objects* only. It does not include the original command tokenizer/dispatcher, does not call FS_Startup() / FS_InitFilesystem() in the Android app, and does not load licensed FastFiles or a real map. There is still no original 3D renderer, no complete touch-to-game-loop connection, no observed physical ARM64 gameplay, and no playable APK. Keep PR #4 open and unmerged.
+
+
+### Phase — resolve the original player-update edge in the ARM64 frame audit (28 Oct 2026)
+
+The latest native workflow confirmed that the complete original `G_RunFrame` object compiles for AArch64, but its first gameplay-phase service, `G_UpdatePlayer(gentity_s*)`, remained unresolved. This pass extracts the exact body from `third_party/KisakCOD/src/game/g_active.cpp` using `prepare_real_engine_g_update_player.py`. The generator verifies the source hash, preserves the function body verbatim, and checks the declarations for `SV_ReadPacket`, `CL_WritePacket`, and `Sentient_UpdatePlayerTrail` against their original KisakCOD headers.
+
+The native ARM64 workflow now compiles that original body against the real `g_runframe.h` state definitions, then performs a relocatable link of the complete `libiw3_sp_frame.a` with the new object. It requires `G_UpdatePlayer` to be defined exactly through the provider and absent from the combined undefined-symbol table. The original packet and sentient services, plus `G_UpdatePlayerTriggers`, entity processing, and script VM services, are explicitly required to remain unresolved. This avoids replacing any gameplay callback with a stub.
+
+The source and regression test are in `tools/iw3_android/prepare_real_engine_g_update_player.py` and `tests/test_iw3_android_g_update_player.py`; the generated source, report, object, combined object and symbol tables are retained by the native workflow artifact.
+
+**Scope boundary:** this closes one authentic compile/link dependency edge only. It does not execute `G_UpdatePlayer`, link the player packet path, run `G_RunFrame` in Android, mount real game data, load a map, render a 3D scene, or prove weapon/actor gameplay. The JNI APK remains diagnostic and `IW3_PLAYABLE_APK=false`. Keep PR #4 open and unmerged.
