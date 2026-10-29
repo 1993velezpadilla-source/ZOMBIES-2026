@@ -64,6 +64,26 @@ class OriginalGRunMoverExtractionTests(unittest.TestCase):
             self.assertIn(marker, generated)
         self.assertTrue(report["G_MoverTeam_original_definition_verified"])
 
+    def test_generated_mover_uses_narrow_portable_headers(self):
+        with TemporaryDirectory() as temp:
+            output = Path(temp) / "iw3_g_run_mover.cpp"
+            prepare(ENGINE, output)
+            generated = output.read_text(encoding="utf-8")
+
+        self.assertIn("#include <game/game_public.h>", generated)
+        self.assertIn("#include <game/g_local.h>", generated)
+        self.assertIn("void __cdecl SV_LinkEntity(gentity_s *gEnt);", generated)
+        self.assertIn("void __cdecl G_MoverTeam(gentity_s *ent);", generated)
+        for forbidden in (
+            "#include <server/sv_game.h>",
+            "#include <server/sv_public.h>",
+            '#include "g_main.h"',
+            '#include "actor.h"',
+            '#include "actor_orientation.h"',
+            '#include "sentient.h"',
+        ):
+            self.assertNotIn(forbidden, generated)
+
     def test_generator_refuses_to_overwrite_original_engine_source(self):
         with self.assertRaises(ValueError):
             prepare(ENGINE, ENGINE / SOURCE)
