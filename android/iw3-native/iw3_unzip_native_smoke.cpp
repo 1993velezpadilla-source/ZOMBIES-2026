@@ -218,7 +218,7 @@ bool read_first_indexed_member_via_original_fs(iwd_t *iwd) {
     for (int index = 0; installed && index < candidate_count; ++index) {
         const char *member = iwd->buildBuffer[index].name;
         if (!member || !member[0] || std::strlen(member) >= 256 ||
-            member[0] == '/' || std::strchr(member, '\\\\') ||
+            member[0] == '/' || std::strchr(member, '\\') ||
             std::strstr(member, "../") || std::strstr(member, "/.."))
             continue;
 
