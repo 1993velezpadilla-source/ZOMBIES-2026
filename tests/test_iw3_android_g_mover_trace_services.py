@@ -10,6 +10,9 @@ from tools.iw3_android.prepare_real_engine_mover_trace_services import (
     G_TRACE_SIGNATURE,
     TRACE_HIT_ID_SIGNATURE,
     TRACE_SOURCE,
+    SV_SETUP_SIGNATURE,
+    SV_TRACE_SIGNATURE,
+    WORLD_SOURCE,
     prepare,
 )
 from tools.iw3_android.prepare_g_runframe_prereqs import function_source
@@ -24,8 +27,13 @@ class OriginalMoverTraceServiceTests(unittest.TestCase):
         trace_path = ENGINE / TRACE_SOURCE
         game_bytes = game_path.read_bytes()
         trace_bytes = trace_path.read_bytes()
+        world_path = ENGINE / WORLD_SOURCE
+        world_bytes = world_path.read_bytes()
+        world_source = world_bytes.decode("utf-8")
         g_trace = function_source(game_bytes.decode("utf-8"), G_TRACE_SIGNATURE)
         hit_id = function_source(trace_bytes.decode("utf-8"), TRACE_HIT_ID_SIGNATURE)
+        setup_body = function_source(world_source, SV_SETUP_SIGNATURE)
+        sv_trace_body = function_source(world_source, SV_TRACE_SIGNATURE)
 
         with TemporaryDirectory() as temp:
             output = Path(temp) / "iw3_mover_trace_services.cpp"
@@ -36,10 +44,22 @@ class OriginalMoverTraceServiceTests(unittest.TestCase):
 
         self.assertEqual(game_path.read_bytes(), game_bytes)
         self.assertEqual(trace_path.read_bytes(), trace_bytes)
+        self.assertEqual(world_path.read_bytes(), world_bytes)
         self.assertIn(g_trace, generated)
         self.assertIn(hit_id, generated)
+        self.assertIn(setup_body, generated)
+        self.assertIn(sv_trace_body, generated)
         self.assertEqual(generated.count(G_TRACE_SIGNATURE), 1)
         self.assertEqual(generated.count(TRACE_HIT_ID_SIGNATURE), 1)
+        self.assertEqual(generated.count(SV_SETUP_SIGNATURE), 1)
+        self.assertEqual(generated.count(SV_TRACE_SIGNATURE), 1)
+        self.assertEqual(report["SV_SetupIgnoreEntParams_body_sha256"],
+                         hashlib.sha256(setup_body.encode("utf-8")).hexdigest())
+        self.assertEqual(report["SV_Trace_body_sha256"],
+                         hashlib.sha256(sv_trace_body.encode("utf-8")).hexdigest())
+        self.assertTrue(report["original_server_trace_body_preserved_verbatim"])
+        self.assertTrue(report["original_sv_gentitynum_declaration_verified"])
+        self.assertTrue(report["SV_Trace_definition_extracted"])
         self.assertEqual(report["G_TraceCapsule_body_sha256"],
                          hashlib.sha256(g_trace.encode("utf-8")).hexdigest())
         self.assertEqual(report["Trace_GetEntityHitId_body_sha256"],
@@ -78,6 +98,9 @@ class OriginalMoverTraceServiceTests(unittest.TestCase):
         self.assertIn("#include <server/sv_world.h>", generated)
         self.assertIn("SV_SetupIgnoreEntParams", generated)
         self.assertIn("SV_Trace(", generated)
+        self.assertIn("CM_BoxTrace(results, start, end, mins, maxs, 0, contentmask);", generated)
+        self.assertIn("CM_PointTraceToEntities(&clip, results);", generated)
+        self.assertIn("CM_ClipMoveToEntities(&result, results);", generated)
         self.assertTrue(report["original_world_service_declarations_verified"])
         self.assertFalse(report["service_stubs_added"])
 
@@ -86,6 +109,8 @@ class OriginalMoverTraceServiceTests(unittest.TestCase):
             prepare(ENGINE, ENGINE / GAME_SOURCE)
         with self.assertRaises(ValueError):
             prepare(ENGINE, ENGINE / TRACE_SOURCE)
+        with self.assertRaises(ValueError):
+            prepare(ENGINE, ENGINE / WORLD_SOURCE)
 
     def test_generator_rejects_missing_engine_source(self):
         with TemporaryDirectory() as temp:
