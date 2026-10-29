@@ -40,6 +40,14 @@ class FastFileHeaderPreflightTests(unittest.TestCase):
         self.assertIn("output.getFD().sync()", importer)
         self.assertIn("Os.rename(partial.getAbsolutePath(), target.getAbsolutePath())", importer)
 
+    def test_preflight_is_not_mislabeled_as_fastfile_loading(self):
+        helper = HELPER.read_text(encoding="utf-8")
+        importer = IMPORTER.read_text(encoding="utf-8")
+        self.assertIn("does NOT load or mount a FastFile", helper)
+        self.assertIn("does not", importer.lower())
+        self.assertNotIn("DB_LoadXFileInternal(", importer)
+        self.assertNotIn("DB_LoadXAssets(", importer)
+
 
 if __name__ == "__main__":
     unittest.main()
