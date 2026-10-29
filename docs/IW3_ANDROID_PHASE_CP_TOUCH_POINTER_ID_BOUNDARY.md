@@ -65,3 +65,18 @@ This only fixes diagnostic evidence validation. It does not invoke the staged
 original CL_CreateCmd hook, initialize the original client, load a real map,
 render a scene, or prove gameplay. The new commit must pass CI before this
 follow-up is counted as validated.
+
+
+## Follow-up — make diagnostic-only evidence impossible to misread (2026-10-29)
+
+A review of the passing emulator log exposed an evidence-schema problem: the
+verifier returned keys saying touch had reached the "original usercmd" even
+though the Activity only calls the diagnostic snapshot adapter. The original
+CL_CreateCmd hook is compiled/audited but is not invoked by the running process.
+
+The report now names the positive observations explicitly as
+diagnostic-adapter results and explicitly returns false for original
+CL_CreateCmd consumption, linked client runtime, real map load, renderer frame,
+gameplay, and playable APK. Regression tests reject the old ambiguous keys.
+This changes evidence semantics only; it does not claim new engine runtime
+capability.
