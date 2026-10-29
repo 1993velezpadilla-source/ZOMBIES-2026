@@ -36,6 +36,8 @@ class OriginalCLCommandHelpersTests(unittest.TestCase):
         self.assertIn("static bool s_scriptSuppressCrouch;", staged)
         self.assertIn("void __cdecl CL_KeyMove(usercmd_s *cmd)", staged)
         self.assertIn("void __cdecl CL_UpdateCmdButton(int *cmdButtons, int kbButton, int buttonFlag)", staged)
+        self.assertIn("if (kb[kbButton].active || kb[v3].wasPressed)", staged)
+        self.assertIn("kb[v3].wasPressed = 0;", staged)
         self.assertIn("void __cdecl CL_CmdButtons(usercmd_s *cmd)", staged)
         self.assertIn("CL_StanceButtonUpdate();", staged)
         self.assertIn("CL_AddCurrentStanceToCmd(cmd);", staged)
