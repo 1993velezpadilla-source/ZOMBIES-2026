@@ -136,7 +136,8 @@ public final class MainActivity extends Activity {
                 final String finalIndexReport = indexReport;
                 runOnUiThread(() -> label.append("\n\n" + evidence
                         + "\n" + finalIndexReport
-                        + "\nThis checks original FS_LoadZipFile indexing only. "
+                        + "\nThis checks original FS_LoadZipFile indexing and reads one member per IWD "
+                        + "through original FS_FOpenFileReadForThread/FS_Read/FS_FCloseFile. "
                         + "Original FS/FastFile/map loading is still pending."));
             } catch (Throwable failure) {
                 Log.e(TAG, "IW3_GAME_DATA_IMPORT_FAIL", failure);
