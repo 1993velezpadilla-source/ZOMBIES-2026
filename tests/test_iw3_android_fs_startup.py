@@ -334,8 +334,8 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
             names_output = Path(temp) / "iw3_iwd_names.cpp"
             names_report = prepare_iwd_names(ENGINE, names_output)
 
-        startup = startup_output.read_text(encoding="utf-8")
-        names = names_output.read_text(encoding="utf-8")
+            startup = startup_output.read_text(encoding="utf-8")
+            names = names_output.read_text(encoding="utf-8")
         signature = "void __cdecl FS_ConvertPath(char *s)"
         # FS_NewDir_f retains its call, but the startup slice must not emit a
         # second definition. The shared original body is owned by iwd_names.

@@ -32,6 +32,14 @@ The correction and regression are committed together. A fresh ARM64 run must rea
 
 Until that fresh run finishes, this phase is **not** considered CI-green. The prior failed run remains evidence of the reproduced defect and is not counted as a pass.
 
+
+
+### CI correction checkpoint
+
+The first push after adding the gate, [40854900260](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40854900260), had zero jobs because the first JavaScript replacement inserted a malformed workflow block. The workflow was rebuilt from the clean prior revision and the fixed-string count gate was inserted by exact position in commit `cdf6da9`.
+
+The next native audit, [40856323890](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40856323890), then stopped in source preflight: the new regression read generated files after its `TemporaryDirectory` context had already deleted them. The test now reads both generated files before leaving the context. No ARM64 link success is claimed from either failed run; the next fresh workflow must pass preflight and reach the combined link.
+
 ## Scope boundary
 
 Even a successful combined relocatable link does not mean the full Android runtime invokes `FS_Startup`. The diagnostic APK still does not prove a licensed IWD/FastFile/map load, original renderer output, live touch-to-usercmd gameplay, or physical ARM64 execution. No playable APK is claimed. Keep PR #4 open and unmerged.
