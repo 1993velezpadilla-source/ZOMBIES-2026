@@ -25,10 +25,13 @@ HEADER = (
     '#include "client.h"\n'
     '#include "cl_input.h"\n'
     '#include <universal/q_shared.h>\n'
+    '#include <universal/com_math.h>\n'
     '#include <aim_assist/aim_assist.h>\n'
     '#include <qcommon/snap_float.h>\n'
     '#include <gfx_d3d/r_dvars.h>\n'
     '#include <cmath>\n'
+    'extern unsigned int frame_msec;\n'
+    'extern kbutton_t kb[29];\n'
     'struct playerState_s;\n'
     'const playerState_s *__cdecl CG_GetPredictedPlayerState(int localClientNum);\n'
     '#ifndef KEY_STRAFE\n'
@@ -76,6 +79,9 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
         definition = f"#define {macro} {value}"
         if source.count(definition) != 1:
             raise ValueError("Expected original key constant exactly once: " + definition)
+    for declaration in ("unsigned int frame_msec;", "kbutton_t kb[29];"):
+        if source.count(declaration) != 1:
+            raise ValueError("Expected original client input state declaration exactly once: " + declaration)
     forbidden_headers = ("win32/win_local.h", "cgame/cg_main.h", "game/g_local.h", "server/sv_public.h")
     if any(header in HEADER for header in forbidden_headers):
         raise ValueError("Android client input slice must not import Win32 or renderer-heavy headers")
