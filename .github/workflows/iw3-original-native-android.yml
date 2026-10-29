@@ -1502,7 +1502,7 @@ jobs:
           echo "IW3_GAMEPLAY_PROVEN=false"
           echo "IW3_PLAYABLE_APK=false"
 
-      - name: Compile original G_MoverTeam and resolve the SP frame mover edge for ARM64 (NOT RUNTIME)
+      - name: Compile original G_MoverTeam/MoverPush physics chain and resolve the SP frame mover edge for ARM64 (NOT RUNTIME)
         shell: bash
         run: |
           set -euo pipefail
@@ -1528,21 +1528,24 @@ jobs:
           grep -F 'Class:                             ELF64' "$RUNNER_TEMP/iw3-g-mover-team-arm64-elf.txt"
           grep -F 'Machine:                           AArch64' "$RUNNER_TEMP/iw3-g-mover-team-arm64-elf.txt"
           "$ndk/bin/llvm-nm" -C --defined-only "$team_object" | tee "$RUNNER_TEMP/iw3-g-mover-team-object-defined.txt"
-          grep -F 'G_MoverTeam(gentity_s*)' "$RUNNER_TEMP/iw3-g-mover-team-object-defined.txt"
+          for symbol in 'G_MoverTeam(gentity_s*)' 'G_MoverPush(gentity_s*, float*, float*, gentity_s**)' 'G_TryPushingEntity(gentity_s*, gentity_s*, float*, float*)' 'G_TestEntityPosition(gentity_s*, float*)'; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-g-mover-team-object-defined.txt"
+          done
           "$ndk/bin/ld.lld" -r -m aarch64linux "$mover_combined" "$team_object" -o "$combined"
           "$ndk/bin/llvm-nm" -C --defined-only "$combined" | tee "$RUNNER_TEMP/iw3-g-mover-team-defined.txt"
           "$ndk/bin/llvm-nm" -C -u "$combined" | tee "$RUNNER_TEMP/iw3-g-mover-team-undefined.txt"
-          grep -F 'G_MoverTeam(gentity_s*)' "$RUNNER_TEMP/iw3-g-mover-team-defined.txt"
-          if grep -F 'G_MoverTeam(gentity_s*)' "$RUNNER_TEMP/iw3-g-mover-team-undefined.txt"; then
-            echo "Original G_RunMover -> G_MoverTeam edge failed to resolve" >&2
-            exit 1
-          fi
-          # This remains a real upstream dependency; do not hide it with a stub.
-          grep -F 'G_MoverPush(gentity_s*, float*, float*, gentity_s**)' "$RUNNER_TEMP/iw3-g-mover-team-undefined.txt"
-          for symbol in 'G_RunMissile(gentity_s*)' 'G_RunItem(gentity_s*)' 'ClientEndFrame(gentity_s*)' 'Scr_RunCurrentThreads()'; do
+          for symbol in 'G_MoverTeam(gentity_s*)' 'G_MoverPush(gentity_s*, float*, float*, gentity_s**)'; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-g-mover-team-defined.txt"
+            if grep -F "$symbol" "$RUNNER_TEMP/iw3-g-mover-team-undefined.txt"; then
+              echo "Original mover physics edge failed to resolve: $symbol" >&2
+              exit 1
+            fi
+          done
+          # Collision/world/gameplay services are real unresolved dependencies at this stage.
+          for symbol in 'G_TraceCapsule(' 'Trace_GetEntityHitId(' 'G_Damage(' 'CM_AreaEntities(' 'G_RunMissile(gentity_s*)' 'G_RunItem(gentity_s*)' 'ClientEndFrame(gentity_s*)' 'Scr_RunCurrentThreads()'; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-g-mover-team-undefined.txt"
           done
-          echo "IW3_ORIGINAL_G_MOVER_TEAM_AARCH64_FRAME_EDGE_RESOLVED_GREEN"
+          echo "IW3_ORIGINAL_G_MOVER_TEAM_PHYSICS_CHAIN_AARCH64_FRAME_EDGE_RESOLVED_GREEN"
           echo "IW3_G_MOVER_TEAM_RUNTIME_EXECUTED=false"
           echo "IW3_REAL_MAP_LOADED=false"
           echo "IW3_GAMEPLAY_PROVEN=false"

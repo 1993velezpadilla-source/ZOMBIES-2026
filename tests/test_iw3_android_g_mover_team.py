@@ -1,4 +1,4 @@
-"""Regression tests for the original G_MoverTeam provider and native pushed state."""
+"""Regression tests for the original mover-team and mover-push physics chain."""
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import hashlib
@@ -6,7 +6,8 @@ import json
 import unittest
 
 from tools.iw3_android.prepare_real_engine_g_mover_team import (
-    GLOBAL_DECLARATIONS, SOURCE, TEAM_SIGNATURE, TRACK_SIGNATURE, prepare, struct_source,
+    FUNCTION_SIGNATURES, GLOBAL_DECLARATIONS, SOURCE, TEAM_SIGNATURE, TRACK_SIGNATURE,
+    prepare, struct_source,
 )
 from tools.iw3_android.prepare_g_runframe_prereqs import function_source
 
@@ -15,11 +16,11 @@ ENGINE = ROOT / "third_party/KisakCOD"
 
 
 class OriginalGMoverTeamTests(unittest.TestCase):
-    def test_original_team_body_and_pushed_struct_are_preserved_and_hashed(self):
+    def test_original_physics_bodies_and_pushed_struct_are_preserved_and_hashed(self):
         source_path = ENGINE / SOURCE
         original = source_path.read_bytes()
         source = original.decode("utf-8")
-        body = function_source(source, TEAM_SIGNATURE)
+        expected = {sig: function_source(source, sig) for sig in FUNCTION_SIGNATURES}
         struct = struct_source(source, "struct pushed_t")
         with TemporaryDirectory() as temp:
             output = Path(temp) / "iw3_g_mover_team.cpp"
@@ -28,15 +29,14 @@ class OriginalGMoverTeamTests(unittest.TestCase):
             generated = output.read_text(encoding="utf-8")
             saved = json.loads(report_path.read_text(encoding="utf-8"))
         self.assertEqual(source_path.read_bytes(), original)
-        self.assertIn(body, generated)
         self.assertIn(struct, generated)
-        self.assertEqual(generated.count(TEAM_SIGNATURE), 1)
-        self.assertEqual(report["G_MoverTeam_body_sha256"],
-                         hashlib.sha256(body.encode("utf-8")).hexdigest())
-        self.assertEqual(report["pushed_t_struct_sha256"],
-                         hashlib.sha256(struct.encode("utf-8")).hexdigest())
+        for sig, body in expected.items():
+            self.assertIn(body, generated)
+            self.assertEqual(generated.count(sig), 1)
+            self.assertEqual(report["function_body_sha256"][sig],
+                             hashlib.sha256(body.encode("utf-8")).hexdigest())
         self.assertEqual(saved, report)
-        self.assertTrue(report["original_G_MoverTeam_body_preserved_verbatim"])
+        self.assertTrue(report["original_function_bodies_preserved_verbatim"])
         self.assertFalse(report["service_stubs_added"])
         self.assertFalse(report["runtime_executed"])
         self.assertFalse(report["map_loaded"])
@@ -80,10 +80,10 @@ class OriginalGMoverTeamTests(unittest.TestCase):
         self.assertIn("Sentient_InvalidateNearestNode(p->ent->actor->sentient);", body)
         self.assertIn("G_MoverPush(ent, move, amove, &obstacle)", body)
 
-    def test_workflow_compiles_and_resolves_only_the_mover_team_edge(self):
+    def test_workflow_compiles_and_resolves_mover_push_chain_without_claiming_runtime(self):
         workflow = (ROOT / ".github/workflows/iw3-original-native-android.yml").read_text(encoding="utf-8")
         self.assertIn("prepare_real_engine_g_mover_team.py", workflow)
-        self.assertIn("IW3_ORIGINAL_G_MOVER_TEAM_AARCH64_FRAME_EDGE_RESOLVED_GREEN", workflow)
+        self.assertIn("IW3_ORIGINAL_G_MOVER_TEAM_PHYSICS_CHAIN_AARCH64_FRAME_EDGE_RESOLVED_GREEN", workflow)
         self.assertIn("IW3_G_MOVER_TEAM_RUNTIME_EXECUTED=false", workflow)
         self.assertIn("IW3_PLAYABLE_APK=false", workflow)
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Extract the authentic G_MoverTeam provider and native-width pushed_t state."""
+"""Extract the authentic SP mover physics chain and native-width pushed state."""
 from __future__ import annotations
 
 import argparse
@@ -15,8 +15,17 @@ except ModuleNotFoundError:
 SOURCE = Path("src/game/g_mover.cpp")
 TEAM_SIGNATURE = "void __cdecl G_MoverTeam(gentity_s *ent)"
 TRACK_SIGNATURE = "void __cdecl TRACK_g_mover()"
+FUNCTION_SIGNATURES = (
+    "gentity_s *__cdecl G_TestEntityPosition(gentity_s *ent, float *vOrigin)",
+    "void __cdecl G_CreateRotationMatrix(const float *angles, float (*matrix)[3])",
+    "void __cdecl G_TransposeMatrix(float (*matrix)[3], float (*transpose)[3])",
+    "void __cdecl G_RotatePoint(float *point, float (*matrix)[3])",
+    "int __cdecl G_TryPushingEntity(gentity_s *check, gentity_s *pusher, float *move, float *amove)",
+    "char __cdecl G_MoverPush(gentity_s *pusher, float *move, float *amove, gentity_s **obstacle)",
+    TEAM_SIGNATURE,
+)
 GLOBAL_DECLARATIONS = ("pushed_t pushed[1024];", "pushed_t *pushed_p;")
-HEADER = """// Generated from authentic KisakCOD g_mover.cpp. Do not edit.
+HEADER = """// Generated from authentic KisakCOD g_mover.cpp bodies. Do not edit.
 #ifndef KISAK_SP
 #define KISAK_SP 1
 #endif
@@ -34,9 +43,6 @@ HEADER = """// Generated from authentic KisakCOD g_mover.cpp. Do not edit.
 
 // Exact upstream declaration from g_main.h; entityHandler_t is defined in g_local.h.
 extern struct entityHandler_t entityHandlers[27];
-
-// The mover-push body remains an explicit upstream dependency in this pass.
-char __cdecl G_MoverPush(gentity_s *pusher, float *move, float *amove, gentity_s **obstacle);
 """
 
 
@@ -66,9 +72,14 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
 
     original = source_path.read_bytes()
     source = original.decode("utf-8")
-    team_body = function_source(source, TEAM_SIGNATURE)
+    bodies = {}
+    for signature in FUNCTION_SIGNATURES:
+        if source.count(signature) != 1:
+            raise ValueError("Expected exactly one original definition: " + signature)
+        bodies[signature] = function_source(source, signature)
     track_body = function_source(source, TRACK_SIGNATURE)
     pushed_struct = struct_source(source, "struct pushed_t")
+
     for declaration in GLOBAL_DECLARATIONS:
         if source.count(declaration) != 1:
             raise ValueError("Expected one original mover state declaration: " + declaration)
@@ -76,14 +87,21 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
         raise ValueError("Mover allocation tracker must use sizeof(pushed)")
     if 'track_static_alloc_internal(pushed, 45056, "pushed", 9);' in track_body:
         raise ValueError("32-bit pushed allocation byte count remains")
+
     main_header = (engine / "src/game/g_main.h").read_text(encoding="utf-8")
     if main_header.count("extern struct entityHandler_t entityHandlers[27];") != 1:
         raise ValueError("Original entityHandlers declaration changed in g_main.h")
     local_header = (engine / "src/game/g_local.h").read_text(encoding="utf-8")
     if local_header.count("struct entityHandler_t") != 1:
         raise ValueError("Original entityHandler_t definition changed in g_local.h")
+
+    team_body = bodies[TEAM_SIGNATURE]
+    mover_push_signature = FUNCTION_SIGNATURES[5]
+    mover_push_body = bodies[mover_push_signature]
     if "G_MoverPush(ent, move, amove, &obstacle)" not in team_body:
         raise ValueError("Original G_MoverTeam -> G_MoverPush call changed")
+    if "G_TryPushingEntity" not in mover_push_body or "G_TestEntityPosition" not in mover_push_body:
+        raise ValueError("Original G_MoverPush physics helper chain changed")
     if "Actor_ClearPath(p->ent->actor);" not in team_body:
         raise ValueError("Single-player actor path invalidation was not preserved")
     if "Sentient_InvalidateNearestNode(p->ent->actor->sentient);" not in team_body:
@@ -94,7 +112,7 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
         + 'static_assert(sizeof(pushed_t) == (sizeof(void *) == 8 ? 0x30 : 0x2C), '
           '"pushed_t native pointer-width layout drift");\n\n'
         + "\n".join(GLOBAL_DECLARATIONS) + "\n\n"
-        + team_body + "\n"
+        + "\n\n".join(bodies[signature] for signature in FUNCTION_SIGNATURES) + "\n"
     )
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(generated, encoding="utf-8", newline="\n")
@@ -104,16 +122,20 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
     evidence = {
         "source": str(SOURCE),
         "source_sha256": hashlib.sha256(original).hexdigest(),
-        "G_MoverTeam_body_sha256": hashlib.sha256(team_body.encode("utf-8")).hexdigest(),
+        "function_body_sha256": {
+            signature: hashlib.sha256(body.encode("utf-8")).hexdigest()
+            for signature, body in bodies.items()
+        },
         "pushed_t_struct_sha256": hashlib.sha256(pushed_struct.encode("utf-8")).hexdigest(),
         "generated_sha256": hashlib.sha256(generated.encode("utf-8")).hexdigest(),
-        "original_G_MoverTeam_body_preserved_verbatim": True,
+        "original_function_bodies_preserved_verbatim": True,
         "original_pushed_t_layout_preserved": True,
         "pushed_array_and_cursor_owned_once": True,
         "pushed_tracker_uses_native_sizeof": True,
         "entity_handlers_declared_from_original_header": True,
         "SP_actor_and_sentient_invalidation_preserved": True,
-        "G_MoverPush_is_real_unresolved_upstream_service": True,
+        "G_MoverPush_and_physics_helpers_included": True,
+        "collision_world_services_remain_external": True,
         "service_stubs_added": False,
         "runtime_executed": False,
         "map_loaded": False,
