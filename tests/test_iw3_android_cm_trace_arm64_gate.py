@@ -19,6 +19,15 @@ class OriginalCollisionTraceArm64GateTests(unittest.TestCase):
             with self.subTest(signature=signature):
                 self.assertIn(signature, source)
 
+
+    def test_collision_core_does_not_import_d3d_renderer_graph(self):
+        source = ENGINE_TRACE.read_text(encoding="utf-8")
+        qcommon = (ROOT / "third_party/KisakCOD/src/qcommon/qcommon.h").read_text(encoding="utf-8")
+        self.assertNotIn("#include <xanim/xanim.h>", source)
+        self.assertIn("enum DynEntityDrawType", qcommon)
+        self.assertIn("DYNENT_DRAW_MODEL", qcommon)
+        self.assertIn("DYNENT_DRAW_BRUSH", qcommon)
+
     def test_workflow_compiles_original_source_not_a_generated_stub(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
         self.assertIn(
