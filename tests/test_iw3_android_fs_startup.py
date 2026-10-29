@@ -3,6 +3,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import hashlib
 import unittest
+from unittest.mock import patch
 
 from tools.iw3_android.prepare_real_engine_fs_startup import (
     SOURCE, CMD_SOURCE, FUNCTIONS, COMMAND_FUNCTIONS, COMMAND_FS_FUNCTIONS,
@@ -341,12 +342,28 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
         # second definition. The shared original body is owned by iwd_names.
         self.assertIn("FS_ConvertPath", startup)
         self.assertNotIn(signature, startup)
+        self.assertNotIn(signature, FUNCTIONS)
+        self.assertNotIn(signature, COMMAND_FS_FUNCTIONS)
         self.assertEqual(names.count(signature), 1)
         self.assertFalse(startup_report["fs_convert_path_definition_emitted_here"])
+        self.assertTrue(startup_report["fs_convert_path_single_provider_guard_enforced"])
         self.assertEqual(startup_report["fs_convert_path_provider"],
                          "prepare_real_engine_iwd_names")
         self.assertTrue(startup_report["fs_convert_path_call_sites_preserved"])
         self.assertTrue(names_report["fs_convert_path_definition_emitted"])
+
+    def test_startup_generator_fails_closed_if_fs_convert_path_is_reintroduced(self):
+        signature = "void __cdecl FS_ConvertPath(char *s)"
+        with patch(
+            "tools.iw3_android.prepare_real_engine_fs_startup.FUNCTIONS",
+            FUNCTIONS + (signature,),
+        ):
+            with TemporaryDirectory() as temp:
+                output = Path(temp) / "iw3_fs_startup.cpp"
+                with self.assertRaisesRegex(
+                    ValueError, "FS_ConvertPath must be emitted only by prepare_real_engine_iwd_names"
+                ):
+                    prepare(ENGINE, output)
 
         workflow = (ROOT / ".github/workflows/iw3-original-native-android.yml").read_text(encoding="utf-8")
         self.assertIn("IW3_ORIGINAL_FS_CONVERT_PATH_SINGLE_PROVIDER_AARCH64_LINK_GREEN", workflow)
