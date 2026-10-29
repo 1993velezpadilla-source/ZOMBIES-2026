@@ -35,6 +35,7 @@ HEADER = """// Generated from original KisakCOD IW3 trace functions. Do not edit
 #include <qcommon/qcommon.h>
 #include <game/game_public.h>
 #include <server/sv_world.h>
+#include <universal/com_math.h>
 #include <universal/profile.h>
 #include <universal/assertive.h>
 // Verified against server/sv_game.h; avoid importing Windows-only server.h here.
