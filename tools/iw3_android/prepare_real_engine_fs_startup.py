@@ -52,6 +52,8 @@ FUNCTIONS = (
     "bool __cdecl FS_IsBasePathValid()",
     "void __cdecl FS_InitFilesystem()",
 )
+# FS_ConvertPath is owned by prepare_real_engine_iwd_names.py. Keep it out of
+# this slice: the combined filesystem archive must contain exactly one provider.
 COMMAND_FS_FUNCTIONS = (
     "void __cdecl FS_DisplayPath(int bLanguageCull)",
     "void __cdecl FS_Path_f()",
@@ -149,6 +151,9 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
         raise ValueError("Refusing to overwrite authentic KisakCOD com_files.cpp")
     original = source_path.read_bytes()
     source = original.decode("utf-8")
+    convert_signature = "void __cdecl FS_ConvertPath(char *s)"
+    if any(signature == convert_signature for signature in (*FUNCTIONS, *COMMAND_FS_FUNCTIONS)):
+        raise ValueError("FS_ConvertPath must be emitted only by prepare_real_engine_iwd_names")
     command_source_path = engine / CMD_SOURCE
     command_original = command_source_path.read_bytes()
     command_source = command_original.decode("utf-8")
@@ -227,6 +232,7 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
         "original_command_registry_functions_staged_verbatim": True,
         "original_command_registry_state_staged_verbatim": True,
         "fs_convert_path_definition_emitted_here": False,
+        "fs_convert_path_single_provider_guard_enforced": True,
         "fs_convert_path_provider": "prepare_real_engine_iwd_names",
         "fs_convert_path_call_sites_preserved": True,
         "command_registry_runtime_invoked": False,
