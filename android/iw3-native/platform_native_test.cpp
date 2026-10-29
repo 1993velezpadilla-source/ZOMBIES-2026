@@ -10,6 +10,7 @@
 #include <dirent.h>
 #include <fcntl.h>
 #include <string>
+#include <set>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <thread>
@@ -41,6 +42,63 @@ int main() {
            static_cast<int>(std::strlen(root)));
     assert(std::strcmp(copied_root, root) == 0);
     assert(z2026_iw3_fs_startup_path_smoke() == 1);
+
+    // Generic original Sys_ListFiles queries need ordinary assets and directory
+    // searches as well as the special IWD mount scan. Exercise the rooted
+    // platform enumerator with regular files, a subdirectory, hidden data and
+    // a symlink; only the real entries of the requested type may be returned.
+    const std::string generic_dir = std::string(root) + "/generic";
+    assert(mkdir(generic_dir.c_str(), 0700) == 0);
+    const std::string generic_nested = generic_dir + "/nested";
+    assert(mkdir(generic_nested.c_str(), 0700) == 0);
+    auto create_generic_file = [](const std::string &file, const char *data,
+                                  std::size_t length) {
+        const int file_fd = open(file.c_str(), O_WRONLY | O_CREAT | O_EXCL, 0600);
+        assert(file_fd >= 0);
+        assert(write(file_fd, data, length) == static_cast<ssize_t>(length));
+        assert(close(file_fd) == 0);
+    };
+    create_generic_file(generic_dir + "/config.cfg", "cfg", 3);
+    create_generic_file(generic_dir + "/localized.str", "str", 3);
+    create_generic_file(generic_dir + "/.hidden.cfg", "hidden", 6);
+    assert(symlink(path.c_str(), (generic_dir + "/linked.cfg").c_str()) == 0);
+
+    std::vector<char> generic_names(4096);
+    std::size_t generic_count = 0;
+    const int generic_bytes = z2026_platform_list_directory_entries(
+        "generic", 0, generic_names.data(), generic_names.size(), &generic_count);
+    assert(generic_bytes > 0 && generic_count == 2);
+    std::set<std::string> generic_files;
+    std::size_t generic_offset = 0;
+    while (generic_offset < static_cast<std::size_t>(generic_bytes)) {
+        const char *entry = generic_names.data() + generic_offset;
+        const std::size_t remaining =
+            static_cast<std::size_t>(generic_bytes) - generic_offset;
+        const void *terminator = std::memchr(entry, '\0', remaining);
+        assert(terminator);
+        const std::size_t entry_length =
+            static_cast<const char *>(terminator) - entry;
+        generic_files.emplace(entry, entry_length);
+        generic_offset += entry_length + 1;
+    }
+    assert((generic_files == std::set<std::string>{"config.cfg", "localized.str"}));
+
+    std::size_t directory_count = 0;
+    const int directory_bytes = z2026_platform_list_directory_entries(
+        "generic", 1, generic_names.data(), generic_names.size(), &directory_count);
+    assert(directory_bytes == 7 && directory_count == 1);
+    assert(std::strcmp(generic_names.data(), "nested") == 0);
+    char too_small_listing[1]{};
+    std::size_t too_small_count = 42;
+    assert(z2026_platform_list_directory_entries(
+        "generic", 0, too_small_listing, sizeof(too_small_listing),
+        &too_small_count) == -1);
+    assert(too_small_count == 0);
+    std::size_t traversal_count = 42;
+    assert(z2026_platform_list_directory_entries(
+        "../", 0, generic_names.data(), generic_names.size(),
+        &traversal_count) == -1);
+    assert(traversal_count == 0);
     char too_small_root[1] = {'x'};
     assert(z2026_platform_copy_data_root(too_small_root, sizeof(too_small_root)) == -1);
     assert(too_small_root[0] == '\0');
