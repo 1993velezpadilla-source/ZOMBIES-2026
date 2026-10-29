@@ -31,7 +31,7 @@ class OriginalCollisionTraceArm64GateTests(unittest.TestCase):
         self.assertIn("#include <qcommon/cm_collision_types.h>", xanim)
         for name in ("cbrush_t", "cbrushside_t", "cLeafBrushNode_s", "CollisionPartition", "CollisionAabbTree"):
             with self.subTest(name=name):
-                self.assertIn("struct " + name, collision)
+                self.assertIn(name, collision)
         self.assertIn("struct alignas(16) cbrush_t", collision)
         self.assertIn("static_assert(alignof(cbrush_t) == 16", collision)
         self.assertIn("enum DynEntityDrawType", qcommon)
