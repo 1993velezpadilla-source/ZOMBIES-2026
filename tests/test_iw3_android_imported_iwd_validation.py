@@ -135,6 +135,10 @@ class ImportedIwdValidationTests(unittest.TestCase):
         self.assertIn("z2026_iw3_validate_imported_iwds", workflow)
         self.assertIn("z2026_iw3_iwd_index_fixture_smoke", workflow)
         self.assertIn("IW3_JNI_IMPORTED_IWD_INDEX_FIXTURE_PASS", emulator)
+        self.assertIn("IW3_JNI_IMPORTED_IWD_INDEX_AND_FS_READ_FIXTURE_PASS", emulator)
+        host_test = (ROOT / "android/iw3-native/iw3_unzip_host_test.cpp").read_text(encoding="utf-8")
+        self.assertIn("z2026_iw3_iwd_index_fixture_smoke(directory.c_str())", host_test)
+        self.assertIn("IW3_ORIGINAL_IMPORTED_IWD_INDEX_AND_FS_READ_HOST_GREEN", host_test)
 
 
 if __name__ == "__main__":
