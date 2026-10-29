@@ -383,7 +383,15 @@ int main() {
     assert((cmd[1] & BUTTON_ATTACK) != 0 && (cmd[1] & BUTTON_ADS) != 0);
     assert((cmd[1] & BUTTON_JUMP) != 0 && (cmd[1] & BUTTON_RELOAD) != 0);
     assert((cmd[1] & BUTTON_USE) != 0 && (cmd[1] & BUTTON_MELEE) != 0);
-    assert((cmd[1] & BUTTON_CROUCH) != 0 && (cmd[1] & BUTTON_PRONE) != 0);
+    // A simultaneous prone request takes precedence over crouch in both
+    // the diagnostic snapshot and the hook that mutates the original usercmd_s.
+    assert((cmd[1] & BUTTON_PRONE) != 0 && (cmd[1] & BUTTON_CROUCH) == 0);
+    usercmd_s stance_priority_command{};
+    float stance_priority_angles[3] = {};
+    z2026_platform_apply_touch_to_usercmd(
+        &stance_priority_command, stance_priority_angles);
+    assert((stance_priority_command.buttons & BUTTON_PRONE) != 0);
+    assert((stance_priority_command.buttons & BUTTON_CROUCH) == 0);
     assert(cmd[5] > 0 && cmd[6] > 0);
     assert(cmd[2] != 0 && cmd[3] != 0);
     assert(z2026_platform_touch_event(1, .90f, .85f, 0) == 0);
