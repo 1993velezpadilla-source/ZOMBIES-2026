@@ -794,6 +794,11 @@ jobs:
           test -s "$mouse_source"
           test -s "$createcmd_object"
           test -s "$finish_object"
+          grep -F 'static_assert(sizeof(AimInput) == (sizeof(void *) == 8 ? 0x38 : 0x30));' third_party/KisakCOD/src/aim_assist/aim_assist.h
+          if grep -F 'cgame/cg_main.h' "$mouse_source"; then
+            echo "Android mouse-input slice must not import renderer-heavy cg_main.h" >&2
+            exit 1
+          fi
           common_flags=(
             -std=c++20 -DKISAK_SP=1 -Wall -Wextra -UNDEBUG -O2
             -I"$GITHUB_WORKSPACE/android/iw3-native"
