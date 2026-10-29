@@ -48,6 +48,17 @@ jobs:
         with:
           gradle-version: "8.9"
 
+      - name: Run FastFile header preflight JVM regression (not a game-load test)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test_out="$RUNNER_TEMP/iw3-fastfile-header-test"
+          mkdir -p "$test_out"
+          javac -d "$test_out" \
+            android/iw3-native/android_app/app/src/main/java/org/z2026/iw3nativeprobe/FastFileHeader.java \
+            tests/java/org/z2026/iw3nativeprobe/FastFileHeaderTest.java
+          java -cp "$test_out" org.z2026.iw3nativeprobe.FastFileHeaderTest
+
       - name: Pin Android SDK and NDK directly
         shell: bash
         run: |
