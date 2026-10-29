@@ -37,17 +37,25 @@ public final class GameDataImporter {
     private static final int MAX_DIRECTORY_DEPTH = 16;
     private static final int MAX_DOCUMENT_NODES = 32768;
     private static final int MAX_SOURCE_FILES = 16384;
+    // Prevent a corrupt or unexpected SAF tree from filling app-private storage.
+    private static final long MAX_SINGLE_FILE_BYTES = 2L * 1024L * 1024L * 1024L;
+    private static final long MAX_TOTAL_BYTES = 12L * 1024L * 1024L * 1024L;
 
     private GameDataImporter() {}
 
     public static final class Summary {
         public final int iwdFiles;
         public final int fastFiles;
+        public final int mainIwdFiles;
+        public final int zoneEnglishFastFiles;
         public final long bytesCopied;
 
-        private Summary(int iwdFiles, int fastFiles, long bytesCopied) {
+        private Summary(int iwdFiles, int fastFiles, int mainIwdFiles,
+                int zoneEnglishFastFiles, long bytesCopied) {
             this.iwdFiles = iwdFiles;
             this.fastFiles = fastFiles;
+            this.mainIwdFiles = mainIwdFiles;
+            this.zoneEnglishFastFiles = zoneEnglishFastFiles;
             this.bytesCopied = bytesCopied;
         }
     }
@@ -96,12 +104,25 @@ public final class GameDataImporter {
 
         int expectedIwd = 0;
         int expectedFast = 0;
+        int expectedMainIwd = 0;
+        int expectedEnglishFastFiles = 0;
         for (SourceFile file : sourceFiles) {
-            if (file.iwd) expectedIwd++;
-            else expectedFast++;
+            if (file.iwd) {
+                expectedIwd++;
+                if (file.relativePath.startsWith("main/")) expectedMainIwd++;
+            } else {
+                expectedFast++;
+                if (file.relativePath.startsWith("zone/english/")) expectedEnglishFastFiles++;
+            }
         }
         if (expectedIwd == 0 || expectedFast == 0) {
             throw new IOException("Game root must contain at least one .iwd and one .ff file");
+        }
+        if (expectedMainIwd == 0) {
+            throw new IOException("Game root must contain at least one .iwd file under main/");
+        }
+        if (expectedEnglishFastFiles == 0) {
+            throw new IOException("Game root must contain at least one .ff file under zone/english/");
         }
 
         File root = destinationRoot.getCanonicalFile();
@@ -144,6 +165,14 @@ public final class GameDataImporter {
                     byte[] buffer = new byte[64 * 1024];
                     int read;
                     while ((read = input.read(buffer)) != -1) {
+                        if (read == 0) continue;
+                        if (fileBytes + read > MAX_SINGLE_FILE_BYTES) {
+                            throw new IOException("Imported game-data file exceeds 2 GiB: "
+                                    + source.relativePath);
+                        }
+                        if (bytesCopied + fileBytes + read > MAX_TOTAL_BYTES) {
+                            throw new IOException("Imported game data exceeds the 12 GiB safety limit");
+                        }
                         output.write(buffer, 0, read);
                         fileBytes += read;
                     }
@@ -170,7 +199,8 @@ public final class GameDataImporter {
             else copiedFast++;
         }
 
-        return new Summary(copiedIwd, copiedFast, bytesCopied);
+        return new Summary(copiedIwd, copiedFast, expectedMainIwd,
+                expectedEnglishFastFiles, bytesCopied);
     }
 
     private static void collect(ContentResolver resolver, Uri treeUri, String parentId,
