@@ -23,8 +23,8 @@ class NativeRuntimeEvidenceTests(unittest.TestCase):
     def test_complete_diagnostic_has_explicit_limits(self):
         result = verify(real_format_fixture())
         self.assertTrue(result["touch_down_and_up_read_back_from_native"])
-        self.assertTrue(result["sprint_touch_reached_original_usercmd_s"])
-        self.assertTrue(result["slide_chord_touch_reached_original_usercmd_s"])
+        self.assertTrue(result["sprint_touch_reached_diagnostic_usercmd_s_adapter"])
+        self.assertTrue(result["slide_chord_touch_reached_diagnostic_usercmd_s_adapter"])
         self.assertTrue(result["original_fs_addsearchpath_inserted_fixture_executed"])
         self.assertTrue(result["original_fs_addiwdfiles_directory_scan_executed"])
         self.assertTrue(result["original_fs_add_game_directory_registered_fixture_executed"])
@@ -38,6 +38,14 @@ class NativeRuntimeEvidenceTests(unittest.TestCase):
         self.assertFalse(result["original_upstream_fsh_table_integrated"])
         self.assertFalse(result["arm64_device_execution_proven"])
         self.assertFalse(result["gameplay_proven"])
+        self.assertFalse(result["original_cl_createcmd_touch_consumption_proven"])
+        self.assertFalse(result["original_client_runtime_linked"])
+        self.assertFalse(result["real_map_loaded"])
+        self.assertFalse(result["renderer_frame_proven"])
+        self.assertFalse(result["playable_apk"])
+        self.assertNotIn("touch_translated_to_original_iw3_usercmd_s", result)
+        self.assertNotIn("sprint_touch_reached_original_usercmd_s", result)
+        self.assertNotIn("slide_chord_touch_reached_original_usercmd_s", result)
 
     def test_every_required_native_marker_is_necessary(self):
         for marker in REQUIRED:
