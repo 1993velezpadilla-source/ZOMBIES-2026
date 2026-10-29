@@ -69,6 +69,12 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
         if actor_header.count(marker) != 1:
             raise ValueError("Native-width actor header contract missing: " + marker)
 
+    physics_header = (engine / "src/game/actor_physics.h").read_text(encoding="utf-8")
+    if physics_header.count("struct alignas(4) actor_physics_t") != 1:
+        raise ValueError("Original actor_physics_t must use portable standard alignas(4)")
+    if "__declspec(align(4)) actor_physics_t" in physics_header:
+        raise ValueError("MSVC-only actor_physics_t alignment remains in the ARM64 header")
+
     nav_header = (engine / "src/game/actor_navigation.h").read_text(encoding="utf-8")
     for marker in (
         "struct actor_goal_s",
@@ -120,6 +126,7 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
         "known_enemy_region_uses_typed_record_stride": True,
         "actor_goal_copy_uses_native_pointer_width": True,
         "32bit_actor_layout_assertions_guarded": True,
+        "actor_physics_alignment_portable": True,
         "original_function_bodies_preserved_verbatim": True,
         "service_stubs_added": False,
         "runtime_executed": False,

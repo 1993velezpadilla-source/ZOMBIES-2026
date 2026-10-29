@@ -31,3 +31,9 @@ The new workflow step must compile both extracted functions as ELF64/AArch64 and
 ## Still pending
 
 The actor subsystem contains other legacy assumptions and requires a full native-width audit. `G_MoverTeam` is still a genuine unresolved provider for `G_RunMover`; the original `G_RunMissile`, `G_RunItem`, scripting, client, renderer, real IWD/FastFile/map loading, and touch-to-live-client integration are also not complete. No physical ARM64 gameplay has been demonstrated. Keep PR #4 open and unmerged.
+
+## Follow-up from first ARM64 compile attempt
+
+The first run on commit `0fa9130ca2f0537906535f3574de399ad7c44f8c` passed the Python source/regression gate and the preceding ARM64 frame checks, but the new actor compile step failed in the original `actor_physics.h`: Clang/NDK does not accept the MSVC-only `struct __declspec(align(4)) actor_physics_t` spelling. The failure was observed in Actions run [40941092623](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40941092623), step 24.
+
+This follow-up changes only that declaration to standard C++ `struct alignas(4) actor_physics_t`, which expresses the same four-byte alignment on MSVC and Clang. The generator and regression suite now require the portable declaration and reject reintroduction of the MSVC-only form. The new ARM64 compile must run again on this follow-up commit; the earlier failure is not counted as a pass.

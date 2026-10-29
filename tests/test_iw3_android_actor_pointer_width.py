@@ -73,6 +73,11 @@ class OriginalActorPointerWidthTests(unittest.TestCase):
         self.assertIn("sizeof(void *) != 4 || offsetof(actor_s, sentientInfo) == 0x834", header)
         self.assertIn("sizeof(sentient_info_t) == (sizeof(void *) == 8 ? 0x30 : 0x28)", header)
 
+    def test_actor_physics_alignment_uses_standard_cpp_alignas(self):
+        header = (ENGINE / "src/game/actor_physics.h").read_text(encoding="utf-8")
+        self.assertEqual(header.count("struct alignas(4) actor_physics_t"), 1)
+        self.assertNotIn("__declspec(align(4)) actor_physics_t", header)
+
     def test_generator_refuses_to_overwrite_original_source(self):
         with self.assertRaises(ValueError):
             prepare(ENGINE, ENGINE / SOURCE)
