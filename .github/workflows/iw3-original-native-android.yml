@@ -773,6 +773,7 @@ jobs:
           grep -F 'z2026_platform_apply_touch_to_usercmd' "$RUNNER_TEMP/iw3-cl-createcmd-finishmove-undefined.txt"
           grep -F 'CL_MouseMove(usercmd_s*)' "$RUNNER_TEMP/iw3-cl-createcmd-finishmove-undefined.txt"
           echo "IW3_ORIGINAL_CL_FINISHMOVE_EDGE_RESOLVED_AARCH64_GREEN"
+          echo "IW3_CL_FINISHMOVE_RUNTIME_EXECUTED=false"
           echo "IW3_CLIENT_RUNTIME_LINKED=false"
           echo "IW3_CL_CREATECMD_RUNTIME_INVOKED=false"
           echo "IW3_PLAYABLE_APK=false"
