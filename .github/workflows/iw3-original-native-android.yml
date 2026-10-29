@@ -120,6 +120,10 @@ jobs:
             --engine third_party/KisakCOD \
             --output "$RUNNER_TEMP/iw3-source/iw3_fs_readfile.cpp" \
             --report "$RUNNER_TEMP/iw3-original-fs-readfile.json"
+          python3 tools/iw3_android/prepare_real_engine_cl_createcmd.py \
+            --engine third_party/KisakCOD \
+            --output "$RUNNER_TEMP/iw3-source/iw3_cl_createcmd.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-cl-createcmd.json"
           python3 tools/iw3_android/prepare_real_engine_com_logfile_open.py \
             --engine third_party/KisakCOD \
             --output "$RUNNER_TEMP/iw3-source/iw3_com_logfile_open.cpp" \
@@ -695,6 +699,37 @@ jobs:
           # The actual service references stay unresolved in this archive.
           # No frame execution, linked Android runtime or gameplay is claimed.
 
+      - name: Cross-compile original CL_CreateCmd touch hook for Android ARM64 (NOT RUNTIME)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          source="$RUNNER_TEMP/iw3-source/iw3_cl_createcmd.cpp"
+          object="$RUNNER_TEMP/iw3-original-cl-createcmd-arm64.o"
+          test -s "$source"
+          common_flags=(
+            -std=c++20 -DKISAK_SP=1 -Wall -Wextra -UNDEBUG -O2
+            -I"$GITHUB_WORKSPACE/android/iw3-native"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/client"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/qcommon"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/universal"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/deps"
+          )
+          "$ndk/aarch64-linux-android26-clang++" "${common_flags[@]}" -c "$source" -o "$object"
+          "$ndk/llvm-readelf" -h "$object" | tee "$RUNNER_TEMP/iw3-cl-createcmd-arm64-elf.txt"
+          grep -F 'Class:                             ELF64' "$RUNNER_TEMP/iw3-cl-createcmd-arm64-elf.txt"
+          grep -F 'Machine:                           AArch64' "$RUNNER_TEMP/iw3-cl-createcmd-arm64-elf.txt"
+          "$ndk/llvm-nm" -C --defined-only "$object" | tee "$RUNNER_TEMP/iw3-cl-createcmd-arm64-defined.txt"
+          "$ndk/llvm-nm" -C -u "$object" | tee "$RUNNER_TEMP/iw3-cl-createcmd-arm64-undefined.txt"
+          grep -F 'CL_CreateCmd(usercmd_s*)' "$RUNNER_TEMP/iw3-cl-createcmd-arm64-defined.txt"
+          grep -F 'z2026_platform_apply_touch_to_usercmd' "$RUNNER_TEMP/iw3-cl-createcmd-arm64-undefined.txt"
+          grep -F 'CL_FinishMove(usercmd_s*)' "$RUNNER_TEMP/iw3-cl-createcmd-arm64-undefined.txt"
+          echo "IW3_ORIGINAL_CL_CREATECMD_TOUCH_HOOK_AARCH64_COMPILE_GREEN"
+          echo "IW3_CL_CREATECMD_RUNTIME_INVOKED=false"
+          echo "IW3_TOUCH_HOOK_LINKED_TO_CLIENT_RUNTIME=false"
+          echo "IW3_PLAYABLE_APK=false"
+
       - name: Verify original IWD indexer is present in ARM64 static archive
         shell: bash
         run: |
@@ -850,6 +885,12 @@ jobs:
           path: |
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_math.so
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_frame.a
+            ${{ runner.temp }}/iw3-source/iw3_cl_createcmd.cpp
+            ${{ runner.temp }}/iw3-original-cl-createcmd.json
+            ${{ runner.temp }}/iw3-original-cl-createcmd-arm64.o
+            ${{ runner.temp }}/iw3-cl-createcmd-arm64-elf.txt
+            ${{ runner.temp }}/iw3-cl-createcmd-arm64-defined.txt
+            ${{ runner.temp }}/iw3-cl-createcmd-arm64-undefined.txt
             ${{ runner.temp }}/iw3-source/iw3_g_update_player.cpp
             ${{ runner.temp }}/iw3-original-g-update-player.json
             ${{ runner.temp }}/iw3-original-g-update-player-arm64.o
