@@ -117,7 +117,7 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
         matches = [
             line for line in source_lines
             if re.fullmatch(
-                rf"\\s*const dvar_t\\s*\\*\\s*{re.escape(name)}\\s*=\\s*nullptr;\\s*",
+                rf"\s*const dvar_t\s*\\*\s*{re.escape(name)}\s*=\s*nullptr;\s*",
                 line,
             )
         ]
@@ -127,10 +127,10 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
 
     rendered = (
         HEADER
-        + "\\n".join(dvar_lines)
-        + "\\n\\n"
-        + "\\n\\n".join(body for _, body in bodies)
-        + "\\n"
+        + "\n".join(dvar_lines)
+        + "\n\n"
+        + "\n\n".join(body for _, body in bodies)
+        + "\n"
     )
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(rendered, encoding="utf-8")
@@ -169,7 +169,7 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
     }
     if report_path is not None:
         report_path.parent.mkdir(parents=True, exist_ok=True)
-        report_path.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\\n", encoding="utf-8")
+        report_path.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return evidence
 
 
