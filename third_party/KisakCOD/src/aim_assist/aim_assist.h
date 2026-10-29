@@ -4,6 +4,7 @@
 // renderer layouts. Keep those unrelated 32-bit structures out of the Android
 // client-input compile while preserving the original aim input/output fields.
 #include <universal/q_shared.h>
+#include <universal/com_math.h>
 struct centity_s;
 struct playerState_s;
 struct dvar_s;
