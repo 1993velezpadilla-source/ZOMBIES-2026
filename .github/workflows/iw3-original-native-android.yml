@@ -128,6 +128,10 @@ jobs:
             --engine third_party/KisakCOD \
             --output "$RUNNER_TEMP/iw3-source/iw3_cl_finishmove.cpp" \
             --report "$RUNNER_TEMP/iw3-original-cl-finishmove.json"
+          python3 tools/iw3_android/prepare_real_engine_cl_mousemove.py \
+            --engine third_party/KisakCOD \
+            --output "$RUNNER_TEMP/iw3-source/iw3_cl_mousemove.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-cl-mousemove.json"
           python3 tools/iw3_android/prepare_real_engine_com_logfile_open.py \
             --engine third_party/KisakCOD \
             --output "$RUNNER_TEMP/iw3-source/iw3_com_logfile_open.cpp" \
@@ -778,6 +782,57 @@ jobs:
           echo "IW3_CL_CREATECMD_RUNTIME_INVOKED=false"
           echo "IW3_PLAYABLE_APK=false"
 
+      - name: Cross-compile original CL_MouseMove and resolve live command-input edges (NOT RUNTIME)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          mouse_source="$RUNNER_TEMP/iw3-source/iw3_cl_mousemove.cpp"
+          mouse_object="$RUNNER_TEMP/iw3-original-cl-mousemove-arm64.o"
+          createcmd_object="$RUNNER_TEMP/iw3-original-cl-createcmd-arm64.o"
+          finish_object="$RUNNER_TEMP/iw3-original-cl-finishmove-arm64.o"
+          test -s "$mouse_source"
+          test -s "$createcmd_object"
+          test -s "$finish_object"
+          common_flags=(
+            -std=c++20 -DKISAK_SP=1 -Wall -Wextra -UNDEBUG -O2
+            -I"$GITHUB_WORKSPACE/android/iw3-native"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/client"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/qcommon"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/universal"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/deps"
+          )
+          "$ndk/aarch64-linux-android26-clang++" "${common_flags[@]}" -c "$mouse_source" -o "$mouse_object"
+          "$ndk/llvm-readelf" -h "$mouse_object" | tee "$RUNNER_TEMP/iw3-cl-mousemove-arm64-elf.txt"
+          grep -F 'Class:                             ELF64' "$RUNNER_TEMP/iw3-cl-mousemove-arm64-elf.txt"
+          grep -F 'Machine:                           AArch64' "$RUNNER_TEMP/iw3-cl-mousemove-arm64-elf.txt"
+          "$ndk/llvm-nm" -C --defined-only "$mouse_object" | tee "$RUNNER_TEMP/iw3-cl-mousemove-arm64-defined.txt"
+          grep -F 'CL_MouseMove(usercmd_s*)' "$RUNNER_TEMP/iw3-cl-mousemove-arm64-defined.txt"
+          grep -F 'CL_GetMouseMovement(clientActive_t*, float*, float*)' "$RUNNER_TEMP/iw3-cl-mousemove-arm64-defined.txt"
+
+          combined="$RUNNER_TEMP/iw3-original-cl-command-input-arm64.o"
+          "$ndk/ld.lld" -m aarch64linux -r "$createcmd_object" "$finish_object" "$mouse_object" -o "$combined"
+          "$ndk/llvm-nm" -C --defined-only "$combined" | tee "$RUNNER_TEMP/iw3-cl-command-input-defined.txt"
+          "$ndk/llvm-nm" -C -u "$combined" | tee "$RUNNER_TEMP/iw3-cl-command-input-undefined.txt"
+          for symbol in 'CL_CreateCmd(usercmd_s*)' 'CL_FinishMove(usercmd_s*)' 'CL_MouseMove(usercmd_s*)' 'CL_GetMouseMovement(clientActive_t*, float*, float*)'; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-cl-command-input-defined.txt"
+            if grep -F "$symbol" "$RUNNER_TEMP/iw3-cl-command-input-undefined.txt"; then
+              echo "Original client command edge failed to resolve: $symbol" >&2
+              exit 1
+            fi
+          done
+          grep -F 'z2026_platform_apply_touch_to_usercmd' "$RUNNER_TEMP/iw3-cl-command-input-undefined.txt"
+          grep -F 'AimAssist_UpdateMouseInput' "$RUNNER_TEMP/iw3-cl-command-input-undefined.txt"
+          grep -F 'CG_GetPredictedPlayerState' "$RUNNER_TEMP/iw3-cl-command-input-undefined.txt"
+          grep -F 'CL_KeyMove(usercmd_s*)' "$RUNNER_TEMP/iw3-cl-command-input-undefined.txt"
+          grep -F 'CL_CmdButtons(usercmd_s*)' "$RUNNER_TEMP/iw3-cl-command-input-undefined.txt"
+          echo "IW3_ORIGINAL_CL_MOUSEMOVE_EDGE_RESOLVED_AARCH64_GREEN"
+          echo "IW3_CL_MOUSEMOVE_RUNTIME_EXECUTED=false"
+          echo "IW3_CLIENT_RUNTIME_LINKED=false"
+          echo "IW3_CL_CREATECMD_RUNTIME_INVOKED=false"
+          echo "IW3_PLAYABLE_APK=false"
+
       - name: Verify original IWD indexer is present in ARM64 static archive
         shell: bash
         run: |
@@ -947,6 +1002,14 @@ jobs:
             ${{ runner.temp }}/iw3-original-cl-createcmd-finishmove-arm64.o
             ${{ runner.temp }}/iw3-cl-createcmd-finishmove-defined.txt
             ${{ runner.temp }}/iw3-cl-createcmd-finishmove-undefined.txt
+            ${{ runner.temp }}/iw3-source/iw3_cl_mousemove.cpp
+            ${{ runner.temp }}/iw3-original-cl-mousemove.json
+            ${{ runner.temp }}/iw3-original-cl-mousemove-arm64.o
+            ${{ runner.temp }}/iw3-cl-mousemove-arm64-elf.txt
+            ${{ runner.temp }}/iw3-cl-mousemove-arm64-defined.txt
+            ${{ runner.temp }}/iw3-original-cl-command-input-arm64.o
+            ${{ runner.temp }}/iw3-cl-command-input-defined.txt
+            ${{ runner.temp }}/iw3-cl-command-input-undefined.txt
             ${{ runner.temp }}/iw3-source/iw3_g_update_player.cpp
             ${{ runner.temp }}/iw3-original-g-update-player.json
             ${{ runner.temp }}/iw3-original-g-update-player-arm64.o
