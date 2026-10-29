@@ -1166,6 +1166,14 @@ jobs:
             ${{ runner.temp }}/iw3-original-client-input-with-aimassist-tweakables-arm64.o
             ${{ runner.temp }}/iw3-client-input-with-aimassist-tweakables-defined.txt
             ${{ runner.temp }}/iw3-client-input-with-aimassist-tweakables-undefined.txt
+            ${{ runner.temp }}/iw3-original-aimassist-melee-providers.json
+            ${{ runner.temp }}/iw3-original-aimassist-melee-providers-arm64.o
+            ${{ runner.temp }}/iw3-aimassist-melee-arm64-elf.txt
+            ${{ runner.temp }}/iw3-aimassist-melee-defined.txt
+            ${{ runner.temp }}/iw3-aimassist-melee-undefined.txt
+            ${{ runner.temp }}/iw3-original-client-input-with-aimassist-melee-arm64.o
+            ${{ runner.temp }}/iw3-client-input-with-aimassist-melee-defined.txt
+            ${{ runner.temp }}/iw3-client-input-with-aimassist-melee-undefined.txt
           retention-days: 30
 
       - name: Attach original client input helper evidence (NOT APK)
