@@ -32,6 +32,10 @@ extern "C" int z2026_iw3_math_source_abi_version();
 
 namespace {
 std::atomic<int> g_lifecycle_state{0};
+// Android pointer IDs are sparse identifiers in [0, 31]; they are not the
+// ten-slot native touch-array indices. Keep the JNI boundary contract aligned
+// with MainActivity and z2026_platform_touch_event/snapshot.
+constexpr int kAndroidPointerIdCount = 32;
 // Imported-IWD validation mutates original FS globals and file handles. Serialize
 // it with the startup diagnostic until a real engine-owned FS thread exists.
 std::mutex g_engine_diagnostic_mutex;
@@ -303,7 +307,7 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeUsercmdSnapshot(
 IW3_JNI_EXPORT jint JNICALL
 Java_org_z2026_iw3nativeprobe_EngineBridge_nativeTouchSnapshot(
         JNIEnv *env, jclass, jint id, jfloatArray out) {
-    if (out == nullptr || id < 0 || id >= 10 ||
+    if (out == nullptr || id < 0 || id >= kAndroidPointerIdCount ||
         env->GetArrayLength(out) < 2) return -1;
     float x = 0.0f, y = 0.0f;
     const int pressed = z2026_platform_touch_snapshot(id, &x, &y);
