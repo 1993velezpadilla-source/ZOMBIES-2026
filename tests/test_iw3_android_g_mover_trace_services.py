@@ -96,6 +96,7 @@ class OriginalMoverTraceServiceTests(unittest.TestCase):
             report = prepare(ENGINE, output)
             generated = output.read_text(encoding="utf-8")
         self.assertIn("#include <server/sv_world.h>", generated)
+        self.assertIn("#include <universal/com_math.h>", generated)
         self.assertIn("SV_SetupIgnoreEntParams", generated)
         self.assertIn("SV_Trace(", generated)
         self.assertIn("CM_BoxTrace(results, start, end, mins, maxs, 0, contentmask);", generated)
