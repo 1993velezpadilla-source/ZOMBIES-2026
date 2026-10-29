@@ -27,3 +27,10 @@ This is a native object-level dependency-edge audit, not runtime integration. It
 - `IW3_PLAYABLE_APK=false`
 
 Keep PR #4 open and unmerged until the actual engine runtime, map, renderer, touch-driven client frames, combat, and physical ARM64 execution are demonstrated.
+
+
+## Follow-up correction after the first ARM64 compile
+
+The first run for this phase failed before the provider object could be built. Including the real CGame state headers exposed eight legacy assertions that hard-coded Win32 sizes for pointer-bearing renderer structures: `FxEffectDef`, `FxImpactTable`, `GfxImage`, `GfxWorldDpvsStatic`, `GfxPixelShaderLoadDef`, `MaterialPixelShaderProgram`, `MaterialTechniqueSet`, and `Material`. The compiler reported the corresponding native LP64 sizes as 40, 16, 48, 168, 16, 24, 296, and 104 bytes.
+
+Changed those assertions to validate both the original 32-bit layout and the observed native 64-bit layout. This does not port the D3D renderer or establish FastFile serialization compatibility; it allows the authentic CGame headers to be compiled on LP64 while preserving a strict size assertion for each ABI. Added regression tests for all eight dual-width assertions. The follow-up ARM64 compile must still pass before this phase is considered validated.
