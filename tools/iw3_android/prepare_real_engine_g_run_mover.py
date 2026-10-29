@@ -22,21 +22,15 @@ MOVER_TEAM_SIGNATURE = "void __cdecl G_MoverTeam(gentity_s *ent)"
 
 HEADER = """// Generated from the vendored KisakCOD g_mover.cpp. Do not edit.
 #include <universal/q_shared.h>
-#include <qcommon/mem_track.h>
-#include <server/sv_world.h>
-#include <server/sv_game.h>
-#include <server/sv_public.h>
-#include "game_public.h"
-#include "g_main.h"
-#include "g_local.h"
-#include "actor.h"
-#include "actor_orientation.h"
-#include "sentient.h"
+#include <game/game_public.h>
+#include <game/g_local.h>
 
-// G_MoverTeam remains an authentic unresolved service edge in this pass.
+// Keep this isolated source surface narrow. The broad server/client headers
+// pulled in by sv_game.h, sv_public.h, g_main.h and actor.h expose Win32-only
+// declarations (_iobuf and __declspec(align)) that G_RunMover does not need.
 void __cdecl G_MoverTeam(gentity_s *ent);
+void __cdecl SV_LinkEntity(gentity_s *gEnt);
 """
-
 
 def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict:
     engine = engine.resolve()
