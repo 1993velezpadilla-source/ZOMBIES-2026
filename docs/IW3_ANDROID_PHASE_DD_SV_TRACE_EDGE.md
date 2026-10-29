@@ -16,9 +16,11 @@ The ARM64 audit now requires the relocatable object to define `SV_SetupIgnoreEnt
 
 Focused Python regressions compare extracted function bodies against the original source, verify hashes, preserve source files byte-for-byte, and check the original collision call sequence.
 
-## Validation status
+## Validation status and correction
 
-The new gate is triggered by changes to the extractor, focused regression, workflow, and original server-world declarations/source. The code has been pushed; the current CI result must be inspected before calling this pass green.
+The first ARM64 attempt exposed seven compile errors: the extracted `SV_Trace` body uses `Vec3Sub`, `Vec3Scale`, and `Vec3Add`, which were not declared by the narrower audit include set. The source body itself was not changed. Added the authentic `universal/com_math.h` header to the generated translation unit and a regression that protects that include.
+
+The gate is triggered by changes to the extractor, focused regression, workflow, and original server-world declarations/source. The retry after this include correction must be inspected before calling this pass green.
 
 Expected marker after a successful ARM64 compile/link:
 
