@@ -766,7 +766,7 @@ extern "C" IW3_ANDROID_EXPORT int z2026_platform_usercmd_snapshot(
         case TouchRole::Look: break;
         }
     }
-    // Keep the diagnostic snapshot byte-for-byte consistent with the real
+    // Keep stance bits in the diagnostic snapshot consistent with the real
     // CL_CreateCmd touch hook: prone has priority over crouch/slide, while
     // sprint remains active when slide and prone are both held.
     if (want_prone) {
