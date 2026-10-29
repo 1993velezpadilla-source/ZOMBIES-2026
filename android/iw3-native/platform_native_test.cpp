@@ -432,6 +432,29 @@ int main() {
     assert(z2026_platform_touch_event(0, .08f, .88f, 0) == 0);
     z2026_platform_touch_reset();
 
+    // Slide + prone is a real multi-touch conflict: keep sprint, prefer prone,
+    // and clear crouch in both the snapshot and original-usercmd bridge.
+    assert(z2026_platform_touch_event(20, .27f, .88f, 1) == 0); // slide
+    assert(z2026_platform_touch_event(31, .90f, .30f, 1) == 0); // prone
+    int slide_prone_fields[10]{};
+    assert(z2026_platform_usercmd_snapshot(5002, slide_prone_fields, 10) == 0);
+    assert((slide_prone_fields[1] & BUTTON_SPRINT) != 0);
+    assert((slide_prone_fields[1] & BUTTON_PRONE) != 0);
+    assert((slide_prone_fields[1] & BUTTON_CROUCH) == 0);
+    usercmd_s slide_prone_command{};
+    float slide_prone_angles[3] = {};
+    z2026_platform_apply_touch_to_usercmd(&slide_prone_command, slide_prone_angles);
+    assert((slide_prone_command.buttons & BUTTON_SPRINT) != 0);
+    assert((slide_prone_command.buttons & BUTTON_PRONE) != 0);
+    assert((slide_prone_command.buttons & BUTTON_CROUCH) == 0);
+    assert(z2026_platform_touch_event(31, .90f, .30f, 0) == 0);
+    int slide_after_prone_fields[10]{};
+    assert(z2026_platform_usercmd_snapshot(5003, slide_after_prone_fields, 10) == 0);
+    assert((slide_after_prone_fields[1] & BUTTON_SPRINT) != 0);
+    assert((slide_after_prone_fields[1] & BUTTON_CROUCH) != 0);
+    assert((slide_after_prone_fields[1] & BUTTON_PRONE) == 0);
+    z2026_platform_touch_reset();
+
     // Prove the bridge mutates an actual original usercmd_s exactly where
     // CL_CreateCmd will call it, rather than merely returning a side snapshot.
     z2026_platform_touch_reset();
