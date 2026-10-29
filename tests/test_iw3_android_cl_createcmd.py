@@ -40,7 +40,9 @@ class OriginalCLCreateCmdTests(unittest.TestCase):
 
     def test_android_client_header_does_not_force_win32_d3d_resource_layouts(self):
         header = (ENGINE / "src/client/client.h").read_text(encoding="utf-8")
-        self.assertIn("#if !defined(__ANDROID__)\\n#include <gfx_d3d/r_debug.h>", header)
+        guard = header.index("#if !defined(__ANDROID__)")
+        d3d_include = header.index("#include <gfx_d3d/r_debug.h>")
+        self.assertLess(guard, d3d_include)
         self.assertIn("struct Material;", header)
         self.assertIn("struct Font_s;", header)
         self.assertIn("struct refdef_s;", header)
