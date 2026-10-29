@@ -746,6 +746,7 @@ extern "C" IW3_UNZIP_EXPORT int z2026_iw3_fs_global_load_policy_smoke() {
 }
 
 extern "C" IW3_UNZIP_EXPORT int z2026_iw3_unzip_smoke(const char *directory, int *iwd_mount_ok, int *iwd_searchpath_ok, int *iwd_directory_scan_ok, int *iwd_lookup_ok, int *iwd_fs_read_ok, int *iwd_fs_disk_read_ok) {
+    z2026_iw3_fs_read_init_diagnostic_state();
     if (iwd_mount_ok) *iwd_mount_ok = 0;
     if (iwd_searchpath_ok) *iwd_searchpath_ok = 0;
     if (iwd_directory_scan_ok) *iwd_directory_scan_ok = 0;
@@ -840,6 +841,7 @@ extern "C" IW3_UNZIP_EXPORT int z2026_iw3_unzip_smoke(const char *directory, int
 extern "C" IW3_UNZIP_EXPORT int z2026_iw3_validate_imported_iwds(
         const char *root, int *archive_count, int *entry_count,
         char *failed_path, std::size_t failed_path_capacity) {
+    z2026_iw3_fs_read_init_diagnostic_state();
     int validated_archives = 0;
     int validated_entries = 0;
     if (archive_count) *archive_count = 0;
@@ -906,6 +908,7 @@ extern "C" IW3_UNZIP_EXPORT int z2026_iw3_validate_imported_iwds(
 }
 
 extern "C" IW3_UNZIP_EXPORT int z2026_iw3_iwd_index_fixture_smoke(const char *directory) {
+    z2026_iw3_fs_read_init_diagnostic_state();
     if (!directory || directory[0] != '/' || std::strlen(directory) > 700 ||
         z2026_platform_set_data_root(directory) != 0) return 0;
     const bool ok = run_imported_iwd_index_fixture(directory);

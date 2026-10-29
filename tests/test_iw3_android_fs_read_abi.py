@@ -52,6 +52,27 @@ class OriginalFSReadAbiGateTests(unittest.TestCase):
         self.assertIn('"original_FS_GameDirDomainFunc_uses_native_width_string_member": True', generator)
         self.assertIn('"game_directory_domain_validator_runtime_executed": False', generator)
 
+    def test_diagnostic_binds_canonical_filesystem_state_without_duplicate_definitions(self):
+        adapter = (ROOT / "android/iw3-native/iw3_android_fs_read_io.cpp").read_text(encoding="utf-8")
+        lookup_generator = (ROOT / "tools/iw3_android/prepare_real_engine_iwd_lookup.py").read_text(encoding="utf-8")
+        lookup_header = (ROOT / "android/iw3-native/iw3_android_iwd_lookup_compat.h").read_text(encoding="utf-8")
+        smoke = (ROOT / "android/iw3-native/iw3_unzip_native_smoke.cpp").read_text(encoding="utf-8")
+        state = (ROOT / "third_party/KisakCOD/src/universal/com_files_state.cpp").read_text(encoding="utf-8")
+        for symbol in (
+            "fs_debug", "fs_restrict", "fs_ignoreLocalized", "fs_copyfiles",
+            "fs_cdpath", "fs_basepath", "fs_numServerIwds", "fs_serverIwds",
+            "fs_fakeChkSum",
+        ):
+            with self.subTest(symbol=symbol):
+                self.assertNotRegex(adapter, rf"(?m)^(?:const dvar_s \\*|int ){symbol}(?:\\[1024\\])?\\s*=")
+                self.assertNotRegex(lookup_generator, rf"(?m)^(?:const dvar_s \\*|int ){symbol}\\s*=")
+        self.assertIn("extern const dvar_s *fs_ignoreLocalized;", lookup_header)
+        self.assertIn("fs_ignoreLocalized", state)
+        self.assertIn("std::call_once(g_fs_diagnostic_state_once", adapter)
+        self.assertIn("fs_ignoreLocalized = &g_z2026_fs_ignore_localized;", adapter)
+        self.assertEqual(smoke.count("z2026_iw3_fs_read_init_diagnostic_state();"), 3)
+        self.assertNotIn("const dvar_s *fs_ignoreLocalized =", lookup_generator)
+
 
 if __name__ == "__main__":
     unittest.main()

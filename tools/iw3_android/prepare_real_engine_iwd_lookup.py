@@ -37,10 +37,9 @@ HEADER = (
     '#define FS_FileOpenReadBinary z2026_iw3_lookup_file_open_read_binary\n'
     '#define FS_FileClose z2026_iw3_lookup_file_close_binary\n'
 )
-GLOBALS = (
-    "static dvar_s g_z2026_fs_ignore_localized{};\n"
-    "const dvar_s *fs_ignoreLocalized = &g_z2026_fs_ignore_localized;\n"
-)
+# The original fs_ignoreLocalized pointer is declared by the compatibility header
+# and owned by com_files_state.cpp; diagnostic setup binds it to a fixture dvar.
+GLOBALS = ""
 PREFIX_START = "    if (!filename)"
 PREFIX_END = "    *file = FS_HandleForFile(thread);"
 PATH_HELPER_SIGNATURES = (
@@ -175,6 +174,8 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
         "original_FS_Read_ported": False,
         "fastfile_map_loading_proven": False,
         "gameplay_proven": False,
+        "filesystem_global_state_owned_by_com_files_state_cpp": True,
+        "lookup_dvar_pointer_is_external_shared_engine_state": True,
         "playable_apk": False,
     }
     if report_path is not None:

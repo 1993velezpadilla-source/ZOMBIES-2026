@@ -17,3 +17,10 @@ CI is triggered by the source, CMake and regression-test changes. The intended s
 ## Remaining gates
 
 `FS_Startup()/FS_InitFilesystem()` are not yet invoked by the Android Activity. The real user-owned FastFiles and map have not been loaded by the application, the original renderer is not active, and touch commands are not driving the original live frame loop. No physical ARM64 gameplay is claimed. Diagnostic JNI packages and relocatable audit objects are not playable APKs. PR #4 must remain open and unmerged.
+
+
+## Follow-up from the first link attempt
+
+The first host link after moving the globals exposed duplicate diagnostic definitions in `iw3_android_fs_read_io.cpp` (`fs_fakeChkSum`, `fs_serverIwds`, `fs_numServerIwds`, and several dvar pointers) and in the generated lookup slice (`fs_ignoreLocalized`). These were test-only copies, so keeping them would have split the engine state again.
+
+The follow-up removes those definitions. A one-time diagnostic initializer now binds the canonical `com_files_state.cpp` globals to fixture-only dvar objects before the smoke tests. It does not invoke engine startup or initialize a real game. The new regression test guards against reintroducing the duplicate owners. CI must still pass before this correction is considered validated.

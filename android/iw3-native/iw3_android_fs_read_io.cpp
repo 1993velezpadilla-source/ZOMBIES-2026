@@ -1,28 +1,60 @@
 #include "iw3_android_fs_read_compat.h"
+#include <universal/com_files.h>
 
 #include <cstdlib>
 #include <climits>
 #include <cstdio>
+#include <mutex>
 
 // fsh is defined once by the shared original-engine source
 // com_files_handle_table.cpp. This file supplies only narrow platform services.
 
 namespace {
+std::once_flag g_fs_diagnostic_state_once;
+dvar_s g_z2026_fs_homepath{};
 dvar_s g_z2026_fs_debug{};
 dvar_s g_z2026_fs_restrict{};
+dvar_s g_z2026_fs_ignore_localized{};
 dvar_s g_z2026_fs_copyfiles{};
 dvar_s g_z2026_fs_cdpath{};
 dvar_s g_z2026_fs_basepath{};
+dvar_s g_z2026_fs_game_dir{};
+dvar_s g_z2026_fs_basegame{};
+dvar_s g_z2026_fs_remote_pc_directory{};
+dvar_s g_z2026_fs_remote_pc_name{};
 }
 
-const dvar_s *fs_debug = &g_z2026_fs_debug;
-const dvar_s *fs_restrict = &g_z2026_fs_restrict;
-const dvar_s *fs_copyfiles = &g_z2026_fs_copyfiles;
-const dvar_s *fs_cdpath = &g_z2026_fs_cdpath;
-const dvar_s *fs_basepath = &g_z2026_fs_basepath;
-int fs_numServerIwds = 0;
-int fs_serverIwds[1024]{};
-int fs_fakeChkSum = 0;
+// Bind the existing canonical engine globals to safe diagnostic dvars once.
+// This is fixture setup only; it does not register engine dvars or run FS_Startup.
+extern "C" void z2026_iw3_fs_read_init_diagnostic_state() {
+    std::call_once(g_fs_diagnostic_state_once, [] {
+        g_z2026_fs_homepath.current.string = "";
+        g_z2026_fs_basepath.current.string = "";
+        g_z2026_fs_cdpath.current.string = "";
+        g_z2026_fs_game_dir.current.string = "";
+        g_z2026_fs_basegame.current.string = "";
+        g_z2026_fs_remote_pc_directory.current.string = "";
+        g_z2026_fs_remote_pc_name.current.string = "";
+        g_z2026_fs_debug.current.integer = 0;
+        g_z2026_fs_restrict.current.enabled = false;
+        g_z2026_fs_ignore_localized.current.enabled = false;
+        g_z2026_fs_copyfiles.current.enabled = false;
+
+        fs_homepath = &g_z2026_fs_homepath;
+        fs_debug = &g_z2026_fs_debug;
+        fs_restrict = &g_z2026_fs_restrict;
+        fs_ignoreLocalized = &g_z2026_fs_ignore_localized;
+        fs_copyfiles = &g_z2026_fs_copyfiles;
+        fs_cdpath = &g_z2026_fs_cdpath;
+        fs_basepath = &g_z2026_fs_basepath;
+        fs_gameDirVar = &g_z2026_fs_game_dir;
+        fs_basegame = &g_z2026_fs_basegame;
+        fs_remotePCDirectory = &g_z2026_fs_remote_pc_directory;
+        fs_remotePCName = &g_z2026_fs_remote_pc_name;
+        fs_numServerIwds = 0;
+        fs_fakeChkSum = 0;
+    });
+}
 
 // The fixture runs only the main-thread file slot. These service adapters fail
 // closed for unsupported database/fastfile scheduling and copy-file behavior.
