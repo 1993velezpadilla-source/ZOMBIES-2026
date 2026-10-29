@@ -35,6 +35,7 @@ grep -F 'IW3_JNI_IWD_GAME_DIRECTORY_PASS' "$RUNNER_TEMP/iw3-emulator-native-logc
 grep -F 'IW3_JNI_IWD_FS_READ_PASS' "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
 grep -F 'JNI_NATIVE_ENGINE_PROBE_PASS' "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
 grep -F 'IW3_JNI_ACTIVITY_STARTED PASS' "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
+grep -F 'IW3_JNI_SPARSE_POINTER_ID_31_PASS' "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
 
 # Select an actual visible app view. UIAutomator bounds already use the active
 # display coordinate space; do not scale them by the largest node in a modal
