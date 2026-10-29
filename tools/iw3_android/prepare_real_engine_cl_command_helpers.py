@@ -31,6 +31,7 @@ HEADER = (
     '#include "cl_input.h"\n'
     '#include <qcommon/msg.h>\n'
     '#include <universal/q_shared.h>\n'
+    '#include <universal/com_math.h>\n'
     'extern kbutton_t kb[29];\n'
 )
 
