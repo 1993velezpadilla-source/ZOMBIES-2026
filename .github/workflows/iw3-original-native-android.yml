@@ -1017,11 +1017,44 @@ jobs:
               exit 1
             fi
           done
-          # These remain authentic downstream aim-assist dependencies; do not stub them.
-          for symbol in AimAssist_UpdateTweakables AimAssist_UpdateAdsLerp AimAssist_ApplyAutoMelee AimAssist_ApplyMeleeCharge MyAssertHandler; do
-            grep -F "$symbol" "$RUNNER_TEMP/iw3-client-input-with-state-undefined.txt"
+          # Resolve two more exact upstream aim-assist providers. The dvar pointers
+          # are source definitions only; registration/runtime initialization is not claimed.
+          tweak_source="$RUNNER_TEMP/iw3-source/iw3_aimassist_tweakable_providers.cpp"
+          tweak_report="$RUNNER_TEMP/iw3-original-aimassist-tweakable-providers.json"
+          tweak_object="$RUNNER_TEMP/iw3-original-aimassist-tweakable-providers-arm64.o"
+          tweak_combined="$RUNNER_TEMP/iw3-original-client-input-with-aimassist-tweakables-arm64.o"
+          python3 tools/iw3_android/prepare_real_engine_aimassist_tweakable_providers.py \
+            --engine third_party/KisakCOD \
+            --output "$tweak_source" \
+            --report "$tweak_report"
+          "$ndk/aarch64-linux-android26-clang++" "${common_flags[@]}" -c "$tweak_source" -o "$tweak_object"
+          "$ndk/llvm-readelf" -h "$tweak_object" | tee "$RUNNER_TEMP/iw3-aimassist-tweakables-arm64-elf.txt"
+          grep -F 'Class:                             ELF64' "$RUNNER_TEMP/iw3-aimassist-tweakables-arm64-elf.txt"
+          grep -F 'Machine:                           AArch64' "$RUNNER_TEMP/iw3-aimassist-tweakables-arm64-elf.txt"
+          "$ndk/llvm-nm" -C --defined-only "$tweak_object" | tee "$RUNNER_TEMP/iw3-aimassist-tweakables-defined.txt"
+          "$ndk/llvm-nm" -C -u "$tweak_object" | tee "$RUNNER_TEMP/iw3-aimassist-tweakables-undefined.txt"
+          for symbol in AimAssist_UpdateTweakables AimAssist_UpdateAdsLerp aim_slowdown_region_width aim_slowdown_region_height aim_autoaim_region_width aim_autoaim_region_height aim_automelee_region_width aim_automelee_region_height aim_lockon_region_width aim_lockon_region_height; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-aimassist-tweakables-defined.txt"
+            if grep -F "$symbol" "$RUNNER_TEMP/iw3-aimassist-tweakables-undefined.txt"; then
+              echo "Original aim-assist tweakable provider unexpectedly unresolved: $symbol" >&2
+              exit 1
+            fi
           done
-          echo "IW3_ORIGINAL_CLIENT_AIMASSIST_AND_PREDICTED_STATE_EDGE_RESOLVED_AARCH64_GREEN"
+          "$ndk/ld.lld" -m aarch64linux -r "$combined" "$tweak_object" -o "$tweak_combined"
+          "$ndk/llvm-nm" -C --defined-only "$tweak_combined" | tee "$RUNNER_TEMP/iw3-client-input-with-aimassist-tweakables-defined.txt"
+          "$ndk/llvm-nm" -C -u "$tweak_combined" | tee "$RUNNER_TEMP/iw3-client-input-with-aimassist-tweakables-undefined.txt"
+          for symbol in AimAssist_UpdateTweakables AimAssist_UpdateAdsLerp; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-client-input-with-aimassist-tweakables-defined.txt"
+            if grep -F "$symbol" "$RUNNER_TEMP/iw3-client-input-with-aimassist-tweakables-undefined.txt"; then
+              echo "Original client aim-assist tweakable edge failed to resolve: $symbol" >&2
+              exit 1
+            fi
+          done
+          # The rest are genuine engine dependencies; they must remain visible.
+          for symbol in AimAssist_ApplyAutoMelee AimAssist_ApplyMeleeCharge MyAssertHandler scrPlaceView; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-client-input-with-aimassist-tweakables-undefined.txt"
+          done
+          echo "IW3_ORIGINAL_CLIENT_AIMASSIST_TWEAKABLES_EDGE_RESOLVED_AARCH64_GREEN"
           echo "IW3_CLIENT_STATE_RUNTIME_INITIALIZED=false"
           echo "IW3_CLIENT_RUNTIME_LINKED=false"
           echo "IW3_REAL_MAP_LOADED=false"
@@ -1041,6 +1074,14 @@ jobs:
             ${{ runner.temp }}/iw3-original-client-input-with-state-arm64.o
             ${{ runner.temp }}/iw3-client-input-with-state-defined.txt
             ${{ runner.temp }}/iw3-client-input-with-state-undefined.txt
+            ${{ runner.temp }}/iw3-original-aimassist-tweakable-providers.json
+            ${{ runner.temp }}/iw3-original-aimassist-tweakable-providers-arm64.o
+            ${{ runner.temp }}/iw3-aimassist-tweakables-arm64-elf.txt
+            ${{ runner.temp }}/iw3-aimassist-tweakables-defined.txt
+            ${{ runner.temp }}/iw3-aimassist-tweakables-undefined.txt
+            ${{ runner.temp }}/iw3-original-client-input-with-aimassist-tweakables-arm64.o
+            ${{ runner.temp }}/iw3-client-input-with-aimassist-tweakables-defined.txt
+            ${{ runner.temp }}/iw3-client-input-with-aimassist-tweakables-undefined.txt
           retention-days: 30
 
       - name: Attach original client input helper evidence (NOT APK)
