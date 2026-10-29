@@ -90,9 +90,9 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
     key_body = function_source(sp_source, KEY_SIGNATURE)
     helper_body = function_source(sp_source, BUTTON_HELPER_SIGNATURE)
     buttons_body = function_source(sp_source, BUTTONS_SIGNATURE)
-    temp_stance_body = function_source(sp_source, TEMP_STANCE_SIGNATURE)
-    stance_update_body = function_source(sp_source, STANCE_UPDATE_SIGNATURE)
-    add_stance_body = function_source(sp_source, ADD_STANCE_SIGNATURE)
+    temp_stance_body = function_source(source, TEMP_STANCE_SIGNATURE)
+    stance_update_body = function_source(source, STANCE_UPDATE_SIGNATURE)
+    add_stance_body = function_source(source, ADD_STANCE_SIGNATURE)
 
     macro_start = source.find(MACRO_BEGIN)
     macro_end_start = source.find(MACRO_END, macro_start)
