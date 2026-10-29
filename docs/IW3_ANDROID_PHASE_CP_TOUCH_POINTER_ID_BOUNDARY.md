@@ -38,9 +38,14 @@ valid IDs. This remains diagnostic input plumbing, not a live game command.
 ## Validation boundary
 
 The regression is included in the repository's `test_iw3_android_*.py` suite.
-CI for the new commits must pass before this change is treated as validated.
-The native host CTest that exercises pointer ID 31 remains part of the existing
-Android portability workflow.
+Validation on code/documentation head `41fa9aa` (2026-10-29):
+
+- [Source preflight](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40901939379): PASS.
+- [Original-source Android ARM64 audit](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40901939625): PASS; the log reports 269 Python tests passed and retains explicit `IW3_CLIENT_RUNTIME_LINKED=false`, `IW3_TOUCH_ADAPTER_RUNTIME_INVOKED=false`, `IW3_REAL_MAP_LOADED=false`, and `IW3_PLAYABLE_APK=false` markers.
+- [JNI diagnostic build/signing](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40901939360): PASS; artifact is a signed diagnostic package, not a game.
+- [Android emulator runtime proof](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40901939446): PASS on x86_64. Logcat contains `IW3_JNI_SPARSE_POINTER_ID_31_PASS down=1 up=0`, `IW3_JNI_SLIDE_CHORD_USERCMD_PASS`, and `IW3_ORIGINAL_CPP_EXECUTED_INSIDE_ANDROID_EMULATOR_GREEN`. [Evidence artifact 12908793878](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40901939446/artifacts/12908793878) contains the emulator logs/screenshots.
+
+The native host CTest also exercises pointer ID 31. The emulator run is diagnostic only and does not prove physical ARM64 execution, a real map load, rendering, or gameplay.
 
 No renderer, real map/FastFile startup, original active client loop, weapon/actor
 simulation, or physical ARM64 gameplay is claimed. The JNI APK remains
