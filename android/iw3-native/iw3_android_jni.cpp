@@ -8,6 +8,7 @@
 #include <android/log.h>
 #include <cstdio>
 #include <atomic>
+#include <mutex>
 #include <cstdint>
 #include <cstring>
 #include "iw3_android_platform.h"
@@ -31,6 +32,9 @@ extern "C" int z2026_iw3_math_source_abi_version();
 
 namespace {
 std::atomic<int> g_lifecycle_state{0};
+// Imported-IWD validation mutates original FS globals and file handles. Serialize
+// it with the startup diagnostic until a real engine-owned FS thread exists.
+std::mutex g_engine_diagnostic_mutex;
 }
 
 #define IW3_JNI_EXPORT extern "C" JNIEXPORT
@@ -41,7 +45,11 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeSetDataRoot(
     if (!absolutePath) return -1;
     const char *path = env->GetStringUTFChars(absolutePath, nullptr);
     if (!path) return -1;
-    const int rc = z2026_platform_set_data_root(path);
+    int rc = -1;
+    {
+        std::lock_guard<std::mutex> lock(g_engine_diagnostic_mutex);
+        rc = z2026_platform_set_data_root(path);
+    }
     env->ReleaseStringUTFChars(absolutePath, path);
     __android_log_print(rc == 0 ? ANDROID_LOG_INFO : ANDROID_LOG_ERROR,
                         "IW3NativeGate", "IW3_JNI_DATA_ROOT_%s",
@@ -59,14 +67,24 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeValidateImportedIwds(
     int archives = 0;
     int entries = 0;
     char failed[512]{};
-    const int rc = z2026_iw3_validate_imported_iwds(
-        root, &archives, &entries, failed, sizeof(failed));
+    int rc = 0;
+    {
+        std::lock_guard<std::mutex> lock(g_engine_diagnostic_mutex);
+        rc = z2026_iw3_validate_imported_iwds(
+            root, &archives, &entries, failed, sizeof(failed));
+    }
     env->ReleaseStringUTFChars(absoluteRoot, root);
     char report[768]{};
     std::snprintf(report, sizeof(report),
-                  "IMPORTED_IWD_INDEX_%s archives=%d entries=%d failed=%s",
+                  "IMPORTED_IWD_INDEX_AND_FS_READ_%s archives=%d entries=%d failed=%s",
                   rc ? "PASS" : "FAIL", archives, entries,
                   failed[0] ? failed : "none");
+    __android_log_print(rc ? ANDROID_LOG_INFO : ANDROID_LOG_ERROR,
+                        "IW3NativeGate", "IW3_JNI_IMPORTED_IWD_INDEX_AND_FS_READ_%s archives=%d entries=%d failed=%s",
+                        rc ? "PASS" : "FAIL", archives, entries,
+                        failed[0] ? failed : "none");
+    // Keep the legacy index marker for existing device-probe dashboards; the
+    // stronger report above now also requires an original FS open/read/close.
     __android_log_print(rc ? ANDROID_LOG_INFO : ANDROID_LOG_ERROR,
                         "IW3NativeGate", "IW3_JNI_IMPORTED_IWD_INDEX_%s archives=%d entries=%d failed=%s",
                         rc ? "PASS" : "FAIL", archives, entries,
@@ -77,6 +95,7 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeValidateImportedIwds(
 IW3_JNI_EXPORT jstring JNICALL
 Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(
         JNIEnv *env, jclass, jstring writableDirectory) {
+    std::lock_guard<std::mutex> engine_lock(g_engine_diagnostic_mutex);
     int unzip_ok = 0;
     int iwd_mount_ok = 0;
     int iwd_searchpath_ok = 0;
