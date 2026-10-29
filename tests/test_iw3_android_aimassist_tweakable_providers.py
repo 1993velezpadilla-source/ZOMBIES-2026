@@ -52,6 +52,20 @@ class OriginalAimAssistTweakableProviderTests(unittest.TestCase):
 
         self.assertEqual(source_path.read_bytes(), original)
 
+    def test_aa_glob_array_is_referenced_from_the_shared_original_state(self):
+        with TemporaryDirectory() as temp:
+            output = Path(temp) / "iw3_aimassist_tweakables.cpp"
+            report = prepare(ENGINE, output)
+            staged = output.read_text(encoding="utf-8")
+            self.assertIn("extern AimAssistGlobals aaGlobArray[1];", staged)
+            self.assertNotIn("AimAssistGlobals aaGlobArray[1] = { 0 };", staged)
+            self.assertTrue(report["aaGlobArray_declared_external"])
+            self.assertTrue(report["aaGlobArray_definition_owned_by_client_state_provider"])
+
+        workflow = (ROOT / ".github/workflows/iw3-original-native-android.yml").read_text(encoding="utf-8")
+        self.assertIn("grep -F 'aaGlobArray' \"$RUNNER_TEMP/iw3-aimassist-tweakables-undefined.txt\"", workflow)
+        self.assertIn("AimAssist_UpdateTweakables AimAssist_UpdateAdsLerp aaGlobArray", workflow)
+
     def test_generator_refuses_to_overwrite_vendored_engine_source(self):
         with self.assertRaises(ValueError):
             prepare(ENGINE, ENGINE / SOURCE)
