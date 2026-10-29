@@ -50,6 +50,24 @@ class ImportedIwdValidationTests(unittest.TestCase):
         self.assertIn("Z_Free(iwd->buildBuffer, 3)", body)
         self.assertIn("fs_iwdFileCount = old_count", body)
         self.assertIn("fs_checksumFeed = old_feed", body)
+        self.assertIn("if (ok) ok = read_first_indexed_member_via_original_fs(iwd);", body)
+
+    def test_imported_iwd_validation_reads_via_original_searchpath_and_handle_lifecycle(self):
+        source = SMOKE.read_text(encoding="utf-8")
+        body = function_body(source, "bool read_first_indexed_member_via_original_fs(")
+        for marker in (
+            "FS_AddSearchPath(search)",
+            "FS_FOpenFileReadForThread(",
+            "FS_Read(sample.data(), requested, handle)",
+            "FS_FCloseFile(handle)",
+            "fsh[handle].zipFile != iwd",
+            "fs_searchpaths = previous_searchpaths",
+            "iwd->hasOpenFile == 0",
+        ):
+            self.assertIn(marker, body)
+        self.assertIn("IMPORTED_IWD_INDEX_AND_FS_READ_%s", JNI.read_text(encoding="utf-8"))
+        self.assertIn("IW3_JNI_IMPORTED_IWD_INDEX_AND_FS_READ_%s", JNI.read_text(encoding="utf-8"))
+        self.assertIn("IW3_PLAYABLE_APK=false", NATIVE_WORKFLOW.read_text(encoding="utf-8"))
 
     def test_original_loader_rejects_global_count_overflow_before_allocation(self):
         source = MOUNT_SOURCE.read_text(encoding="utf-8")
@@ -100,7 +118,9 @@ class ImportedIwdValidationTests(unittest.TestCase):
         self.assertIn("EngineBridge.nativeValidateImportedIwds(", activity)
         self.assertIn("Original FS/FastFile/map loading is still pending.", activity)
         self.assertIn("nativeValidateImportedIwds(String appPrivateRoot)", bridge)
-        self.assertIn("does not mount the game searchpath or load a map", bridge)
+        self.assertIn("does not initialize", bridge)
+        self.assertIn("persistent game searchpath", bridge)
+        self.assertIn("Original FS/FastFile/map loading is still pending.", activity)
         jni = JNI.read_text(encoding="utf-8")
         report_body = function_body(
             jni, "Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(")
