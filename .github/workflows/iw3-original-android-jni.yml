@@ -57,6 +57,8 @@ jobs:
           javac -d "$test_out" \
             android/iw3-native/android_app/app/src/main/java/org/z2026/iw3nativeprobe/FastFileHeader.java \
             tests/java/org/z2026/iw3nativeprobe/FastFileHeaderTest.java
+          c++ -std=c++20 -Wall -Wextra -Werror -I third_party/KisakCOD/src/database android/iw3-native/db_fastfile_header_native_test.cpp -o "$test_out/db_fastfile_header_native_test"
+          "$test_out/db_fastfile_header_native_test"
           java -cp "$test_out" org.z2026.iw3nativeprobe.FastFileHeaderTest
 
       - name: Pin Android SDK and NDK directly
@@ -79,6 +81,16 @@ jobs:
           echo "ANDROID_SDK_ROOT=$sdk" >>"$GITHUB_ENV"
           echo "$sdk/platform-tools" >>"$GITHUB_PATH"
 
+      - name: Cross-compile authentic FastFile header parser for Android ARM64
+        shell: bash
+        run: |
+          set -euo pipefail
+          clangpp="$ANDROID_HOME/ndk/${NDK_VER}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android35-clang++"
+          readelf="$ANDROID_HOME/ndk/${NDK_VER}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
+          test -x "$clangpp"
+          "$clangpp" -std=c++20 -Wall -Wextra -Werror -I third_party/KisakCOD/src/database -c android/iw3-native/db_fastfile_header_native_test.cpp -o "$RUNNER_TEMP/db_fastfile_header_aarch64.o"
+          "$readelf" -h "$RUNNER_TEMP/db_fastfile_header_aarch64.o" | grep -q "AArch64"
+          echo "IW3_FASTFILE_HEADER_AARCH64_OBJECT_PASS"
       - name: Validate original source and generate unchanged IW3 C++ with portable includes
         shell: bash
         run: |

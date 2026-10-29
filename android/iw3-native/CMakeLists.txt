@@ -659,8 +659,25 @@ if(ANDROID)
         message(FATAL_ERROR "IW3 Android native gate requires 64-bit pointers")
     endif()
     message(STATUS "IW3 original code native Android JNI enabled")
+    # Compile the same portable FastFile parser probe as an AArch64 object.
+    # It is intentionally not linked into the diagnostic APK or called a loader.
+    add_library(iw3_fastfile_header_aarch64_compile OBJECT
+        "${CMAKE_CURRENT_SOURCE_DIR}/db_fastfile_header_native_test.cpp")
+    target_include_directories(iw3_fastfile_header_aarch64_compile PRIVATE
+        "${IW3_ENGINE_SOURCE_ROOT}/database")
+    target_compile_options(iw3_fastfile_header_aarch64_compile PRIVATE
+        -Wall -Wextra -Werror)
 else()
     enable_testing()
+
+    add_executable(iw3_fastfile_header_native_test
+        "${CMAKE_CURRENT_SOURCE_DIR}/db_fastfile_header_native_test.cpp")
+    target_include_directories(iw3_fastfile_header_native_test PRIVATE
+        "${IW3_ENGINE_SOURCE_ROOT}/database")
+    target_compile_options(iw3_fastfile_header_native_test PRIVATE
+        -UNDEBUG -Wall -Wextra -Werror)
+    add_test(NAME iw3_original_fastfile_header_alignment
+             COMMAND iw3_fastfile_header_native_test)
 
     if(IW3_EXTRACTED_COM_PRINT_WARNING)
         add_executable(iw3_com_print_warning_host_test

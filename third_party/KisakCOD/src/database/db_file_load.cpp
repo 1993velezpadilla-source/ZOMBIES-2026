@@ -1,5 +1,6 @@
 #include <universal/q_shared.h>
 #include "database.h"
+#include "db_fastfile_header.h"
 
 #include <qcommon/threads.h>
 #include <win32/win_local.h>
@@ -222,7 +223,6 @@ void __cdecl DB_LoadXFileInternal()
     XFile file; // [esp+14h] [ebp-40h] BYREF
     int32_t fileSize; // [esp+40h] [ebp-14h]
     const char *failureReason; // [esp+44h] [ebp-10h]
-    char magic[8]; // [esp+48h] [ebp-Ch] BYREF
 
     iassert(g_load.f);
     DB_ReadXFileStage();
@@ -230,23 +230,38 @@ void __cdecl DB_LoadXFileInternal()
         Com_Error(ERR_DROP, "Fastfile for zone '%s' is empty.", g_load.filename);
     DB_WaitXFileStage();
     DB_ReadXFileStage();
-    if (g_load.stream.avail_in < 8)
-        MyAssertHandler(".\\database\\db_file_load.cpp", 598, 0, "%s", "sizeof( magic ) <= g_load.stream.avail_in");
-    *(uint32_t *)magic = *(uint32_t *)g_load.stream.next_in;
-    *(uint32_t *)&magic[4] = *((uint32_t *)g_load.stream.next_in + 1);
-    g_load.stream.next_in += 8;
-    g_load.stream.avail_in -= 8;
-    if (memcmp(magic, "IWff0100", 8u) && memcmp(magic, "IWffu100", 8u))
+    DBFastFileHeader parsedHeader = {};
+    const DBFastFileHeaderStatus headerStatus = DB_ParseFastFileHeader(
+        reinterpret_cast<const uint8_t *>(g_load.stream.next_in),
+        static_cast<size_t>(g_load.stream.avail_in),
+        &parsedHeader);
+
+    if (headerStatus == DBFastFileHeaderStatus::TruncatedMagic)
     {
+        MyAssertHandler(".\\database\\db_file_load.cpp", 598, 0, "%s", "sizeof( magic ) <= g_load.stream.avail_in");
+        return;
+    }
+    if (headerStatus == DBFastFileHeaderStatus::InvalidMagic)
+    {
+        g_load.stream.next_in += parsedHeader.consumed;
+        g_load.stream.avail_in -= static_cast<uint32_t>(parsedHeader.consumed);
         KISAK_NULLSUB();
         Com_Error(ERR_DROP, "Fastfile for zone '%s' is corrupt or unreadable.", g_load.filename);
+        return;
     }
-    iassert(sizeof(version) <= g_load.stream.avail_in);
-    version = *(uint32_t *)g_load.stream.next_in;
-    g_load.stream.next_in += 4;
-    g_load.stream.avail_in -= 4;
-    if (version != 5)
+    if (headerStatus == DBFastFileHeaderStatus::TruncatedVersion)
     {
+        g_load.stream.next_in += parsedHeader.consumed;
+        g_load.stream.avail_in -= static_cast<uint32_t>(parsedHeader.consumed);
+        MyAssertHandler(".\\database\\db_file_load.cpp", 608, 0, "%s", "sizeof(version) <= g_load.stream.avail_in");
+        return;
+    }
+
+    version = parsedHeader.version;
+    if (headerStatus == DBFastFileHeaderStatus::UnsupportedVersion)
+    {
+        g_load.stream.next_in += parsedHeader.consumed;
+        g_load.stream.avail_in -= static_cast<uint32_t>(parsedHeader.consumed);
         if (version >= 5)
             Com_Error(
                 ERR_DROP,
@@ -261,8 +276,17 @@ void __cdecl DB_LoadXFileInternal()
                 g_load.filename,
                 version,
                 5);
+        return;
     }
-    fileIsSecure = memcmp(magic, "IWffu100", 8u) != 0;
+    if (headerStatus != DBFastFileHeaderStatus::Ok)
+    {
+        MyAssertHandler(".\\database\\db_file_load.cpp", 610, 0, "%s", "headerStatus == DBFastFileHeaderStatus::Ok");
+        return;
+    }
+
+    fileIsSecure = parsedHeader.secure;
+    g_load.stream.next_in += parsedHeader.consumed;
+    g_load.stream.avail_in -= static_cast<uint32_t>(parsedHeader.consumed);
     err = DB_AuthLoad_InflateInit(&g_load.stream, fileIsSecure);
     failureReason = 0;
     if (fileIsSecure)
