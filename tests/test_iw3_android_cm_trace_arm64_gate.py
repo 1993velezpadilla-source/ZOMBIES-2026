@@ -34,6 +34,8 @@ class OriginalCollisionTraceArm64GateTests(unittest.TestCase):
                 self.assertIn(name, collision)
         self.assertIn("struct alignas(16) cbrush_t", collision)
         self.assertIn("static_assert(alignof(cbrush_t) == 16", collision)
+        self.assertNotIn("BOOL side;", source)
+        self.assertIn("bool side;", source)
         self.assertIn("enum DynEntityDrawType", qcommon)
         self.assertIn("DYNENT_DRAW_MODEL", qcommon)
         self.assertIn("DYNENT_DRAW_BRUSH", qcommon)
