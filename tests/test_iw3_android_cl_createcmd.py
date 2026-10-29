@@ -46,6 +46,11 @@ class OriginalCLCreateCmdTests(unittest.TestCase):
         self.assertIn("struct Material;", header)
         self.assertIn("struct Font_s;", header)
         self.assertIn("struct refdef_s;", header)
+        self.assertIn("struct clientDebugStringInfo_t {", header)
+        self.assertIn("struct clientDebugLineInfo_t {", header)
+        self.assertIn("struct clientDebug_t {", header)
+        self.assertIn("clientDebugStringInfo_t svStringsBuffer;", header)
+        self.assertIn("clientDebugLineInfo_t svLinesBuffer;", header)
 
     def test_arm64_workflow_compiles_and_audits_the_original_command_builder(self):
         workflow = (ROOT / ".github/workflows/iw3-original-native-android.yml").read_text(encoding="utf-8")
