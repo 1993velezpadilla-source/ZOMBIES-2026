@@ -899,6 +899,9 @@ jobs:
           helper_source="$RUNNER_TEMP/iw3-source/iw3_cl_command_helpers.cpp"
           helper_report="$RUNNER_TEMP/iw3-original-cl-command-helpers.json"
           helper_object="$RUNNER_TEMP/iw3-original-cl-command-helpers-arm64.o"
+          clamp_source="$RUNNER_TEMP/iw3-source/iw3_clamp_char.cpp"
+          clamp_report="$RUNNER_TEMP/iw3-original-clamp-char.json"
+          clamp_object="$RUNNER_TEMP/iw3-original-clamp-char-arm64.o"
           input_object="$RUNNER_TEMP/iw3-original-client-input-plus-touch-arm64.o"
           combined="$RUNNER_TEMP/iw3-original-client-input-touch-and-keyboard-arm64.o"
           test -s "$input_object"
@@ -906,6 +909,10 @@ jobs:
             --engine third_party/KisakCOD \
             --output "$helper_source" \
             --report "$helper_report"
+          python3 tools/iw3_android/prepare_real_engine_clamp_char.py \
+            --engine third_party/KisakCOD \
+            --output "$clamp_source" \
+            --report "$clamp_report"
 
           common_flags=(
             -std=c++20 -DKISAK_SP=1 -Wall -Wextra -UNDEBUG -O2
@@ -917,6 +924,12 @@ jobs:
             -I"$GITHUB_WORKSPACE/third_party/KisakCOD/deps"
           )
           "$ndk/aarch64-linux-android26-clang++" "${common_flags[@]}" -c "$helper_source" -o "$helper_object"
+          "$ndk/aarch64-linux-android26-clang++" "${common_flags[@]}" -c "$clamp_source" -o "$clamp_object"
+          "$ndk/llvm-readelf" -h "$clamp_object" | tee "$RUNNER_TEMP/iw3-clamp-char-arm64-elf.txt"
+          grep -F 'Class:                             ELF64' "$RUNNER_TEMP/iw3-clamp-char-arm64-elf.txt"
+          grep -F 'Machine:                           AArch64' "$RUNNER_TEMP/iw3-clamp-char-arm64-elf.txt"
+          "$ndk/llvm-nm" -C --defined-only "$clamp_object" | tee "$RUNNER_TEMP/iw3-clamp-char-defined.txt"
+          grep -F 'ClampChar(int)' "$RUNNER_TEMP/iw3-clamp-char-defined.txt"
           "$ndk/llvm-readelf" -h "$helper_object" | tee "$RUNNER_TEMP/iw3-cl-command-helpers-arm64-elf.txt"
           grep -F 'Class:                             ELF64' "$RUNNER_TEMP/iw3-cl-command-helpers-arm64-elf.txt"
           grep -F 'Machine:                           AArch64' "$RUNNER_TEMP/iw3-cl-command-helpers-arm64-elf.txt"
@@ -925,10 +938,10 @@ jobs:
           grep -F 'CL_CmdButtons(usercmd_s*)' "$RUNNER_TEMP/iw3-cl-command-helpers-defined.txt"
           grep -F 'CL_UpdateCmdButton(int*, int, int)' "$RUNNER_TEMP/iw3-cl-command-helpers-defined.txt"
 
-          "$ndk/ld.lld" -m aarch64linux -r "$input_object" "$helper_object" -o "$combined"
+          "$ndk/ld.lld" -m aarch64linux -r "$input_object" "$helper_object" "$clamp_object" -o "$combined"
           "$ndk/llvm-nm" -C --defined-only "$combined" | tee "$RUNNER_TEMP/iw3-cl-command-chain-defined.txt"
           "$ndk/llvm-nm" -C -u "$combined" | tee "$RUNNER_TEMP/iw3-cl-command-chain-undefined.txt"
-          for symbol in 'CL_CreateCmd(usercmd_s*)' 'CL_FinishMove(usercmd_s*)' 'CL_MouseMove(usercmd_s*)' 'CL_KeyMove(usercmd_s*)' 'CL_CmdButtons(usercmd_s*)' 'CL_UpdateCmdButton(int*, int, int)' 'z2026_platform_apply_touch_to_usercmd'; do
+          for symbol in 'CL_CreateCmd(usercmd_s*)' 'CL_FinishMove(usercmd_s*)' 'CL_MouseMove(usercmd_s*)' 'CL_KeyMove(usercmd_s*)' 'CL_CmdButtons(usercmd_s*)' 'CL_UpdateCmdButton(int*, int, int)' 'ClampChar(int)' 'z2026_platform_apply_touch_to_usercmd'; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-cl-command-chain-defined.txt"
             if grep -F "$symbol" "$RUNNER_TEMP/iw3-cl-command-chain-undefined.txt"; then
               echo "Original client input edge failed to resolve: $symbol" >&2
@@ -941,6 +954,7 @@ jobs:
           grep -F 'CL_StanceButtonUpdate' "$RUNNER_TEMP/iw3-cl-command-chain-undefined.txt"
           grep -F 'CL_AddCurrentStanceToCmd' "$RUNNER_TEMP/iw3-cl-command-chain-undefined.txt"
           echo "IW3_ORIGINAL_CL_KEYMOVE_CMDBUTTONS_EDGE_RESOLVED_AARCH64_GREEN"
+          echo "IW3_ORIGINAL_CLAMPCHAR_PROVIDER_EDGE_RESOLVED_AARCH64_GREEN"
           echo "IW3_CLIENT_RUNTIME_LINKED=false"
           echo "IW3_CLIENT_COMMAND_RUNTIME_INVOKED=false"
           echo "IW3_REAL_MAP_LOADED=false"
@@ -956,6 +970,10 @@ jobs:
             ${{ runner.temp }}/iw3-original-cl-command-helpers-arm64.o
             ${{ runner.temp }}/iw3-cl-command-helpers-arm64-elf.txt
             ${{ runner.temp }}/iw3-cl-command-helpers-defined.txt
+            ${{ runner.temp }}/iw3-original-clamp-char.json
+            ${{ runner.temp }}/iw3-original-clamp-char-arm64.o
+            ${{ runner.temp }}/iw3-clamp-char-arm64-elf.txt
+            ${{ runner.temp }}/iw3-clamp-char-defined.txt
             ${{ runner.temp }}/iw3-original-client-input-touch-and-keyboard-arm64.o
             ${{ runner.temp }}/iw3-cl-command-chain-defined.txt
             ${{ runner.temp }}/iw3-cl-command-chain-undefined.txt
