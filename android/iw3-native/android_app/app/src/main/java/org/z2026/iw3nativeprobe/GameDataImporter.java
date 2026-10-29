@@ -162,6 +162,18 @@ public final class GameDataImporter {
                 try (InputStream input = resolver.openInputStream(source.uri);
                      FileOutputStream output = new FileOutputStream(partial, false)) {
                     if (input == null) throw new IOException("Document provider returned no stream");
+                    if (!source.iwd) {
+                        // Match the vendored DB_LoadXFileInternal contract before
+                        // accepting a .ff by extension alone. Preserve the consumed
+                        // prefix so the staged file remains byte-identical.
+                        byte[] header = FastFileHeader.readAndValidate(input, source.relativePath);
+                        if (header.length > MAX_SINGLE_FILE_BYTES
+                                || bytesCopied + header.length > MAX_TOTAL_BYTES) {
+                            throw new IOException("Imported game data exceeds the configured safety limit");
+                        }
+                        output.write(header);
+                        fileBytes = header.length;
+                    }
                     byte[] buffer = new byte[64 * 1024];
                     int read;
                     while ((read = input.read(buffer)) != -1) {
