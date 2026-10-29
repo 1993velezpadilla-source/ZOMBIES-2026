@@ -1,0 +1,36 @@
+# IW3 Android ARM64 — phase DD: original server trace edge
+
+Date: 2026-10-29
+
+## Baseline
+
+Phase DC verified the original mover collision helper edge in AArch64 objects: `G_TestEntityPosition -> G_TraceCapsule` and `G_TestEntityPosition -> Trace_GetEntityHitId`. The real `SV_Trace` and `SV_SetupIgnoreEntParams` calls were still unresolved. See [run 40945866308](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40945866308).
+
+## This pass
+
+Extended `tools/iw3_android/prepare_real_engine_mover_trace_services.py` to extract the original `SV_SetupIgnoreEntParams` and `SV_Trace` bodies from `third_party/KisakCOD/src/server/sv_world.cpp`, preserving them verbatim and recording source/body SHA-256 values.
+
+The generator verifies the upstream declaration of `SV_GentityNum(int)` in `server/sv_game.h`, but deliberately does not include Windows-heavy `server/server.h`. The declaration remains an external dependency; no implementation or stub is supplied.
+
+The ARM64 audit now requires the relocatable object to define `SV_SetupIgnoreEntParams` and `SV_Trace`, resolving the corresponding direct calls from `G_TraceCapsule`. It also requires genuine collision-world dependencies to remain visible and unresolved: `SV_GentityNum`, `CM_BoxTrace`, `CM_PointTraceToEntities`, and `CM_ClipMoveToEntities`. This is intentional evidence of the next boundary, not a claim of a complete server runtime.
+
+Focused Python regressions compare extracted function bodies against the original source, verify hashes, preserve source files byte-for-byte, and check the original collision call sequence.
+
+## Validation status
+
+The new gate is triggered by changes to the extractor, focused regression, workflow, and original server-world declarations/source. The code has been pushed; the current CI result must be inspected before calling this pass green.
+
+Expected marker after a successful ARM64 compile/link:
+
+`IW3_ORIGINAL_SV_TRACE_AARCH64_EDGE_RESOLVED_GREEN`
+
+The report must continue to state:
+
+- `IW3_SV_TRACE_RUNTIME_EXECUTED=false`
+- `IW3_REAL_MAP_LOADED=false`
+- `IW3_GAMEPLAY_PROVEN=false`
+- `IW3_PLAYABLE_APK=false`
+
+## Remaining work
+
+The extracted `SV_Trace` is not linked into the Android runtime. Its collision-world graph still needs the authentic `SV_GentityNum`/server entity state and Collision Map (CM) implementations, including map-backed trace data. After that, the original server/client bootstrap, authentic IWD/FastFile/map loading, portable original renderer, touch-to-live-client command path, and observed physical ARM64 gameplay remain required. PR #4 must stay open and unmerged.
