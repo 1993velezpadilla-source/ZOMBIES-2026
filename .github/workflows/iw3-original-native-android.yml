@@ -1050,6 +1050,21 @@ jobs:
               exit 1
             fi
           done
+          # The tweakables TU must reference the single original array owned by
+          # the client-state provider, never define a duplicate private copy.
+          grep -F 'aaGlobArray' "$RUNNER_TEMP/iw3-aimassist-tweakables-undefined.txt"
+          if grep -F 'aaGlobArray' "$RUNNER_TEMP/iw3-aimassist-tweakables-defined.txt"; then
+            echo "Aim-assist TU incorrectly duplicated the original aaGlobArray definition" >&2
+            exit 1
+          fi
+          # The combined object must own exactly one resolved original array.
+          for symbol in AimAssist_UpdateTweakables AimAssist_UpdateAdsLerp aaGlobArray; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-client-input-with-aimassist-tweakables-defined.txt"
+            if grep -F "$symbol" "$RUNNER_TEMP/iw3-client-input-with-aimassist-tweakables-undefined.txt"; then
+              echo "Original aim-assist state edge failed to resolve: $symbol" >&2
+              exit 1
+            fi
+          done
           # The rest are genuine engine dependencies; they must remain visible.
           for symbol in AimAssist_ApplyAutoMelee AimAssist_ApplyMeleeCharge MyAssertHandler scrPlaceView; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-client-input-with-aimassist-tweakables-undefined.txt"
