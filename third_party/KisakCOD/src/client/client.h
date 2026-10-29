@@ -8,7 +8,15 @@
 #include <qcommon/msg.h>
 #include <universal/memfile.h>
 #endif
+#if !defined(__ANDROID__)
 #include <gfx_d3d/r_debug.h>
+#else
+// Android command-input builds need client state declarations, not the
+// Direct3D resource ABI (whose static assertions intentionally describe Win32).
+struct Material;
+struct Font_s;
+struct refdef_s;
+#endif
 
 struct snd_alias_t;
 
