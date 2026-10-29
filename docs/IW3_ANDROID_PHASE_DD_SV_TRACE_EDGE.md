@@ -20,11 +20,13 @@ Focused Python regressions compare extracted function bodies against the origina
 
 The first ARM64 attempt exposed seven compile errors: the extracted `SV_Trace` body uses `Vec3Sub`, `Vec3Scale`, and `Vec3Add`, which were not declared by the narrower audit include set. The source body itself was not changed. Added the authentic `universal/com_math.h` header to the generated translation unit and a regression that protects that include.
 
-The gate is triggered by changes to the extractor, focused regression, workflow, and original server-world declarations/source. The retry after this include correction must be inspected before calling this pass green.
+The gate is triggered by changes to the extractor, focused regression, workflow, and original server-world declarations/source. The retry passed on code commit `969b73274638da59496f25e07cfd49960d82ade5`: [run 40947714537](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40947714537). The focused suite reported 14 tests, OK; the Android NDK compiled both original objects as ELF64/AArch64 and the relocatable link passed. The artifact is [12928804510](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40947714537/artifacts/12928804510), containing generated source, SHA-256 reports, objects and symbol listings — not an APK.
 
-Expected marker after a successful ARM64 compile/link:
+Verified marker from run 40947714537:
 
 `IW3_ORIGINAL_SV_TRACE_AARCH64_EDGE_RESOLVED_GREEN`
+
+The final symbol report confirms the expected world boundary remains unresolved: `SV_GentityNum(int)`, `CM_BoxTrace(...)`, `CM_PointTraceToEntities(...)`, and `CM_ClipMoveToEntities(...)`. This is the correct result for this narrow audit; those are not hidden by stubs.
 
 The report must continue to state:
 
