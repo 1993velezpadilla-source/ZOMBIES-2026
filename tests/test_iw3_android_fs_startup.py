@@ -369,6 +369,19 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
         self.assertIn("IW3_ORIGINAL_FS_CONVERT_PATH_SINGLE_PROVIDER_AARCH64_LINK_GREEN", workflow)
         self.assertIn('fs_convert_path_count="$(grep -Fc', workflow)
 
+    def test_startup_generator_rejects_fs_convert_path_in_command_handler_list(self):
+        signature = "void __cdecl FS_ConvertPath(char *s)"
+        with patch(
+            "tools.iw3_android.prepare_real_engine_fs_startup.COMMAND_FS_FUNCTIONS",
+            COMMAND_FS_FUNCTIONS + (signature,),
+        ):
+            with TemporaryDirectory() as temp:
+                output = Path(temp) / "iw3_fs_startup.cpp"
+                with self.assertRaisesRegex(
+                    ValueError, "FS_ConvertPath must be emitted only by prepare_real_engine_iwd_names"
+                ):
+                    prepare(ENGINE, output)
+
 if __name__ == "__main__":
     unittest.main()
 
