@@ -117,7 +117,7 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
         matches = [
             line for line in source_lines
             if re.fullmatch(
-                rf"\s*const dvar_t\s*\\*\s*{re.escape(name)}\s*=\s*nullptr;\s*",
+                rf"\s*const dvar_t\s*\*\s*{re.escape(name)}\s*=\s*nullptr;\s*",
                 line,
             )
         ]
