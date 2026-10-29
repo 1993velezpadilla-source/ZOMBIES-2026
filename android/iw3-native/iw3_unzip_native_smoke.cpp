@@ -187,6 +187,67 @@ bool read_via_original_fs_read(iwd_t *iwd, const Entry &expected) {
 }
 
 
+bool read_first_indexed_member_via_original_fs(iwd_t *iwd) {
+    if (!iwd || !iwd->handle || !iwd->buildBuffer || iwd->numfiles <= 0)
+        return false;
+
+    // Mount only this already-indexed user archive in the authentic searchpath
+    // list, then exercise the original public open/read/close APIs. The caller
+    // restores the archive count/checksum state after the full validation.
+    auto *search = static_cast<searchpath_s *>(
+        Z_Malloc(static_cast<int32_t>(sizeof(searchpath_s)),
+                 "IW3 imported-IWD read validation", 3));
+    if (!search) return false;
+    search->next = nullptr;
+    search->iwd = iwd;
+    search->dir = nullptr;
+    search->bLocalized = 0;
+    search->ignore = 0;
+    search->ignorePureCheck = 0;
+    search->language = 0;
+
+    // This is a diagnostic probe, not a live game searchpath. Isolate the
+    // single archive so a stale path cannot make a disk file satisfy the read.
+    searchpath_s *const previous_searchpaths = fs_searchpaths;
+    fs_searchpaths = nullptr;
+    FS_AddSearchPath(search);
+    const bool installed = fs_searchpaths == search && search->next == nullptr;
+
+    bool read_ok = false;
+    const int candidate_count = iwd->numfiles < 128 ? iwd->numfiles : 128;
+    for (int index = 0; installed && index < candidate_count; ++index) {
+        const char *member = iwd->buildBuffer[index].name;
+        if (!member || !member[0] || std::strlen(member) >= 256 ||
+            member[0] == '/' || std::strchr(member, '\\\\') ||
+            std::strstr(member, "../") || std::strstr(member, "/.."))
+            continue;
+
+        int handle = 0;
+        const uint32_t length = FS_FOpenFileReadForThread(
+            member, &handle, FS_THREAD_MAIN);
+        if (handle <= 0 || handle >= 65) continue;
+        if (fsh[handle].zipFile != iwd || length == 0) {
+            FS_FCloseFile(handle);
+            continue;
+        }
+
+        std::array<std::uint8_t, 4096> sample{};
+        const uint32_t requested =
+            length < sample.size() ? length : static_cast<uint32_t>(sample.size());
+        const uint32_t bytes_read = FS_Read(sample.data(), requested, handle);
+        FS_FCloseFile(handle);
+        const fileHandleData_t cleared{};
+        read_ok = bytes_read == requested &&
+            std::memcmp(&fsh[handle], &cleared, sizeof(cleared)) == 0 &&
+            iwd->hasOpenFile == 0;
+        if (read_ok) break;
+    }
+
+    fs_searchpaths = previous_searchpaths;
+    Z_Free(search, 3);
+    return installed && read_ok;
+}
+
 bool validate_original_iwd_index(const char *relative_path, int *indexed_entries) {
     if (indexed_entries) *indexed_entries = 0;
     if (!relative_path || !relative_path[0] || relative_path[0] == '/' ||
@@ -216,6 +277,7 @@ bool validate_original_iwd_index(const char *relative_path, int *indexed_entries
             const char *name = iwd->buildBuffer[i].name;
             ok = name != nullptr && name[0] != '\0' && std::strlen(name) < 1024;
         }
+        if (ok) ok = read_first_indexed_member_via_original_fs(iwd);
         if (iwd->handle && unzClose(reinterpret_cast<unzFile>(iwd->handle)) != UNZ_OK)
             ok = false;
         if (iwd->buildBuffer) Z_Free(iwd->buildBuffer, 3);
