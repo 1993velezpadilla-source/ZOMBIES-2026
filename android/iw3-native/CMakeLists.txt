@@ -441,7 +441,13 @@ if(IW3_EXTRACTED_FS_READFILE)
     if(NOT EXISTS "${IW3_EXTRACTED_FS_READFILE}")
         message(FATAL_ERROR "Original FS_ReadFile lifecycle extraction path does not exist")
     endif()
-    add_library(iw3_sp_fs_readfile STATIC "${IW3_EXTRACTED_FS_READFILE}")
+    if(NOT IW3_EXTRACTED_COM_LOGFILE_OPEN OR NOT EXISTS "${IW3_EXTRACTED_COM_LOGFILE_OPEN}")
+        message(FATAL_ERROR "Original Com_LogFileOpen state/query extraction is required")
+    endif()
+    add_library(iw3_sp_fs_readfile STATIC
+        "${IW3_EXTRACTED_FS_READFILE}"
+        "${IW3_EXTRACTED_COM_LOGFILE_OPEN}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_fs_lock_io.cpp")
     target_include_directories(iw3_sp_fs_readfile PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}"
         "${IW3_REAL_HEADER_ROOT}"
@@ -831,4 +837,25 @@ else()
         add_test(NAME iw3_original_fs_localized_paths_fail_closed
                  COMMAND iw3_fs_localized_path_host_test)
     endif()
+    # Execute the original Com_LogFileOpen state query and the Android port of
+    # KisakCOD's writer gate under real thread contention. The full FS_ReadFile
+    # object stays a separate archive member and is not pulled into this test.
+    if(IW3_EXTRACTED_FS_READFILE AND IW3_EXTRACTED_COM_LOGFILE_OPEN)
+        find_package(Threads REQUIRED)
+        add_executable(iw3_fs_readfile_services_host_test
+            "${CMAKE_CURRENT_SOURCE_DIR}/fs_readfile_services_native_test.cpp")
+        target_include_directories(iw3_fs_readfile_services_host_test PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}"
+            "${IW3_REAL_HEADER_ROOT}"
+            "${IW3_ENGINE_SOURCE_ROOT}"
+            "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+            "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+        target_compile_definitions(iw3_fs_readfile_services_host_test PRIVATE KISAK_SP=1)
+        target_compile_options(iw3_fs_readfile_services_host_test PRIVATE -UNDEBUG -Wall -Wextra)
+        target_link_libraries(iw3_fs_readfile_services_host_test PRIVATE
+            iw3_sp_fs_readfile Threads::Threads)
+        add_test(NAME iw3_original_fs_logfile_state_and_writer_lock
+                 COMMAND iw3_fs_readfile_services_host_test)
+    endif()
+
 endif()

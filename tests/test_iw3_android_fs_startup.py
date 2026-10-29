@@ -298,3 +298,14 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class OriginalFsReadfileProviderIntegrationTests(unittest.TestCase):
+    def test_logfile_and_writer_lock_providers_are_required_by_the_combined_audit(self):
+        cmake = (ROOT / "android/iw3-native/CMakeLists.txt").read_text(encoding="utf-8")
+        workflow = (ROOT / ".github/workflows/iw3-original-native-android.yml").read_text(encoding="utf-8")
+        self.assertIn("IW3_EXTRACTED_COM_LOGFILE_OPEN", cmake)
+        self.assertIn("iw3_android_fs_lock_io.cpp", cmake)
+        self.assertIn("IW3_ORIGINAL_FS_READFILE_LOGFILE_AND_WRITE_LOCK_AARCH64_LINK_GREEN", workflow)
+        self.assertIn("Sys_LockWrite(FastCriticalSection*)", workflow)
+        self.assertIn("Sys_UnlockWrite(FastCriticalSection*)", workflow)

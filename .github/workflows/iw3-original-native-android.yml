@@ -120,6 +120,10 @@ jobs:
             --engine third_party/KisakCOD \
             --output "$RUNNER_TEMP/iw3-source/iw3_fs_readfile.cpp" \
             --report "$RUNNER_TEMP/iw3-original-fs-readfile.json"
+          python3 tools/iw3_android/prepare_real_engine_com_logfile_open.py \
+            --engine third_party/KisakCOD \
+            --output "$RUNNER_TEMP/iw3-source/iw3_com_logfile_open.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-com-logfile-open.json"
           python3 tools/iw3_android/prepare_real_engine_hunk_temp.py \
             --engine third_party/KisakCOD \
             --output "$RUNNER_TEMP/iw3-source/iw3_hunk_temp.cpp" \
@@ -205,6 +209,7 @@ jobs:
             -DIW3_EXTRACTED_IWD_LOOKUP="$RUNNER_TEMP/iw3-source/iw3_iwd_lookup.cpp" \
             -DIW3_EXTRACTED_FS_READ="$RUNNER_TEMP/iw3-source/iw3_fs_read.cpp" \
             -DIW3_EXTRACTED_FS_READFILE="$RUNNER_TEMP/iw3-source/iw3_fs_readfile.cpp" \
+            -DIW3_EXTRACTED_COM_LOGFILE_OPEN="$RUNNER_TEMP/iw3-source/iw3_com_logfile_open.cpp" \
             -DIW3_EXTRACTED_HUNK_TEMP="$RUNNER_TEMP/iw3-source/iw3_hunk_temp.cpp" \
             -DIW3_EXTRACTED_LANGUAGE="$RUNNER_TEMP/iw3-source/iw3_language.cpp" \
             -DIW3_EXTRACTED_STRINGED_INGAME="$RUNNER_TEMP/iw3-source/iw3_stringed_ingame.cpp" \
@@ -279,6 +284,7 @@ jobs:
             -DIW3_EXTRACTED_IWD_LOOKUP="$RUNNER_TEMP/iw3-source/iw3_iwd_lookup.cpp" \
             -DIW3_EXTRACTED_FS_READ="$RUNNER_TEMP/iw3-source/iw3_fs_read.cpp" \
             -DIW3_EXTRACTED_FS_READFILE="$RUNNER_TEMP/iw3-source/iw3_fs_readfile.cpp" \
+            -DIW3_EXTRACTED_COM_LOGFILE_OPEN="$RUNNER_TEMP/iw3-source/iw3_com_logfile_open.cpp" \
             -DIW3_EXTRACTED_HUNK_TEMP="$RUNNER_TEMP/iw3-source/iw3_hunk_temp.cpp" \
             -DIW3_EXTRACTED_LANGUAGE="$RUNNER_TEMP/iw3-source/iw3_language.cpp" \
             -DIW3_EXTRACTED_STRINGED_INGAME="$RUNNER_TEMP/iw3-source/iw3_stringed_ingame.cpp" \
@@ -626,6 +632,17 @@ jobs:
             fi
           done
           echo "IW3_ORIGINAL_Q_SHARED_STRING_SERVICES_AARCH64_LINK_GREEN"
+          # FS_ReadFile uses the engine's logfile-open query and writer gate.
+          # Require the original Com_LogFileOpen state provider plus the native
+          # atomic port of the original FastCriticalSection writer algorithm.
+          for symbol in 'Com_LogFileOpen()' 'Sys_LockWrite(FastCriticalSection*)' 'Sys_UnlockWrite(FastCriticalSection*)'; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-iwd-defined.txt"
+            if grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-iwd-undefined.txt"; then
+              echo "Original filesystem read service failed to resolve: $symbol" >&2
+              exit 1
+            fi
+          done
+          echo "IW3_ORIGINAL_FS_READFILE_LOGFILE_AND_WRITE_LOCK_AARCH64_LINK_GREEN"
           echo "IW3_ORIGINAL_FS_STARTUP_IWD_DIRECTORY_READFILE_HUNK_AARCH64_LINK_GREEN"
           echo "IW3_ORIGINAL_FS_STARTUP_LANGUAGE_INIT_AARCH64_LINK_GREEN"
           echo "IW3_ORIGINAL_IWD_STARTUP_SORT_DEPENDENCIES_AARCH64_LINK_GREEN"
@@ -861,6 +878,7 @@ jobs:
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_fs_readfile.a
             ${{ runner.temp }}/iw3-source/iw3_fs_readfile.cpp
             ${{ runner.temp }}/iw3-original-fs-readfile.json
+            ${{ runner.temp }}/iw3-original-com-logfile-open.json
             ${{ runner.temp }}/iw3-original-hunk-temp.json
             ${{ runner.temp }}/iw3-original-language.json
             ${{ runner.temp }}/iw3-source/iw3_language.cpp
