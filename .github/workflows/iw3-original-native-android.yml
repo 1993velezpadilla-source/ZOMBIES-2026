@@ -960,6 +960,89 @@ jobs:
           echo "IW3_GAMEPLAY_PROVEN=false"
           echo "IW3_PLAYABLE_APK=false"
 
+      - name: Cross-compile original aim-assist and predicted-state providers (NOT RUNTIME)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          input="$RUNNER_TEMP/iw3-original-client-input-touch-and-keyboard-arm64.o"
+          source="$RUNNER_TEMP/iw3-source/iw3_client_state_providers.cpp"
+          report="$RUNNER_TEMP/iw3-original-client-state-providers.json"
+          object="$RUNNER_TEMP/iw3-original-client-state-providers-arm64.o"
+          combined="$RUNNER_TEMP/iw3-original-client-input-with-state-arm64.o"
+          test -s "$input"
+          python3 tools/iw3_android/prepare_real_engine_client_state_providers.py \
+            --engine third_party/KisakCOD \
+            --output "$source" \
+            --report "$report"
+
+          common_flags=(
+            -std=c++20 -DKISAK_SP=1 -Wall -Wextra -UNDEBUG -O2
+            -I"$GITHUB_WORKSPACE/android/iw3-native"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/aim_assist"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/cgame"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/client"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/qcommon"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/universal"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/gfx_d3d"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/game"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/bgame"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/sound"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/script"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/xanim"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/deps"
+          )
+          "$ndk/aarch64-linux-android26-clang++" "${common_flags[@]}" -c "$source" -o "$object"
+          "$ndk/llvm-readelf" -h "$object" | tee "$RUNNER_TEMP/iw3-client-state-providers-arm64-elf.txt"
+          grep -F 'Class:                             ELF64' "$RUNNER_TEMP/iw3-client-state-providers-arm64-elf.txt"
+          grep -F 'Machine:                           AArch64' "$RUNNER_TEMP/iw3-client-state-providers-arm64-elf.txt"
+          "$ndk/llvm-nm" -C --defined-only "$object" | tee "$RUNNER_TEMP/iw3-client-state-providers-defined.txt"
+          "$ndk/llvm-nm" -C -u "$object" | tee "$RUNNER_TEMP/iw3-client-state-providers-undefined.txt"
+          for symbol in AimAssist_UpdateMouseInput CG_GetPredictedPlayerState aaGlobArray cgArray; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-client-state-providers-defined.txt"
+            if grep -F "$symbol" "$RUNNER_TEMP/iw3-client-state-providers-undefined.txt"; then
+              echo "Original client state provider unexpectedly unresolved: $symbol" >&2
+              exit 1
+            fi
+          done
+
+          "$ndk/ld.lld" -m aarch64linux -r "$input" "$object" -o "$combined"
+          "$ndk/llvm-nm" -C --defined-only "$combined" | tee "$RUNNER_TEMP/iw3-client-input-with-state-defined.txt"
+          "$ndk/llvm-nm" -C -u "$combined" | tee "$RUNNER_TEMP/iw3-client-input-with-state-undefined.txt"
+          for symbol in AimAssist_UpdateMouseInput CG_GetPredictedPlayerState; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-client-input-with-state-defined.txt"
+            if grep -F "$symbol" "$RUNNER_TEMP/iw3-client-input-with-state-undefined.txt"; then
+              echo "Original client input dependency failed to resolve: $symbol" >&2
+              exit 1
+            fi
+          done
+          # These remain authentic downstream aim-assist dependencies; do not stub them.
+          for symbol in AimAssist_UpdateTweakables AimAssist_UpdateAdsLerp AimAssist_ApplyAutoMelee AimAssist_ApplyMeleeCharge MyAssertHandler; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-client-input-with-state-undefined.txt"
+          done
+          echo "IW3_ORIGINAL_CLIENT_AIMASSIST_AND_PREDICTED_STATE_EDGE_RESOLVED_AARCH64_GREEN"
+          echo "IW3_CLIENT_STATE_RUNTIME_INITIALIZED=false"
+          echo "IW3_CLIENT_RUNTIME_LINKED=false"
+          echo "IW3_REAL_MAP_LOADED=false"
+          echo "IW3_GAMEPLAY_PROVEN=false"
+          echo "IW3_PLAYABLE_APK=false"
+
+      - name: Attach original client state provider evidence (NOT APK)
+        uses: actions/upload-artifact@v4
+        with:
+          name: z2026-iw3-client-state-providers-arm64-NOT-APK
+          path: |
+            ${{ runner.temp }}/iw3-original-client-state-providers.json
+            ${{ runner.temp }}/iw3-original-client-state-providers-arm64.o
+            ${{ runner.temp }}/iw3-client-state-providers-arm64-elf.txt
+            ${{ runner.temp }}/iw3-client-state-providers-defined.txt
+            ${{ runner.temp }}/iw3-client-state-providers-undefined.txt
+            ${{ runner.temp }}/iw3-original-client-input-with-state-arm64.o
+            ${{ runner.temp }}/iw3-client-input-with-state-defined.txt
+            ${{ runner.temp }}/iw3-client-input-with-state-undefined.txt
+          retention-days: 30
+
       - name: Attach original client input helper evidence (NOT APK)
         uses: actions/upload-artifact@v4
         with:
