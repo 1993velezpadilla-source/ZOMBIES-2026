@@ -737,6 +737,8 @@ extern "C" IW3_ANDROID_EXPORT int z2026_platform_usercmd_snapshot(
     command.angles[0] = angle_to_short(g_view_pitch_degrees);
     command.angles[1] = angle_to_short(g_view_yaw_degrees);
     bool movement_claimed = false;
+    bool want_crouch = false;
+    bool want_prone = false;
     for (const Touch &touch : g_touches) {
         if (!touch.down) continue;
         switch (touch.role) {
@@ -748,18 +750,31 @@ extern "C" IW3_ANDROID_EXPORT int z2026_platform_usercmd_snapshot(
             }
             break;
         case TouchRole::Sprint: command.buttons |= BUTTON_SPRINT; break;
-        case TouchRole::Slide: command.buttons |= BUTTON_SPRINT | BUTTON_CROUCH; break;
+        case TouchRole::Slide:
+            command.buttons |= BUTTON_SPRINT;
+            want_crouch = true;
+            break;
         case TouchRole::Attack: command.buttons |= BUTTON_ATTACK; break;
         case TouchRole::Ads: command.buttons |= BUTTON_ADS; break;
         case TouchRole::Jump: command.buttons |= BUTTON_JUMP; break;
         case TouchRole::Reload: command.buttons |= BUTTON_RELOAD; break;
         case TouchRole::Use: command.buttons |= BUTTON_USE; break;
         case TouchRole::Melee: command.buttons |= BUTTON_MELEE; break;
-        case TouchRole::Crouch: command.buttons |= BUTTON_CROUCH; break;
-        case TouchRole::Prone: command.buttons |= BUTTON_PRONE; break;
+        case TouchRole::Crouch: want_crouch = true; break;
+        case TouchRole::Prone: want_prone = true; break;
         case TouchRole::None:
         case TouchRole::Look: break;
         }
+    }
+    // Keep the diagnostic snapshot byte-for-byte consistent with the real
+    // CL_CreateCmd touch hook: prone has priority over crouch/slide, while
+    // sprint remains active when slide and prone are both held.
+    if (want_prone) {
+        command.buttons |= BUTTON_PRONE;
+        command.buttons &= ~BUTTON_CROUCH;
+    } else if (want_crouch) {
+        command.buttons |= BUTTON_CROUCH;
+        command.buttons &= ~BUTTON_PRONE;
     }
     fields[0] = command.serverTime;
     fields[1] = command.buttons;
