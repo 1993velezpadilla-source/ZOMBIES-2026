@@ -1496,3 +1496,16 @@ The latest ARM64 dependency report still showed the original FS_ReadFile chain w
 - Audit artifact [12862368849](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40793488539/artifacts/12862368849) contains the compiled native module and audit evidence; it is **not an APK**.
 
 This closes only two service edges in the filesystem read graph. `FS_Startup/FS_InitFilesystem` still is not invoked by the Android app; authentic FastFile/map loading, the original renderer, touch-to-live-frame integration, and physical ARM64 gameplay remain unproven. Keep PR #4 open and unmerged.
+
+
+### Phase CL — original client command builder touch-hook gate (29 Oct 2026)
+
+The original `src/client/cl_input.cpp` already calls `z2026_platform_apply_touch_to_usercmd(result, clients[0].viewangles)` from `CL_CreateCmd`, after `CL_MouseMove` and before `CL_FinishMove`. The blocker is build integration: that client translation unit is not part of the Android shared-library target, so the existing touch hook is not running in a client frame.
+
+This pass adds `tools/iw3_android/prepare_real_engine_cl_createcmd.py` and `tests/test_iw3_android_cl_createcmd.py`. The generator extracts the original function body verbatim, hashes it, checks that the touch hook occurs exactly once and remains between original mouse processing and command finalization, and emits a report that explicitly says the client runtime is not linked or invoked. The ARM64 workflow now cross-compiles the extracted function with original client headers and inspects its ELF64/AArch64 object and external touch/finish dependencies. The object is an audit artifact, not part of the JNI APK.
+
+- Phase details: [IW3_ANDROID_PHASE_CL.md](IW3_ANDROID_PHASE_CL.md).
+- Source preflight on the intermediate test commit [40798798044](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40798798044): PASS.
+- The ARM64 audit for final workflow revision [40798821395](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40798821395) was queued at documentation time; emulator diagnostic [40798821259](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40798821259) was pending. Earlier intermediate ARM64 run [40798798066](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40798798066) failed and is not counted as a pass.
+
+**Boundary:** compiling the original command builder is not the same as executing it. Client state/input dependencies remain unresolved; no live frame, map, renderer, weapon/actor gameplay, physical ARM64 execution, or playable APK is proven. Keep PR #4 open and unmerged.
