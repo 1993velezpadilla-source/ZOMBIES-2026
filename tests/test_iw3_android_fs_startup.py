@@ -350,7 +350,7 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
 
         workflow = (ROOT / ".github/workflows/iw3-original-native-android.yml").read_text(encoding="utf-8")
         self.assertIn("IW3_ORIGINAL_FS_CONVERT_PATH_SINGLE_PROVIDER_AARCH64_LINK_GREEN", workflow)
-        self.assertIn('fs_convert_path_count="$(grep -Ec', workflow)
+        self.assertIn('fs_convert_path_count="$(grep -Fc', workflow)
 
 if __name__ == "__main__":
     unittest.main()
