@@ -941,7 +941,7 @@ jobs:
           "$ndk/ld.lld" -m aarch64linux -r "$input_object" "$helper_object" "$clamp_object" -o "$combined"
           "$ndk/llvm-nm" -C --defined-only "$combined" | tee "$RUNNER_TEMP/iw3-cl-command-chain-defined.txt"
           "$ndk/llvm-nm" -C -u "$combined" | tee "$RUNNER_TEMP/iw3-cl-command-chain-undefined.txt"
-          for symbol in 'CL_CreateCmd(usercmd_s*)' 'CL_FinishMove(usercmd_s*)' 'CL_MouseMove(usercmd_s*)' 'CL_KeyMove(usercmd_s*)' 'CL_CmdButtons(usercmd_s*)' 'CL_UpdateCmdButton(int*, int, int)' 'ClampChar(int)' 'z2026_platform_apply_touch_to_usercmd'; do
+          for symbol in 'CL_CreateCmd(usercmd_s*)' 'CL_FinishMove(usercmd_s*)' 'CL_MouseMove(usercmd_s*)' 'CL_KeyMove(usercmd_s*)' 'CL_CmdButtons(usercmd_s*)' 'CL_UpdateCmdButton(int*, int, int)' 'IN_IsTempStanceKeyActive()' 'CL_StanceButtonUpdate()' 'CL_AddCurrentStanceToCmd(usercmd_s*)' 'ClampChar(int)' 'z2026_platform_apply_touch_to_usercmd'; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-cl-command-chain-defined.txt"
             if grep -F "$symbol" "$RUNNER_TEMP/iw3-cl-command-chain-undefined.txt"; then
               echo "Original client input edge failed to resolve: $symbol" >&2
@@ -951,10 +951,9 @@ jobs:
           # Real aim-assist and predicted-state services remain visible; no stubs.
           grep -F 'AimAssist_UpdateMouseInput' "$RUNNER_TEMP/iw3-cl-command-chain-undefined.txt"
           grep -F 'CG_GetPredictedPlayerState' "$RUNNER_TEMP/iw3-cl-command-chain-undefined.txt"
-          grep -F 'CL_StanceButtonUpdate' "$RUNNER_TEMP/iw3-cl-command-chain-undefined.txt"
-          grep -F 'CL_AddCurrentStanceToCmd' "$RUNNER_TEMP/iw3-cl-command-chain-undefined.txt"
           echo "IW3_ORIGINAL_CL_KEYMOVE_CMDBUTTONS_EDGE_RESOLVED_AARCH64_GREEN"
           echo "IW3_ORIGINAL_CLAMPCHAR_PROVIDER_EDGE_RESOLVED_AARCH64_GREEN"
+          echo "IW3_ORIGINAL_CL_STANCE_HELPERS_EDGE_RESOLVED_AARCH64_GREEN"
           echo "IW3_CLIENT_RUNTIME_LINKED=false"
           echo "IW3_CLIENT_COMMAND_RUNTIME_INVOKED=false"
           echo "IW3_REAL_MAP_LOADED=false"
