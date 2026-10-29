@@ -64,6 +64,10 @@ jobs:
             --engine third_party/KisakCOD \
             --output "$RUNNER_TEMP/iw3-source/iw3_g_runframe_entity.cpp" \
             --report "$RUNNER_TEMP/iw3-original-g-runframe-entity.json"
+          python3 tools/iw3_android/prepare_real_engine_g_run_mover.py \
+            --engine third_party/KisakCOD \
+            --output "$RUNNER_TEMP/iw3-source/iw3_g_run_mover.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-g-run-mover.json"
           python3 tools/iw3_android/prepare_real_engine_sentient_trigger_services.py \
             --engine third_party/KisakCOD \
             --output "$RUNNER_TEMP/iw3-source/iw3_sentient_trigger_services.cpp" \
@@ -1406,6 +1410,56 @@ jobs:
           echo "IW3_GAMEPLAY_PROVEN=false"
           echo "IW3_PLAYABLE_APK=false"
 
+      - name: Compile original G_RunMover and close the SP frame mover edge for ARM64
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64"
+          mover_source="$RUNNER_TEMP/iw3-source/iw3_g_run_mover.cpp"
+          mover_object="$RUNNER_TEMP/iw3-original-g-run-mover-arm64.o"
+          common_flags=(
+            -std=c++20 -DKISAK_SP=1 -Wall -Wextra -UNDEBUG -O2
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/universal"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/qcommon"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/game"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/server"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/deps"
+          )
+          test -s "$mover_source"
+          "$ndk/bin/aarch64-linux-android26-clang++" "${common_flags[@]}" -c "$mover_source" -o "$mover_object"
+          "$ndk/bin/llvm-readelf" -h "$mover_object" | tee "$RUNNER_TEMP/iw3-g-run-mover-arm64-elf.txt"
+          grep -F 'Class:                             ELF64' "$RUNNER_TEMP/iw3-g-run-mover-arm64-elf.txt"
+          grep -F 'Machine:                           AArch64' "$RUNNER_TEMP/iw3-g-run-mover-arm64-elf.txt"
+          "$ndk/bin/llvm-nm" -C --defined-only "$mover_object" | tee "$RUNNER_TEMP/iw3-g-run-mover-object-defined.txt"
+          grep -F 'G_RunMover(gentity_s*)' "$RUNNER_TEMP/iw3-g-run-mover-object-defined.txt"
+
+          mover_combined="$RUNNER_TEMP/iw3-original-g-runframe-plus-mover-arm64.o"
+          "$ndk/bin/ld.lld" -m aarch64linux -r --whole-archive \
+            "$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_frame.a" \
+            "$RUNNER_TEMP/iw3-original-g-update-player-arm64.o" \
+            "$RUNNER_TEMP/iw3-original-g-update-player-triggers-arm64.o" \
+            "$RUNNER_TEMP/iw3-original-sentient-trigger-services-arm64.o" \
+            "$RUNNER_TEMP/iw3-original-g-runframe-entity-arm64.o" \
+            "$mover_object" --no-whole-archive -o "$mover_combined"
+          "$ndk/bin/llvm-nm" -C --defined-only "$mover_combined" | tee "$RUNNER_TEMP/iw3-g-run-mover-defined.txt"
+          "$ndk/bin/llvm-nm" -C -u "$mover_combined" | tee "$RUNNER_TEMP/iw3-g-run-mover-undefined.txt"
+          grep -F 'G_RunMover(gentity_s*)' "$RUNNER_TEMP/iw3-g-run-mover-defined.txt"
+          if grep -F 'G_RunMover(gentity_s*)' "$RUNNER_TEMP/iw3-g-run-mover-undefined.txt"; then
+            echo "Original G_RunFrameForEntity -> G_RunMover edge failed to resolve" >&2
+            exit 1
+          fi
+          # The mover implementation itself still needs this genuine upstream service.
+          grep -F 'G_MoverTeam(gentity_s*)' "$RUNNER_TEMP/iw3-g-run-mover-undefined.txt"
+          for symbol in 'G_RunMissile(gentity_s*)' 'G_RunItem(gentity_s*)' 'ClientEndFrame(gentity_s*)' 'Scr_RunCurrentThreads()' 'SV_DObjExists(gentity_s*)' 'SV_XModelDebugBoxes(gentity_s*)'; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-g-run-mover-undefined.txt"
+          done
+          echo "IW3_ORIGINAL_G_RUNMOVER_AARCH64_FRAME_EDGE_RESOLVED_GREEN"
+          echo "IW3_G_RUNMOVER_RUNTIME_EXECUTED=false"
+          echo "IW3_REAL_MAP_LOADED=false"
+          echo "IW3_GAMEPLAY_PROVEN=false"
+          echo "IW3_PLAYABLE_APK=false"
+
       - name: Attach evidence and compiled native module (NOT an APK)
         uses: actions/upload-artifact@v4
         with:
@@ -1452,6 +1506,13 @@ jobs:
             ${{ runner.temp }}/iw3-g-update-player-triggers-undefined.txt
             ${{ runner.temp }}/iw3-source/iw3_g_runframe_entity.cpp
             ${{ runner.temp }}/iw3-original-g-runframe-entity.json
+            ${{ runner.temp }}/iw3-source/iw3_g_run_mover.cpp
+            ${{ runner.temp }}/iw3-original-g-run-mover.json
+            ${{ runner.temp }}/iw3-original-g-run-mover-arm64.o
+            ${{ runner.temp }}/iw3-g-run-mover-arm64-elf.txt
+            ${{ runner.temp }}/iw3-original-g-runframe-plus-mover-arm64.o
+            ${{ runner.temp }}/iw3-g-run-mover-defined.txt
+            ${{ runner.temp }}/iw3-g-run-mover-undefined.txt
             ${{ runner.temp }}/iw3-original-g-runframe-entity-arm64.o
             ${{ runner.temp }}/iw3-original-g-runframe-plus-entity-arm64.o
             ${{ runner.temp }}/iw3-g-runframe-entity-defined.txt
