@@ -16,8 +16,10 @@ public final class EngineBridge {
     // This is a platform boundary only; actual IW3 fastfile parsing is pending.
     public static native int nativeSetDataRoot(String absolutePath);
     public static native String nativeReport(String writableDirectory);
-    // Validate user-imported root-level main/*.iwd and zone/*.iwd with original FS_LoadZipFile.
-    // This indexes archive metadata only; it does not mount the game searchpath or load a map.
+    // Validate user-imported main/*.iwd and zone/*.iwd with original FS_LoadZipFile,
+    // then temporarily mount each archive and read one member through the original
+    // FS_FOpenFileReadForThread/FS_Read/FS_FCloseFile path. This does not initialize
+    // the persistent game searchpath, run FS_Startup, load FastFiles/maps, or start gameplay.
     public static native String nativeValidateImportedIwds(String appPrivateRoot);
     public static native int nativeTouch(int pointerId, float x, float y, boolean pressed);
     // Original usercmd_s fields: time, buttons, packed angles, movement bytes.
