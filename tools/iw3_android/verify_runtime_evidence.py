@@ -127,12 +127,19 @@ def verify(log: str) -> dict:
         "original_fs_startup_path_bound_to_android_filesdir": True,
         "original_upstream_fsh_table_integrated": False,
         "touch_down_and_up_read_back_from_native": True,
-        "touch_translated_to_original_iw3_usercmd_s": True,
-        "sprint_touch_reached_original_usercmd_s": True,
-        "slide_chord_touch_reached_original_usercmd_s": True,
+        # These are adapter observations only. The running Activity does not
+        # call original CL_CreateCmd or the live client/frame loop.
+        "touch_translated_to_diagnostic_usercmd_s_adapter": True,
+        "sprint_touch_reached_diagnostic_usercmd_s_adapter": True,
+        "slide_chord_touch_reached_diagnostic_usercmd_s_adapter": True,
+        "original_cl_createcmd_touch_consumption_proven": False,
+        "original_client_runtime_linked": False,
+        "real_map_loaded": False,
+        "renderer_frame_proven": False,
         "android_pause_and_resume_observed": True,
         "arm64_device_execution_proven": False,
         "gameplay_proven": False,
+        "playable_apk": False,
     }
 
 
