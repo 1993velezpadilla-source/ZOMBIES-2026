@@ -55,7 +55,9 @@ class OriginalLogfileOpenProviderTests(unittest.TestCase):
         self.assertIn("fs_readfile_services_native_test.cpp", cmake)
         self.assertIn("IW3_EXTRACTED_COM_LOGFILE_OPEN", cmake)
         self.assertIn("prepare_real_engine_com_logfile_open.py", workflow)
-        self.assertIn("Com_LogFileOpen() Sys_LockWrite(FastCriticalSection*) Sys_UnlockWrite(FastCriticalSection*)", workflow)
+        self.assertIn("'Com_LogFileOpen()'", workflow)
+        self.assertIn("'Sys_LockWrite(FastCriticalSection*)'", workflow)
+        self.assertIn("'Sys_UnlockWrite(FastCriticalSection*)'", workflow)
         self.assertIn("IW3_ORIGINAL_FS_READFILE_LOGFILE_AND_WRITE_LOCK_AARCH64_LINK_GREEN", workflow)
 
 
