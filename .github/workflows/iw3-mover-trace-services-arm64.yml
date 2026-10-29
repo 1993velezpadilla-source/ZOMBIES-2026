@@ -1,0 +1,122 @@
+name: IW3 original mover trace services ARM64 (AUDIT NOT GAME)
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/iw3-mover-trace-services-arm64.yml'
+      - 'tools/iw3_android/prepare_real_engine_g_mover_team.py'
+      - 'tools/iw3_android/prepare_real_engine_mover_trace_services.py'
+      - 'tests/test_iw3_android_g_mover*.py'
+      - 'third_party/KisakCOD/src/game/g_mover.cpp'
+      - 'third_party/KisakCOD/src/game/g_main.cpp'
+      - 'third_party/KisakCOD/src/qcommon/cm_trace.cpp'
+      - 'third_party/KisakCOD/src/qcommon/qcommon.h'
+      - 'third_party/KisakCOD/src/server/sv_world.h'
+  push:
+    branches:
+      - feature/iw3-native-android-arm64-20261025
+    paths:
+      - '.github/workflows/iw3-mover-trace-services-arm64.yml'
+      - 'tools/iw3_android/prepare_real_engine_g_mover_team.py'
+      - 'tools/iw3_android/prepare_real_engine_mover_trace_services.py'
+      - 'tests/test_iw3_android_g_mover*.py'
+      - 'third_party/KisakCOD/src/game/g_mover.cpp'
+      - 'third_party/KisakCOD/src/game/g_main.cpp'
+      - 'third_party/KisakCOD/src/qcommon/cm_trace.cpp'
+      - 'third_party/KisakCOD/src/qcommon/qcommon.h'
+      - 'third_party/KisakCOD/src/server/sv_world.h'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: iw3-mover-trace-services-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mover-trace-aarch64:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      NDK_VER: "27.2.12479018"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test extraction and previous mover regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s tests -p 'test_iw3_android_g_mover*.py' -v
+
+      - name: Install Android NDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdk="$RUNNER_TEMP/android-sdk"
+          mkdir -p "$sdk/cmdline-tools/latest"
+          curl -fLsS --retry 3 -o "$RUNNER_TEMP/commandline-tools.zip" 'https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip'
+          unzip -qo "$RUNNER_TEMP/commandline-tools.zip" -d "$RUNNER_TEMP/commandline-temp"
+          mv "$RUNNER_TEMP/commandline-temp/cmdline-tools/"* "$sdk/cmdline-tools/latest/"
+          yes | "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" --licenses >/dev/null || true
+          "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" "ndk;27.2.12479018"
+          test -x "$sdk/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android26-clang++"
+          echo "ANDROID_NDK_HOME=$sdk/ndk/27.2.12479018" >> "$GITHUB_ENV"
+
+      - name: Compile original mover physics and trace helpers, then resolve only the real trace edge
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          mkdir -p "$RUNNER_TEMP/iw3-mover-trace"
+          team_source="$RUNNER_TEMP/iw3-mover-trace/iw3_g_mover_team.cpp"
+          trace_source="$RUNNER_TEMP/iw3-mover-trace/iw3_mover_trace_services.cpp"
+          team_object="$RUNNER_TEMP/iw3-mover-trace/iw3_g_mover_team-arm64.o"
+          trace_object="$RUNNER_TEMP/iw3-mover-trace/iw3_mover_trace_services-arm64.o"
+          combined="$RUNNER_TEMP/iw3-mover-trace/iw3_mover_trace_combined-arm64.o"
+
+          python3 tools/iw3_android/prepare_real_engine_g_mover_team.py --engine third_party/KisakCOD --output "$team_source" --report "$RUNNER_TEMP/iw3-mover-trace/g-mover-team.json"
+          python3 tools/iw3_android/prepare_real_engine_mover_trace_services.py --engine third_party/KisakCOD --output "$trace_source" --report "$RUNNER_TEMP/iw3-mover-trace/mover-trace-services.json"
+
+          common_flags=(-std=c++20 -DKISAK_SP=1 -DIW3_ANDROID_PORTABLE_PATHNODE_SERVICES=1 -Wall -Wextra -UNDEBUG -O2 -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src" -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/universal" -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/qcommon" -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/game" -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/server" -I"$GITHUB_WORKSPACE/third_party/KisakCOD/deps")
+          "$ndk/aarch64-linux-android26-clang++" "${common_flags[@]}" -c "$team_source" -o "$team_object"
+          "$ndk/aarch64-linux-android26-clang++" "${common_flags[@]}" -c "$trace_source" -o "$trace_object"
+
+          for object in "$team_object" "$trace_object"; do
+            elf="$RUNNER_TEMP/iw3-mover-trace/$(basename "$object").elf.txt"
+            "$ndk/llvm-readelf" -h "$object" | tee "$elf"
+            grep -F 'Class:                             ELF64' "$elf"
+            grep -F 'Machine:                           AArch64' "$elf"
+          done
+
+          "$ndk/llvm-nm" -C --defined-only "$team_object" | tee "$RUNNER_TEMP/iw3-mover-trace/team-defined.txt"
+          "$ndk/llvm-nm" -C --defined-only "$trace_object" | tee "$RUNNER_TEMP/iw3-mover-trace/trace-defined.txt"
+          grep -F 'G_TestEntityPosition(gentity_s*, float*)' "$RUNNER_TEMP/iw3-mover-trace/team-defined.txt"
+          grep -F 'G_TraceCapsule(' "$RUNNER_TEMP/iw3-mover-trace/trace-defined.txt"
+          grep -F 'Trace_GetEntityHitId(' "$RUNNER_TEMP/iw3-mover-trace/trace-defined.txt"
+
+          "$ndk/ld.lld" -r -m aarch64linux "$team_object" "$trace_object" -o "$combined"
+          "$ndk/llvm-nm" -C --defined-only "$combined" | tee "$RUNNER_TEMP/iw3-mover-trace/combined-defined.txt"
+          "$ndk/llvm-nm" -C -u "$combined" | tee "$RUNNER_TEMP/iw3-mover-trace/combined-undefined.txt"
+          for symbol in 'G_TestEntityPosition(gentity_s*, float*)' 'G_TraceCapsule(' 'Trace_GetEntityHitId('; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-mover-trace/combined-defined.txt"
+            if grep -F "$symbol" "$RUNNER_TEMP/iw3-mover-trace/combined-undefined.txt"; then
+              echo "Original mover trace edge failed to resolve: $symbol" >&2
+              exit 1
+            fi
+          done
+
+          grep -F 'SV_SetupIgnoreEntParams(' "$RUNNER_TEMP/iw3-mover-trace/combined-undefined.txt"
+          grep -F 'SV_Trace(' "$RUNNER_TEMP/iw3-mover-trace/combined-undefined.txt"
+          echo "IW3_ORIGINAL_MOVER_TRACE_EDGE_AARCH64_RESOLVED_GREEN"
+          echo "IW3_MOVER_TRACE_RUNTIME_EXECUTED=false"
+          echo "IW3_REAL_MAP_LOADED=false"
+          echo "IW3_GAMEPLAY_PROVEN=false"
+          echo "IW3_PLAYABLE_APK=false"
+
+      - name: Upload AArch64 trace-edge evidence (NOT APK)
+        uses: actions/upload-artifact@v4
+        with:
+          name: iw3-original-mover-trace-aarch64-NOT-APK
+          path: |
+            ${{ runner.temp }}/iw3-mover-trace/*
