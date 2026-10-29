@@ -87,6 +87,19 @@ class NativeRuntimeEvidenceTests(unittest.TestCase):
             with self.subTest(substitution=substitution), self.assertRaises(ValueError):
                 verify(real_format_fixture().replace("id=0 pressed=0", substitution))
 
+    def test_sparse_android_pointer_id_31_is_valid_but_32_is_rejected(self):
+        base = real_format_fixture()
+        marker = "IW3_JNI_LIFECYCLE_3"
+        valid_sparse = base.replace(
+            marker,
+            "IW3_JNI_TOUCH id=31 pressed=1 coords=0.50,0.50\\n"
+            "IW3_JNI_TOUCH id=31 pressed=0 coords=0.50,0.50\\n" + marker)
+        self.assertTrue(verify(valid_sparse)["touch_down_and_up_read_back_from_native"])
+
+        invalid_sparse = valid_sparse.replace("id=31 pressed=1", "id=32 pressed=1")
+        with self.assertRaisesRegex(ValueError, "pointer ID must be 0..31"):
+            verify(invalid_sparse)
+
     def test_invalid_coordinate_is_rejected(self):
         for coord in ("nan", "inf", "-0.1", "1.1"):
             with self.subTest(coord=coord), self.assertRaises(ValueError):
