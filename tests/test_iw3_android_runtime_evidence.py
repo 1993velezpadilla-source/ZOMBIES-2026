@@ -92,8 +92,8 @@ class NativeRuntimeEvidenceTests(unittest.TestCase):
         marker = "IW3_JNI_LIFECYCLE_3"
         valid_sparse = base.replace(
             marker,
-            "IW3_JNI_TOUCH id=31 pressed=1 coords=0.50,0.50\\n"
-            "IW3_JNI_TOUCH id=31 pressed=0 coords=0.50,0.50\\n" + marker)
+            "IW3_JNI_TOUCH id=31 pressed=1 coords=0.50,0.50\n"
+            "IW3_JNI_TOUCH id=31 pressed=0 coords=0.50,0.50\n" + marker)
         self.assertTrue(verify(valid_sparse)["touch_down_and_up_read_back_from_native"])
 
         invalid_sparse = valid_sparse.replace("id=31 pressed=1", "id=32 pressed=1")
