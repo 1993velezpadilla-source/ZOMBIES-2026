@@ -5,7 +5,8 @@ import hashlib
 import unittest
 
 from tools.iw3_android.prepare_real_engine_fs_startup import (
-    SOURCE, FUNCTIONS, REQUIRED, FORBIDDEN, prepare,
+    SOURCE, CMD_SOURCE, FUNCTIONS, COMMAND_FUNCTIONS, COMMAND_FS_FUNCTIONS,
+    FS_COMMAND_STATE, CMD_REGISTRY_STATE, REQUIRED, FORBIDDEN, prepare,
 )
 from tools.iw3_android.prepare_g_runframe_prereqs import function_source
 from tools.iw3_android.prepare_real_engine_iwd_services import prepare as prepare_iwd_services
@@ -20,6 +21,12 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
         original = source_path.read_bytes()
         source = original.decode("utf-8")
         bodies = [function_source(source, signature) for signature in FUNCTIONS]
+        command_source_path = ENGINE / CMD_SOURCE
+        command_original = command_source_path.read_bytes()
+        command_source = command_original.decode("utf-8")
+        command_bodies = [function_source(command_source, signature) for signature in COMMAND_FUNCTIONS]
+        self.assertIn(FS_COMMAND_STATE, source)
+        self.assertIn(CMD_REGISTRY_STATE, command_source)
         with TemporaryDirectory() as temp:
             output = Path(temp) / "generated" / "iw3_fs_startup.cpp"
             report_path = Path(temp) / "evidence.json"
@@ -32,8 +39,26 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
             )
             for body in bodies:
                 self.assertIn(body, staged)
+            for body in command_bodies:
+                self.assertIn(body, staged)
+            self.assertIn(
+                "#if !defined(IW3_FS_STARTUP_HOST_TEST)\n" + FS_COMMAND_STATE + "\n#endif",
+                staged,
+            )
+            self.assertIn(
+                "#if !defined(IW3_FS_STARTUP_HOST_TEST)\n" + CMD_REGISTRY_STATE,
+                staged,
+            )
             self.assertEqual(report["source_sha256"],
                              hashlib.sha256(original).hexdigest())
+            self.assertEqual(report["command_source_sha256"],
+                             hashlib.sha256(command_original).hexdigest())
+            self.assertTrue(report["original_FS_command_handlers_staged_verbatim"])
+            self.assertTrue(report["original_FS_AddCommands_body_staged_verbatim"])
+            self.assertTrue(report["original_command_registry_functions_staged_verbatim"])
+            self.assertTrue(report["original_command_registry_state_staged_verbatim"])
+            self.assertFalse(report["command_registry_runtime_invoked"])
+            self.assertFalse(report["command_registry_linked_to_android_runtime"])
             self.assertTrue(report["original_FS_AddSearchPath_body_staged_verbatim"])
             self.assertTrue(report["original_FS_AddGameDirectory_body_staged_verbatim"])
             self.assertTrue(report["original_FS_AddLocalizedGameDirectory_body_staged_verbatim"])
@@ -78,6 +103,7 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
             saved_report = report_path.read_text(encoding="utf-8")
             self.assertIn('"startup_runtime_invoked": false', saved_report)
         self.assertEqual(source_path.read_bytes(), original)
+        self.assertEqual(command_source_path.read_bytes(), command_original)
 
     def test_startup_never_registers_an_empty_homepath_as_a_relative_search_root(self):
         source = (ENGINE / SOURCE).read_text(encoding="utf-8")
@@ -167,6 +193,9 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
         self.assertIn("for symbol in 'Com_Filter(' 'Com_FilterPath('; do", workflow)
         self.assertIn("IW3_ORIGINAL_FILTER_PATH_PROVIDER_AARCH64_LINK_GREEN", workflow)
         self.assertNotIn('grep -F "FS_BuildOSPath" "$RUNNER_TEMP/iw3-fs-startup-undefined.txt"', workflow)
+        self.assertIn("IW3_ORIGINAL_FS_COMMAND_REGISTRATION_AARCH64_LINK_GREEN", workflow)
+        self.assertIn("Cmd_AddCommandInternal", workflow)
+        self.assertIn("Cmd_FindCommand", workflow)
 
     def test_combined_audit_keeps_single_original_providers(self):
         startup = (ROOT / "tools/iw3_android/prepare_real_engine_fs_startup.py").read_text(encoding="utf-8")

@@ -634,8 +634,8 @@ jobs:
           done
           echo "IW3_ORIGINAL_FILTER_PATH_PROVIDER_AARCH64_LINK_GREEN"
           # These original q_shared providers close direct startup/Dvar string
-          # dependencies. Com_Error and the command/parser service graph remain
-          # visible as unresolved; this is not a claim that FS_Startup ran.
+          # dependencies. Com_Error and the wider command execution/parser graph
+          # remain visible as unresolved; command registration is audited below.
           for symbol in 'I_strncat(' 'I_strncpyz(' 'I_stricmp(' 'Com_sprintf('; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-iwd-defined.txt"
             if grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-iwd-undefined.txt"; then
@@ -661,6 +661,17 @@ jobs:
           echo "IW3_ORIGINAL_STRINGED_INIT_CHAIN_AARCH64_LINK_GREEN"
           echo "IW3_ORIGINAL_FS_LISTFILES_FILTERED_CHAIN_AARCH64_LINK_GREEN"
           echo "IW3_ORIGINAL_HUNK_USER_LP64_AARCH64_LINK_GREEN"
+          # The original FS startup's command handlers and registry now join
+          # this relocatable graph. Keep wider command execution/parser services
+          # explicit; this still does not invoke FS_Startup at runtime.
+          for symbol in FS_DisplayPath FS_Path_f FS_FullPath_f FS_Dir_f FS_SortFileList FS_ConvertPath FS_NewDir_f FS_TouchFile FS_TouchFile_f FS_AddCommands Cmd_AddCommandInternal Cmd_FindCommand; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-iwd-defined.txt"
+            if grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-iwd-undefined.txt"; then
+              echo "Original filesystem command-registration edge failed to resolve: $symbol" >&2
+              exit 1
+            fi
+          done
+          echo "IW3_ORIGINAL_FS_COMMAND_REGISTRATION_AARCH64_LINK_GREEN"
           echo "IW3_FS_STARTUP_RUNTIME_INVOKED=false"
           echo "IW3_REAL_GAME_DATA_MOUNTED=false"
           echo "IW3_PLAYABLE_APK=false"

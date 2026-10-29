@@ -20,6 +20,7 @@ except ModuleNotFoundError:
     from prepare_g_runframe_prereqs import function_source
 
 SOURCE = Path("src/universal/com_files.cpp")
+CMD_SOURCE = Path("src/qcommon/cmd.cpp")
 FUNCTIONS = (
     "void __cdecl FS_AddSearchPath(searchpath_s *search)",
     "void __cdecl FS_AddGameDirectory(char *path, char *dir, int bLanguageDirectory, int iLanguage)",
@@ -35,6 +36,16 @@ FUNCTIONS = (
     "void __cdecl FS_ReplaceSeparators(char *path)",
     "void __cdecl FS_BuildOSPath(const char *base, const char *game, const char *qpath, char *ospath)",
     "void __cdecl FS_BuildOSPathForThread(const char *base, const char *game, const char *qpath, char *ospath, FsThread thread)",
+    "void __cdecl FS_DisplayPath(int bLanguageCull)",
+    "void __cdecl FS_Path_f()",
+    "void __cdecl FS_FullPath_f()",
+    "void __cdecl FS_Dir_f()",
+    "void __cdecl FS_SortFileList(const char **filelist, int numfiles)",
+    "void __cdecl FS_ConvertPath(char *s)",
+    "void __cdecl FS_NewDir_f()",
+    "int __cdecl FS_TouchFile(const char *name)",
+    "void __cdecl FS_TouchFile_f()",
+    "void __cdecl FS_AddCommands()",
     "void __cdecl Com_ReadCDKey()",
     "void FS_RegisterDvars()",
     "void __cdecl FS_Startup(char *gameName)",
@@ -42,6 +53,28 @@ FUNCTIONS = (
     "bool __cdecl FS_IsBasePathValid()",
     "void __cdecl FS_InitFilesystem()",
 )
+COMMAND_FS_FUNCTIONS = (
+    "void __cdecl FS_DisplayPath(int bLanguageCull)",
+    "void __cdecl FS_Path_f()",
+    "void __cdecl FS_FullPath_f()",
+    "void __cdecl FS_Dir_f()",
+    "void __cdecl FS_SortFileList(const char **filelist, int numfiles)",
+    "void __cdecl FS_ConvertPath(char *s)",
+    "void __cdecl FS_NewDir_f()",
+    "int __cdecl FS_TouchFile(const char *name)",
+    "void __cdecl FS_TouchFile_f()",
+    "void __cdecl FS_AddCommands()",
+)
+COMMAND_FUNCTIONS = (
+    "void Cmd_AddCommandInternal(const char* cmdName, void(__cdecl* function)(), cmd_function_s* allocedCmd)",
+    "cmd_function_s* Cmd_FindCommand(const char* cmdName)",
+)
+FS_COMMAND_STATE = """cmd_function_s FS_Path_f_VAR;
+cmd_function_s FS_FullPath_f_VAR;
+cmd_function_s FS_NewDir_f_VAR;
+cmd_function_s FS_Dir_f_VAR;
+cmd_function_s FS_TouchFile_f_VAR;"""
+CMD_REGISTRY_STATE = "static cmd_function_s* cmd_functions = NULL;"
 REQUIRED = (
     'search->dir = (directory_t *)Z_Malloc(sizeof(directory_t), "FS_AddGameDirectory", 3);',
     "void __cdecl FS_AddIwdFilesForGameDirectory(char *path, char *pszGameFolder)",
@@ -73,6 +106,11 @@ REQUIRED = (
     "homePath = nullptr;",
     'FS_AddLocalizedGameDirectory((char *)fs_basepath->current.string, (char*)"raw")',
     'FS_AddCommands();',
+    "void __cdecl FS_DisplayPath(int bLanguageCull)",
+    'Cmd_AddCommandInternal("path", FS_Path_f, &FS_Path_f_VAR);',
+    'Cmd_AddCommandInternal("touchFile", FS_TouchFile_f, &FS_TouchFile_f_VAR);',
+    "void Cmd_AddCommandInternal(const char* cmdName, void(__cdecl* function)(), cmd_function_s* allocedCmd)",
+    "cmd_function_s* Cmd_FindCommand(const char* cmdName)",
     "if (fs_homepath->current.string[0] != '\\0')",
     'FS_Startup((char*)"main")',
     'FS_ReadFile("fileSysCheck.cfg", 0) > 0',
@@ -100,6 +138,7 @@ FORBIDDEN = (
 
 HEADER = ('#include "iw3_android_fs_startup_compat.h"\n'
           '#include "iw3_android_iwd_directory_compat.h"\n'
+          '#include "qcommon/cmd.h"\n'
           '#include <cstdint>\n'
           '#include <cstring>\n')
 
@@ -112,10 +151,22 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
         raise ValueError("Refusing to overwrite authentic KisakCOD com_files.cpp")
     original = source_path.read_bytes()
     source = original.decode("utf-8")
+    command_source_path = engine / CMD_SOURCE
+    command_original = command_source_path.read_bytes()
+    command_source = command_original.decode("utf-8")
     bodies = [function_source(source, signature) for signature in FUNCTIONS]
+    command_bodies = [function_source(command_source, signature) for signature in COMMAND_FUNCTIONS]
+    if FS_COMMAND_STATE not in source:
+        raise ValueError("Original filesystem command-handler state declarations missing")
+    if CMD_REGISTRY_STATE not in command_source:
+        raise ValueError("Original command registry state declaration missing")
     rendered_bodies = []
     for signature, body in zip(FUNCTIONS, bodies):
-        if signature == "void __cdecl FS_AddIwdFilesForGameDirectory(char *path, char *pszGameFolder)":
+        if signature in COMMAND_FS_FUNCTIONS:
+            rendered_bodies.append(
+                "#if !defined(IW3_FS_STARTUP_HOST_TEST)\n" + body + "\n#endif"
+            )
+        elif signature == "void __cdecl FS_AddIwdFilesForGameDirectory(char *path, char *pszGameFolder)":
             # The dependency archive includes the original enumerator. The
             # focused localized-path host test deliberately keeps its narrow
             # service stub so it does not need to fabricate IWD archive state.
@@ -130,7 +181,22 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
             )
         else:
             rendered_bodies.append(body)
-    rendered = HEADER + "\n\n".join(rendered_bodies) + "\n"
+    command_registry = (
+        "#if !defined(IW3_FS_STARTUP_HOST_TEST)\n"
+        + CMD_REGISTRY_STATE + "\n\n"
+        + "\n\n".join(command_bodies)
+        + "\n#endif"
+    )
+    rendered = (
+        HEADER
+        + "\n#if !defined(IW3_FS_STARTUP_HOST_TEST)\n"
+        + FS_COMMAND_STATE
+        + "\n#endif\n\n"
+        + "\n\n".join(rendered_bodies)
+        + "\n\n"
+        + command_registry
+        + "\n"
+    )
     for marker in REQUIRED:
         if marker not in rendered:
             raise ValueError("Original filesystem startup contract missing: " + marker)
@@ -141,14 +207,30 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
     output.write_text(rendered, encoding="utf-8")
     if source_path.read_bytes() != original:
         raise RuntimeError("Vendored KisakCOD source changed during extraction")
+    if command_source_path.read_bytes() != command_original:
+        raise RuntimeError("Vendored KisakCOD command source changed during extraction")
     evidence = {
         "source": str(SOURCE),
         "source_sha256": hashlib.sha256(original).hexdigest(),
+        "command_source": str(CMD_SOURCE),
+        "command_source_sha256": hashlib.sha256(command_original).hexdigest(),
         "function_signatures": list(FUNCTIONS),
         "function_body_sha256": {
             signature: hashlib.sha256(body.encode("utf-8")).hexdigest()
             for signature, body in zip(FUNCTIONS, bodies)
         },
+        "command_function_signatures": list(COMMAND_FUNCTIONS),
+        "command_function_body_sha256": {
+            signature: hashlib.sha256(body.encode("utf-8")).hexdigest()
+            for signature, body in zip(COMMAND_FUNCTIONS, command_bodies)
+        },
+        "original_FS_command_handlers_staged_verbatim": True,
+        "original_FS_AddCommands_body_staged_verbatim": True,
+        "original_command_registry_functions_staged_verbatim": True,
+        "original_command_registry_state_staged_verbatim": True,
+        "command_registry_runtime_invoked": False,
+        "command_registry_linked_to_android_runtime": False,
+
         "original_FS_AddSearchPath_body_staged_verbatim": True,
         "original_FS_AddGameDirectory_body_staged_verbatim": True,
         "original_FS_AddLocalizedGameDirectory_body_staged_verbatim": True,
