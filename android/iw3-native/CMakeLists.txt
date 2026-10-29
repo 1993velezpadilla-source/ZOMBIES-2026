@@ -546,6 +546,7 @@ add_library(iw3_sp_math SHARED
     "${CMAKE_CURRENT_SOURCE_DIR}/iw3_unzip_native_smoke.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/native_math_abi.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_platform.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_filter.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/snap_float_abi.cpp"
 )
 target_include_directories(iw3_sp_math PRIVATE
