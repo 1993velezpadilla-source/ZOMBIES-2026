@@ -33,6 +33,12 @@ class OriginalCLMouseMoveTests(unittest.TestCase):
         self.assertIn("#define KEY_STRAFE 8", staged)
         self.assertIn("#define KEY_MLOOK 13", staged)
         self.assertNotIn("#include <win32/win_local.h>", staged)
+        self.assertNotIn("#include <cgame/cg_main.h>", staged)
+        aim_header = (ENGINE / "src/aim_assist/aim_assist.h").read_text(encoding="utf-8")
+        self.assertIn("#if defined(__ANDROID__)", aim_header)
+        self.assertIn("struct playerState_s;", aim_header)
+        self.assertIn("static_assert(sizeof(AimInput) == (sizeof(void *) == 8 ? 0x38 : 0x30));",
+                      aim_header)
         self.assertTrue(report["original_CL_GetMouseMovement_body_preserved_verbatim"])
         self.assertTrue(report["original_CL_MouseMove_body_preserved_verbatim"])
         self.assertTrue(report["win32_input_header_excluded"])
