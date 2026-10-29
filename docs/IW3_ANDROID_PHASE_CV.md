@@ -57,3 +57,9 @@ Fresh ARM64 audit on code head `796e83aa91fb14e40b4da96b59c8d224ae8e9145` comple
 
 This confirms the duplicate-definition link failure is corrected on this code head. It does not advance the runtime proof flags: the same log explicitly reports `IW3_FS_STARTUP_RUNTIME_INVOKED=false` and `IW3_PLAYABLE_APK=false`. The next meaningful milestone is not another isolated symbol check; it is wiring the real bootstrap into the Android process with the full dependency graph and proving an actual map/render/game loop.
 
+### Concrete next bootstrap edge from the green combined-object report
+
+The same ARM64 log shows why this is not yet a runtime link. The combined extracted FS/IWD relocatable object still has engine-owned state references such as `fs_basepath`, `fs_homepath`, `fs_basegame`, `fs_cdpath`, `fs_copyfiles`, `fs_debug`, `fs_gameDirVar`, `fs_ignoreLocalized`, `fs_restrict`, `fs_numServerIwds`, `fs_serverIwds`, `info1`, `info2`, `lastValidBase`, and `lastValidGame`, plus the platform adapter edge `z2026_iw3_fs_file_close`. Standard C/C++/Android runtime imports are expected in a relocatable object; these engine-state/adapter symbols are the relevant non-runtime edges.
+
+The next integration should choose one canonical ownership path: link the complete original `com_files.cpp` state and implementation with its real Android platform services, while avoiding duplicate extracted definitions such as `FS_ConvertPath`. Then invoke `FS_Startup()/FS_InitFilesystem()` only after the original dvar, command, memory, language, and rooted-I/O services are initialized. Do not mark this step green until a runtime trace proves startup and a real user-owned map/FastFile load.
+
