@@ -144,7 +144,9 @@ public final class MainActivity extends Activity {
                 GameDataImporter.Summary summary =
                         GameDataImporter.importTree(this, treeUri, getFilesDir());
                 String evidence = "IW3_GAME_DATA_IMPORT_PASS iwd=" + summary.iwdFiles
-                        + " fastfiles=" + summary.fastFiles + " bytes=" + summary.bytesCopied;
+                        + " fastfiles=" + summary.fastFiles + " main_iwd=" + summary.mainIwdFiles
+                        + " zone_english_ff=" + summary.zoneEnglishFastFiles
+                        + " bytes=" + summary.bytesCopied;
                 String indexReport;
                 try {
                     indexReport = EngineBridge.nativeValidateImportedIwds(
