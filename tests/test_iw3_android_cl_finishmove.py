@@ -47,6 +47,19 @@ class OriginalCLFinishMoveTests(unittest.TestCase):
         self.assertFalse(report["client_runtime_invoked"])
         self.assertFalse(report["playable_apk"])
 
+    def test_generator_refuses_to_overwrite_the_vendored_engine_source(self):
+        source_path = ENGINE / "src/client/cl_input.cpp"
+        original = source_path.read_bytes()
+        result = subprocess.run(
+            [sys.executable, str(ROOT / "tools/iw3_android/prepare_real_engine_cl_finishmove.py"),
+             "--engine", str(ENGINE), "--output", str(source_path),
+             "--report", str(ROOT / "build/should-not-be-written-finishmove.json")],
+            cwd=ROOT, capture_output=True, text=True, check=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Refusing to overwrite authentic KisakCOD cl_input.cpp",
+                      result.stdout + result.stderr)
+        self.assertEqual(source_path.read_bytes(), original)
+
     def test_arm64_workflow_resolves_only_the_finishmove_edge(self):
         workflow = (ROOT / ".github/workflows/iw3-original-native-android.yml").read_text(encoding="utf-8")
         self.assertIn("prepare_real_engine_cl_finishmove.py", workflow)
