@@ -29,6 +29,12 @@ Android Activity still calls the diagnostic snapshot API; the original
 `CL_CreateCmd` touch hook remains staged/compile-audited rather than invoked by
 the running Android process.
 
+The Activity now performs a bounded startup smoke using pointer ID 31: press,
+read the JNI snapshot, release, verify the released state, and reset all touch
+state. The emulator script requires `IW3_JNI_SPARSE_POINTER_ID_31_PASS` in
+logcat, so the test exercises the exact JNI wrapper that previously rejected
+valid IDs. This remains diagnostic input plumbing, not a live game command.
+
 ## Validation boundary
 
 The regression is included in the repository's `test_iw3_android_*.py` suite.
