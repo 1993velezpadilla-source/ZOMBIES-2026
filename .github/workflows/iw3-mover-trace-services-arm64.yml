@@ -11,6 +11,7 @@ on:
       - 'third_party/KisakCOD/src/game/g_main.cpp'
       - 'third_party/KisakCOD/src/qcommon/cm_trace.cpp'
       - 'third_party/KisakCOD/src/qcommon/qcommon.h'
+      - 'third_party/KisakCOD/src/universal/q_shared.h'
       - 'third_party/KisakCOD/src/server/sv_world.h'
   push:
     branches:
