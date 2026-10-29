@@ -841,6 +841,70 @@ jobs:
           echo "IW3_CL_CREATECMD_RUNTIME_INVOKED=false"
           echo "IW3_PLAYABLE_APK=false"
 
+      - name: Compile the real Android touch adapter and resolve the original client hook (NOT RUNTIME)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          platform_source="$GITHUB_WORKSPACE/android/iw3-native/iw3_android_platform.cpp"
+          client_input="$RUNNER_TEMP/iw3-original-cl-command-input-arm64.o"
+          platform_object="$RUNNER_TEMP/iw3-android-platform-touch-arm64.o"
+          combined="$RUNNER_TEMP/iw3-original-client-input-plus-touch-arm64.o"
+          test -s "$platform_source"
+          test -s "$client_input"
+
+          common_flags=(
+            -std=c++20 -DKISAK_SP=1 -Wall -Wextra -UNDEBUG -O2
+            -I"$GITHUB_WORKSPACE/android/iw3-native"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/client"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/qcommon"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/universal"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/deps"
+          )
+          "$ndk/aarch64-linux-android26-clang++" "${common_flags[@]}" -c "$platform_source" -o "$platform_object"
+          "$ndk/llvm-readelf" -h "$platform_object" | tee "$RUNNER_TEMP/iw3-android-platform-touch-arm64-elf.txt"
+          grep -F 'Class:                             ELF64' "$RUNNER_TEMP/iw3-android-platform-touch-arm64-elf.txt"
+          grep -F 'Machine:                           AArch64' "$RUNNER_TEMP/iw3-android-platform-touch-arm64-elf.txt"
+          "$ndk/llvm-nm" -C --defined-only "$platform_object" | tee "$RUNNER_TEMP/iw3-android-platform-touch-defined.txt"
+          grep -F 'z2026_platform_apply_touch_to_usercmd' "$RUNNER_TEMP/iw3-android-platform-touch-defined.txt"
+
+          "$ndk/ld.lld" -m aarch64linux -r "$client_input" "$platform_object" -o "$combined"
+          "$ndk/llvm-nm" -C --defined-only "$combined" | tee "$RUNNER_TEMP/iw3-client-input-plus-touch-defined.txt"
+          "$ndk/llvm-nm" -C -u "$combined" | tee "$RUNNER_TEMP/iw3-client-input-plus-touch-undefined.txt"
+          grep -F 'CL_CreateCmd(usercmd_s*)' "$RUNNER_TEMP/iw3-client-input-plus-touch-defined.txt"
+          grep -F 'CL_FinishMove(usercmd_s*)' "$RUNNER_TEMP/iw3-client-input-plus-touch-defined.txt"
+          grep -F 'CL_MouseMove(usercmd_s*)' "$RUNNER_TEMP/iw3-client-input-plus-touch-defined.txt"
+          grep -F 'z2026_platform_apply_touch_to_usercmd' "$RUNNER_TEMP/iw3-client-input-plus-touch-defined.txt"
+          if grep -F 'z2026_platform_apply_touch_to_usercmd' "$RUNNER_TEMP/iw3-client-input-plus-touch-undefined.txt"; then
+            echo "Original CL_CreateCmd -> Android touch adapter edge failed to resolve" >&2
+            exit 1
+          fi
+          # These are still real upstream client dependencies, not replaced with stubs.
+          for symbol in 'AimAssist_UpdateMouseInput' 'CG_GetPredictedPlayerState' 'CL_KeyMove(usercmd_s*)' 'CL_CmdButtons(usercmd_s*)'; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-client-input-plus-touch-undefined.txt"
+          done
+          echo "IW3_ORIGINAL_CLIENT_TOUCH_ADAPTER_EDGE_RESOLVED_AARCH64_GREEN"
+          echo "IW3_CLIENT_RUNTIME_LINKED=false"
+          echo "IW3_TOUCH_ADAPTER_RUNTIME_INVOKED=false"
+          echo "IW3_REAL_MAP_LOADED=false"
+          echo "IW3_GAMEPLAY_PROVEN=false"
+          echo "IW3_PLAYABLE_APK=false"
+
+      - name: Attach original client/touch relocatable-link evidence (NOT APK)
+        uses: actions/upload-artifact@v4
+        with:
+          name: z2026-iw3-client-touch-edge-arm64-NOT-APK
+          path: |
+            ${{ runner.temp }}/iw3-android-platform-touch-arm64.o
+            ${{ runner.temp }}/iw3-android-platform-touch-arm64-elf.txt
+            ${{ runner.temp }}/iw3-android-platform-touch-defined.txt
+            ${{ runner.temp }}/iw3-original-client-input-plus-touch-arm64.o
+            ${{ runner.temp }}/iw3-client-input-plus-touch-defined.txt
+            ${{ runner.temp }}/iw3-client-input-plus-touch-undefined.txt
+          retention-days: 30
+          if-no-files-found: error
+
       - name: Verify original IWD indexer is present in ARM64 static archive
         shell: bash
         run: |
