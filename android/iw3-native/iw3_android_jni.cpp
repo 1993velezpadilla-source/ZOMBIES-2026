@@ -119,6 +119,9 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(
     __android_log_print(imported_iwd_index_fixture_ok ? ANDROID_LOG_INFO : ANDROID_LOG_ERROR,
                         "IW3NativeGate", "IW3_JNI_IMPORTED_IWD_INDEX_FIXTURE_%s",
                         imported_iwd_index_fixture_ok ? "PASS" : "FAIL");
+    __android_log_print(imported_iwd_index_fixture_ok ? ANDROID_LOG_INFO : ANDROID_LOG_ERROR,
+                        "IW3NativeGate", "IW3_JNI_IMPORTED_IWD_INDEX_AND_FS_READ_FIXTURE_%s",
+                        imported_iwd_index_fixture_ok ? "PASS" : "FAIL");
     __android_log_print(casefold_ok ? ANDROID_LOG_INFO : ANDROID_LOG_ERROR,
                         "IW3NativeGate", "IW3_JNI_Q_SHARED_CASEFOLD_%s",
                         casefold_ok ? "PASS" : "FAIL");
