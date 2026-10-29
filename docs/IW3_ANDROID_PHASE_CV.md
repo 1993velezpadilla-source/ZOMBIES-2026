@@ -14,7 +14,9 @@ The host-only localized-path test excludes this command subsystem under `IW3_FS_
 
 ## Validation status
 
-The commit that adds this phase must pass fresh CI before this change is considered validated. The expected marker is:
+The first ARM64 build exposed one real compile error in this new slice: `FS_DisplayPath` called the original `FS_IwdIsPure(iwd_t*)` provider without a visible declaration. The follow-up fix adds the exact provider declaration to `iw3_android_fs_startup_compat.h` and a regression that prevents the startup compatibility header from losing it. The provider body itself remains the original body staged by `prepare_real_engine_fs_read.py`; no local replacement is introduced.
+
+Fresh CI for the follow-up commit is required before this phase is considered validated. The expected marker is:
 
 `IW3_ORIGINAL_FS_COMMAND_REGISTRATION_AARCH64_LINK_GREEN`
 

@@ -188,6 +188,7 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
         self.assertIn("IW3_ORIGINAL_FS_LISTFILES_FILTERED_CHAIN_AARCH64_LINK_GREEN", workflow)
         compat = (ROOT / "android/iw3-native/iw3_android_fs_startup_compat.h").read_text(encoding="utf-8")
         self.assertIn("const char **__cdecl FS_ListFilteredFiles(", compat)
+        self.assertIn("int __cdecl FS_IwdIsPure(iwd_t *iwd);", compat)
         self.assertIn("searchpath_s *searchPath, const char *path, const char *extension,", compat)
         self.assertIn("for symbol in MyAssertHandler I_strnicmp; do", workflow)
         self.assertIn("for symbol in 'Com_Filter(' 'Com_FilterPath('; do", workflow)

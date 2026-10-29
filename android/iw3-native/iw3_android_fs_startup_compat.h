@@ -37,6 +37,7 @@ void __cdecl FS_AddIwdFilesForGameDirectory(char *path, char *pszGameFolder);
 const char **__cdecl FS_ListFilteredFiles(
     searchpath_s *searchPath, const char *path, const char *extension,
     const char *filter, FsListBehavior_e behavior, int *numfiles);
+int __cdecl FS_IwdIsPure(iwd_t *iwd);
 int Sys_DirectoryHasContents(const char *directory);
 void FS_RegisterDvars();
 void __cdecl Com_ReadCDKey();
