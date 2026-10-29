@@ -57,6 +57,7 @@ class OriginalAimAssistMeleeProviderTests(unittest.TestCase):
             output = Path(temp) / "iw3_aimassist_melee.cpp"
             report = prepare(ENGINE, output)
             staged = output.read_text(encoding="utf-8")
+            self.assertIn("extern AimAssistGlobals aaGlobArray[1];", staged)
             self.assertIn("extern const dvar_t *player_meleeRange;", staged)
             self.assertNotIn("AimAssistGlobals aaGlobArray[1] = { 0 };", staged)
             self.assertTrue(report["player_meleeRange_is_external_engine_dependency"])
