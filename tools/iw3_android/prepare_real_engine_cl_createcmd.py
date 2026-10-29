@@ -22,7 +22,6 @@ SIGNATURE = "void __cdecl CL_CreateCmd(usercmd_s *result)"
 HEADER = (
     '#include "client.h"\n'
     '#include "cl_input.h"\n'
-    '#include "qcommon/keycodes.h"\n'
     '#include "iw3_android_platform.h"\n'
     '#include <cstring>\n'
 )
