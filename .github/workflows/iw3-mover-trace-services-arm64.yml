@@ -13,6 +13,8 @@ on:
       - 'third_party/KisakCOD/src/qcommon/qcommon.h'
       - 'third_party/KisakCOD/src/universal/q_shared.h'
       - 'third_party/KisakCOD/src/server/sv_world.h'
+      - 'third_party/KisakCOD/src/server/sv_world.cpp'
+      - 'third_party/KisakCOD/src/server/sv_game.h'
   push:
     branches:
       - feature/iw3-native-android-arm64-20261025
@@ -99,7 +101,7 @@ jobs:
           "$ndk/ld.lld" -r -m aarch64linux "$team_object" "$trace_object" -o "$combined"
           "$ndk/llvm-nm" -C --defined-only "$combined" | tee "$RUNNER_TEMP/iw3-mover-trace/combined-defined.txt"
           "$ndk/llvm-nm" -C -u "$combined" | tee "$RUNNER_TEMP/iw3-mover-trace/combined-undefined.txt"
-          for symbol in 'G_TestEntityPosition(gentity_s*, float*)' 'G_TraceCapsule(' 'Trace_GetEntityHitId('; do
+          for symbol in 'G_TestEntityPosition(gentity_s*, float*)' 'G_TraceCapsule(' 'Trace_GetEntityHitId(' 'SV_SetupIgnoreEntParams(' 'SV_Trace('; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-mover-trace/combined-defined.txt"
             if grep -F "$symbol" "$RUNNER_TEMP/iw3-mover-trace/combined-undefined.txt"; then
               echo "Original mover trace edge failed to resolve: $symbol" >&2
@@ -107,9 +109,18 @@ jobs:
             fi
           done
 
-          grep -F 'SV_SetupIgnoreEntParams(' "$RUNNER_TEMP/iw3-mover-trace/combined-undefined.txt"
-          grep -F 'SV_Trace(' "$RUNNER_TEMP/iw3-mover-trace/combined-undefined.txt"
+          for symbol in 'SV_SetupIgnoreEntParams(' 'SV_Trace('; do
+            if grep -F "$symbol" "$RUNNER_TEMP/iw3-mover-trace/combined-undefined.txt"; then
+              echo "Original server trace edge failed to resolve: $symbol" >&2
+              exit 1
+            fi
+          done
+          for symbol in 'SV_GentityNum(int)' 'CM_BoxTrace(' 'CM_PointTraceToEntities(' 'CM_ClipMoveToEntities('; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-mover-trace/combined-undefined.txt"
+          done
+          echo "IW3_ORIGINAL_SV_TRACE_AARCH64_EDGE_RESOLVED_GREEN"
           echo "IW3_ORIGINAL_MOVER_TRACE_EDGE_AARCH64_RESOLVED_GREEN"
+          echo "IW3_SV_TRACE_RUNTIME_EXECUTED=false"
           echo "IW3_MOVER_TRACE_RUNTIME_EXECUTED=false"
           echo "IW3_REAL_MAP_LOADED=false"
           echo "IW3_GAMEPLAY_PROVEN=false"
