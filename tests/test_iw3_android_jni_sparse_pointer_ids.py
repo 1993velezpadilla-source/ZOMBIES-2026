@@ -28,6 +28,15 @@ class JniSparsePointerIdTests(unittest.TestCase):
         self.assertIn("id >= kAndroidPointerIdCount", jni)
         self.assertNotIn("id >= 10", jni)
 
+    def test_android_emulator_executes_sparse_id_31_through_the_real_jni_boundary(self):
+        activity = (ROOT / "android/iw3-native/android_app/app/src/main/java/org/z2026/iw3nativeprobe/MainActivity.java").read_text(encoding="utf-8")
+        probe = (ROOT / "tools/iw3_android/run_emulator_probe.sh").read_text(encoding="utf-8")
+
+        self.assertIn("EngineBridge.nativeTouch(31, 0.90f, 0.85f, true)", activity)
+        self.assertIn("EngineBridge.nativeTouchSnapshot(31, coordinates)", activity)
+        self.assertIn("IW3_JNI_SPARSE_POINTER_ID_31_", activity)
+        self.assertIn("grep -F 'IW3_JNI_SPARSE_POINTER_ID_31_PASS'", probe)
+
 
 if __name__ == "__main__":
     unittest.main()
