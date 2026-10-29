@@ -3,7 +3,8 @@
 #include "qcommon.h"
 #include "threads.h"
 
-#include <xanim/xanim.h>
+// DynEntityDrawType is declared by qcommon.h; pulling xanim.h here drags
+// the D3D9 renderer graph into this platform-independent collision core.
 #include <game/game_public.h>
 #include <universal/profile.h>
 
