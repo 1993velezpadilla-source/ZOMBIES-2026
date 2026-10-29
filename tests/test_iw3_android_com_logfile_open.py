@@ -24,6 +24,8 @@ class OriginalLogfileOpenProviderTests(unittest.TestCase):
             report = Path(temp) / "evidence.json"
             evidence = prepare(ENGINE, output, report)
             staged = output.read_text(encoding="utf-8")
+            self.assertTrue(staged.startswith('#include "qcommon/qcommon.h"\n\nint logfile;\n\n'))
+            self.assertNotIn("\\nint logfile;\\n", staged)
             self.assertIn("int logfile;", staged)
             self.assertIn(body, staged)
             self.assertIn("return logfile != 0;", staged)

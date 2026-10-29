@@ -26,14 +26,14 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
         raise ValueError("Refusing to overwrite authentic KisakCOD common.cpp")
     original = source_path.read_bytes()
     source = original.decode("utf-8")
-    declarations = list(re.finditer(r"(?m)^[ \\t]*int logfile;[ \\t]*$", source))
+    declarations = list(re.finditer(r"(?m)^[ \t]*int logfile;[ \t]*$", source))
     if len(declarations) != 1:
         raise ValueError(f"Expected exactly one original 'int logfile;' state declaration, found {len(declarations)}")
     state_declaration = declarations[0].group(0).strip()
     body = function_source(source, SIGNATURE)
     if body.count("return logfile != 0;") != 1:
         raise ValueError("Original Com_LogFileOpen behavior changed; refusing to synthesize a substitute")
-    rendered = HEADER + "\\n" + state_declaration + "\\n\\n" + body + "\\n"
+    rendered = HEADER + "\n" + state_declaration + "\n\n" + body + "\n"
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(rendered, encoding="utf-8")
     if source_path.read_bytes() != original:
@@ -51,7 +51,7 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
     }
     if report_path is not None:
         report_path.parent.mkdir(parents=True, exist_ok=True)
-        report_path.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\\n", encoding="utf-8")
+        report_path.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return evidence
 
 
