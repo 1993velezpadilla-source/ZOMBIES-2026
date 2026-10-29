@@ -38,6 +38,13 @@ class OriginalCLCreateCmdTests(unittest.TestCase):
         self.assertFalse(report["client_runtime_invoked"])
         self.assertFalse(report["playable_apk"])
 
+    def test_android_client_header_does_not_force_win32_d3d_resource_layouts(self):
+        header = (ENGINE / "src/client/client.h").read_text(encoding="utf-8")
+        self.assertIn("#if !defined(__ANDROID__)\\n#include <gfx_d3d/r_debug.h>", header)
+        self.assertIn("struct Material;", header)
+        self.assertIn("struct Font_s;", header)
+        self.assertIn("struct refdef_s;", header)
+
     def test_arm64_workflow_compiles_and_audits_the_original_command_builder(self):
         workflow = (ROOT / ".github/workflows/iw3-original-native-android.yml").read_text(encoding="utf-8")
         self.assertIn("prepare_real_engine_cl_createcmd.py", workflow)
