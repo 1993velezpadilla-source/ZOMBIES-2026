@@ -58,14 +58,23 @@ class OriginalFSReadAbiGateTests(unittest.TestCase):
         lookup_header = (ROOT / "android/iw3-native/iw3_android_iwd_lookup_compat.h").read_text(encoding="utf-8")
         smoke = (ROOT / "android/iw3-native/iw3_unzip_native_smoke.cpp").read_text(encoding="utf-8")
         state = (ROOT / "third_party/KisakCOD/src/universal/com_files_state.cpp").read_text(encoding="utf-8")
-        for symbol in (
-            "fs_debug", "fs_restrict", "fs_ignoreLocalized", "fs_copyfiles",
-            "fs_cdpath", "fs_basepath", "fs_numServerIwds", "fs_serverIwds",
-            "fs_fakeChkSum",
+        for definition in (
+            "const dvar_s *fs_debug =",
+            "const dvar_s *fs_restrict =",
+            "const dvar_s *fs_ignoreLocalized =",
+            "const dvar_s *fs_copyfiles =",
+            "const dvar_s *fs_cdpath =",
+            "const dvar_s *fs_basepath =",
+            "const dvar_t *fs_homepath =",
+            "const dvar_s *fs_gameDirVar =",
+            "const dvar_s *fs_basegame =",
+            "int fs_numServerIwds =",
+            "int fs_serverIwds[1024]",
+            "int fs_fakeChkSum =",
         ):
-            with self.subTest(symbol=symbol):
-                self.assertNotRegex(adapter, rf"(?m)^(?:const dvar_s \\*|int ){symbol}(?:\\[1024\\])?\\s*=")
-                self.assertNotRegex(lookup_generator, rf"(?m)^(?:const dvar_s \\*|int ){symbol}\\s*=")
+            with self.subTest(definition=definition):
+                self.assertNotIn(definition, adapter)
+                self.assertNotIn(definition, lookup_generator)
         self.assertIn("extern const dvar_s *fs_ignoreLocalized;", lookup_header)
         self.assertIn("fs_ignoreLocalized", state)
         self.assertIn("std::call_once(g_fs_diagnostic_state_once", adapter)

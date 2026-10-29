@@ -598,7 +598,7 @@ jobs:
             "$startup_archive" "$parser_archive" "$print_warning_archive" "$print_printf_archive" "$cmd_args_archive" "$q_shared_strings_archive" "$dvar_full_archive" "$iwd_services_archive" \
             "$iwd_mount_archive" "$unzip_archive" "$iwd_directory_archive" \
             "$fs_read_archive" "$fs_readfile_archive" "$hunk_temp_archive" "$hunk_user_archive" \
-            "$language_archive" "$stringed_archive" "$filtered_archive" "$filter_archive" "$state_object" --no-whole-archive \
+            "$language_archive" "$stringed_archive" "$filtered_archive" "$filter_archive" --no-whole-archive \
             -o "$startup_iwd_combined"
           "$llvm_nm" -C --defined-only "$startup_iwd_combined" \
             | tee "$RUNNER_TEMP/iw3-fs-dvar-iwd-defined.txt"
