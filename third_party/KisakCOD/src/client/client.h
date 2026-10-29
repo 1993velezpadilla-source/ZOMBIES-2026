@@ -16,6 +16,30 @@
 struct Material;
 struct Font_s;
 struct refdef_s;
+struct trDebugString_t;
+struct trDebugLine_t;
+struct clientDebugStringInfo_t {
+    int max;
+    int num;
+    trDebugString_t *strings;
+    int *durations;
+};
+struct clientDebugLineInfo_t {
+    int max;
+    int num;
+    trDebugLine_t *lines;
+    int *durations;
+};
+struct clientDebug_t {
+    int prevFromServer;
+    int fromServer;
+    clientDebugStringInfo_t clStrings;
+    clientDebugStringInfo_t svStringsBuffer;
+    clientDebugStringInfo_t svStrings;
+    clientDebugLineInfo_t clLines;
+    clientDebugLineInfo_t svLinesBuffer;
+    clientDebugLineInfo_t svLines;
+};
 #endif
 
 struct snd_alias_t;
