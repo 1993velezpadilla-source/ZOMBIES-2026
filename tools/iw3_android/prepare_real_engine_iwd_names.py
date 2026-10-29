@@ -75,6 +75,7 @@ def prepare(engine: Path, output: Path) -> dict:
         "function_sha256": [hashlib.sha256(body.encode("utf-8")).hexdigest() for body in bodies],
         "source_bodies_preserved": True,
         "iwd_filename_hash_and_compare_ported": True,
+        "fs_convert_path_definition_emitted": True,
         "iwd_filename_hash_high_bit_safe": True,
         "iwd_language_sort_key_high_bit_safe": True,
         "iwd_language_sort_state_staged_from_original": True,

@@ -9,6 +9,7 @@ from tools.iw3_android.prepare_real_engine_fs_startup import (
     FS_COMMAND_STATE, CMD_REGISTRY_STATE, REQUIRED, FORBIDDEN, prepare,
 )
 from tools.iw3_android.prepare_g_runframe_prereqs import function_source
+from tools.iw3_android.prepare_real_engine_iwd_names import prepare as prepare_iwd_names
 from tools.iw3_android.prepare_real_engine_iwd_services import prepare as prepare_iwd_services
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -325,6 +326,31 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
         self.assertIn("z2026_platform_copy_data_root", native_test)
         self.assertIn("IW3_JNI_FS_STARTUP_PATH_%s", jni)
 
+
+    def test_fs_convert_path_has_one_original_provider_across_startup_iwd_link(self):
+        with TemporaryDirectory() as temp:
+            startup_output = Path(temp) / "iw3_fs_startup.cpp"
+            startup_report = prepare(ENGINE, startup_output)
+            names_output = Path(temp) / "iw3_iwd_names.cpp"
+            names_report = prepare_iwd_names(ENGINE, names_output)
+
+        startup = startup_output.read_text(encoding="utf-8")
+        names = names_output.read_text(encoding="utf-8")
+        signature = "void __cdecl FS_ConvertPath(char *s)"
+        # FS_NewDir_f retains its call, but the startup slice must not emit a
+        # second definition. The shared original body is owned by iwd_names.
+        self.assertIn("FS_ConvertPath", startup)
+        self.assertNotIn(signature, startup)
+        self.assertEqual(names.count(signature), 1)
+        self.assertFalse(startup_report["fs_convert_path_definition_emitted_here"])
+        self.assertEqual(startup_report["fs_convert_path_provider"],
+                         "prepare_real_engine_iwd_names")
+        self.assertTrue(startup_report["fs_convert_path_call_sites_preserved"])
+        self.assertTrue(names_report["fs_convert_path_definition_emitted"])
+
+        workflow = (ROOT / ".github/workflows/iw3-original-native-android.yml").read_text(encoding="utf-8")
+        self.assertIn("IW3_ORIGINAL_FS_CONVERT_PATH_SINGLE_PROVIDER_AARCH64_LINK_GREEN", workflow)
+        self.assertIn('fs_convert_path_count="$(grep -Ec', workflow)
 
 if __name__ == "__main__":
     unittest.main()
