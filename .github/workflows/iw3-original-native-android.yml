@@ -68,6 +68,10 @@ jobs:
             --engine third_party/KisakCOD \
             --output "$RUNNER_TEMP/iw3-source/iw3_g_run_mover.cpp" \
             --report "$RUNNER_TEMP/iw3-original-g-run-mover.json"
+          python3 tools/iw3_android/prepare_real_engine_actor_pointer_width.py \
+            --engine third_party/KisakCOD \
+            --output "$RUNNER_TEMP/iw3-source/iw3_actor_pointer_width.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-actor-pointer-width.json"
           python3 tools/iw3_android/prepare_real_engine_sentient_trigger_services.py \
             --engine third_party/KisakCOD \
             --output "$RUNNER_TEMP/iw3-source/iw3_sentient_trigger_services.cpp" \
@@ -1460,6 +1464,40 @@ jobs:
           echo "IW3_GAMEPLAY_PROVEN=false"
           echo "IW3_PLAYABLE_APK=false"
 
+      - name: Compile original actor pointer-width routines for Android ARM64 (NOT RUNTIME)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64"
+          actor_source="$RUNNER_TEMP/iw3-source/iw3_actor_pointer_width.cpp"
+          actor_object="$RUNNER_TEMP/iw3-original-actor-pointer-width-arm64.o"
+          common_flags=(
+            -std=c++20 -DKISAK_SP=1 -DIW3_ANDROID_PORTABLE_PATHNODE_SERVICES=1
+            -Wall -Wextra -UNDEBUG -O2
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/universal"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/qcommon"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/game"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/server"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/deps"
+          )
+          test -s "$actor_source"
+          "$ndk/bin/aarch64-linux-android26-clang++" "${common_flags[@]}" -c "$actor_source" -o "$actor_object"
+          "$ndk/bin/llvm-readelf" -h "$actor_object" | tee "$RUNNER_TEMP/iw3-actor-pointer-width-arm64-elf.txt"
+          grep -F 'Class:                             ELF64' "$RUNNER_TEMP/iw3-actor-pointer-width-arm64-elf.txt"
+          grep -F 'Machine:                           AArch64' "$RUNNER_TEMP/iw3-actor-pointer-width-arm64-elf.txt"
+          "$ndk/bin/llvm-nm" -C --defined-only "$actor_object" | tee "$RUNNER_TEMP/iw3-actor-pointer-width-defined.txt"
+          "$ndk/bin/llvm-nm" -C -u "$actor_object" | tee "$RUNNER_TEMP/iw3-actor-pointer-width-undefined.txt"
+          grep -F 'SentientInfo_Clear(sentient_info_t*)' "$RUNNER_TEMP/iw3-actor-pointer-width-defined.txt"
+          grep -F 'Actor_IsKnownEnemyInRegion' "$RUNNER_TEMP/iw3-actor-pointer-width-defined.txt"
+          # Keep real external actor/world services visible; this is not a runtime link.
+          grep -F 'SV_EntityContact' "$RUNNER_TEMP/iw3-actor-pointer-width-undefined.txt"
+          echo "IW3_ORIGINAL_ACTOR_POINTER_WIDTH_AARCH64_COMPILE_GREEN"
+          echo "IW3_ACTOR_RUNTIME_EXECUTED=false"
+          echo "IW3_REAL_MAP_LOADED=false"
+          echo "IW3_GAMEPLAY_PROVEN=false"
+          echo "IW3_PLAYABLE_APK=false"
+
       - name: Attach evidence and compiled native module (NOT an APK)
         uses: actions/upload-artifact@v4
         with:
@@ -1513,6 +1551,12 @@ jobs:
             ${{ runner.temp }}/iw3-original-g-runframe-plus-mover-arm64.o
             ${{ runner.temp }}/iw3-g-run-mover-defined.txt
             ${{ runner.temp }}/iw3-g-run-mover-undefined.txt
+            ${{ runner.temp }}/iw3-source/iw3_actor_pointer_width.cpp
+            ${{ runner.temp }}/iw3-original-actor-pointer-width.json
+            ${{ runner.temp }}/iw3-original-actor-pointer-width-arm64.o
+            ${{ runner.temp }}/iw3-actor-pointer-width-arm64-elf.txt
+            ${{ runner.temp }}/iw3-actor-pointer-width-defined.txt
+            ${{ runner.temp }}/iw3-actor-pointer-width-undefined.txt
             ${{ runner.temp }}/iw3-original-g-runframe-entity-arm64.o
             ${{ runner.temp }}/iw3-original-g-runframe-plus-entity-arm64.o
             ${{ runner.temp }}/iw3-g-runframe-entity-defined.txt
