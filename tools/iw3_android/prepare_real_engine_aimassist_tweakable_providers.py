@@ -55,6 +55,9 @@ HEADER = (
     '#include "cgame/cg_local.h"\n'
     "#include <universal/assertive.h>\n"
     '#include "qcommon/qcommon.h"\n'
+    # The original client-state provider owns the one-definition of this array.
+    # This TU must reference it, not create a second copy.
+    "extern AimAssistGlobals aaGlobArray[1];\n"
 )
 
 
@@ -109,6 +112,8 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
             signature.split("(")[0].split()[-1] for signature, _ in bodies
         ],
         "original_dvar_pointer_lines_preserved_verbatim": DVAR_NAMES,
+        "aaGlobArray_declared_external": True,
+        "aaGlobArray_definition_owned_by_client_state_provider": True,
         "source_unchanged": True,
         "resolved_original_client_edges": [
             "AimAssist_UpdateTweakables",
