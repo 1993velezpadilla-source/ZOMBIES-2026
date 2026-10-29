@@ -42,3 +42,18 @@ The updated branch must pass fresh CI before this fix is considered validated. A
 
 This remains a dependency-audit pass, not a playable build. The Android Activity does not invoke the original `FS_Startup()/FS_InitFilesystem()` graph; licensed/user-owned FastFiles and a real map have not been shown loading in the app; the original renderer is not active; and there is no physical ARM64 run showing touch-driven frame updates, weapon fire, damage/death and actor behavior. Keep PR #4 open and unmerged.
 
+### Validation result for the duplicate-provider guard (29 Oct 2026)
+
+Fresh ARM64 audit on code head `796e83aa91fb14e40b4da96b59c8d224ae8e9145` completed successfully:
+
+- Source-generation/preflight step: PASS; `Ran 258 tests`.
+- CTest Release: `23/23` passed.
+- CTest ASan/UBSan: `23/23` passed.
+- Original ARM64 dependency audit: PASS.
+- Combined filesystem/IWD graph contains exactly one defined `FS_ConvertPath(char*)`, with no unresolved `FS_ConvertPath` entry.
+- Original filesystem command-registration gate emitted `IW3_ORIGINAL_FS_COMMAND_REGISTRATION_AARCH64_LINK_GREEN`.
+- Full run: [40861731602](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40861731602).
+- Artifact [12891089074](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40861731602/artifacts/12891089074) contains ARM64 audit objects/reports only; it is **not an APK**.
+
+This confirms the duplicate-definition link failure is corrected on this code head. It does not advance the runtime proof flags: the same log explicitly reports `IW3_FS_STARTUP_RUNTIME_INVOKED=false` and `IW3_PLAYABLE_APK=false`. The next meaningful milestone is not another isolated symbol check; it is wiring the real bootstrap into the Android process with the full dependency graph and proving an actual map/render/game loop.
+
