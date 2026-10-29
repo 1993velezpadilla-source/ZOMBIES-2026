@@ -30,7 +30,7 @@ class OriginalClampCharTests(unittest.TestCase):
             staged = output.read_text(encoding="utf-8")
             report = json.loads(report_path.read_text(encoding="utf-8"))
         self.assertEqual(SOURCE.read_bytes(), original)
-        self.assertEqual(staged, '#include <universal/com_math.h>\\n\\n' + expected_body + "\\n")
+        self.assertEqual(staged, "#include <universal/com_math.h>" + chr(10) + chr(10) + expected_body + chr(10))
         self.assertIn("if (i < -128)", staged)
         self.assertIn("return -128;", staged)
         self.assertIn("if (i > 127)", staged)
