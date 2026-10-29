@@ -85,7 +85,7 @@ jobs:
           python3 tools/iw3_android/prepare_real_engine_g_mover_team.py --engine third_party/KisakCOD --output "$team_source" --report "$RUNNER_TEMP/iw3-mover-trace/g-mover-team.json"
           python3 tools/iw3_android/prepare_real_engine_mover_trace_services.py --engine third_party/KisakCOD --output "$trace_source" --report "$RUNNER_TEMP/iw3-mover-trace/mover-trace-services.json"
 
-          common_flags=(-std=c++20 -DKISAK_SP=1 -DIW3_ANDROID_PORTABLE_PATHNODE_SERVICES=1 -Wall -Wextra -UNDEBUG -O2 -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src" -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/universal" -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/qcommon" -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/game" -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/server" -I"$GITHUB_WORKSPACE/third_party/KisakCOD/deps")
+          common_flags=(-std=c++20 -fms-extensions -DKISAK_SP=1 -DIW3_ANDROID_PORTABLE_PATHNODE_SERVICES=1 -Wall -Wextra -UNDEBUG -O2 -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src" -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/universal" -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/qcommon" -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/game" -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/server" -I"$GITHUB_WORKSPACE/third_party/KisakCOD/deps")
           "$ndk/aarch64-linux-android26-clang++" "${common_flags[@]}" -c "$team_source" -o "$team_object"
           "$ndk/aarch64-linux-android26-clang++" "${common_flags[@]}" -c "$trace_source" -o "$trace_object"
           # Compile the complete upstream collision-trace translation unit directly.
