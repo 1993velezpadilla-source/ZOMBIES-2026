@@ -24,9 +24,11 @@ The extracted `pushed_t` structure, `pushed[1024]` array, and `pushed_p` cursor 
 
 The ARM64 step recompiles this complete mover physics slice and links it with the prior relocatable frame object. It requires `G_MoverTeam` and `G_MoverPush` to be defined and absent from the undefined-symbol table. Collision/world services are deliberately left external; no gameplay stubs are introduced.
 
-## Validation status for this iteration
+## Validation results for the expanded physics chain
 
-The new step must emit `IW3_ORIGINAL_G_MOVER_TEAM_PHYSICS_CHAIN_AARCH64_FRAME_EDGE_RESOLVED_GREEN`. Until the run completes, do not count the expanded physics chain as validated. The source audit and generated object are not runtime integration.
+On code commit `c7c334cfa992e6ea2d3de614de2c85ce7fc6d643`, native ARM64 run [40943454198](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40943454198) passed and reported **291 Python tests, OK**. The generated object is ELF64/AArch64 and defines `G_MoverTeam`, `G_MoverPush`, `G_TryPushingEntity`, and `G_TestEntityPosition`. The combined relocatable object resolved the `G_RunMover -> G_MoverTeam` and `G_MoverTeam -> G_MoverPush` edges and emitted `IW3_ORIGINAL_G_MOVER_TEAM_PHYSICS_CHAIN_AARCH64_FRAME_EDGE_RESOLVED_GREEN`.
+
+The source preflight [40943464968](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40943464968) and JNI integration [40943465371](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40943465371) also passed; JNI remains diagnostic-only. Emulator runtime and SP smoke workflows were still running at last inspection. The generated object is not linked into the Android runtime and does not demonstrate a map, rendered frame, or gameplay.
 
 ## Still pending
 
