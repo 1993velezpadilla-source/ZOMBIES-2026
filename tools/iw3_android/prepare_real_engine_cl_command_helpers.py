@@ -22,6 +22,9 @@ SP_MARKER = "#elif KISAK_SP\n"
 KEY_SIGNATURE = "void __cdecl CL_KeyMove(usercmd_s *cmd)"
 BUTTON_HELPER_SIGNATURE = "void __cdecl CL_UpdateCmdButton(int *cmdButtons, int kbButton, int buttonFlag)"
 BUTTONS_SIGNATURE = "void __cdecl CL_CmdButtons(usercmd_s *cmd)"
+TEMP_STANCE_SIGNATURE = "int __cdecl IN_IsTempStanceKeyActive()"
+STANCE_UPDATE_SIGNATURE = "void CL_StanceButtonUpdate()"
+ADD_STANCE_SIGNATURE = "void __cdecl CL_AddCurrentStanceToCmd(usercmd_s *cmd)"
 MACRO_BEGIN = "#define KEY_LEFT 0"
 MACRO_END = "#define KEY_BIT_COUNT 21"
 STATE_BEGIN = "static bool s_scriptWasNoProne;"
@@ -58,6 +61,17 @@ BUTTONS_REQUIRED = (
     "clients[0].snap.ps.pm_type == PM_NOCLIP",
     "cmd->buttons < (1 << KEY_BIT_COUNT)",
 )
+TEMP_STANCE_REQUIRED = ("return kb[KEY_PRONE].active || kb[KEY_DOWN].active;",)
+STANCE_UPDATE_REQUIRED = (
+    "iassert(!IN_IsTempStanceKeyActive());",
+    "clients[0].stanceHeld",
+    "com_frameTime - clients[0].stanceTime >= cl_stanceHoldTime->current.integer",
+)
+ADD_STANCE_REQUIRED = (
+    "StanceState stance = clients[0].stance;",
+    "PMF_SCRIPT_NO_PRONE",
+    "cmd->buttons &= ~BUTTON_TEMP_STANCE;",
+)
 
 
 def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict:
@@ -76,6 +90,9 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
     key_body = function_source(sp_source, KEY_SIGNATURE)
     helper_body = function_source(sp_source, BUTTON_HELPER_SIGNATURE)
     buttons_body = function_source(sp_source, BUTTONS_SIGNATURE)
+    temp_stance_body = function_source(sp_source, TEMP_STANCE_SIGNATURE)
+    stance_update_body = function_source(sp_source, STANCE_UPDATE_SIGNATURE)
+    add_stance_body = function_source(sp_source, ADD_STANCE_SIGNATURE)
 
     macro_start = source.find(MACRO_BEGIN)
     macro_end_start = source.find(MACRO_END, macro_start)
@@ -111,10 +128,21 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
     for marker in BUTTONS_REQUIRED:
         if marker not in buttons_body:
             raise ValueError("Original SP CL_CmdButtons contract missing: " + marker)
+    for marker in TEMP_STANCE_REQUIRED:
+        if marker not in temp_stance_body:
+            raise ValueError("Original IN_IsTempStanceKeyActive contract missing: " + marker)
+    for marker in STANCE_UPDATE_REQUIRED:
+        if marker not in stance_update_body:
+            raise ValueError("Original CL_StanceButtonUpdate contract missing: " + marker)
+    for marker in ADD_STANCE_REQUIRED:
+        if marker not in add_stance_body:
+            raise ValueError("Original CL_AddCurrentStanceToCmd contract missing: " + marker)
 
     rendered = (
         HEADER + "\n" + macros + "\n\n" + state + "\n"
-        + helper_body + "\n\n" + key_body + "\n\n" + buttons_body + "\n"
+        + temp_stance_body + "\n\n" + stance_update_body + "\n\n"
+        + add_stance_body + "\n\n" + helper_body + "\n\n"
+        + key_body + "\n\n" + buttons_body + "\n"
     )
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(rendered, encoding="utf-8")
@@ -133,6 +161,12 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
         "cmd_button_helper_body_sha256": hashlib.sha256(helper_body.encode("utf-8")).hexdigest(),
         "cmd_buttons_signature": BUTTONS_SIGNATURE,
         "cmd_buttons_body_sha256": hashlib.sha256(buttons_body.encode("utf-8")).hexdigest(),
+        "temp_stance_signature": TEMP_STANCE_SIGNATURE,
+        "temp_stance_body_sha256": hashlib.sha256(temp_stance_body.encode("utf-8")).hexdigest(),
+        "stance_update_signature": STANCE_UPDATE_SIGNATURE,
+        "stance_update_body_sha256": hashlib.sha256(stance_update_body.encode("utf-8")).hexdigest(),
+        "add_stance_signature": ADD_STANCE_SIGNATURE,
+        "add_stance_body_sha256": hashlib.sha256(add_stance_body.encode("utf-8")).hexdigest(),
         "original_bodies_preserved_verbatim": True,
         "android_arm64_object_compiled": False,
         "key_move_and_cmd_buttons_linked_to_client_chain": False,
