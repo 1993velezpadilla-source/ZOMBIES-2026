@@ -41,6 +41,13 @@ IW3_ANDROID_EXPORT int z2026_platform_open_engine_path_fd(const char *path);
 IW3_ANDROID_EXPORT int z2026_platform_list_iwd_files(
     const char *directory, char *output, std::size_t output_capacity,
     std::size_t *entry_count);
+// Enumerate immediate, non-hidden entries below the retained app-data root.
+// directories_only=0 returns regular files; directories_only=1 returns directories.
+// Symlinks and special files are skipped. Output is NUL-separated and all-or-nothing.
+// Returns bytes written, or -1 on invalid path, read error, or capacity overflow.
+IW3_ANDROID_EXPORT int z2026_platform_list_directory_entries(
+    const char *directory, int directories_only, char *output,
+    std::size_t output_capacity, std::size_t *entry_count);
 // Match original Sys_DirectoryHasContents semantics within the retained root.
 // Returns 1 when contents exist, 0 when empty, and -1 on invalid/unreadable paths.
 IW3_ANDROID_EXPORT int z2026_platform_directory_has_contents(const char *directory);
