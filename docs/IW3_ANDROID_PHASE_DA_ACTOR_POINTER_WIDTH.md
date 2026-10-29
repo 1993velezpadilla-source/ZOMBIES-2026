@@ -36,4 +36,15 @@ The actor subsystem contains other legacy assumptions and requires a full native
 
 The first run on commit `0fa9130ca2f0537906535f3574de399ad7c44f8c` passed the Python source/regression gate and the preceding ARM64 frame checks, but the new actor compile step failed in the original `actor_physics.h`: Clang/NDK does not accept the MSVC-only `struct __declspec(align(4)) actor_physics_t` spelling. The failure was observed in Actions run [40941092623](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40941092623), step 24.
 
-This follow-up changes only that declaration to standard C++ `struct alignas(4) actor_physics_t`, which expresses the same four-byte alignment on MSVC and Clang. The generator and regression suite now require the portable declaration and reject reintroduction of the MSVC-only form. The new ARM64 compile must run again on this follow-up commit; the earlier failure is not counted as a pass.
+This follow-up changes only that declaration to standard C++ `struct alignas(4) actor_physics_t`, which expresses the same four-byte alignment on MSVC and Clang. The generator and regression suite now require the portable declaration and reject reintroduction of the MSVC-only form.
+
+## Validation outcome
+
+On code commit `f19afcb774a3dbf6cb596d02e4ce3c388f345d0e`:
+- The native ARM64 workflow passed in [run 40941538057](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40941538057); the repeated PR-triggered run [40941545829](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40941545829) also passed.
+- The Python regression suite reported **284 tests, OK**.
+- The new object is ELF64/AArch64 and defines `SentientInfo_Clear(sentient_info_t*)` and `Actor_IsKnownEnemyInRegion(actor_s const*, gentity_s const*, float const*, double)`; marker: `IW3_ORIGINAL_ACTOR_POINTER_WIDTH_AARCH64_COMPILE_GREEN`.
+- Preflight passed in [run 40941545611](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40941545611). JNI integration passed in [run 40941545904](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40941545904), but that artifact remains diagnostic-only.
+- The emulator runtime diagnostic and Windows SP/weapon checks were still running at the last inspection. None of those is evidence of a playable Android ARM64 game.
+
+The original failure in [run 40941092623](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40941092623) is therefore resolved for the actor-pointer-width compile gate, not for the complete engine runtime.
