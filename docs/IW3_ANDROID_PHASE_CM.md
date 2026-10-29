@@ -13,9 +13,16 @@ The branch's last documented code revision was `d2aa9190c74e21305a0e722fd8561bdd
 - Extended `.github/workflows/iw3-original-native-android.yml` to compile the extracted original function with the Android NDK, inspect ELF64/AArch64, combine it with the already-compiled original `CL_CreateCmd` using a relocatable link, and require the `CL_FinishMove` edge to resolve.
 - The combined object must still show `z2026_platform_apply_touch_to_usercmd` and `CL_MouseMove` as unresolved dependencies. CI prints `IW3_CLIENT_RUNTIME_LINKED=false`, `IW3_CL_CREATECMD_RUNTIME_INVOKED=false`, and `IW3_PLAYABLE_APK=false`. No no-op callbacks were added.
 
-## Validation status
+## Validation — completed for code commit `f625778e483edc15e7e5da4a0a96f9af8b4bce2d`
 
-The new preflight, ARM64 compile/link audit, JNI package, and emulator runs were triggered by the workflow update. Their final conclusions are **pending inspection**; no pending run is counted as a pass.
+- Native ARM64 audit [40803348938](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40803348938): **PASS**. The workflow ran **230 Python tests**, CTest Release **23/23**, and CTest ASan/UBSan **23/23**. The new step compiled the original `CL_FinishMove` as ELF64/AArch64 and relocatably combined it with the original `CL_CreateCmd` object.
+- The combined-object report defines both `CL_CreateCmd(usercmd_s*)` and `CL_FinishMove(usercmd_s*)`; `CL_FinishMove` is no longer unresolved. `CL_MouseMove(usercmd_s*)` and `z2026_platform_apply_touch_to_usercmd` remain explicit unresolved dependencies, as intended. The workflow emits `IW3_ORIGINAL_CL_FINISHMOVE_EDGE_RESOLVED_AARCH64_GREEN`, `IW3_CL_FINISHMOVE_RUNTIME_EXECUTED=false`, and `IW3_PLAYABLE_APK=false`.
+- Native audit artifact [12866594428](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40803348938/artifacts/12866594428): ARM64 objects/reports, **not an APK**.
+- JNI Android integration [40803348823](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40803348823): **PASS**, signed diagnostic package only; artifact [12867197100](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40803348823/artifacts/12867197100).
+- Android emulator execution [40803349072](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40803349072): **PASS** for the existing diagnostic path. Logs include `IW3_JNI_IMPORTED_IWD_INDEX_FIXTURE_PASS` and `IW3_JNI_MALFORMED_IWD_REJECTED_AND_CLEANUP_PASS`; artifact [12866739206](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40803349072/artifacts/12866739206). It is an x86_64 emulator, not physical ARM64 gameplay.
+- Offline SP Killhouse diagnostic [40803348878](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40803348878): workflow PASS as a smoke test, but the report still says `actual_weapon_fire_callback=false`, `bullet_fire_dispatched=false`, `actor_damage_callback=false`, `actor_death_callback=false`, and `actual_graphics_verified=false`. It is not combat/render proof.
+
+The previous pending status is superseded by these inspected results.
 
 ## Remaining gates
 
