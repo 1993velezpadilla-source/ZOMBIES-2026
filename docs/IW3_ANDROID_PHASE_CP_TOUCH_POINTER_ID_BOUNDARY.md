@@ -50,3 +50,18 @@ The native host CTest also exercises pointer ID 31. The emulator run is diagnost
 No renderer, real map/FastFile startup, original active client loop, weapon/actor
 simulation, or physical ARM64 gameplay is claimed. The JNI APK remains
 diagnostic only. PR #4 must remain open and unmerged.
+
+
+## Follow-up — align the evidence parser with Android pointer IDs (2026-10-29)
+
+A second stale boundary remained after the JNI fix: the log evidence parser still
+rejected IDs 10..31 even though Android MotionEvent IDs and the JNI/platform
+boundary use 0..31. Updated the verifier to accept the full pointer-ID domain
+and added a regression proving ID 31 with a matched DOWN/UP is accepted while
+ID 32 is rejected. The ten native slots remain a simultaneous-contact capacity,
+not an ID range.
+
+This only fixes diagnostic evidence validation. It does not invoke the staged
+original CL_CreateCmd hook, initialize the original client, load a real map,
+render a scene, or prove gameplay. The new commit must pass CI before this
+follow-up is counted as validated.
