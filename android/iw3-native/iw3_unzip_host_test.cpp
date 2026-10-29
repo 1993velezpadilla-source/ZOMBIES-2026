@@ -38,7 +38,7 @@ int main() {
     std::puts("IW3_ORIGINAL_FS_READ_HOST_GREEN");
     std::puts("IW3_ORIGINAL_FS_DIRECTORY_READ_HOST_GREEN");
     if (!z2026_iw3_iwd_index_fixture_smoke(directory.c_str())) {
-        std::fprintf(stderr, "IW3_ORIGINAL_IMPORTED_IWD_FS_READ_HOST_FAIL\\n");
+        std::fprintf(stderr, "IW3_ORIGINAL_IMPORTED_IWD_FS_READ_HOST_FAIL\n");
         return 1;
     }
     std::puts("IW3_ORIGINAL_IMPORTED_IWD_INDEX_AND_FS_READ_HOST_GREEN");
