@@ -21,6 +21,7 @@ GAME_SOURCE = Path("src/game/g_main.cpp")
 TRACE_SOURCE = Path("src/qcommon/cm_trace.cpp")
 WORLD_HEADER = Path("src/server/sv_world.h")
 QCOMMON_HEADER = Path("src/qcommon/qcommon.h")
+QSHARED_HEADER = Path("src/universal/q_shared.h")
 
 G_TRACE_SIGNATURE = "void __cdecl G_TraceCapsule("
 TRACE_HIT_ID_SIGNATURE = "uint16_t __cdecl Trace_GetEntityHitId(const trace_t *trace)"
@@ -67,14 +68,17 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
     qcommon_header = (engine / QCOMMON_HEADER).read_text(encoding="utf-8")
     if qcommon_header.count("struct IgnoreEntParams") != 1:
         raise ValueError("Original IgnoreEntParams layout declaration changed")
+
+    qshared_header = (engine / QSHARED_HEADER).read_text(encoding="utf-8")
     for marker in (
-        "trace_t",
+        "enum TraceHitType",
         "TRACE_HITTYPE_DYNENT_MODEL",
         "TRACE_HITTYPE_DYNENT_BRUSH",
         "TRACE_HITTYPE_ENTITY",
+        "struct trace_t",
     ):
-        if marker not in qcommon_header:
-            raise ValueError("Original trace ABI marker missing from qcommon.h: " + marker)
+        if marker not in qshared_header:
+            raise ValueError("Original trace ABI marker missing from q_shared.h: " + marker)
 
     for marker in (
         "SV_SetupIgnoreEntParams(&ignoreEntParams, passEntityNum);",
@@ -113,6 +117,7 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
         "generated_sha256": hashlib.sha256(generated.encode("utf-8")).hexdigest(),
         "original_function_bodies_preserved_verbatim": True,
         "original_world_service_declarations_verified": True,
+        "original_IgnoreEntParams_layout_verified": True,
         "original_trace_abi_header_verified": True,
         "G_TraceCapsule_calls_original_SV_SetupIgnoreEntParams_and_SV_Trace": True,
         "Trace_GetEntityHitId_semantics_preserved": True,
