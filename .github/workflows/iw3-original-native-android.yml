@@ -578,17 +578,46 @@ jobs:
           test -s "$filtered_archive"
           test -s "$filter_archive"
           test -s "$q_shared_strings_archive"
+          # Compile the canonical original filesystem state owner for this link audit.
+          # It contains only real zero-initialized engine globals, not substitute services.
+          state_object="$RUNNER_TEMP/iw3-original-com-files-state-arm64.o"
+          "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android26-clang++" \
+            -std=c++20 -DKISAK_SP=1 -Wall -Wextra -UNDEBUG -O2 \
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src" \
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/universal" \
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/qcommon" \
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/deps" \
+            -c third_party/KisakCOD/src/universal/com_files_state.cpp -o "$state_object"
+          "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf" -h "$state_object" \
+            | tee "$RUNNER_TEMP/iw3-original-com-files-state-arm64-elf.txt"
+          grep -F 'Class:                             ELF64' "$RUNNER_TEMP/iw3-original-com-files-state-arm64-elf.txt"
+          grep -F 'Machine:                           AArch64' "$RUNNER_TEMP/iw3-original-com-files-state-arm64-elf.txt"
+
           startup_iwd_combined="$RUNNER_TEMP/iw3-fs-dvar-iwd-combined.o"
           "$ld_lld" -m aarch64linux -r --whole-archive \
             "$startup_archive" "$parser_archive" "$print_warning_archive" "$print_printf_archive" "$cmd_args_archive" "$q_shared_strings_archive" "$dvar_full_archive" "$iwd_services_archive" \
             "$iwd_mount_archive" "$unzip_archive" "$iwd_directory_archive" \
             "$fs_read_archive" "$fs_readfile_archive" "$hunk_temp_archive" "$hunk_user_archive" \
-            "$language_archive" "$stringed_archive" "$filtered_archive" "$filter_archive" --no-whole-archive \
+            "$language_archive" "$stringed_archive" "$filtered_archive" "$filter_archive" "$state_object" --no-whole-archive \
             -o "$startup_iwd_combined"
           "$llvm_nm" -C --defined-only "$startup_iwd_combined" \
             | tee "$RUNNER_TEMP/iw3-fs-dvar-iwd-defined.txt"
           "$llvm_nm" -u -C "$startup_iwd_combined" \
             | tee "$RUNNER_TEMP/iw3-fs-dvar-iwd-undefined.txt"
+          "$llvm_nm" -C --defined-only "$startup_iwd_combined" | tee "$RUNNER_TEMP/iw3-fs-state-defined.txt"
+          "$llvm_nm" -C -u "$startup_iwd_combined" | tee "$RUNNER_TEMP/iw3-fs-state-undefined.txt"
+          for symbol in fs_remotePCDirectory fs_remotePCName fs_homepath fs_debug fs_restrict fs_ignoreLocalized fs_basepath fs_copyfiles fs_cdpath fs_gameDirVar fs_basegame fs_fakeChkSum fs_numServerIwds fs_serverIwds g_writeLogEvent marker_com_files g_writeLogCompleteEvent fs_serverIwdNames lastValidBase lastValidGame fs_searchpaths fs_iwdFileCount fs_checksumFeed bLanguagesListed com_fileAccessed fs_loadStack fs_gamedir; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-state-defined.txt"
+            if grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-state-undefined.txt"; then
+              echo "Original filesystem state remained unresolved after adding its canonical owner: $symbol" >&2
+              exit 1
+            fi
+          done
+          echo "IW3_ORIGINAL_FS_STATE_OWNERSHIP_AARCH64_LINK_GREEN"
+          echo "IW3_FS_STARTUP_RUNTIME_INVOKED=false"
+          echo "IW3_REAL_GAME_DATA_MOUNTED=false"
+          echo "IW3_PLAYABLE_APK=false"
+
           fs_convert_path_count="$(grep -Fc 'FS_ConvertPath(char*)' "$RUNNER_TEMP/iw3-fs-dvar-iwd-defined.txt" || true)"
           if [ "$fs_convert_path_count" -ne 1 ]; then
             echo "Expected exactly one original FS_ConvertPath definition in the combined filesystem graph; got $fs_convert_path_count" >&2
@@ -1449,6 +1478,10 @@ jobs:
             ${{ runner.temp }}/iw3-fs-dvar-iwd-combined.o
             ${{ runner.temp }}/iw3-fs-dvar-iwd-defined.txt
             ${{ runner.temp }}/iw3-fs-dvar-iwd-undefined.txt
+            ${{ runner.temp }}/iw3-original-com-files-state-arm64.o
+            ${{ runner.temp }}/iw3-original-com-files-state-arm64-elf.txt
+            ${{ runner.temp }}/iw3-fs-state-defined.txt
+            ${{ runner.temp }}/iw3-fs-state-undefined.txt
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_filtered_files.a
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_filter.a
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_q_shared_strings.a

@@ -557,7 +557,9 @@ if(ANDROID)
     # Keep this as an object-only port gate until its remaining engine services
     # are wired into the runtime; never substitute extracted diagnostic bodies.
     add_library(iw3_sp_full_filesystem OBJECT
-        "${IW3_ENGINE_SOURCE_ROOT}/universal/com_files.cpp")
+        "${IW3_ENGINE_SOURCE_ROOT}/universal/com_files.cpp"
+        "${IW3_ENGINE_SOURCE_ROOT}/universal/com_files_state.cpp"
+        "${IW3_ENGINE_SOURCE_ROOT}/universal/com_files_handle_table.cpp")
     target_include_directories(iw3_sp_full_filesystem PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}"
         "${IW3_REAL_HEADER_ROOT}"

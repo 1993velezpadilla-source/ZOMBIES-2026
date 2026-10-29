@@ -4,6 +4,8 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "third_party/KisakCOD/src/universal/com_files.cpp"
+STATE = ROOT / "third_party/KisakCOD/src/universal/com_files_state.cpp"
+HEADER = ROOT / "third_party/KisakCOD/src/universal/com_files.h"
 CMAKE = ROOT / "android/iw3-native/CMakeLists.txt"
 GFX = ROOT / "third_party/KisakCOD/src/gfx_d3d/r_gfx.h"
 MATERIAL = ROOT / "third_party/KisakCOD/src/gfx_d3d/r_material.h"
@@ -82,11 +84,10 @@ class OriginalFilesystemAndroidPortTests(unittest.TestCase):
 
     def test_android_gate_compiles_complete_original_filesystem_source(self):
         cmake = CMAKE.read_text(encoding="utf-8")
-        self.assertIn(
-            'add_library(iw3_sp_full_filesystem OBJECT\n'
-            '        "${IW3_ENGINE_SOURCE_ROOT}/universal/com_files.cpp")',
-            cmake,
-        )
+        self.assertIn('add_library(iw3_sp_full_filesystem OBJECT', cmake)
+        self.assertIn('"${IW3_ENGINE_SOURCE_ROOT}/universal/com_files.cpp"', cmake)
+        self.assertIn('"${IW3_ENGINE_SOURCE_ROOT}/universal/com_files_state.cpp"', cmake)
+        self.assertIn('"${IW3_ENGINE_SOURCE_ROOT}/universal/com_files_handle_table.cpp"', cmake)
         self.assertIn("target_compile_definitions(iw3_sp_full_filesystem PRIVATE KISAK_SP=1)", cmake)
 
 
@@ -147,6 +148,32 @@ class OriginalFilesystemAndroidPortTests(unittest.TestCase):
         public_sound = SND_PUBLIC.read_text(encoding="utf-8")
         self.assertIn('#include "snd_stopsounds.h"', public_sound)
         self.assertNotIn("enum snd_stopsounds_arg_t : __int32", public_sound)
+
+    def test_filesystem_global_state_has_one_canonical_original_owner(self):
+        source = SOURCE.read_text(encoding="utf-8")
+        state = STATE.read_text(encoding="utf-8")
+        header = HEADER.read_text(encoding="utf-8")
+        symbols = (
+            "fs_remotePCDirectory", "fs_remotePCName", "fs_homepath",
+            "fs_debug", "fs_restrict", "fs_ignoreLocalized", "fs_basepath",
+            "fs_copyfiles", "fs_cdpath", "fs_gameDirVar", "fs_basegame",
+            "fs_fakeChkSum", "fs_numServerIwds", "fs_serverIwds",
+            "g_writeLogEvent", "marker_com_files", "g_writeLogCompleteEvent",
+            "fs_serverIwdNames", "lastValidBase", "lastValidGame",
+        )
+        def top_level_declarations(text, symbol):
+            return [
+                line for line in text.splitlines()
+                if line and not line[0].isspace() and symbol in line
+                and line.rstrip().endswith(";")
+            ]
+        for symbol in symbols:
+            with self.subTest(symbol=symbol):
+                self.assertEqual(len(top_level_declarations(state, symbol)), 1)
+                self.assertEqual(len(top_level_declarations(source, symbol)), 0)
+        self.assertIn("extern int fs_fakeChkSum;", header)
+        self.assertIn("extern char lastValidBase[256];", header)
+        self.assertIn("extern char lastValidGame[256];", header)
 
 
 if __name__ == "__main__":

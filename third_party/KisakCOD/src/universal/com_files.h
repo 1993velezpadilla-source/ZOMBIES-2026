@@ -185,6 +185,7 @@ void __cdecl FS_Rename(char *from, char *fromDir, char *to, char *toDir);
 
 extern const dvar_t *fs_remotePCDirectory;
 extern const dvar_t *fs_remotePCName;
+extern int fs_fakeChkSum;
 extern const dvar_t *fs_homepath;
 extern const dvar_s *fs_debug;
 extern const dvar_s *fs_restrict;
@@ -205,6 +206,8 @@ extern int marker_com_files;
 extern void *g_writeLogCompleteEvent;
 extern int fs_loadStack;
 extern const char *fs_serverIwdNames[1024];
+extern char lastValidBase[256];
+extern char lastValidGame[256];
 
 extern int fs_iwdFileCount;
 extern int fs_checksumFeed;

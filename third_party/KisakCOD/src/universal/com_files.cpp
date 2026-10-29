@@ -28,26 +28,7 @@ typedef int BOOL;
 #endif
 #include <limits.h>
 
-const dvar_t *fs_remotePCDirectory;
-const dvar_t *fs_remotePCName;
-const dvar_t *fs_homepath;
-const dvar_s *fs_debug;
-const dvar_s *fs_restrict;
-const dvar_s *fs_ignoreLocalized;
-const dvar_s *fs_basepath;
-const dvar_s *fs_copyfiles;
-const dvar_s *fs_cdpath;
-const dvar_s *fs_gameDirVar;
-const dvar_s *fs_basegame;
-
-int fs_fakeChkSum;
-
-int fs_numServerIwds;
-int fs_serverIwds[1024];
-void *g_writeLogEvent;
-int marker_com_files;
-void *g_writeLogCompleteEvent;
-const char *fs_serverIwdNames[1024];
+// Shared filesystem globals are owned by com_files_state.cpp.
 
 // File-system state is defined in com_files_state.cpp; the declarations live
 // in com_files.h so the original engine and Android source slices share it.
@@ -2232,8 +2213,6 @@ bool __cdecl FS_IsBasePathValid()
     return FS_ReadFile("fileSysCheck.cfg", 0) > 0;
 }
 
-char lastValidBase[256];
-char lastValidGame[256];
 void __cdecl FS_InitFilesystem()
 {
     Com_StartupVariable("fs_cdpath");
