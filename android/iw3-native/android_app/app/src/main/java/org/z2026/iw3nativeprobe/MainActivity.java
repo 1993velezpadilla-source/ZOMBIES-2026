@@ -30,6 +30,26 @@ public final class MainActivity extends Activity {
         return Math.max(0.0f, Math.min(1.0f, value));
     }
 
+    // Exercise the exact JNI snapshot boundary with a legal sparse pointer ID.
+    // This is an input-boundary diagnostic only; it does not create a game command
+    // in the original CL_CreateCmd loop or claim gameplay.
+    private boolean runSparsePointerIdSmoke() {
+        EngineBridge.nativeTouchReset();
+        int downResult = EngineBridge.nativeTouch(31, 0.90f, 0.85f, true);
+        float[] coordinates = new float[2];
+        int downState = EngineBridge.nativeTouchSnapshot(31, coordinates);
+        boolean coordinatesMatch = Math.abs(coordinates[0] - 0.90f) < 0.001f
+                && Math.abs(coordinates[1] - 0.85f) < 0.001f;
+        int upResult = EngineBridge.nativeTouch(31, 0.90f, 0.85f, false);
+        int upState = EngineBridge.nativeTouchSnapshot(31, coordinates);
+        boolean passed = downResult == 0 && downState == 1 && coordinatesMatch
+                && upResult == 0 && upState == 0;
+        EngineBridge.nativeTouchReset();
+        Log.i(TAG, "IW3_JNI_SPARSE_POINTER_ID_31_" + (passed ? "PASS" : "FAIL")
+                + " down=" + downState + " up=" + upState);
+        return passed;
+    }
+
     @Override public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         label = new TextView(this);
@@ -76,7 +96,10 @@ public final class MainActivity extends Activity {
                 throw new IllegalStateException("Native IW3 data root initialization failed");
             }
             String report = EngineBridge.nativeReport(getFilesDir().getAbsolutePath());
-            label.setText(report + "\n\nTOUCH TEST: TAP THIS SCREEN");
+            boolean sparsePointerOk = runSparsePointerIdSmoke();
+            label.setText(report + "\nJNI sparse pointer ID 31: "
+                    + (sparsePointerOk ? "PASS" : "FAIL")
+                    + "\n\nTOUCH TEST: TAP THIS SCREEN");
             Log.i(TAG, "IW3_JNI_ACTIVITY_STARTED " +
                     (report.contains("JNI: PASS") ? "PASS" : "FAIL"));
         } catch (Throwable failure) {
