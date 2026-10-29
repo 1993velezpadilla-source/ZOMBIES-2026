@@ -45,9 +45,10 @@ KEY_REQUIRED = (
     "cmd->upmove      = ClampChar(up);",
 )
 BUTTON_HELPER_REQUIRED = (
-    "if (kb[kbButton].active || kb[kbButton].wasPressed)",
+    "v3 = kbButton;",
+    "if (kb[kbButton].active || kb[v3].wasPressed)",
     "*cmdButtons |= buttonFlag;",
-    "kb[kbButton].wasPressed = 0;",
+    "kb[v3].wasPressed = 0;",
 )
 BUTTONS_REQUIRED = (
     "CL_UpdateCmdButton(&cmd->buttons, 14, BUTTON_ATTACK);",
