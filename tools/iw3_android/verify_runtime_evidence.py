@@ -78,10 +78,10 @@ def verify(log: str) -> dict:
     for match in TOUCH.finditer(log, resumed, paused):
         identifier, pressed = int(match[1]), int(match[2])
         x, y = float(match[3]), float(match[4])
-        if not 0 <= identifier < 10 or pressed not in (0, 1) or not (
+        if not 0 <= identifier < 32 or pressed not in (0, 1) or not (
             math.isfinite(x) and math.isfinite(y) and 0 <= x <= 1 and 0 <= y <= 1
         ):
-            raise ValueError("Invalid native touch readback")
+            raise ValueError("Invalid native touch readback (Android pointer ID must be 0..31)")
         if pressed:
             downs.add(identifier)
         elif identifier in downs:
