@@ -72,6 +72,10 @@ jobs:
             --engine third_party/KisakCOD \
             --output "$RUNNER_TEMP/iw3-source/iw3_actor_pointer_width.cpp" \
             --report "$RUNNER_TEMP/iw3-original-actor-pointer-width.json"
+          python3 tools/iw3_android/prepare_real_engine_g_mover_team.py \
+            --engine third_party/KisakCOD \
+            --output "$RUNNER_TEMP/iw3-source/iw3_g_mover_team.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-g-mover-team.json"
           python3 tools/iw3_android/prepare_real_engine_sentient_trigger_services.py \
             --engine third_party/KisakCOD \
             --output "$RUNNER_TEMP/iw3-source/iw3_sentient_trigger_services.cpp" \
@@ -1498,6 +1502,52 @@ jobs:
           echo "IW3_GAMEPLAY_PROVEN=false"
           echo "IW3_PLAYABLE_APK=false"
 
+      - name: Compile original G_MoverTeam and resolve the SP frame mover edge for ARM64 (NOT RUNTIME)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64"
+          team_source="$RUNNER_TEMP/iw3-source/iw3_g_mover_team.cpp"
+          team_object="$RUNNER_TEMP/iw3-original-g-mover-team-arm64.o"
+          mover_combined="$RUNNER_TEMP/iw3-original-g-runframe-plus-mover-arm64.o"
+          combined="$RUNNER_TEMP/iw3-original-g-runframe-plus-mover-team-arm64.o"
+          common_flags=(
+            -std=c++20 -DKISAK_SP=1 -DIW3_ANDROID_PORTABLE_PATHNODE_SERVICES=1
+            -Wall -Wextra -UNDEBUG -O2
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/universal"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/qcommon"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/game"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/server"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/deps"
+          )
+          test -s "$team_source"
+          test -s "$mover_combined"
+          "$ndk/bin/aarch64-linux-android26-clang++" "${common_flags[@]}" -c "$team_source" -o "$team_object"
+          "$ndk/bin/llvm-readelf" -h "$team_object" | tee "$RUNNER_TEMP/iw3-g-mover-team-arm64-elf.txt"
+          grep -F 'Class:                             ELF64' "$RUNNER_TEMP/iw3-g-mover-team-arm64-elf.txt"
+          grep -F 'Machine:                           AArch64' "$RUNNER_TEMP/iw3-g-mover-team-arm64-elf.txt"
+          "$ndk/bin/llvm-nm" -C --defined-only "$team_object" | tee "$RUNNER_TEMP/iw3-g-mover-team-object-defined.txt"
+          grep -F 'G_MoverTeam(gentity_s*)' "$RUNNER_TEMP/iw3-g-mover-team-object-defined.txt"
+          "$ndk/bin/ld.lld" -r -m aarch64linux "$mover_combined" "$team_object" -o "$combined"
+          "$ndk/bin/llvm-nm" -C --defined-only "$combined" | tee "$RUNNER_TEMP/iw3-g-mover-team-defined.txt"
+          "$ndk/bin/llvm-nm" -C -u "$combined" | tee "$RUNNER_TEMP/iw3-g-mover-team-undefined.txt"
+          grep -F 'G_MoverTeam(gentity_s*)' "$RUNNER_TEMP/iw3-g-mover-team-defined.txt"
+          if grep -F 'G_MoverTeam(gentity_s*)' "$RUNNER_TEMP/iw3-g-mover-team-undefined.txt"; then
+            echo "Original G_RunMover -> G_MoverTeam edge failed to resolve" >&2
+            exit 1
+          fi
+          # This remains a real upstream dependency; do not hide it with a stub.
+          grep -F 'G_MoverPush(gentity_s*, float*, float*, gentity_s**)' "$RUNNER_TEMP/iw3-g-mover-team-undefined.txt"
+          for symbol in 'G_RunMissile(gentity_s*)' 'G_RunItem(gentity_s*)' 'ClientEndFrame(gentity_s*)' 'Scr_RunCurrentThreads()'; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-g-mover-team-undefined.txt"
+          done
+          echo "IW3_ORIGINAL_G_MOVER_TEAM_AARCH64_FRAME_EDGE_RESOLVED_GREEN"
+          echo "IW3_G_MOVER_TEAM_RUNTIME_EXECUTED=false"
+          echo "IW3_REAL_MAP_LOADED=false"
+          echo "IW3_GAMEPLAY_PROVEN=false"
+          echo "IW3_PLAYABLE_APK=false"
+
       - name: Attach evidence and compiled native module (NOT an APK)
         uses: actions/upload-artifact@v4
         with:
@@ -1557,6 +1607,13 @@ jobs:
             ${{ runner.temp }}/iw3-actor-pointer-width-arm64-elf.txt
             ${{ runner.temp }}/iw3-actor-pointer-width-defined.txt
             ${{ runner.temp }}/iw3-actor-pointer-width-undefined.txt
+            ${{ runner.temp }}/iw3-source/iw3_g_mover_team.cpp
+            ${{ runner.temp }}/iw3-original-g-mover-team.json
+            ${{ runner.temp }}/iw3-original-g-mover-team-arm64.o
+            ${{ runner.temp }}/iw3-g-mover-team-arm64-elf.txt
+            ${{ runner.temp }}/iw3-g-mover-team-object-defined.txt
+            ${{ runner.temp }}/iw3-g-mover-team-defined.txt
+            ${{ runner.temp }}/iw3-g-mover-team-undefined.txt
             ${{ runner.temp }}/iw3-original-g-runframe-entity-arm64.o
             ${{ runner.temp }}/iw3-original-g-runframe-plus-entity-arm64.o
             ${{ runner.temp }}/iw3-g-runframe-entity-defined.txt
