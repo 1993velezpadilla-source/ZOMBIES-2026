@@ -19,3 +19,12 @@ The original `G_RunFrameForEntity` body dispatches missile, item, and mover enti
 ## Evidence boundary
 
 This closes only the **compile/link edge for the original mover handler** if the new CI gate passes. It does not invoke the handler or close its internal service graph. Missile and item dispatch, script/client/actor services, filesystem startup, licensed FastFile/map loading, the original renderer, touch-to-live-client-frame integration, and physical ARM64 gameplay remain open. The generated object/report is not an APK. Keep PR #4 open and unmerged; `IW3_PLAYABLE_APK=false`.
+
+
+## Follow-up — fix the actual ARM64 compile failure
+
+The first NDK attempt at the new mover edge failed before compilation of the function body. The generated translation unit included broad `sv_game.h`, `sv_public.h`, `g_main.h` and actor headers, which pulled in Win32-only declarations from `server.h`: `__declspec(align(4))` and `_iobuf`. The failure was not a gameplay symbol-link failure.
+
+The generator now uses the narrower original `game_public.h` and `g_local.h` type surface and explicitly declares only the external services needed by the preserved body (`G_MoverTeam` and `SV_LinkEntity`). This avoids altering vendored KisakCOD headers or erasing layout semantics with a blanket `__declspec` macro. A regression test rejects reintroduction of those broad headers.
+
+The fix is **pending CI validation**. The previous ARM64 run `40919978630` failed at step 23 with the header errors above; do not treat that run as proof that the mover edge compiles. Runtime, map loading, rendering, and gameplay remain unproven; `IW3_PLAYABLE_APK=false`.
