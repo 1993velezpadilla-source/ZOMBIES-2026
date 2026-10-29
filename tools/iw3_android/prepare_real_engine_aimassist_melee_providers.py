@@ -90,6 +90,7 @@ HEADER = (
     '#include "universal/assertive.h"\n'
     '#include "qcommon/qcommon.h"\n'
     '#include "bgame/bg_public.h"\n'
+    "extern AimAssistGlobals aaGlobArray[1];\n"
     "extern const dvar_t *player_meleeRange;\n"
 )
 
