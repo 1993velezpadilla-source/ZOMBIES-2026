@@ -46,11 +46,11 @@ class OriginalMoverTraceServiceTests(unittest.TestCase):
         self.assertEqual(trace_path.read_bytes(), trace_bytes)
         self.assertEqual(world_path.read_bytes(), world_bytes)
         self.assertIn(g_trace, generated)
-        self.assertIn(hit_id, generated)
+        self.assertNotIn(hit_id, generated)
         self.assertIn(setup_body, generated)
         self.assertIn(sv_trace_body, generated)
         self.assertEqual(generated.count(G_TRACE_SIGNATURE), 1)
-        self.assertEqual(generated.count(TRACE_HIT_ID_SIGNATURE), 1)
+        self.assertEqual(generated.count(TRACE_HIT_ID_SIGNATURE), 0)
         self.assertEqual(generated.count(SV_SETUP_SIGNATURE), 1)
         self.assertEqual(generated.count(SV_TRACE_SIGNATURE), 1)
         self.assertEqual(report["SV_SetupIgnoreEntParams_body_sha256"],
@@ -64,6 +64,8 @@ class OriginalMoverTraceServiceTests(unittest.TestCase):
                          hashlib.sha256(g_trace.encode("utf-8")).hexdigest())
         self.assertEqual(report["Trace_GetEntityHitId_body_sha256"],
                          hashlib.sha256(hit_id.encode("utf-8")).hexdigest())
+        self.assertTrue(report["Trace_GetEntityHitId_provided_by_full_original_cm_trace_object"])
+        self.assertTrue(report["Trace_GetEntityHitId_duplicate_extraction_avoided"])
         self.assertEqual(saved_report, report)
         self.assertTrue(report["original_function_bodies_preserved_verbatim"])
         self.assertFalse(report["service_stubs_added"])

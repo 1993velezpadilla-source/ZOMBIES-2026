@@ -124,10 +124,14 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
         if marker not in trace_hit_id_body:
             raise ValueError("Original Trace_GetEntityHitId behavior changed: " + marker)
 
-    generated = HEADER + "\n" + g_trace_body + "\n\n" + trace_hit_id_body + "\n\n" + sv_setup_body + "\n\n" + sv_trace_body + "\n"
-    for signature, name in ((G_TRACE_SIGNATURE, "G_TraceCapsule"), (TRACE_HIT_ID_SIGNATURE, "Trace_GetEntityHitId"), (SV_SETUP_SIGNATURE, "SV_SetupIgnoreEntParams"), (SV_TRACE_SIGNATURE, "SV_Trace")):
+    # Trace_GetEntityHitId is now provided by the complete original cm_trace.cpp
+    # object; do not emit a second copy in this generated audit translation unit.
+    generated = HEADER + "\n" + g_trace_body + "\n\n" + sv_setup_body + "\n\n" + sv_trace_body + "\n"
+    for signature, name in ((G_TRACE_SIGNATURE, "G_TraceCapsule"), (SV_SETUP_SIGNATURE, "SV_SetupIgnoreEntParams"), (SV_TRACE_SIGNATURE, "SV_Trace")):
         if generated.count(signature) != 1:
             raise ValueError("Generated source must define exactly one " + name)
+    if TRACE_HIT_ID_SIGNATURE in generated:
+        raise ValueError("Trace_GetEntityHitId must come from the original cm_trace.cpp object")
 
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(generated, encoding="utf-8", newline="\n")
@@ -155,6 +159,8 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
         "original_trace_abi_header_verified": True,
         "G_TraceCapsule_calls_original_SV_SetupIgnoreEntParams_and_SV_Trace": True,
         "Trace_GetEntityHitId_semantics_preserved": True,
+        "Trace_GetEntityHitId_provided_by_full_original_cm_trace_object": True,
+        "Trace_GetEntityHitId_duplicate_extraction_avoided": True,
         "service_stubs_added": False,
         "SV_Trace_runtime_linked": False,
         "runtime_executed": False,

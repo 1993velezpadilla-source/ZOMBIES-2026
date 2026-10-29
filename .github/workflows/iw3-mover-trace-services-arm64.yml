@@ -103,16 +103,16 @@ jobs:
           "$ndk/llvm-nm" -C --defined-only "$trace_object" | tee "$RUNNER_TEMP/iw3-mover-trace/trace-defined.txt"
           grep -F 'G_TestEntityPosition(gentity_s*, float*)' "$RUNNER_TEMP/iw3-mover-trace/team-defined.txt"
           grep -F 'G_TraceCapsule(' "$RUNNER_TEMP/iw3-mover-trace/trace-defined.txt"
-          grep -F 'Trace_GetEntityHitId(' "$RUNNER_TEMP/iw3-mover-trace/trace-defined.txt"
           "$ndk/llvm-nm" -C --defined-only "$collision_object" | tee "$RUNNER_TEMP/iw3-mover-trace/collision-core-defined.txt"
+          grep -F 'Trace_GetEntityHitId(' "$RUNNER_TEMP/iw3-mover-trace/collision-core-defined.txt"
           grep -F 'CM_BoxTrace(' "$RUNNER_TEMP/iw3-mover-trace/collision-core-defined.txt"
           grep -F 'CM_Trace(' "$RUNNER_TEMP/iw3-mover-trace/collision-core-defined.txt"
           echo "IW3_ORIGINAL_CM_TRACE_CORE_AARCH64_COMPILE_GREEN"
 
-          "$ndk/ld.lld" -r -m aarch64linux "$team_object" "$trace_object" -o "$combined"
+          "$ndk/ld.lld" -r -m aarch64linux "$team_object" "$trace_object" "$collision_object" -o "$combined"
           "$ndk/llvm-nm" -C --defined-only "$combined" | tee "$RUNNER_TEMP/iw3-mover-trace/combined-defined.txt"
           "$ndk/llvm-nm" -C -u "$combined" | tee "$RUNNER_TEMP/iw3-mover-trace/combined-undefined.txt"
-          for symbol in 'G_TestEntityPosition(gentity_s*, float*)' 'G_TraceCapsule(' 'Trace_GetEntityHitId(' 'SV_SetupIgnoreEntParams(' 'SV_Trace('; do
+          for symbol in 'G_TestEntityPosition(gentity_s*, float*)' 'G_TraceCapsule(' 'Trace_GetEntityHitId(' 'SV_SetupIgnoreEntParams(' 'SV_Trace(' 'CM_BoxTrace(' 'CM_Trace('; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-mover-trace/combined-defined.txt"
             if grep -F "$symbol" "$RUNNER_TEMP/iw3-mover-trace/combined-undefined.txt"; then
               echo "Original mover trace edge failed to resolve: $symbol" >&2
@@ -126,7 +126,7 @@ jobs:
               exit 1
             fi
           done
-          for symbol in 'SV_GentityNum(int)' 'CM_BoxTrace(' 'CM_PointTraceToEntities(' 'CM_ClipMoveToEntities('; do
+          for symbol in 'SV_GentityNum(int)' 'CM_PointTraceToEntities(' 'CM_ClipMoveToEntities('; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-mover-trace/combined-undefined.txt"
           done
           echo "IW3_ORIGINAL_SV_TRACE_AARCH64_EDGE_RESOLVED_GREEN"
