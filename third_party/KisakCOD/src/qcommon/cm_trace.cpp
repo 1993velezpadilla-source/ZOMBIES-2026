@@ -3,7 +3,8 @@
 #include "qcommon.h"
 #include "threads.h"
 
-#include <xanim/xanim.h>
+#include <qcommon/cm_collision_types.h>
+#include <universal/com_math.h>
 #include <game/game_public.h>
 #include <universal/profile.h>
 

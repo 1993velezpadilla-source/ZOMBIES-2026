@@ -20,10 +20,20 @@ class OriginalCollisionTraceArm64GateTests(unittest.TestCase):
                 self.assertIn(signature, source)
 
 
-    def test_collision_core_keeps_original_types_and_msvc_alignment_compat(self):
+    def test_collision_types_are_split_from_renderer_and_audio_headers(self):
         source = ENGINE_TRACE.read_text(encoding="utf-8")
+        xanim = (ROOT / "third_party/KisakCOD/src/xanim/xanim.h").read_text(encoding="utf-8")
+        collision = (ROOT / "third_party/KisakCOD/src/qcommon/cm_collision_types.h").read_text(encoding="utf-8")
         qcommon = (ROOT / "third_party/KisakCOD/src/qcommon/qcommon.h").read_text(encoding="utf-8")
-        self.assertIn("#include <xanim/xanim.h>", source)
+        self.assertNotIn("#include <xanim/xanim.h>", source)
+        self.assertIn("#include <qcommon/cm_collision_types.h>", source)
+        self.assertIn("#include <universal/com_math.h>", source)
+        self.assertIn("#include <qcommon/cm_collision_types.h>", xanim)
+        for name in ("cbrush_t", "cbrushside_t", "cLeafBrushNode_s", "CollisionPartition", "CollisionAabbTree"):
+            with self.subTest(name=name):
+                self.assertIn("struct " + name, collision)
+        self.assertIn("struct alignas(16) cbrush_t", collision)
+        self.assertIn("static_assert(alignof(cbrush_t) == 16", collision)
         self.assertIn("enum DynEntityDrawType", qcommon)
         self.assertIn("DYNENT_DRAW_MODEL", qcommon)
         self.assertIn("DYNENT_DRAW_BRUSH", qcommon)
