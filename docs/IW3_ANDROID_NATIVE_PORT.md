@@ -1489,6 +1489,10 @@ The latest ARM64 dependency report still showed the original FS_ReadFile chain w
 - `fs_readfile_services_native_test.cpp` executes the extracted original logfile query against the real extracted state and stresses the writer lock with a reader gate plus eight contending threads. It verifies that the writer waits while `readCount != 0`, excludes concurrent writers, and returns `writeCount` to zero.
 - The ARM64 combined FS/IWD audit now fails if either service is missing or unresolved. The new services are included only in the dependency-audit archive, not linked into the JNI diagnostic APK.
 
-**Validation status at commit creation:** CI is triggered by this commit; the results must be read from the linked Actions run before treating the new C++ host test or AArch64 link gate as passing.
+**Validation (code commit `ae340e6b1cb997f4aa9acbe70403efe0dfd9816d`):**
+- Preflight [40793488500](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40793488500): PASS.
+- Native ARM64 audit [40793488539](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40793488539): PASS; 224 Python tests; CTest Release 23/23; CTest ASan/UBSan 23/23.
+- The combined ARM64 FS/IWD link log defines `Com_LogFileOpen()`, `Sys_LockWrite(FastCriticalSection*)`, and `Sys_UnlockWrite(FastCriticalSection*)`, with no corresponding unresolved entries, and emits `IW3_ORIGINAL_FS_READFILE_LOGFILE_AND_WRITE_LOCK_AARCH64_LINK_GREEN`.
+- Audit artifact [12862368849](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40793488539/artifacts/12862368849) contains the compiled native module and audit evidence; it is **not an APK**.
 
 This closes only two service edges in the filesystem read graph. `FS_Startup/FS_InitFilesystem` still is not invoked by the Android app; authentic FastFile/map loading, the original renderer, touch-to-live-frame integration, and physical ARM64 gameplay remain unproven. Keep PR #4 open and unmerged.
