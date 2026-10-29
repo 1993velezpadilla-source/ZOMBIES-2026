@@ -35,6 +35,21 @@ class AndroidGameDataImportTests(unittest.TestCase):
         self.assertIn('name.indexOf(\'/\') < 0', source)
         self.assertIn("name.indexOf(0) < 0", source)
 
+    def test_importer_requires_engine_data_layout_and_bounds_streamed_bytes(self):
+        source = IMPORTER.read_text(encoding="utf-8")
+        self.assertIn("MAX_SINGLE_FILE_BYTES = 2L * 1024L * 1024L * 1024L", source)
+        self.assertIn("MAX_TOTAL_BYTES = 12L * 1024L * 1024L * 1024L", source)
+        self.assertIn('file.relativePath.startsWith("main/")', source)
+        self.assertIn('file.relativePath.startsWith("zone/english/")', source)
+        self.assertIn('at least one .iwd file under main/', source)
+        self.assertIn('at least one .ff file under zone/english/', source)
+        self.assertIn("fileBytes + read > MAX_SINGLE_FILE_BYTES", source)
+        self.assertIn("bytesCopied + fileBytes + read > MAX_TOTAL_BYTES", source)
+        self.assertLess(source.index("fileBytes + read > MAX_SINGLE_FILE_BYTES"),
+                        source.index("output.write(buffer, 0, read)"))
+        self.assertLess(source.index("bytesCopied + fileBytes + read > MAX_TOTAL_BYTES"),
+                        source.index("output.write(buffer, 0, read)"))
+
     def test_importer_uses_atomic_per_file_replace_and_bounds_saf_walk(self):
         source = IMPORTER.read_text(encoding="utf-8")
         self.assertIn("Os.rename(", source)
