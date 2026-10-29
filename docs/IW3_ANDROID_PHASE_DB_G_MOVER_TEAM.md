@@ -25,3 +25,9 @@ The new CI step must emit `IW3_ORIGINAL_G_MOVER_TEAM_AARCH64_FRAME_EDGE_RESOLVED
 ## Remaining blockers
 
 `G_MoverPush`, `G_RunMissile`, `G_RunItem`, `ClientEndFrame`, scripting, actor/client integration, renderer, authentic FastFile/map loading, and live touch-to-client simulation remain incomplete. Emulator JNI logs are not evidence of a playable ARM64 game. Keep PR #4 open and unmerged.
+
+## Follow-up from the first G_MoverTeam compile
+
+The first ARM64 attempt on commit `79f21389833fccb65fa62c8d931f91a1bb9117c7` extracted the original body and passed the preceding frame/actor compile gates, but `G_MoverTeam` compilation failed because the narrow generated header did not declare `entityHandlers`. The authentic declaration is `extern struct entityHandler_t entityHandlers[27];` in `g_main.h`, while the type is defined in `g_local.h`.
+
+The generator now verifies those exact upstream declarations and adds only the matching `extern` declaration to the audit translation unit; it does not define or stub the table. The ARM64 compile/link gate must rerun on the follow-up commit before this edge is counted as resolved.

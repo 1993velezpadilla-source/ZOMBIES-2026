@@ -32,6 +32,9 @@ HEADER = """// Generated from authentic KisakCOD g_mover.cpp. Do not edit.
 #include <server/sv_world.h>
 #include <universal/com_math.h>
 
+// Exact upstream declaration from g_main.h; entityHandler_t is defined in g_local.h.
+extern struct entityHandler_t entityHandlers[27];
+
 // The mover-push body remains an explicit upstream dependency in this pass.
 char __cdecl G_MoverPush(gentity_s *pusher, float *move, float *amove, gentity_s **obstacle);
 """
@@ -73,6 +76,12 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
         raise ValueError("Mover allocation tracker must use sizeof(pushed)")
     if 'track_static_alloc_internal(pushed, 45056, "pushed", 9);' in track_body:
         raise ValueError("32-bit pushed allocation byte count remains")
+    main_header = (engine / "src/game/g_main.h").read_text(encoding="utf-8")
+    if main_header.count("extern struct entityHandler_t entityHandlers[27];") != 1:
+        raise ValueError("Original entityHandlers declaration changed in g_main.h")
+    local_header = (engine / "src/game/g_local.h").read_text(encoding="utf-8")
+    if local_header.count("struct entityHandler_t") != 1:
+        raise ValueError("Original entityHandler_t definition changed in g_local.h")
     if "G_MoverPush(ent, move, amove, &obstacle)" not in team_body:
         raise ValueError("Original G_MoverTeam -> G_MoverPush call changed")
     if "Actor_ClearPath(p->ent->actor);" not in team_body:
@@ -102,6 +111,7 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
         "original_pushed_t_layout_preserved": True,
         "pushed_array_and_cursor_owned_once": True,
         "pushed_tracker_uses_native_sizeof": True,
+        "entity_handlers_declared_from_original_header": True,
         "SP_actor_and_sentient_invalidation_preserved": True,
         "G_MoverPush_is_real_unresolved_upstream_service": True,
         "service_stubs_added": False,

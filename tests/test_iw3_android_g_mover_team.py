@@ -61,6 +61,18 @@ class OriginalGMoverTeamTests(unittest.TestCase):
         self.assertTrue(report["pushed_tracker_uses_native_sizeof"])
         self.assertTrue(report["pushed_array_and_cursor_owned_once"])
 
+    def test_entity_handlers_use_original_declaration_without_broad_header_dependency(self):
+        with TemporaryDirectory() as temp:
+            output = Path(temp) / "iw3_g_mover_team.cpp"
+            report = prepare(ENGINE, output)
+            generated = output.read_text(encoding="utf-8")
+        self.assertIn("extern struct entityHandler_t entityHandlers[27];", generated)
+        main_header = (ENGINE / "src/game/g_main.h").read_text(encoding="utf-8")
+        local_header = (ENGINE / "src/game/g_local.h").read_text(encoding="utf-8")
+        self.assertEqual(main_header.count("extern struct entityHandler_t entityHandlers[27];"), 1)
+        self.assertEqual(local_header.count("struct entityHandler_t"), 1)
+        self.assertTrue(report["entity_handlers_declared_from_original_header"])
+
     def test_sp_actor_path_and_sentient_invalidation_remain_original(self):
         source = (ENGINE / SOURCE).read_text(encoding="utf-8")
         body = function_source(source, TEAM_SIGNATURE)
