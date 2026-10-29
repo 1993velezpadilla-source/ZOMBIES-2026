@@ -25,3 +25,20 @@ The generated startup report must continue to state that the command registry ha
 ## Evidence boundary / next blockers
 
 This closes a source/link dependency edge only. The current Android Activity still calls the diagnostic JNI probes; it does not invoke original `FS_Startup()` or `FS_InitFilesystem()`. Real game IWDs are not mounted through the full upstream searchpath table, licensed FastFiles/maps are not loaded, the original renderer is not active, and touch commands are not driving the live frame loop. Physical ARM64 gameplay, actual weapon fire, damage/death, and actors remain unproven. Keep PR #4 open and unmerged.
+
+## Follow-up — duplicate FS_ConvertPath link regression guard (29 Oct 2026)
+
+Fresh inspection of ARM64 run [40846018333](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40846018333) found the combined FS/IWD relocatable link failed with a duplicate definition of `FS_ConvertPath(char*)`: one definition came from the generated `iw3_fs_startup.cpp` archive and another from `iw3_iwd_names.cpp`. This is a real link failure; the run is not green.
+
+The intended ownership is the original provider staged by `prepare_real_engine_iwd_names.py`. The current startup slice already omits the definition while preserving call sites, and the workflow requires exactly one definition after the combined link. This follow-up hardens that ownership contract in the generator: it now fails closed if `FS_ConvertPath` is reintroduced into either startup extraction list, reports the guard explicitly, and adds a regression that injects the forbidden signature and verifies rejection.
+
+Code commits:
+- `b82aec374475be50e62d3f8de109b70690a0d1a8` — generator guard and provenance report.
+- `e220459a0aeca49cfde4e44f061064a2c7007c88` — regression for duplicate-provider prevention.
+
+The updated branch must pass fresh CI before this fix is considered validated. A passing source test or a relocatable component link is not runtime proof.
+
+## Remaining runtime blockers
+
+This remains a dependency-audit pass, not a playable build. The Android Activity does not invoke the original `FS_Startup()/FS_InitFilesystem()` graph; licensed/user-owned FastFiles and a real map have not been shown loading in the app; the original renderer is not active; and there is no physical ARM64 run showing touch-driven frame updates, weapon fire, damage/death and actor behavior. Keep PR #4 open and unmerged.
+
