@@ -478,6 +478,75 @@ extern "C" IW3_ANDROID_EXPORT int z2026_platform_list_iwd_files(
     return static_cast<int>(needed);
 }
 
+extern "C" IW3_ANDROID_EXPORT int z2026_platform_list_directory_entries(
+    const char *directory, int directories_only, char *output,
+    std::size_t output_capacity, std::size_t *entry_count) {
+    if (!entry_count || (!output && output_capacity) ||
+        (directories_only != 0 && directories_only != 1)) return -1;
+    *entry_count = 0;
+
+    char relative[1024]{};
+    std::lock_guard<std::mutex> lock(g_data_mutex);
+    if (g_data_root_fd < 0 ||
+        !normalize_engine_path(directory, relative, true)) return -1;
+
+    const int fd = open_directory_beneath_root(g_data_root_fd, relative);
+    if (fd < 0) return -1;
+    DIR *stream = fdopendir(fd);
+    if (!stream) {
+        close(fd);
+        return -1;
+    }
+
+    std::vector<std::string> names;
+    std::size_t needed = 0;
+    bool read_error = false;
+    for (;;) {
+        errno = 0;
+        dirent *entry = readdir(stream);
+        if (!entry) {
+            read_error = errno != 0;
+            break;
+        }
+        if (entry->d_name[0] == '.') continue;
+
+        struct stat st{};
+        // AT_SYMLINK_NOFOLLOW is intentional: enumeration must not turn a
+        // symlink beneath filesDir into a path outside the app root.
+        if (fstatat(dirfd(stream), entry->d_name, &st,
+                    AT_SYMLINK_NOFOLLOW) != 0) continue;
+        if (directories_only ? !S_ISDIR(st.st_mode) : !S_ISREG(st.st_mode))
+            continue;
+
+        const std::size_t length = std::strlen(entry->d_name);
+        if (length == 0 ||
+            length + 1 > std::numeric_limits<std::size_t>::max() - needed) {
+            read_error = true;
+            break;
+        }
+        needed += length + 1;
+        // Fail before writing anything if the caller's fixed buffer cannot
+        // contain the complete listing. Never return a truncated file list.
+        if (needed > output_capacity || (needed && !output)) {
+            read_error = true;
+            break;
+        }
+        names.emplace_back(entry->d_name);
+    }
+    if (closedir(stream) != 0) read_error = true;
+    if (read_error ||
+        needed > static_cast<std::size_t>(std::numeric_limits<int>::max()))
+        return -1;
+
+    std::size_t offset = 0;
+    for (const std::string &name : names) {
+        std::memcpy(output + offset, name.c_str(), name.size() + 1);
+        offset += name.size() + 1;
+    }
+    *entry_count = names.size();
+    return static_cast<int>(needed);
+}
+
 extern "C" IW3_ANDROID_EXPORT int z2026_platform_directory_has_contents(
     const char *directory) {
     char relative[1024]{};
