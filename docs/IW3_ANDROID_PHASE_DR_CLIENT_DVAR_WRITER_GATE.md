@@ -38,7 +38,7 @@ The current native Android workflow completed successfully:
 - The provider object was confirmed ELF64/AArch64 and defined both `Sys_LockWrite(FastCriticalSection*)` and `Sys_UnlockWrite(FastCriticalSection*)`.
 - The relocatable client/dvar/provider object defined both symbols and no longer listed either as undefined.
 - Required marker: `IW3_ORIGINAL_BGAME_MELEE_DVAR_WRITER_GATE_EDGES_RESOLVED_AARCH64_GREEN`.
-- Evidence artifact: [12981675408 — ARM64 audit objects and reports, NOT APK](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41062716885/artifacts/12981675408).
+- Evidence artifact: [12981805355 — client state providers, including the writer-gate object and symbol reports, NOT APK](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41062716885/artifacts/12981805355).
 
 The report retains the negative scope markers:
 
