@@ -84,6 +84,39 @@ class OriginalDbFileLoadCompileGateTests(unittest.TestCase):
         source = (ROOT / "third_party/KisakCOD/deps/ode/error.h").read_text(encoding="utf-8")
         self.assertIn("#if defined(__ANDROID__)\n#include <stdarg.h>\n#else\n#include <vadefs.h>\n#endif", source)
 
+    def test_android_lp64_xanim_and_xmodel_runtime_layouts_are_explicit(self):
+        xmodel = (ROOT / "third_party/KisakCOD/src/xanim/xmodel.h").read_text(encoding="utf-8")
+        xanim = (ROOT / "third_party/KisakCOD/src/xanim/xanim.h").read_text(encoding="utf-8")
+        for declaration in (
+            "static_assert(sizeof(XModel) == 280);",
+            "static_assert(sizeof(XModelPiece) == 24);",
+            "static_assert(sizeof(XModelPieces) == 24);",
+            "static_assert(sizeof(XModelSurfs) == 24);",
+            "static_assert(sizeof(XModelPartsLoad) == 56);",
+        ):
+            self.assertIn(declaration, xmodel)
+        for declaration in (
+            "static_assert(sizeof(XAnimIndices) == 8);",
+            "static_assert(sizeof(XAnimParts) == 136);",
+            "static_assert(sizeof(WeaponDef) == 2832);",
+            "static_assert(sizeof(RawFile) == 24);",
+            "static_assert(sizeof(XAsset) == 16);",
+            "static_assert(sizeof(ScriptStringList) == 16);",
+            "static_assert(sizeof(XAssetList) == 32);",
+            "static_assert(sizeof(XRigidVertList) == 16);",
+            "static_assert(sizeof(XSurfaceVertexInfo) == 16);",
+            "static_assert(sizeof(XSurface) == 80);",
+        ):
+            self.assertIn(declaration, xanim)
+
+    def test_client_debug_types_are_shared_not_redeclared(self):
+        client = (ROOT / "third_party/KisakCOD/src/client/client.h").read_text(encoding="utf-8")
+        renderer = (ROOT / "third_party/KisakCOD/src/gfx_d3d/r_debug.h").read_text(encoding="utf-8")
+        self.assertIn("#ifndef KISAK_CLIENT_DEBUG_TYPES_DEFINED", client)
+        self.assertIn("#ifndef KISAK_CLIENT_DEBUG_TYPES_DEFINED", renderer)
+        sound = (ROOT / "third_party/KisakCOD/src/sound/snd_public.h").read_text(encoding="utf-8")
+        self.assertIn("typedef int BOOL;", sound)
+
     def test_native_workflow_triggers_when_vendored_dependencies_change(self):
         source = WORKFLOW.read_text(encoding="utf-8")
         self.assertIn("- 'third_party/KisakCOD/src/**'", source)
