@@ -15,6 +15,7 @@ on:
       - 'tests/test_iw3_android_fastfile_posix_io.py'
       - 'tests/test_iw3_android_fastfile_posix_open.py'
       - 'tools/iw3_android/prepare_real_engine_db_read_posix.py'
+      - 'docs/IW3_ANDROID_PHASE_DK_SHORT_READ_EOF.md'
   push:
     branches:
       - feature/iw3-native-android-arm64-20261025
@@ -31,6 +32,7 @@ on:
       - 'tests/test_iw3_android_fastfile_posix_io.py'
       - 'tests/test_iw3_android_fastfile_posix_open.py'
       - 'tools/iw3_android/prepare_real_engine_db_read_posix.py'
+      - 'docs/IW3_ANDROID_PHASE_DK_SHORT_READ_EOF.md'
   workflow_dispatch:
 
 permissions:
