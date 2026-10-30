@@ -37,8 +37,8 @@ class FastFilePosixOpenRegression(unittest.TestCase):
 
     def test_original_db_file_size_uses_posix_helper_only_on_android(self):
         source = REGISTRY.read_text(encoding="utf-8")
-        start = source.index("int32_t __cdecl DB_FileSize(const char *zoneName, int32_t isMod)\\n{")
-        end = source.index("\\nvoid __cdecl Load_GetCurrentZoneHandle", start)
+        start = source.index("int32_t __cdecl DB_FileSize(const char *zoneName, int32_t isMod)")
+        end = source.index("void __cdecl Load_GetCurrentZoneHandle", start)
         body = source[start:end]
         self.assertIn("DBFastFilePosixFileSizeEnginePath(filename)", body)
         android_start = body.index("#if defined(__ANDROID__)")
