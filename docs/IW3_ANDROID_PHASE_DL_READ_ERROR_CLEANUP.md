@@ -52,3 +52,30 @@ Compile and link the original database registry/loader service graph in the
 Android runtime without no-op stubs, then demonstrate loading an authentic
 FastFile and BSP/map before claiming rendering or gameplay. Keep PR #4 open
 and unmerged.
+
+
+## Phase DM — close the Android descriptor on malformed FastFile metadata
+
+A second review of the original `DB_LoadXFileInternal()` found early exits that
+preceded inflater initialization or failed before zone deserialization. The
+Android opener had already acquired a POSIX descriptor, but the empty-file,
+truncated/invalid magic, truncated/unsupported version, unexpected-header-status,
+and progress-size-query failure paths could dispatch an assertion/error without
+calling the original cancellation routine first.
+
+The Android-only branches now call `DB_CancelLoadXFile()` before their failure
+dispatch. The original Win32 branches and their error handling are retained.
+For header failures this deliberately reuses the engine's existing cancellation
+path rather than adding a second descriptor-close mechanism.
+
+The existing FastFile regression workflow now checks each affected branch and
+requires the cleanup call to be inside the Android guard and before the first
+`Com_Error()` or `MyAssertHandler()` dispatch. The test is source-order
+verification; it does not claim to execute all malformed-header cases inside
+the complete Android runtime.
+
+**Scope remains limited:** this closes descriptor/inflater state on these
+additional loader failure paths. It does not link the full database registry
+and loader into the JNI runtime, authenticate/decompress proprietary FastFiles,
+load a BSP, present a renderer frame, or prove touch-driven gameplay. Any JNI
+APK remains diagnostic; keep PR #4 open and unmerged.
