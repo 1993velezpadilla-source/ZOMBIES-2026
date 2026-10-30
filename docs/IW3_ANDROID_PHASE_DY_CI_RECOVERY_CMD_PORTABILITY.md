@@ -130,3 +130,55 @@ This does not hide the full-TU portability gate: its dedicated workflow
 still compiles the authentic `cmd.cpp` with real OpenAL API headers. It does
 prevent an unrelated diagnostic default build from failing on an optional
 compile-only target. No command system runtime execution is claimed.
+
+## Confirmed full-command ARM64 compilation — PASS, object only
+
+The updated focused command workflow
+[run 41104384098](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41104384098)
+completed **SUCCESS** at commit `bcfaaed0`. Its logs show:
+
+```text
+IW3_OPENAL_HEADERS_REAL_API_STAGED_FOR_COMPILE_ONLY
+Class: ELF64
+Machine: AArch64
+Cmd_Init()
+Cmd_AddCommandInternal(char const*, void (*)(), cmd_function_s*)
+Cmd_ExecuteSingleCommand(int, int, char*)
+Cmd_TokenizeString(char*)
+Cmd_EndTokenizedString()
+IW3_ORIGINAL_CMD_FULL_TU_AARCH64_OBJECT_PASS
+IW3_CMD_INIT_INVOKED=false
+IW3_PLAYABLE_APK=false
+```
+
+The evidence artifact is
+[13001025739 — original command ARM64 object, NOT APK](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41104384098/artifacts/13001025739).
+This validates compilation of the **complete authentic original** `cmd.cpp`
+and its command symbols, not a linked Android runtime.
+
+## Native monolithic regression audit and repair
+
+The native workflow [run 41104383866](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41104383866)
+failed during its Python source tests, before the full native build. Four
+assertions were stale: one still demanded Windows `std::format` paths, and
+three still demanded the *old* filesystem relocatable-link command without
+the now-required original `cmd_tokenizer_archive`. The workflow itself
+contains the newer archive and audits `Cmd_TokenizeString` and
+`Cmd_EndTokenizedString` in the combined startup graph.
+
+The regressions were updated to require the **stronger current behavior**,
+not disabled:
+
+- `08a30535`: require native `std::filesystem::path` output and reject
+  `std::format` / `fopen_s` in the original dump function.
+- `2c1c62a3`: require the original tokenizer archive in the startup/Dvar/IWD
+  relocatable links and tokenizer symbol-resolution checks.
+- `88bb717e`: require the original tokenizer provider in the filesystem
+  directory link audit.
+
+GitHub read-back confirmed each new assertion matches the actual code.
+The next native workflow must rerun all regressions and the NDK build.
+Until that CI is complete, **do not claim native workflow PASS**.
+
+The user-facing completion condition remains entirely unmet: no original
+bootstrap, real map, rendered frame, live touch/gameplay, or playable APK.
