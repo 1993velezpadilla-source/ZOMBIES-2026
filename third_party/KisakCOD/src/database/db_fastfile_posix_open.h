@@ -79,3 +79,19 @@ static inline void *DBFastFilePosixOpenEnginePath(
     *fileSize = static_cast<uint32_t>(fileStat.st_size);
     return opaque;
 }
+
+// Shared implementation for the original DB_FileSize Android branch.
+// Returns zero on open/stat/close failure, matching the legacy API's
+// "not found" sentinel while never exposing a partially validated size.
+static inline int32_t DBFastFilePosixFileSizeEnginePath(const char *path)
+{
+    uint32_t size = 0;
+    int errorNumber = 0;
+    void *opaque = DBFastFilePosixOpenEnginePath(path, &size, &errorNumber);
+    const int fd = DBFastFilePosixFdFromOpaque(opaque);
+    if (fd < 0)
+        return 0;
+    if (close(fd) != 0)
+        return 0;
+    return static_cast<int32_t>(size);
+}
