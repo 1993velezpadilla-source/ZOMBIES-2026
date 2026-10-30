@@ -16,6 +16,7 @@ static int g_directory_probes = 0;
 static int g_iwd_scans = 0;
 static int g_fatal_errors = 0;
 static std::vector<std::string> g_probed_paths;
+static std::vector<std::string> g_mkdir_paths;
 static std::vector<std::string> g_iwd_game_folders;
 
 static bool g_force_empty_homepath = false;
@@ -132,6 +133,11 @@ int __cdecl Sys_DirectoryHasContents(const char *directory) {
     return 1;
 }
 
+void __cdecl Sys_Mkdir(const char *directory) {
+    assert(directory && *directory);
+    g_mkdir_paths.emplace_back(directory);
+}
+
 int Com_sprintf(char *dest, uint32_t size, const char *format, ...) {
     if (!dest || size == 0 || !format) return -1;
     va_list args;
@@ -180,6 +186,19 @@ static void test_original_path_builder() {
     FS_BuildOSPath("/private\\iw3//", "main", "maps\\mp//test.d3dbsp", path);
     assert(std::strcmp(path, "/private/iw3/main/maps/mp/test.d3dbsp") == 0);
     assert(path[0] == '/');
+
+    // Execute the original FS_CreatePath body: it must visit POSIX parent
+    // directories and restore the input path without touching the real FS.
+    g_mkdir_paths.clear();
+    char nested[] = "/private/iw3/main/players/profile.cfg";
+    assert(FS_CreatePath(nested) == 0);
+    assert(std::strcmp(nested, "/private/iw3/main/players/profile.cfg") == 0);
+    assert(g_mkdir_paths.size() == 4);
+    assert(g_mkdir_paths.front() == "/private");
+    assert(g_mkdir_paths.back() == "/private/iw3/main/players");
+    char traversal[] = "/private/iw3/main/../escape";
+    assert(FS_CreatePath(traversal) == 1);
+    assert(g_mkdir_paths.size() == 4);
 
     std::string oversized(300, 'x');
     std::strcpy(path, "stale");
