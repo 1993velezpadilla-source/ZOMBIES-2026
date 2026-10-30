@@ -111,5 +111,35 @@ class Lp64ScriptLayoutTests(unittest.TestCase):
         ):
             self.assertIn(assertion, fixture)
 
+
+    def test_original_script_variable_publication_has_win32_and_lp64_layouts(self):
+        header = (ENGINE / "script/scr_main.h").read_text(encoding="utf-8")
+        self.assertIn(
+            "sizeof(scrVarPub_t) == (sizeof(void *) == 8 ? 0x200A0 : 0x2007C)",
+            header,
+        )
+
+    def test_original_script_vm_static_tracking_uses_native_sizes(self):
+        source = (ENGINE / "script/scr_vm.cpp").read_text(encoding="utf-8")
+        start = source.index("void __cdecl TRACK_scr_vm()")
+        end = source.index("void __cdecl Scr_ClearErrorMessage()", start)
+        body = source[start:end]
+        for expression in (
+            "sizeof(scrVmGlob)",
+            "sizeof(scrVmPub)",
+            "sizeof(g_script_error)",
+            "sizeof(scrVmDebugPub)",
+        ):
+            self.assertIn(expression, body)
+        for win32_literal in ("8232", "17192", "2112", "147984"):
+            self.assertNotIn(win32_literal, body)
+
+    def test_android_ndk_builds_complete_original_script_vm_translation_unit(self):
+        cmake = (ROOT / "android/iw3-native/CMakeLists.txt").read_text(encoding="utf-8")
+        self.assertIn("iw3_sp_script_vm_full_compile OBJECT", cmake)
+        self.assertIn('"${IW3_ENGINE_SOURCE_ROOT}/script/scr_vm.cpp"', cmake)
+        self.assertIn("target_compile_definitions(iw3_sp_script_vm_full_compile PRIVATE KISAK_SP=1)", cmake)
+        self.assertIn("IW3_CLIENT_RUNTIME_LINKED=false", (ROOT / "docs/IW3_ANDROID_PHASE_EA_SCRIPT_VM_LP64_TRACKING.md").read_text(encoding="utf-8"))
+
 if __name__ == "__main__":
     unittest.main()
