@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <string.h>
 #include <string>
 #include <unistd.h>
 
@@ -40,6 +41,10 @@ static inline char *_itoa(int value, char *buffer, int radix)
         buffer[0] = '\0';
     return buffer;
 }
+
+#ifndef _strdup
+#define _strdup ::strdup
+#endif
 
 #ifndef _stricmp
 #define _stricmp I_stricmp

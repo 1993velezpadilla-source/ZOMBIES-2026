@@ -38,6 +38,15 @@ class OriginalDbRegistryCompileGateTests(unittest.TestCase):
         self.assertIn('CreateFileA("update:\\\\mp_patch.ff"', source)
         self.assertIn("size = GetFileSize(zoneFile, 0);", source)
 
+
+    def test_android_registry_maps_msvc_strdup_to_posix_strdup(self):
+        compat = (ROOT / "third_party/KisakCOD/src/database/db_registry_android_compat.h").read_text(encoding="utf-8")
+        registry = REGISTRY.read_text(encoding="utf-8")
+        self.assertIn("#include <string.h>", compat)
+        self.assertIn("#ifndef _strdup\n#define _strdup ::strdup\n#endif", compat)
+        self.assertEqual(registry.count("_strdup("), 2)
+        self.assertIn('#include "db_registry_android_compat.h"', registry)
+
     def test_cmake_compiles_the_complete_original_registry_as_object_only(self):
         source = CMAKE.read_text(encoding="utf-8")
         target = source.index("add_library(iw3_sp_db_registry_full_compile OBJECT")
