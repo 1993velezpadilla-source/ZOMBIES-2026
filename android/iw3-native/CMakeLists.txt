@@ -114,6 +114,23 @@ if(ANDROID)
         -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
 endif()
 
+# Compile the complete original FastFile loader translation unit for Android
+# ARM64. Renderer completion functions are declaration-only and intentionally
+# remain unresolved; this gate proves the authentic loader source is portable
+# enough to compile, not that the renderer or database runtime is linked.
+if(ANDROID)
+    add_library(iw3_sp_db_file_load_full_compile OBJECT
+        "${IW3_ENGINE_SOURCE_ROOT}/database/db_file_load.cpp")
+    target_include_directories(iw3_sp_db_file_load_full_compile PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+        "${IW3_ENGINE_SOURCE_ROOT}"
+        "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+        "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+    target_compile_definitions(iw3_sp_db_file_load_full_compile PRIVATE KISAK_SP=1)
+    target_compile_options(iw3_sp_db_file_load_full_compile PRIVATE
+        -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
+endif()
+
 # Compile the authentic parser/session routines when the source-audit workflow
 # supplies the extracted file. The JNI diagnostic shares this CMakeLists but does
 # not stage/link this audit archive, so absence is not a configure-time failure.
