@@ -51,6 +51,21 @@ The retry is required to discover the next include/platform edge. The initial
 failure is preserved as evidence; it is not counted as an Android registry
 compile pass.
 
+## Second NDK result: Win32 local header
+
+After the D3D9 declaration boundary was fixed, the next compile attempt
+[41012946523](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41012946523)
+advanced through the Android renderer headers and stopped at
+`win32/win_local.h:16`: the NDK does not provide `dinput.h`. That header is
+not needed for the database registry's Android branch; it was imported only
+to obtain shared qcommon declarations alongside Windows DirectInput APIs.
+
+The original `db_registry.cpp` now includes the shared qcommon, critical-section,
+and SP net-channel headers on Android, while retaining `win_local.h` exclusively
+for desktop builds. `IsConfigFile` now uses its actual boolean return semantics
+instead of importing Win32's `BOOL` typedef. This does not replace any engine
+service implementation. The next NDK attempt will reveal remaining Windows file
+operations in the optional zone-reorder CSV path.
 ## What this does not prove
 
 This is a compile gate only. It does not link the database registry to the
