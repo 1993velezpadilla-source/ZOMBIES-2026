@@ -416,7 +416,7 @@ jobs:
           fi
           # Keep a known real gameplay edge unresolved to prove this is only a
           # partial graph audit and not a false claim of complete engine linkage.
-          grep -F 'G_UpdatePlayer' "$RUNNER_TEMP/iw3-frame-script-vm-undefined.txt"
+          grep -F 'G_UpdatePlayerTriggers(gentity_s*)' "$RUNNER_TEMP/iw3-frame-script-vm-undefined.txt"
           echo "IW3_ORIGINAL_FRAME_SCRIPT_VM_RELOCATABLE_LINK_PASS"
           echo "IW3_FRAME_SCRIPT_VM_RUNTIME_LINKED=false"
           echo "IW3_REAL_MAP_LOADED=false"
