@@ -41,7 +41,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 -m unittest tests/test_iw3_android_fastfile_posix_io.py -v
+          python3 -m unittest discover -s tests -p 'test_iw3_android_fastfile_posix_io.py' -v
           c++ -std=c++20 -Wall -Wextra -Werror -UNDEBUG \
             -I third_party/KisakCOD/src/database \
             android/iw3-native/db_fastfile_posix_io_native_test.cpp \
