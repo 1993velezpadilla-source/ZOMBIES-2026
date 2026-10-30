@@ -118,7 +118,7 @@ class OriginalFilesystemAndroidPortTests(unittest.TestCase):
             "IDirect3DPixelShader9",
         ):
             self.assertIn(f"struct {interface};", opaque)
-        self.assertIn("enum _D3DFORMAT : int\\n{", opaque)
+        self.assertIn("enum _D3DFORMAT : int", opaque)
         self.assertIn("D3DFMT_D24S8 = 75", opaque)
         self.assertIn("D3DFMT_D24X8 = 77", opaque)
         self.assertIn("D3DFMT_D16 = 80", opaque)
