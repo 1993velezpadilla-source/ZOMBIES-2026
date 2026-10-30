@@ -8,8 +8,8 @@ on:
       - 'android/iw3-native/**'
       - 'tools/iw3_android/**'
       - 'tests/test_iw3_android_*.py'
-      - 'third_party/KisakCOD/src/**
-      - 'third_party/KisakCOD/deps/**''
+      - 'third_party/KisakCOD/src/**'
+      - 'third_party/KisakCOD/deps/**'
   push:
     branches:
       - feature/iw3-native-android-arm64-20261025
