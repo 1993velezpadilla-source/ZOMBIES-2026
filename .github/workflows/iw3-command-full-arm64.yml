@@ -72,6 +72,20 @@ jobs:
           "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" "ndk;${NDK_VER}"
           echo "ANDROID_NDK_HOME=$sdk/ndk/${NDK_VER}" >> "$GITHUB_ENV"
 
+      - name: Stage OpenAL Soft headers for the authentic engine compile
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libopenal-dev
+          mkdir -p "$RUNNER_TEMP/iw3-openal-headers"
+          cp -a /usr/include/AL "$RUNNER_TEMP/iw3-openal-headers/"
+          test -s "$RUNNER_TEMP/iw3-openal-headers/AL/al.h"
+          test -s "$RUNNER_TEMP/iw3-openal-headers/AL/alc.h"
+          test -s "$RUNNER_TEMP/iw3-openal-headers/AL/efx.h"
+          echo "IW3_OPENAL_HEADERS=$RUNNER_TEMP/iw3-openal-headers" >> "$GITHUB_ENV"
+          echo "IW3_OPENAL_HEADERS_REAL_API_STAGED_FOR_COMPILE_ONLY"
+
       - name: Compile the complete original KisakCOD cmd.cpp for Android ARM64
         shell: bash
         run: |
@@ -85,6 +99,7 @@ jobs:
             -Wall -Wextra -UNDEBUG -O2 -fsigned-char -frounding-math -fno-fast-math \
             -I "$GITHUB_WORKSPACE/third_party/KisakCOD/src" \
             -I "$GITHUB_WORKSPACE/third_party/KisakCOD/deps" \
+            -I "$IW3_OPENAL_HEADERS" \
             -c "$source" -o "$object"
           "$ndk/llvm-readelf" -h "$object" | tee "$RUNNER_TEMP/iw3-cmd-full-elf.txt"
           grep -F 'Class:                             ELF64' "$RUNNER_TEMP/iw3-cmd-full-elf.txt"
