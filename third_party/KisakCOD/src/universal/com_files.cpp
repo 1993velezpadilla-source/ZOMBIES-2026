@@ -496,6 +496,27 @@ void __cdecl FS_BuildOSPathForThread(const char *base, const char *game, const c
     FS_ReplaceSeparators(ospath);
 }
 
+// The original server-file APIs build a path with a trailing separator and
+// then remove it to open a file. A rejected overlong Android root leaves an
+// empty buffer; never trim its byte before the beginning of the array.
+bool __cdecl FS_SV_BuildOSPath(const char *base, const char *filename, char *ospath)
+{
+    if (!ospath)
+        return false;
+    *ospath = '\0';
+    if (!base || !*base || !filename || !*filename)
+        return false;
+    FS_BuildOSPath(base, filename, "", ospath);
+    const size_t length = strlen(ospath);
+    if (length < 2 || (ospath[length - 1] != '/' && ospath[length - 1] != '\\'))
+    {
+        *ospath = '\0';
+        return false;
+    }
+    ospath[length - 1] = '\0';
+    return true;
+}
+
 int __cdecl FS_CreatePath(char *OSPath)
 {
     const char *v1; // eax
@@ -2821,30 +2842,31 @@ int __cdecl FS_SV_FOpenFileRead(const char *filename, int *fp)
     FILE *Binary; // eax
     FILE *v3; // eax
     FILE *v4; // eax
-    char *v6; // [esp+2Ch] [ebp-10Ch]
     char ospath[256]; // [esp+30h] [ebp-108h] BYREF
     int f; // [esp+134h] [ebp-4h]
 
     FS_CheckFileSystemStarted();
+    if (!fp || !filename || !*filename)
+    {
+        if (fp)
+            *fp = 0;
+        return 0;
+    }
     f = FS_HandleForFile(FS_THREAD_MAIN);
     fsh[f].zipFile = 0;
     I_strncpyz(fsh[f].name, filename, 256);
-    FS_BuildOSPath(fs_homepath->current.string, filename, "", ospath);
-    v6 = ospath;
-    v6 += strlen(v6) + 1;
-    ospath[v6 - &ospath[1] - 1] = 0;
+    const bool homePathValid = FS_SV_BuildOSPath(fs_homepath->current.string, filename, ospath);
     if (fs_debug->current.integer)
         Com_Printf(CON_CHANNEL_FILES, "FS_SV_FOpenFileRead (fs_homepath): %s\n", ospath);
-    Binary = FS_FileOpenReadBinary(ospath);
+    Binary = homePathValid ? FS_FileOpenReadBinary(ospath) : nullptr;
     fsh[f].handleFiles.file.o = Binary;
     fsh[f].handleSync = 0;
     if (!fsh[f].handleFiles.file.o && I_stricmp(fs_homepath->current.string, fs_basepath->current.string))
     {
-        FS_BuildOSPath(fs_basepath->current.string, filename, "", ospath);
-        ospath[&ospath[strlen(ospath) + 1] - &ospath[1] - 1] = 0;
+        const bool basePathValid = FS_SV_BuildOSPath(fs_basepath->current.string, filename, ospath);
         if (fs_debug->current.integer)
             Com_Printf(CON_CHANNEL_FILES, "FS_SV_FOpenFileRead (fs_basepath): %s\n", ospath);
-        v3 = FS_FileOpenReadBinary(ospath);
+        v3 = basePathValid ? FS_FileOpenReadBinary(ospath) : nullptr;
         fsh[f].handleFiles.file.o = v3;
         fsh[f].handleSync = 0;
         if (!fsh[f].handleFiles.file.o)
@@ -2852,11 +2874,10 @@ int __cdecl FS_SV_FOpenFileRead(const char *filename, int *fp)
     }
     if (!fsh[f].handleFiles.file.o)
     {
-        FS_BuildOSPath(fs_cdpath->current.string, filename, "", ospath);
-        ospath[&ospath[strlen(ospath) + 1] - &ospath[1] - 1] = 0;
+        const bool cdPathValid = FS_SV_BuildOSPath(fs_cdpath->current.string, filename, ospath);
         if (fs_debug->current.integer)
             Com_Printf(CON_CHANNEL_FILES, "FS_SV_FOpenFileRead (fs_cdpath) : %s\n", ospath);
-        v4 = FS_FileOpenReadBinary(ospath);
+        v4 = cdPathValid ? FS_FileOpenReadBinary(ospath) : nullptr;
         fsh[f].handleFiles.file.o = v4;
         fsh[f].handleSync = 0;
         if (!fsh[f].handleFiles.file.o)
@@ -2872,15 +2893,12 @@ int __cdecl FS_SV_FOpenFileRead(const char *filename, int *fp)
 int __cdecl FS_SV_FOpenFileWrite(const char *filename)
 {
     FILE *v2; // eax
-    char *v3; // [esp+Ch] [ebp-10Ch]
     char ospath[256]; // [esp+10h] [ebp-108h] BYREF
     int f; // [esp+114h] [ebp-4h]
 
     FS_CheckFileSystemStarted();
-    FS_BuildOSPath((char *)fs_homepath->current.string, (char *)filename, (char *)"", ospath);
-    v3 = ospath;
-    v3 += strlen(v3) + 1;
-    ospath[v3 - &ospath[1] - 1] = 0;
+    if (!FS_SV_BuildOSPath(fs_homepath->current.string, filename, ospath))
+        return 0;
     f = FS_HandleForFile(FS_THREAD_MAIN);
     fsh[f].zipFile = 0;
     if (fs_debug->current.integer)
@@ -2966,8 +2984,8 @@ int __cdecl FS_SV_FileExists(char *file)
     FILE *f; // [esp+10h] [ebp-10Ch]
     char testpath[260]; // [esp+14h] [ebp-108h] BYREF
 
-    FS_BuildOSPath((char *)fs_homepath->current.string, file, (char *)"", testpath);
-    testpath[&testpath[strlen(testpath) + 1] - &testpath[1] - 1] = 0;
+    if (!FS_SV_BuildOSPath(fs_homepath->current.string, file, testpath))
+        return 0;
     f = FS_FileOpenReadBinary(testpath);
     if (!f)
         return 0;
