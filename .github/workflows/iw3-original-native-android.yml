@@ -1378,6 +1378,30 @@ jobs:
             fi
           done
           grep -F 'Dvar_RegisterFloat' "$RUNNER_TEMP/iw3-client-input-with-melee-dvars-undefined.txt"
+
+          # Resolve the staged BGame registration calls against the complete
+          # original dvar.cpp archive. Keep its remaining OS/runtime services
+          # visible; this is a relocatable dependency audit, not invocation.
+          dvar_archive="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_dvar_android.a"
+          dvar_combined="$RUNNER_TEMP/iw3-client-input-with-melee-dvars-and-original-dvar-arm64.o"
+          test -s "$dvar_archive"
+          "$ndk/llvm-nm" -C --defined-only "$dvar_archive" | tee "$RUNNER_TEMP/iw3-original-dvar-services-defined.txt"
+          for symbol in 'Dvar_RegisterFloat' 'Dvar_RegisterVariant' 'Dvar_RegisterNew'; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-original-dvar-services-defined.txt"
+          done
+          "$ndk/ld.lld" -m aarch64linux -r --whole-archive "$dvar_archive" --no-whole-archive "$combined" -o "$dvar_combined"
+          "$ndk/llvm-nm" -C --defined-only "$dvar_combined" | tee "$RUNNER_TEMP/iw3-client-input-with-original-dvar-defined.txt"
+          "$ndk/llvm-nm" -C -u "$dvar_combined" | tee "$RUNNER_TEMP/iw3-client-input-with-original-dvar-undefined.txt"
+          for symbol in 'Dvar_RegisterFloat' 'Dvar_RegisterVariant' 'Dvar_RegisterNew'; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-client-input-with-original-dvar-defined.txt"
+            if grep -F "$symbol" "$RUNNER_TEMP/iw3-client-input-with-original-dvar-undefined.txt"; then
+              echo "Original BGame dvar registration service remains unresolved: $symbol" >&2
+              exit 1
+            fi
+          done
+          grep -F 'Sys_LockWrite' "$RUNNER_TEMP/iw3-client-input-with-original-dvar-undefined.txt"
+          grep -F 'Sys_UnlockWrite' "$RUNNER_TEMP/iw3-client-input-with-original-dvar-undefined.txt"
+          echo "IW3_ORIGINAL_BGAME_MELEE_DVARS_DVAR_REGISTER_FLOAT_EDGE_RESOLVED_AARCH64_GREEN"
           echo "IW3_ORIGINAL_BGAME_MELEE_DVAR_PROVIDER_EDGE_RESOLVED_AARCH64_GREEN"
           echo "IW3_BG_REGISTER_DVARS_RUNTIME_INVOKED=false"
           echo "IW3_MELEE_DVARS_REGISTERED=false"
@@ -1749,6 +1773,47 @@ jobs:
           echo "IW3_REAL_MAP_LOADED=false"
           echo "IW3_GAMEPLAY_PROVEN=false"
           echo "IW3_PLAYABLE_APK=false"
+
+      - name: Compile original BGame weapon loader for Android ARM64 (NOT RUNTIME)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          source="$GITHUB_WORKSPACE/third_party/KisakCOD/src/bgame/bg_weapons.cpp"
+          object="$RUNNER_TEMP/iw3-original-bg-weapons-arm64.o"
+          test -s "$source"
+          "$ndk/aarch64-linux-android26-clang++" \
+            -std=c++20 -DKISAK_SP=1 -fms-extensions -Wall -Wextra -UNDEBUG -O2 \
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src" \
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/deps" \
+            -c "$source" -o "$object"
+          "$ndk/llvm-readelf" -h "$object" | tee "$RUNNER_TEMP/iw3-bg-weapons-arm64-elf.txt"
+          grep -F 'Class:                             ELF64' "$RUNNER_TEMP/iw3-bg-weapons-arm64-elf.txt"
+          grep -F 'Machine:                           AArch64' "$RUNNER_TEMP/iw3-bg-weapons-arm64-elf.txt"
+          "$ndk/llvm-nm" -C --defined-only "$object" | tee "$RUNNER_TEMP/iw3-bg-weapons-defined.txt"
+          for symbol in 'BG_ShutdownWeaponDefFiles()' 'BG_LoadWeaponDef(char const*)' 'BG_LoadWeaponDef_FastFile(char const*)'; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-bg-weapons-defined.txt"
+          done
+          "$ndk/llvm-nm" -C -u "$object" | tee "$RUNNER_TEMP/iw3-bg-weapons-undefined.txt"
+          grep -F 'fs_gameDirVar' "$RUNNER_TEMP/iw3-bg-weapons-undefined.txt"
+          echo "IW3_ORIGINAL_BGAME_WEAPONS_AARCH64_OBJECT_PASS"
+          echo "IW3_BG_WEAPONS_RUNTIME_LINKED=false"
+          echo "IW3_WEAPON_DEFS_LOADED=false"
+          echo "IW3_GAMEPLAY_PROVEN=false"
+          echo "IW3_PLAYABLE_APK=false"
+
+      - name: Attach original BGame weapon AArch64 audit (NOT APK)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: z2026-iw3-original-bgame-weapons-arm64-NOT-APK
+          path: |
+            ${{ runner.temp }}/iw3-original-bg-weapons-arm64.o
+            ${{ runner.temp }}/iw3-bg-weapons-arm64-elf.txt
+            ${{ runner.temp }}/iw3-bg-weapons-defined.txt
+            ${{ runner.temp }}/iw3-bg-weapons-undefined.txt
+          if-no-files-found: warn
+          retention-days: 30
 
       - name: Attach evidence and compiled native module (NOT an APK)
         uses: actions/upload-artifact@v4
