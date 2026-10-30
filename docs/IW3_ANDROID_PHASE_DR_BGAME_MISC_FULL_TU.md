@@ -28,7 +28,15 @@ The new regression is `tests/test_iw3_android_bgame_misc_full_compile.py`. The A
 
 The artifact is named `z2026-iw3-bgame-misc-full-dvar-arm64-NOT-APK` and contains only ELF objects and symbol reports.
 
-**CI result: pending for the commit that adds this phase.** Results will be appended after the workflow completes.
+**CI result: PASS** on commit `647ee97f0b7ed6e2e693d79e98eea1ec969a0756`.
+
+- Native Android ARM64 workflow [41091658529](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41091658529): **SUCCESS**. The complete `bg_misc.cpp` object compiled as ELF64/AArch64, and the relocatable link with the original `universal/dvar.cpp` object resolved `Dvar_RegisterFloat`.
+- The log contains `IW3_ORIGINAL_BGAME_MISC_DVAR_AARCH64_OBJECT_PASS` and `IW3_ORIGINAL_BGAME_MISC_DVAR_FLOAT_RELOCATABLE_LINK_PASS`.
+- The four melee globals and `BG_RegisterDvars()` are defined by the full BGame object; `Dvar_RegisterFloat` is undefined before the partial link and defined afterward.
+- Preflight [41091658499](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41091658499), FastFile POSIX [41091658568](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41091658568), mover/trace [41091658528](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41091658528), and JNI diagnostic build [41091658495](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41091658495) also passed. The Android x86_64 emulator diagnostic [41091658527](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41091658527) was still running at this checkpoint.
+- Evidence artifact [12993439691](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41091658529/artifacts/12993439691) contains the AArch64 object, combined relocatable object, and symbol reports. It is **NOT APK**.
+
+The failed first attempt and its `sprintf_s` portability correction are documented above.
 
 ## Explicit boundary
 
