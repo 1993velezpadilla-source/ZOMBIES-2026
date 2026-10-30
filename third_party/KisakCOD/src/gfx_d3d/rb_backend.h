@@ -2,7 +2,9 @@
 
 #include <qcommon/thread_context.h>
 
+#if !defined(__ANDROID__)
 #include <d3d9.h>
+#endif
 #include "r_material.h" // GfxVertex
 #include "r_init.h"
 #include "r_rendercmds.h"
