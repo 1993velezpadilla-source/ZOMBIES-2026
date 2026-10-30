@@ -55,6 +55,10 @@ class OriginalCommandTokenizerTests(unittest.TestCase):
         self.assertIn("${IW3_ENGINE_SOURCE_ROOT}/qcommon/cmd.cpp", cmake)
         self.assertIn("third_party/KisakCOD/src/qcommon/cmd.cpp", command_workflow)
         self.assertIn("IW3_ORIGINAL_CMD_FULL_TU_AARCH64_OBJECT_PASS", command_workflow)
+        self.assertIn("libopenal-dev", command_workflow)
+        self.assertIn('test -s "$RUNNER_TEMP/iw3-openal-headers/AL/efx.h"', command_workflow)
+        self.assertIn('-I "$IW3_OPENAL_HEADERS"', command_workflow)
+        self.assertNotIn("IW3_ANDROID_COMMON_HEADER_ONLY_OPENAL", command_workflow)
         self.assertIn("IW3_CMD_INIT_INVOKED=false", command_workflow)
         self.assertIn("IW3_PLAYABLE_APK=false", command_workflow)
         self.assertNotIn(
