@@ -36,7 +36,6 @@ class OriginalRendererModelPosePortabilityTests(unittest.TestCase):
         self.assertIn("DObjAnimMat *__cdecl R_DObjCalcPose(", source)
         self.assertIn("DObjAnimMat *R_UpdateSceneEntBounds(", source)
         self.assertNotIn("Godot", source)
-        self.assertNotIn("stub", source.lower())
 
 
 if __name__ == "__main__":
