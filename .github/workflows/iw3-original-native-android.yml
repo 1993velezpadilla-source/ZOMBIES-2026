@@ -1576,8 +1576,10 @@ jobs:
           echo "IW3_PLAYABLE_APK=false"
 
       - name: Attach evidence and compiled native module (NOT an APK)
+        if: always()
         uses: actions/upload-artifact@v4
         with:
+          if-no-files-found: warn
           name: z2026-iw3-real-math-arm64-phase-a-NOT-APK
           path: |
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_math.so
