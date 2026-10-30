@@ -182,6 +182,38 @@ if(ANDROID)
         -fms-extensions -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
 endif()
 
+# Compile the complete authentic client-input translation unit for Android ARM64.
+# This closes the Win32 SDK-header portability gap around CL_CreateCmd. It is
+# deliberately OBJECT-only: the original client state/command loop is not yet
+# initialized or linked into the Activity, and this target is not part of JNI.
+if(ANDROID)
+    add_library(iw3_sp_client_input_full_compile OBJECT
+        "${IW3_ENGINE_SOURCE_ROOT}/client/cl_input.cpp")
+    target_include_directories(iw3_sp_client_input_full_compile PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+        "${IW3_ENGINE_SOURCE_ROOT}"
+        "${IW3_ENGINE_SOURCE_ROOT}/client"
+        "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+        "${IW3_ENGINE_SOURCE_ROOT}/universal"
+        "${IW3_ENGINE_SOURCE_ROOT}/ui"
+        "${IW3_ENGINE_SOURCE_ROOT}/devgui"
+        "${IW3_ENGINE_SOURCE_ROOT}/gfx_d3d"
+        "${IW3_ENGINE_SOURCE_ROOT}/game"
+        "${IW3_ENGINE_SOURCE_ROOT}/cgame"
+        "${IW3_ENGINE_SOURCE_ROOT}/server"
+        "${IW3_ENGINE_SOURCE_ROOT}/bgame"
+        "${IW3_ENGINE_SOURCE_ROOT}/aim_assist"
+        "${IW3_ENGINE_SOURCE_ROOT}/win32"
+        "${IW3_ENGINE_SOURCE_ROOT}/sound"
+        "${IW3_ENGINE_SOURCE_ROOT}/script"
+        "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+    target_compile_definitions(iw3_sp_client_input_full_compile PRIVATE
+        KISAK_SP=1 KISAK_OPENAL=1)
+    target_compile_options(iw3_sp_client_input_full_compile PRIVATE
+        -fms-extensions -fno-inline -Wall -Wextra -fsigned-char
+        -frounding-math -fno-fast-math)
+endif()
+
 # Compile the authentic parser/session routines when the source-audit workflow
 # supplies the extracted file. The JNI diagnostic shares this CMakeLists but does
 # not stage/link this audit archive, so absence is not a configure-time failure.
