@@ -26,6 +26,13 @@ class CommonLp64HeaderLayoutTests(unittest.TestCase):
         self.assertIn('static_assert(sizeof(LONG) == 4,', source)
         self.assertIn('static_assert(sizeof(ULONG_PTR) == sizeof(void *),', source)
 
+    def test_bootstrap_uses_declaration_only_generated_buildnumber_header(self):
+        compat = (ROOT / "android/iw3-native/common_compat/buildnumber.h").read_text(encoding="utf-8")
+        self.assertIn("char *getBuildNumber();", compat)
+        self.assertIn("int getBuildNumberAsInt();", compat)
+        self.assertNotIn("#define BUILD_NUMBER", compat)
+        self.assertNotIn("getBuildNumber() {", compat)
+
     def test_script_vm_runtime_pointer_layouts_preserve_win32_and_lp64(self):
         source = (SRC / "script/scr_vm.h").read_text(encoding="utf-8")
         layouts = {
