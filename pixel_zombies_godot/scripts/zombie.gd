@@ -40,11 +40,11 @@ func _physics_process(delta: float) -> void:
         velocity.z = 0
         return
     attack_time = maxf(0.0, attack_time - delta)
-    var toward := target.global_position - global_position
+    var toward: Vector3 = target.global_position - global_position
     toward.y = 0
-    var distance := toward.length()
+    var distance: float = toward.length()
     if distance > 1.25:
-        var direction := toward.normalized()
+        var direction: Vector3 = toward.normalized()
         velocity.x = direction.x * WALK_SPEED
         velocity.z = direction.z * WALK_SPEED
         rotation.y = atan2(-direction.x, -direction.z)
