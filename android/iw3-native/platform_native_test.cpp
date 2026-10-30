@@ -89,7 +89,6 @@ int main() {
     const std::string fastfile_symlink = fastfile_language_dir + "/linked.ff";
     assert(symlink(fastfile_path.c_str(), fastfile_symlink.c_str()) == 0);
     assert(DBFastFilePosixFileSizeEnginePath(fastfile_symlink.c_str()) == 0);
-    assert(DBFastFilePosixFileSizeEnginePath(escaped_fastfile.c_str()) == 0);
     opened_fastfile_size = 99;
     fastfile_open_error = 0;
     assert(DBFastFilePosixOpenEnginePath(fastfile_symlink.c_str(),
@@ -99,6 +98,7 @@ int main() {
     opened_fastfile_size = 99;
     fastfile_open_error = 0;
     const std::string escaped_fastfile = std::string(root) + "-sibling/zone/test.ff";
+    assert(DBFastFilePosixFileSizeEnginePath(escaped_fastfile.c_str()) == 0);
     assert(DBFastFilePosixOpenEnginePath(escaped_fastfile.c_str(),
         &opened_fastfile_size, &fastfile_open_error) ==
         reinterpret_cast<void *>(static_cast<intptr_t>(-1)));
