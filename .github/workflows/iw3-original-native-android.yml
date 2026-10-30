@@ -1903,6 +1903,61 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
+      - name: Compile original actor corpse service and resolve the G_RunFrame service edge for ARM64 (NOT RUNTIME)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64"
+          actor_object="$(find "$RUNNER_TEMP/iw3-build-arm64/CMakeFiles/iw3_sp_actor_corpse_full_compile.dir" -type f -name '*.o' -print -quit)"
+          frame_combined="$RUNNER_TEMP/iw3-original-g-runframe-plus-client-end-frame-arm64.o"
+          combined="$RUNNER_TEMP/iw3-original-g-runframe-plus-client-end-frame-plus-actor-corpse-arm64.o"
+          test -s "$actor_object"
+          test -s "$frame_combined"
+          "$ndk/bin/llvm-readelf" -h "$actor_object" | tee "$RUNNER_TEMP/iw3-actor-corpse-arm64-elf.txt"
+          grep -F 'Class:                             ELF64' "$RUNNER_TEMP/iw3-actor-corpse-arm64-elf.txt"
+          grep -F 'Machine:                           AArch64' "$RUNNER_TEMP/iw3-actor-corpse-arm64-elf.txt"
+          "$ndk/bin/llvm-nm" -C --defined-only "$actor_object" | tee "$RUNNER_TEMP/iw3-actor-corpse-defined.txt"
+          "$ndk/bin/llvm-nm" -C -u "$actor_object" | tee "$RUNNER_TEMP/iw3-actor-corpse-undefined.txt"
+          grep -F 'G_UpdateActorCorpses()' "$RUNNER_TEMP/iw3-actor-corpse-defined.txt"
+          grep -F 'G_RemoveActorCorpses(unsigned int)' "$RUNNER_TEMP/iw3-actor-corpse-defined.txt"
+
+          "$ndk/bin/ld.lld" -m aarch64linux -r "$frame_combined" "$actor_object" -o "$combined"
+          "$ndk/bin/llvm-nm" -C --defined-only "$combined" | tee "$RUNNER_TEMP/iw3-g-runframe-plus-actor-corpse-defined.txt"
+          "$ndk/bin/llvm-nm" -C -u "$combined" | tee "$RUNNER_TEMP/iw3-g-runframe-plus-actor-corpse-undefined.txt"
+          grep -F 'G_RunFrameForEntity(gentity_s*)' "$RUNNER_TEMP/iw3-g-runframe-plus-actor-corpse-defined.txt"
+          grep -F 'ClientEndFrame(gentity_s*)' "$RUNNER_TEMP/iw3-g-runframe-plus-actor-corpse-defined.txt"
+          grep -F 'G_UpdateActorCorpses()' "$RUNNER_TEMP/iw3-g-runframe-plus-actor-corpse-defined.txt"
+          if grep -F 'G_UpdateActorCorpses()' "$RUNNER_TEMP/iw3-g-runframe-plus-actor-corpse-undefined.txt"; then
+            echo "Original G_RunFrame -> G_UpdateActorCorpses edge failed to resolve" >&2
+            exit 1
+          fi
+          # These are still authentic providers to integrate; keep them visible.
+          for symbol in 'Scr_RunCurrentThreads()' 'Scr_IncTime()' 'Actor_DumpEventListners()' 'Path_RunBadPlaces()'; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-g-runframe-plus-actor-corpse-undefined.txt"
+          done
+          echo "IW3_ORIGINAL_ACTOR_CORPSE_AARCH64_OBJECT_PASS"
+          echo "IW3_ORIGINAL_G_RUNFRAME_ACTOR_CORPSE_EDGE_RESOLVED_AARCH64_GREEN"
+          echo "IW3_ACTOR_CORPSE_RUNTIME_EXECUTED=false"
+          echo "IW3_REAL_MAP_LOADED=false"
+          echo "IW3_GAMEPLAY_PROVEN=false"
+          echo "IW3_PLAYABLE_APK=false"
+
+      - name: Preserve original actor corpse ARM64 edge evidence (NOT APK)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: z2026-iw3-actor-corpse-arm64-NOT-APK
+          path: |
+            ${{ runner.temp }}/iw3-build-arm64/CMakeFiles/iw3_sp_actor_corpse_full_compile.dir/**/*.o
+            ${{ runner.temp }}/iw3-actor-corpse-arm64-elf.txt
+            ${{ runner.temp }}/iw3-actor-corpse-defined.txt
+            ${{ runner.temp }}/iw3-actor-corpse-undefined.txt
+            ${{ runner.temp }}/iw3-original-g-runframe-plus-client-end-frame-plus-actor-corpse-arm64.o
+            ${{ runner.temp }}/iw3-g-runframe-plus-actor-corpse-defined.txt
+            ${{ runner.temp }}/iw3-g-runframe-plus-actor-corpse-undefined.txt
+          if-no-files-found: warn
+          retention-days: 30
+
       - name: Compile original BGame weapon loader for Android ARM64 (NOT RUNTIME)
         shell: bash
         run: |
