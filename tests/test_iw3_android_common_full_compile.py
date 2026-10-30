@@ -35,6 +35,17 @@ class OriginalCommonBootstrapCompileGateTests(unittest.TestCase):
         self.assertIn("iw3-common-full-undefined.txt", workflow)
 
 
+    def test_shared_renderer_headers_use_opaque_d3d9_types_on_android(self):
+        for relative in (
+            "third_party/KisakCOD/src/gfx_d3d/rb_backend.h",
+            "third_party/KisakCOD/src/gfx_d3d/r_buffers.h",
+        ):
+            source = (ROOT / relative).read_text(encoding="utf-8")
+            self.assertIn("#if defined(__ANDROID__)", source)
+            self.assertIn('#include "r_d3d9_opaque.h"', source)
+            self.assertIn("#include <d3d9.h>", source)
+            self.assertRegex(source, r"#else\\s*#include <d3d9\\.h>\\s*#endif")
+
     def test_original_bootstrap_translation_unit_contains_engine_entrypoints(self):
         source = (ROOT / "third_party/KisakCOD/src/qcommon/common.cpp").read_text(encoding="utf-8")
         self.assertRegex(source, r"void\s+__cdecl\s+Com_Init\s*\(")

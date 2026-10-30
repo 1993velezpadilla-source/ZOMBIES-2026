@@ -3,7 +3,11 @@
 #include <qcommon/thread_context.h>
 
 #if !defined(__ANDROID__)
+#if defined(__ANDROID__)
+#include "r_d3d9_opaque.h"
+#else
 #include <d3d9.h>
+#endif
 #endif
 #include "r_material.h" // GfxVertex
 #include "r_init.h"
