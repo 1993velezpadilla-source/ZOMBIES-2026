@@ -28,3 +28,16 @@ The CI build must confirm the asserted LP64 layout and compile the complete orig
 `IW3_PLAYABLE_APK=false`
 
 PR #4 must remain open and unmerged until native bootstrap, real filesystem/FastFile/map loading, a real renderer frame, live touch-to-command flow, and ARM64 gameplay with weapons/actors are observed.
+
+
+## Follow-up from the first full-TU NDK compile
+
+The first attempt reached the original `scr_vm.cpp` compile and exposed further real portability blockers:
+
+- `scr_yacc.h` included `Windows.h` only to declare the flex allocator return as `LPVOID`; this is now `void*`, ABI-equivalent and SDK-independent.
+- Pointer-bearing live parser/debugger/compiler/evaluator records had Win32-only size assertions. Their assertions now preserve Win32 sizes and check the observed LP64 layouts.
+- The Win32 cursor declaration in `win_input.h` is hidden from Android, where `tagPOINT` does not exist.
+- The unused legacy `Log` helper now checks failed file opens and writes formatted text with `fputs`, avoiding the format-string warning and null FILE crash.
+- The original VM's fatal `Sys_Error` call is declared for Android compilation only; no fake implementation was added.
+
+The fresh CI run must still confirm the full compile gate. Any remaining errors are to be treated as blockers, not as evidence of a working scheduler.
