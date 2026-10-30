@@ -75,3 +75,27 @@ with authentic `Cmd_Init`, Dvar and `FS_Startup` executed, followed by
 real map/FastFile/BSP loading, a working graphics backend, touch through
 live `CL_CreateCmd`, and original weapon/actor frames on ARM64 hardware.
 No Godot, no replacement simulation, no diagnostic JNI as game.
+
+## Verified follow-up — original ARM64 link PASS, not game
+
+[Focused run 41115250924](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41115250924)
+completed **SUCCESS** on the source/test head `ce5fc798`.
+The job log reports **16/16 host command tests PASS**, including the
+verbatim repeated-call IWD checksum harness and the full-graph regression.
+
+The Android NDK compiled `cmd.cpp`, `com_files.cpp` and `dvar.cpp` as
+genuine AArch64 objects. `ld.lld -r` combined all three, and the final
+ELF symbol table defined `Cmd_Init()`, `Cmd_Argv(int)`,
+`FS_FOpenFileRead(char const*, int*)`, and `Dvar_FindVar(char const*)`.
+The corresponding cross-unit unresolved references disappeared. Other
+engine/platform dependencies remain unresolved by design.
+
+The recorded marker is
+`IW3_ORIGINAL_CMD_FS_DVAR_FULL_TU_RELOCATABLE_LINK_PASS`.
+Evidence artifact:
+[13004149456 — ELF objects/symbol reports, NOT APK](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41115250924/artifacts/13004149456).
+
+This is **not** a runtime link or an invoked `Cmd_Init` or `FS_Startup`.
+The monolithic native workflow
+[41115250966](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41115250966)
+was still in progress at this inspection; do not infer its result.
