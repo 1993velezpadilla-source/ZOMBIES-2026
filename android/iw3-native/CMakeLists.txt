@@ -819,7 +819,9 @@ else()
     add_executable(iw3_platform_host_test
         "${CMAKE_CURRENT_SOURCE_DIR}/platform_native_test.cpp")
     target_include_directories(iw3_platform_host_test PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}" "${IW3_ENGINE_SOURCE_ROOT}/qcommon")
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+        "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+        "${IW3_ENGINE_SOURCE_ROOT}/database")
     target_compile_options(iw3_platform_host_test PRIVATE -UNDEBUG)
     target_link_libraries(iw3_platform_host_test PRIVATE iw3_sp_math)
     add_test(NAME iw3_portable_platform COMMAND iw3_platform_host_test)

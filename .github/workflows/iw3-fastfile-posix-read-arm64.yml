@@ -5,10 +5,15 @@ on:
     paths:
       - '.github/workflows/iw3-fastfile-posix-read-arm64.yml'
       - 'third_party/KisakCOD/src/database/db_file_load.cpp'
+      - 'third_party/KisakCOD/src/database/db_registry.cpp'
       - 'third_party/KisakCOD/src/database/database.h'
       - 'third_party/KisakCOD/src/database/db_fastfile_posix_io.h'
+      - 'third_party/KisakCOD/src/database/db_fastfile_posix_open.h'
       - 'android/iw3-native/db_fastfile_posix_io_native_test.cpp'
+      - 'android/iw3-native/platform_native_test.cpp'
+      - 'android/iw3-native/CMakeLists.txt'
       - 'tests/test_iw3_android_fastfile_posix_io.py'
+      - 'tests/test_iw3_android_fastfile_posix_open.py'
       - 'tools/iw3_android/prepare_real_engine_db_read_posix.py'
   push:
     branches:
@@ -16,10 +21,15 @@ on:
     paths:
       - '.github/workflows/iw3-fastfile-posix-read-arm64.yml'
       - 'third_party/KisakCOD/src/database/db_file_load.cpp'
+      - 'third_party/KisakCOD/src/database/db_registry.cpp'
       - 'third_party/KisakCOD/src/database/database.h'
       - 'third_party/KisakCOD/src/database/db_fastfile_posix_io.h'
+      - 'third_party/KisakCOD/src/database/db_fastfile_posix_open.h'
       - 'android/iw3-native/db_fastfile_posix_io_native_test.cpp'
+      - 'android/iw3-native/platform_native_test.cpp'
+      - 'android/iw3-native/CMakeLists.txt'
       - 'tests/test_iw3_android_fastfile_posix_io.py'
+      - 'tests/test_iw3_android_fastfile_posix_open.py'
       - 'tools/iw3_android/prepare_real_engine_db_read_posix.py'
   workflow_dispatch:
 
@@ -44,6 +54,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 -m unittest discover -s tests -p 'test_iw3_android_fastfile_posix_io.py' -v
+          python3 -m unittest discover -s tests -p 'test_iw3_android_fastfile_posix_open.py' -v
           c++ -std=c++20 -Wall -Wextra -Werror -UNDEBUG \
             -I third_party/KisakCOD/src/database \
             android/iw3-native/db_fastfile_posix_io_native_test.cpp \
@@ -98,6 +109,17 @@ jobs:
           grep -F 'AArch64' "$RUNNER_TEMP/iw3-original-db-read-posix-harness-elf.txt"
           echo "IW3_FASTFILE_POSIX_READER_AARCH64_OBJECT_PASS"
           echo "IW3_ORIGINAL_DB_READ_POSIX_BODY_AARCH64_COMPILE_PASS"
+          "$ndk/aarch64-linux-android26-clang++" \
+            -std=c++20 -Wall -Wextra -Werror -UNDEBUG \
+            -I android/iw3-native \
+            -I third_party/KisakCOD/src/database \
+            -c android/iw3-native/platform_native_test.cpp \
+            -o "$RUNNER_TEMP/iw3-fastfile-posix-open-platform-test-aarch64.o"
+          "$ndk/llvm-readelf" -h "$RUNNER_TEMP/iw3-fastfile-posix-open-platform-test-aarch64.o" \
+            | tee "$RUNNER_TEMP/iw3-fastfile-posix-open-platform-test-elf.txt"
+          grep -F 'ELF64' "$RUNNER_TEMP/iw3-fastfile-posix-open-platform-test-elf.txt"
+          grep -F 'AArch64' "$RUNNER_TEMP/iw3-fastfile-posix-open-platform-test-elf.txt"
+          echo "IW3_FASTFILE_POSIX_OPEN_HELPER_AARCH64_OBJECT_PASS"
           echo "IW3_FASTFILE_LOADER_RUNTIME_INTEGRATED=false"
           echo "IW3_REAL_MAP_LOADED=false"
           echo "IW3_GAMEPLAY_PROVEN=false"
@@ -114,3 +136,5 @@ jobs:
             ${{ runner.temp }}/iw3-original-db-read-posix-harness-aarch64.o
             ${{ runner.temp }}/iw3-original-db-read-posix-harness-elf.txt
             ${{ runner.temp }}/iw3-original-db-read-posix-report.json
+            ${{ runner.temp }}/iw3-fastfile-posix-open-platform-test-aarch64.o
+            ${{ runner.temp }}/iw3-fastfile-posix-open-platform-test-elf.txt

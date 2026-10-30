@@ -1,5 +1,8 @@
 #include <universal/q_shared.h>
 #include "database.h"
+#if defined(__ANDROID__)
+#include "db_fastfile_posix_open.h"
+#endif
 
 #include <qcommon/files.h>
 #include <qcommon/mem_track.h>
@@ -2651,11 +2654,46 @@ int32_t __cdecl DB_TryLoadXFileInternal(char *zoneName, int32_t zoneFlags)
     bool modZone; // [esp+113h] [ebp-9h]
     uint32_t i; // [esp+114h] [ebp-8h]
     void *zoneFile; // [esp+118h] [ebp-4h]
+#if defined(__ANDROID__)
+    uint32_t zoneFileSize = 0;
+    int zoneOpenError = 0;
+#endif
 
     Com_Printf(CON_CHANNEL_DONT_FILTER, "Trying to load file %s with flags %x\n", zoneName, zoneFlags);
 
     modZone = 0;
     iassert(!g_zoneInfoCount);
+#if defined(__ANDROID__)
+    // Android has no Win32 update drive. Open the original DB_BuildOSPath
+    // result beneath the retained filesDir root and pass its descriptor through
+    // the same opaque DB_LoadXFile contract consumed by DB_ReadData/DB_CancelLoadXFile.
+    if (I_stricmp(zoneName, "mp_patch"))
+    {
+        if (fs_gameDirVar->current.string && fs_gameDirVar->current.string[0] &&
+            DB_ShouldLoadFromModDir(zoneName))
+        {
+            DB_BuildOSPath_Mod(zoneName, 256, filename);
+            zoneFile = DBFastFilePosixOpenEnginePath(filename, &zoneFileSize, &zoneOpenError);
+            modZone = zoneFile != (void *)-1;
+        }
+        else
+        {
+            zoneFile = (void *)-1;
+        }
+        if (zoneFile == (void *)-1)
+        {
+            DB_BuildOSPath(zoneName, 256, filename);
+            zoneFile = DBFastFilePosixOpenEnginePath(filename, &zoneFileSize, &zoneOpenError);
+        }
+    }
+    else
+    {
+        // The desktop-only update:\\ lookup is unavailable on Android; use
+        // the installed app-private FastFile path for mp_patch as well.
+        DB_BuildOSPath(zoneName, 256, filename);
+        zoneFile = DBFastFilePosixOpenEnginePath(filename, &zoneFileSize, &zoneOpenError);
+    }
+#else
     if (I_stricmp(zoneName, "mp_patch"))
     {
         if (*(_BYTE *)fs_gameDirVar->current.integer && DB_ShouldLoadFromModDir(zoneName))
@@ -2689,6 +2727,7 @@ int32_t __cdecl DB_TryLoadXFileInternal(char *zoneName, int32_t zoneFlags)
             }
         }
     }
+#endif
     if (zoneFile == (void *)-1)
     {
         v3 = strstr(filename, "_load");
@@ -2735,7 +2774,11 @@ int32_t __cdecl DB_TryLoadXFileInternal(char *zoneName, int32_t zoneFlags)
             MyAssertHandler(".\\database\\db_registry.cpp", 3674, 0, "%s", "!zone->name[0]");
         I_strncpyz(zone->name, zoneName, 64);
         zone->flags = zoneFlags;
+#if defined(__ANDROID__)
+        zone->fileSize = zoneFileSize;
+#else
         zone->fileSize = GetFileSize(zoneFile, 0);
+#endif
         zone->modZone = modZone;
         if (g_loadingZone)
             MyAssertHandler(".\\database\\db_registry.cpp", 3683, 0, "%s", "!g_loadingZone");

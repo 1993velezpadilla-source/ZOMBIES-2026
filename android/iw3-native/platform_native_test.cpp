@@ -1,5 +1,6 @@
 #include "iw3_android_platform.h"
 #include "iw3_android_usercmd_compat.h"
+#include "db_fastfile_posix_open.h"
 
 #include <cassert>
 #include <chrono>
@@ -42,6 +43,61 @@ int main() {
            static_cast<int>(std::strlen(root)));
     assert(std::strcmp(copied_root, root) == 0);
     assert(z2026_iw3_fs_startup_path_smoke() == 1);
+
+    // Exercise the exact helper used by DB_TryLoadXFileInternal: a rooted
+    // Windows-style engine path must become a size-checked opaque POSIX fd
+    // that DB_ReadData can decode and read. The fixture uses a valid IW3 FF
+    // header prefix but is deliberately not a complete/loadable FastFile.
+    const std::string fastfile_zone_dir = std::string(root) + "/zone";
+    const std::string fastfile_language_dir = fastfile_zone_dir + "/english";
+    assert(mkdir(fastfile_zone_dir.c_str(), 0700) == 0);
+    assert(mkdir(fastfile_language_dir.c_str(), 0700) == 0);
+    const std::string fastfile_path = fastfile_language_dir + "/native-open-test.ff";
+    const unsigned char fastfile_fixture[] = {
+        'I', 'W', 'f', 'f', 'u', '1', '0', '0', 5, 0, 0, 0
+    };
+    const int fastfile_writer = open(
+        fastfile_path.c_str(), O_WRONLY | O_CREAT | O_EXCL, 0600);
+    assert(fastfile_writer >= 0);
+    assert(write(fastfile_writer, fastfile_fixture, sizeof(fastfile_fixture)) ==
+           static_cast<ssize_t>(sizeof(fastfile_fixture)));
+    assert(close(fastfile_writer) == 0);
+
+    uint32_t opened_fastfile_size = 99;
+    int fastfile_open_error = -1;
+    const std::string engine_fastfile_path =
+        std::string(root) + "\\zone\\english\\native-open-test.ff";
+    void *fastfile_opaque = DBFastFilePosixOpenEnginePath(
+        engine_fastfile_path.c_str(), &opened_fastfile_size, &fastfile_open_error);
+    assert(fastfile_opaque != reinterpret_cast<void *>(static_cast<intptr_t>(-1)));
+    assert(opened_fastfile_size == sizeof(fastfile_fixture));
+    assert(fastfile_open_error == 0);
+    const int opened_fastfile_fd = DBFastFilePosixFdFromOpaque(fastfile_opaque);
+    assert(opened_fastfile_fd >= 0);
+    unsigned char fastfile_readback[sizeof(fastfile_fixture)]{};
+    std::size_t fastfile_read_bytes = 0;
+    int fastfile_read_error = 0;
+    assert(DBFastFilePosixReadAt(opened_fastfile_fd, fastfile_readback,
+        sizeof(fastfile_readback), 0, &fastfile_read_bytes, &fastfile_read_error) == 0);
+    assert(fastfile_read_error == 0 && fastfile_read_bytes == sizeof(fastfile_fixture));
+    assert(std::memcmp(fastfile_readback, fastfile_fixture, sizeof(fastfile_fixture)) == 0);
+    assert(close(opened_fastfile_fd) == 0);
+
+    const std::string fastfile_symlink = fastfile_language_dir + "/linked.ff";
+    assert(symlink(fastfile_path.c_str(), fastfile_symlink.c_str()) == 0);
+    opened_fastfile_size = 99;
+    fastfile_open_error = 0;
+    assert(DBFastFilePosixOpenEnginePath(fastfile_symlink.c_str(),
+        &opened_fastfile_size, &fastfile_open_error) ==
+        reinterpret_cast<void *>(static_cast<intptr_t>(-1)));
+    assert(opened_fastfile_size == 0 && fastfile_open_error != 0);
+    opened_fastfile_size = 99;
+    fastfile_open_error = 0;
+    const std::string escaped_fastfile = std::string(root) + "-sibling/zone/test.ff";
+    assert(DBFastFilePosixOpenEnginePath(escaped_fastfile.c_str(),
+        &opened_fastfile_size, &fastfile_open_error) ==
+        reinterpret_cast<void *>(static_cast<intptr_t>(-1)));
+    assert(opened_fastfile_size == 0 && fastfile_open_error != 0);
 
     // Generic original Sys_ListFiles queries need ordinary assets and directory
     // searches as well as the special IWD mount scan. Exercise the rooted
