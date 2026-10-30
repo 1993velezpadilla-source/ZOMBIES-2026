@@ -247,6 +247,7 @@ class Lp64ScriptLayoutTests(unittest.TestCase):
         self.assertIn("G_RunFrame(ServerFrameExtent, int)", workflow)
         self.assertIn("iw3-frame-original-elf.txt", workflow)
         self.assertIn("iw3-original-frame-plus-script-vm-arm64.o", workflow)
+        self.assertNotIn('cp "$frame_vm_combined" "$RUNNER_TEMP/iw3-original-frame-plus-script-vm-arm64.o"', workflow)
 
 
 
