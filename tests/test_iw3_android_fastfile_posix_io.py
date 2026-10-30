@@ -32,6 +32,7 @@ class FastFilePosixIoRegressionTests(unittest.TestCase):
         )[0]
         self.assertIn("g_load.posixBytesRead", wait_stage)
         self.assertIn("g_load.stream.avail_in +=", wait_stage)
+        self.assertIn("g_load.posixEof = bytesRead < 0x40000u;", source)
         self.assertIn("Unexpected end of FastFile", source)
         self.assertIn("if (!DB_ReadData() && g_load.posixReadError != 0)", source)
         self.assertIn("posixEof", source)
