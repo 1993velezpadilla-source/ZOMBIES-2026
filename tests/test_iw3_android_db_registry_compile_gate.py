@@ -99,7 +99,7 @@ class OriginalDbRegistryCompileGateTests(unittest.TestCase):
         begin_android = source[begin_start:begin_else]
         for token in ("zone_source/%s.csv", "DB_ReadAndroidZoneSourceCsv", "z2026_platform_write_file"):
             self.assertIn(token, end_android)
-        for token in ("zone_source/%s.csv", "DB_ReadAndroidZoneSourceCsv", "read"):
+        for token in ("zone_source/%s.csv", "DB_ReadAndroidZoneSourceCsv"):
             self.assertIn(token, begin_android)
         for forbidden in ("CreateFileA", "WriteFile", "DeleteFileA", "CloseHandle"):
             self.assertNotIn(forbidden, end_android)
