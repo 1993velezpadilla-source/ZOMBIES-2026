@@ -28,13 +28,19 @@ The old check that expected the two symbols to remain undefined was replaced wit
 
 A Python regression protects the workflow wiring and the provider's algorithm contract. The existing host CTest already exercises the same provider with a held reader gate and eight contending writers (12,000 protected increments per thread).
 
-## Validation status
+## Validation result (verified 30 Oct 2026)
 
-**Pending CI for the current branch head.** Do not report this pass as green until the fresh ARM64 workflow run finishes and its log confirms:
+The current native Android workflow completed successfully:
 
-`IW3_ORIGINAL_BGAME_MELEE_DVAR_WRITER_GATE_EDGES_RESOLVED_AARCH64_GREEN`
+- [ARM64 source audit, run 41062716885](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41062716885) — **SUCCESS**.
+- Python regression suite: **387 tests passed**.
+- Host CTest: **25/25 passed** in both configured test passes, including the sanitizer pass.
+- The provider object was confirmed ELF64/AArch64 and defined both `Sys_LockWrite(FastCriticalSection*)` and `Sys_UnlockWrite(FastCriticalSection*)`.
+- The relocatable client/dvar/provider object defined both symbols and no longer listed either as undefined.
+- Required marker: `IW3_ORIGINAL_BGAME_MELEE_DVAR_WRITER_GATE_EDGES_RESOLVED_AARCH64_GREEN`.
+- Evidence artifact: [12981675408 — ARM64 audit objects and reports, NOT APK](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41062716885/artifacts/12981675408).
 
-The report must also retain the negative scope markers:
+The report retains the negative scope markers:
 
 - `IW3_CLIENT_RUNTIME_LINKED=false`
 - `IW3_REAL_MAP_LOADED=false`
