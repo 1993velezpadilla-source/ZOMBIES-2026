@@ -251,7 +251,8 @@ if(ANDROID)
         "${IW3_ENGINE_SOURCE_ROOT}"
         "${IW3_ENGINE_SOURCE_ROOT}/../deps")
     target_compile_definitions(iw3_sp_common_full_compile PRIVATE
-        KISAK_SP=1 KISAK_OPENAL=1 IW3_ANDROID_DISABLE_SCRIPT_DEBUGGER=1)
+        KISAK_SP=1 KISAK_OPENAL=1 IW3_ANDROID_DISABLE_SCRIPT_DEBUGGER=1
+        IW3_ANDROID_COMMON_HEADER_ONLY_OPENAL=1)
     target_compile_options(iw3_sp_common_full_compile PRIVATE
         -fms-extensions -Wall -Wextra -fsigned-char
         -frounding-math -fno-fast-math)
