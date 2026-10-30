@@ -5,7 +5,7 @@ signal killed(enemy)
 const WALK_SPEED := 1.75
 const MAX_HEALTH := 100
 var health := MAX_HEALTH
-var target: CharacterBody3D
+var target
 var attack_time := 0.0
 
 func _ready() -> void:
