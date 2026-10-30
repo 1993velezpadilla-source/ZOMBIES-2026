@@ -6,7 +6,9 @@
 
 #include <xanim/xanim.h>
 #include <xanim/xmodel.h>
+#if !defined(__ANDROID__)
 #include <win32/win_local.h>
+#endif
 #
 
 extern bool g_anyFastFileLoaded;
