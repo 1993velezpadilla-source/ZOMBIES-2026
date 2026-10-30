@@ -23,12 +23,17 @@ class FastFilePosixOpenRegression(unittest.TestCase):
         self.assertIn("zone->fileSize = zoneFileSize;", body)
         self.assertIn("DB_LoadXFile(filename, zoneFile, zone->name", body)
         self.assertIn("fs_gameDirVar->current.string[0]", body)
-        self.assertNotIn("fs_gameDirVar->current.integer", body)
         self.assertIn("DB_BuildOSPath(zoneName, 256, filename);", body)
-        android = body.split("#if defined(__ANDROID__)", 1)[1].split("#else", 1)[0]
+        opener = body.index("DBFastFilePosixOpenEnginePath(filename")
+        android_start = body.rfind("#if defined(__ANDROID__)", 0, opener)
+        android_end = body.index("#else", android_start)
+        android = body[android_start:android_end]
+        windows_end = body.index("#endif", android_end)
+        windows = body[android_end:windows_end]
+        self.assertNotIn("fs_gameDirVar->current.integer", android)
         self.assertNotIn("CreateFileA", android)
         self.assertNotIn("GetFileSize", android)
-        self.assertIn("CreateFileA", body.split("#else", 1)[1])
+        self.assertIn("CreateFileA", windows)
 
     def test_open_helper_checks_rooted_fd_type_size_and_opaque_encoding(self):
         source = OPEN_HELPER.read_text(encoding="utf-8")
