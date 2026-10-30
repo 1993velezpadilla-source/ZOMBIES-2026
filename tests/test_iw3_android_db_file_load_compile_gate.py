@@ -50,6 +50,7 @@ class OriginalDbFileLoadCompileGateTests(unittest.TestCase):
         self.assertLess(target, original)
         self.assertIn("target_compile_definitions(iw3_sp_db_file_load_full_compile PRIVATE KISAK_SP=1)", source)
         self.assertIn("target_compile_options(iw3_sp_db_file_load_full_compile PRIVATE", source)
+        self.assertIn("-fms-extensions -Wall -Wextra", source)
 
     def test_arm64_gate_checks_real_loader_symbol_and_unresolved_renderer_edges(self):
         source = WORKFLOW.read_text(encoding="utf-8")
