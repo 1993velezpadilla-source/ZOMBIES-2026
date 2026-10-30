@@ -26,6 +26,20 @@ class CommonLp64HeaderLayoutTests(unittest.TestCase):
         self.assertIn('static_assert(sizeof(LONG) == 4,', source)
         self.assertIn('static_assert(sizeof(ULONG_PTR) == sizeof(void *),', source)
 
+    def test_common_object_uses_only_openal_opaque_types(self):
+        source = (SRC / "sound/snd_local.h").read_text(encoding="utf-8")
+        cmake = (ROOT / "android/iw3-native/CMakeLists.txt").read_text(encoding="utf-8")
+        self.assertIn("#if defined(IW3_ANDROID_COMMON_HEADER_ONLY_OPENAL)", source)
+        self.assertIn("typedef unsigned int ALuint;", source)
+        self.assertIn("typedef struct ALCdevice_struct ALCdevice;", source)
+        self.assertIn("typedef struct ALCcontext_struct ALCcontext;", source)
+        self.assertIn("#include <AL/al.h>", source)
+        self.assertIn("#include <AL/alc.h>", source)
+        self.assertIn("#include <AL/efx.h>", source)
+        self.assertIn("IW3_ANDROID_COMMON_HEADER_ONLY_OPENAL=1", cmake)
+        common_target = cmake.split("add_library(iw3_sp_common_full_compile", 1)[1].split("endif()", 1)[0]
+        self.assertIn("IW3_ANDROID_COMMON_HEADER_ONLY_OPENAL=1", common_target)
+
     def test_bootstrap_uses_declaration_only_generated_buildnumber_header(self):
         compat = (ROOT / "android/iw3-native/common_compat/buildnumber.h").read_text(encoding="utf-8")
         self.assertIn("char *getBuildNumber();", compat)
