@@ -67,6 +67,9 @@ int main() {
     int fastfile_open_error = -1;
     const std::string engine_fastfile_path =
         std::string(root) + "\\zone\\english\\native-open-test.ff";
+    assert(DBFastFilePosixFileSizeEnginePath(engine_fastfile_path.c_str()) ==
+           static_cast<int32_t>(sizeof(fastfile_fixture)));
+    assert(DBFastFilePosixFileSizeEnginePath("zone/english/missing.ff") == 0);
     void *fastfile_opaque = DBFastFilePosixOpenEnginePath(
         engine_fastfile_path.c_str(), &opened_fastfile_size, &fastfile_open_error);
     assert(fastfile_opaque != reinterpret_cast<void *>(static_cast<intptr_t>(-1)));
@@ -85,6 +88,8 @@ int main() {
 
     const std::string fastfile_symlink = fastfile_language_dir + "/linked.ff";
     assert(symlink(fastfile_path.c_str(), fastfile_symlink.c_str()) == 0);
+    assert(DBFastFilePosixFileSizeEnginePath(fastfile_symlink.c_str()) == 0);
+    assert(DBFastFilePosixFileSizeEnginePath(escaped_fastfile.c_str()) == 0);
     opened_fastfile_size = 99;
     fastfile_open_error = 0;
     assert(DBFastFilePosixOpenEnginePath(fastfile_symlink.c_str(),
