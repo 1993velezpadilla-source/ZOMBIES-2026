@@ -3,7 +3,7 @@ extends Node3D
 const PlayerScript = preload("res://scripts/player.gd")
 const ZombieScript = preload("res://scripts/zombie.gd")
 
-var player: CharacterBody3D
+var player
 var wave := 0
 var score := 0
 var enemies_alive := 0
