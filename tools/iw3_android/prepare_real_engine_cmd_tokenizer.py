@@ -61,14 +61,14 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
     bodies = [function_source(source, signature) for signature in FUNCTIONS]
 
     generated = (
-        "// Generated from original KisakCOD src/qcommon/cmd.cpp; do not edit.\\n"
-        "#include <universal/q_shared.h>\\n"
-        "#include <universal/assertive.h>\\n"
-        "#include <qcommon/cmd.h>\\n"
-        "#include <cstdint>\\n\\n"
-        + state + "\\n\\n"
-        + "\\n\\n".join(bodies)
-        + "\\n"
+        "// Generated from original KisakCOD src/qcommon/cmd.cpp; do not edit.\n"
+        "#include <universal/q_shared.h>\n"
+        "#include <universal/assertive.h>\n"
+        "#include <qcommon/cmd.h>\n"
+        "#include <cstdint>\n\n"
+        + state + "\n\n"
+        + "\n\n".join(bodies)
+        + "\n"
     )
     for marker in REQUIRED:
         if marker not in generated:
@@ -81,7 +81,7 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
     if output == source_path:
         raise ValueError("Refusing to overwrite authentic KisakCOD cmd.cpp")
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(generated, encoding="utf-8", newline="\\n")
+    output.write_text(generated, encoding="utf-8", newline="\n")
     if source_path.read_bytes() != original:
         raise RuntimeError("Vendored KisakCOD cmd.cpp changed during extraction")
     if generated.count(STATE_DECLARATION) != 1:
@@ -111,7 +111,7 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
     }
     if report_path is not None:
         report_path.parent.mkdir(parents=True, exist_ok=True)
-        report_path.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\\n", encoding="utf-8")
+        report_path.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return evidence
 
 

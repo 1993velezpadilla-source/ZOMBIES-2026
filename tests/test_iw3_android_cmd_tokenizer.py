@@ -31,6 +31,8 @@ class OriginalCommandTokenizerTests(unittest.TestCase):
 
         self.assertEqual(len(re.findall(r"(?m)^CmdArgsPrivate cmd_argsPrivate;$", source)), 1)
         self.assertEqual(generated.count(STATE_DECLARATION), 1)
+        self.assertIn("#include <universal/q_shared.h>\\n", generated)
+        self.assertNotIn("\\\\n#include", generated)
         for signature in FUNCTIONS:
             self.assertIn(function_source(source, signature), generated)
         self.assertTrue(evidence["original_tokenizer_and_end_functions_preserved_verbatim"])
