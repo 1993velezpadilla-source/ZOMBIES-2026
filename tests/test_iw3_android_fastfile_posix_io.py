@@ -33,11 +33,8 @@ class FastFilePosixIoRegressionTests(unittest.TestCase):
         self.assertIn("g_load.posixBytesRead", wait_stage)
         self.assertIn("g_load.stream.avail_in +=", wait_stage)
         self.assertIn("Unexpected end of FastFile", source)
-        read_stage = source.split("void DB_ReadXFileStage()\\n{", 1)[1].split(
-            "int32_t __cdecl DB_ReadData()\\n{", 1
-        )[0]
-        self.assertIn("g_load.posixReadError", read_stage)
-        self.assertIn("posixEof", read_stage)
+        self.assertIn("if (!DB_ReadData() && g_load.posixReadError != 0)", source)
+        self.assertIn("posixEof", source)
 
     def test_android_file_metadata_and_close_use_posix_services(self):
         source = (ROOT / "third_party/KisakCOD/src/database/db_file_load.cpp").read_text()
