@@ -9,11 +9,18 @@
 #endif
 
 #include <qcommon/threads.h>
-#include <win32/win_local.h>
 #include <universal/com_files.h>
-
+#if defined(__ANDROID__)
+// The FastFile loader itself is portable; only these renderer completion
+// services remain Direct3D-specific and are deliberately unresolved in the
+// Android compile-only object until the original renderer is ported.
+#include "db_fastfile_android_renderer_compat.h"
+#include <unistd.h>
+#else
+#include <win32/win_local.h>
 #include <gfx_d3d/r_image.h>
 #include <gfx_d3d/r_buffers.h>
+#endif
 
 //uint32_t volatile g_loadingAssets      828e3f3c     db_file_load.obj
 //int32_t marker_db_file_load  828e3f40     db_file_load.obj
