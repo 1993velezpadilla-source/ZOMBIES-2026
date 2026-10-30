@@ -34,9 +34,18 @@ the renderer service edges remain undefined.
 The source-level regression is
 `tests/test_iw3_android_db_file_load_compile_gate.py`.
 
-CI result for this revision: pending at the time this document was added. The
-workflow log is the authoritative record; do not infer a pass from the CMake
-target's presence alone.
+The first ARM64 attempt, workflow run `41010107687`, reached the new
+full-source object target but failed while parsing upstream `__declspec(align(...))`
+declarations transitively included by `xanim.h` / `r_rendercmds.h`. The first
+diagnostics were MS-extension syntax errors, followed by cascading missing
+renderer-layout types. This was a compiler-mode issue, not evidence that the
+renderer services had been implemented.
+
+The target now enables Clang's `-fms-extensions`, matching the extension mode
+already used by the existing original mover/trace source gate. A new source
+regression requires this flag. The retry is pending; the workflow log remains
+authoritative, and no pass is claimed until the ARM64 object and its unresolved
+renderer symbols are verified.
 
 ## Strict limits
 
