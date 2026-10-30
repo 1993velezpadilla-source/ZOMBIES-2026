@@ -62,6 +62,10 @@ jobs:
             --engine third_party/KisakCOD \
             --output "$RUNNER_TEMP/iw3-source/iw3_g_update_player_triggers.cpp" \
             --report "$RUNNER_TEMP/iw3-original-g-update-player-triggers.json"
+          python3 tools/iw3_android/prepare_real_engine_client_end_frame.py \
+            --engine third_party/KisakCOD \
+            --output "$RUNNER_TEMP/iw3-source/iw3_client_end_frame.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-client-end-frame.json"
           python3 tools/iw3_android/prepare_real_engine_g_runframe_entity.py \
             --engine third_party/KisakCOD \
             --output "$RUNNER_TEMP/iw3-source/iw3_g_runframe_entity.cpp" \
@@ -1828,6 +1832,76 @@ jobs:
           echo "IW3_REAL_MAP_LOADED=false"
           echo "IW3_GAMEPLAY_PROVEN=false"
           echo "IW3_PLAYABLE_APK=false"
+
+      - name: Compile original ClientEndFrame and resolve the G_RunFrameForEntity client edge for ARM64 (NOT RUNTIME)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64"
+          source="$RUNNER_TEMP/iw3-source/iw3_client_end_frame.cpp"
+          object="$RUNNER_TEMP/iw3-original-client-end-frame-arm64.o"
+          team_combined="$RUNNER_TEMP/iw3-original-g-runframe-plus-mover-team-arm64.o"
+          combined="$RUNNER_TEMP/iw3-original-g-runframe-plus-client-end-frame-arm64.o"
+          test -s "$source"
+          test -s "$team_combined"
+          common_flags=(
+            -std=c++20 -DKISAK_SP=1 -fms-extensions -Wall -Wextra -UNDEBUG -O2
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/universal"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/qcommon"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/game"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/server"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/client"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/deps"
+          )
+          "$ndk/bin/aarch64-linux-android26-clang++" "${common_flags[@]}" -c "$source" -o "$object"
+          "$ndk/bin/llvm-readelf" -h "$object" | tee "$RUNNER_TEMP/iw3-client-end-frame-arm64-elf.txt"
+          grep -F 'Class:                             ELF64' "$RUNNER_TEMP/iw3-client-end-frame-arm64-elf.txt"
+          grep -F 'Machine:                           AArch64' "$RUNNER_TEMP/iw3-client-end-frame-arm64-elf.txt"
+          "$ndk/bin/llvm-nm" -C --defined-only "$object" | tee "$RUNNER_TEMP/iw3-client-end-frame-defined.txt"
+          "$ndk/bin/llvm-nm" -C -u "$object" | tee "$RUNNER_TEMP/iw3-client-end-frame-undefined.txt"
+          grep -F 'ClientEndFrame(gentity_s*)' "$RUNNER_TEMP/iw3-client-end-frame-defined.txt"
+          for symbol in 'turret_think_client(gentity_s*)' 'G_SetPlayerFixedLink(gentity_s*)' 'G_UpdateGroundTilt(gclient_s*)' 'Player_UpdateLookAtEntity(gentity_s*)' 'Player_UpdateCursorHints(gentity_s*)' 'P_DamageFeedback(gentity_s*)' 'G_PlayerStateToEntityStateExtrapolate(playerState_s*, entityState_s*, int, int)'; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-client-end-frame-undefined.txt"
+          done
+
+          "$ndk/bin/ld.lld" -m aarch64linux -r "$team_combined" "$object" -o "$combined"
+          "$ndk/bin/llvm-nm" -C --defined-only "$combined" | tee "$RUNNER_TEMP/iw3-g-runframe-plus-client-end-frame-defined.txt"
+          "$ndk/bin/llvm-nm" -C -u "$combined" | tee "$RUNNER_TEMP/iw3-g-runframe-plus-client-end-frame-undefined.txt"
+          grep -F 'G_RunFrameForEntity(gentity_s*)' "$RUNNER_TEMP/iw3-g-runframe-plus-client-end-frame-defined.txt"
+          grep -F 'ClientEndFrame(gentity_s*)' "$RUNNER_TEMP/iw3-g-runframe-plus-client-end-frame-defined.txt"
+          if grep -F 'ClientEndFrame(gentity_s*)' "$RUNNER_TEMP/iw3-g-runframe-plus-client-end-frame-undefined.txt"; then
+            echo "Original G_RunFrameForEntity -> ClientEndFrame edge failed to resolve" >&2
+            exit 1
+          fi
+          # Script, actor, and path providers remain real unresolved engine services.
+          for symbol in 'Scr_RunCurrentThreads()' 'Scr_IncTime()' 'G_UpdateActorCorpses()' 'Actor_DumpEventListners()' 'Path_RunBadPlaces()'; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-g-runframe-plus-client-end-frame-undefined.txt"
+          done
+          echo "IW3_ORIGINAL_CLIENT_END_FRAME_AARCH64_OBJECT_PASS"
+          echo "IW3_ORIGINAL_CLIENT_END_FRAME_G_RUNFRAME_EDGE_RESOLVED_AARCH64_GREEN"
+          echo "IW3_CLIENT_END_FRAME_RUNTIME_EXECUTED=false"
+          echo "IW3_REAL_MAP_LOADED=false"
+          echo "IW3_GAMEPLAY_PROVEN=false"
+          echo "IW3_PLAYABLE_APK=false"
+
+      - name: Preserve original ClientEndFrame edge evidence (NOT APK)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: z2026-iw3-client-end-frame-arm64-NOT-APK
+          path: |
+            ${{ runner.temp }}/iw3-source/iw3_client_end_frame.cpp
+            ${{ runner.temp }}/iw3-original-client-end-frame.json
+            ${{ runner.temp }}/iw3-original-client-end-frame-arm64.o
+            ${{ runner.temp }}/iw3-client-end-frame-arm64-elf.txt
+            ${{ runner.temp }}/iw3-client-end-frame-defined.txt
+            ${{ runner.temp }}/iw3-client-end-frame-undefined.txt
+            ${{ runner.temp }}/iw3-original-g-runframe-plus-client-end-frame-arm64.o
+            ${{ runner.temp }}/iw3-g-runframe-plus-client-end-frame-defined.txt
+            ${{ runner.temp }}/iw3-g-runframe-plus-client-end-frame-undefined.txt
+          if-no-files-found: warn
+          retention-days: 30
 
       - name: Compile original BGame weapon loader for Android ARM64 (NOT RUNTIME)
         shell: bash
