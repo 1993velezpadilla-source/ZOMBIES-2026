@@ -17,6 +17,7 @@ ENGINE = ROOT / "third_party/KisakCOD/src/qcommon/cmd.cpp"
 GENERATOR = ROOT / "tools/iw3_android/prepare_real_engine_cmd_tokenizer.py"
 CMAKE = ROOT / "android/iw3-native/CMakeLists.txt"
 WORKFLOW = ROOT / ".github/workflows/iw3-original-native-android.yml"
+COMMAND_WORKFLOW = ROOT / ".github/workflows/iw3-command-full-arm64.yml"
 
 
 class OriginalCommandTokenizerTests(unittest.TestCase):
@@ -47,10 +48,15 @@ class OriginalCommandTokenizerTests(unittest.TestCase):
     def test_android_archive_is_link_audited_but_not_added_to_jni_diagnostic(self):
         cmake = CMAKE.read_text(encoding="utf-8")
         workflow = WORKFLOW.read_text(encoding="utf-8")
+        command_workflow = COMMAND_WORKFLOW.read_text(encoding="utf-8")
         self.assertIn("IW3_EXTRACTED_CMD_TOKENIZER", cmake)
         self.assertIn("add_library(iw3_sp_cmd_tokenizer STATIC", cmake)
         self.assertIn("add_library(iw3_sp_cmd_full_compile OBJECT", cmake)
         self.assertIn("${IW3_ENGINE_SOURCE_ROOT}/qcommon/cmd.cpp", cmake)
+        self.assertIn("third_party/KisakCOD/src/qcommon/cmd.cpp", command_workflow)
+        self.assertIn("IW3_ORIGINAL_CMD_FULL_TU_AARCH64_OBJECT_PASS", command_workflow)
+        self.assertIn("IW3_CMD_INIT_INVOKED=false", command_workflow)
+        self.assertIn("IW3_PLAYABLE_APK=false", command_workflow)
         self.assertNotIn(
             "target_link_libraries(iw3_sp_math PRIVATE iw3_sp_cmd_tokenizer",
             cmake,
