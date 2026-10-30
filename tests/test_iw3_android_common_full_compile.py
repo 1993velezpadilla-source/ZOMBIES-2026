@@ -26,6 +26,15 @@ class OriginalCommonBootstrapCompileGateTests(unittest.TestCase):
         self.assertIn("NOT linked into the JNI diagnostic APK", preamble)
         self.assertNotIn("target_sources(iw3_sp_math", block)
 
+    def test_ci_verifies_aarch64_symbols_and_archives_the_original_bootstrap_object(self):
+        workflow = (ROOT / ".github/workflows/iw3-original-native-android.yml").read_text(encoding="utf-8")
+        self.assertIn("CMakeFiles/iw3_sp_common_full_compile.dir", workflow)
+        self.assertIn("IW3_ORIGINAL_COMMON_BOOTSTRAP_AARCH64_OBJECT_PASS", workflow)
+        self.assertIn("Com_Init(char*)", workflow)
+        self.assertIn("Com_Frame()", workflow)
+        self.assertIn("iw3-common-full-undefined.txt", workflow)
+
+
     def test_original_bootstrap_translation_unit_contains_engine_entrypoints(self):
         source = (ROOT / "third_party/KisakCOD/src/qcommon/common.cpp").read_text(encoding="utf-8")
         self.assertRegex(source, r"void\s+__cdecl\s+Com_Init\s*\(")

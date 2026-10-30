@@ -330,6 +330,25 @@ jobs:
             -DIW3_REAL_HEADER_ROOT="$GITHUB_WORKSPACE/third_party/KisakCOD/src/universal"
           cmake --build "$RUNNER_TEMP/iw3-build-arm64" -j 2
 
+          # Verify the full original Com_Init/Com_Frame TU, not an extracted
+          # function body. This object remains unlinked from the JNI diagnostic.
+          common_object="$(find "$RUNNER_TEMP/iw3-build-arm64/CMakeFiles/iw3_sp_common_full_compile.dir" -type f -name '*.o' -print -quit)"
+          test -n "$common_object"
+          llvm_readelf="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
+          llvm_nm="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm"
+          "$llvm_readelf" -h "$common_object" | tee "$RUNNER_TEMP/iw3-common-full-elf.txt"
+          grep -F 'ELF64' "$RUNNER_TEMP/iw3-common-full-elf.txt"
+          grep -F 'AArch64' "$RUNNER_TEMP/iw3-common-full-elf.txt"
+          "$llvm_nm" -C --defined-only "$common_object" | tee "$RUNNER_TEMP/iw3-common-full-defined.txt"
+          grep -F 'Com_Init(char*)' "$RUNNER_TEMP/iw3-common-full-defined.txt"
+          grep -F 'Com_Frame()' "$RUNNER_TEMP/iw3-common-full-defined.txt"
+          "$llvm_nm" -C -u "$common_object" | tee "$RUNNER_TEMP/iw3-common-full-undefined.txt"
+          echo "IW3_ORIGINAL_COMMON_BOOTSTRAP_AARCH64_OBJECT_PASS"
+          echo "IW3_COMMON_BOOTSTRAP_RUNTIME_LINKED=false"
+          echo "IW3_REAL_MAP_LOADED=false"
+          echo "IW3_GAMEPLAY_PROVEN=false"
+          echo "IW3_PLAYABLE_APK=false"
+
           # Verify that the complete upstream CL input TU, including its
           # Android CL_CreateCmd touch hook, compiles for the actual ARM64 ABI.
           # This object is an audit result only; it is not linked into JNI.
@@ -1865,6 +1884,10 @@ jobs:
             ${{ runner.temp }}/iw3-renderer-model-pose-elf.txt
             ${{ runner.temp }}/iw3-renderer-model-pose-defined.txt
             ${{ runner.temp }}/iw3-renderer-model-pose-undefined.txt
+            ${{ runner.temp }}/iw3-common-full-elf.txt
+            ${{ runner.temp }}/iw3-common-full-defined.txt
+            ${{ runner.temp }}/iw3-common-full-undefined.txt
+            ${{ runner.temp }}/iw3-build-arm64/CMakeFiles/iw3_sp_common_full_compile.dir/**/*.o
             ${{ runner.temp }}/iw3-build-arm64/CMakeFiles/iw3_sp_renderer_model_pose_full_compile.dir/**/*.o
             ${{ runner.temp }}/iw3-source/iw3_cl_createcmd.cpp
             ${{ runner.temp }}/iw3-original-cl-createcmd.json
