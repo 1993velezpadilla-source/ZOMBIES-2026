@@ -493,7 +493,7 @@ struct FxPostLightInfo // sizeof=0xD84
     FxPostLight postLights[96];
     int32_t postLightCount;                 // ...
 };
-static_assert(sizeof(FxPostLightInfo) == 0xD84);
+static_assert(sizeof(FxPostLightInfo) == (sizeof(void *) == 8 ? 0xF08 : 0xD84));
 
 struct FxGenerateVertsCmd // sizeof=0x44
 {                                       // ...
@@ -505,7 +505,7 @@ struct FxGenerateVertsCmd // sizeof=0x44
     float vieworg[3];
     float viewaxis[3][3];
 };
-static_assert(sizeof(FxGenerateVertsCmd) == 0x44);
+static_assert(sizeof(FxGenerateVertsCmd) == (sizeof(void *) == 8 ? 0x58 : 0x44));
 
 void __cdecl FX_EvaluateVisAlpha(FxElemPreVisualState *preVisState, FxElemVisualState *visState);
 uint8_t __cdecl FX_InterpolateColor(
@@ -722,14 +722,14 @@ struct FxEffectDefTableEntry // sizeof=0x8
     uint32_t key;
     const FxEffectDef *effectDef;
 };
-static_assert(sizeof(FxEffectDefTableEntry) == 0x8);
+static_assert(sizeof(FxEffectDefTableEntry) == (sizeof(void *) == 8 ? 0x10 : 0x8));
 
 struct FxEffectDefTable // sizeof=0x2004
 {                                       // ...
     int32_t count;
     FxEffectDefTableEntry entries[1024];
 };
-static_assert(sizeof(FxEffectDefTable) == 0x2004);
+static_assert(sizeof(FxEffectDefTable) == (sizeof(void *) == 8 ? 0x4008 : 0x2004));
 
 void __cdecl FX_Restore(int32_t clientIndex, MemoryFile *memFile);
 void __cdecl FX_RestoreEffectDefTable(MemoryFile *memFile, FxEffectDefTable *table);
@@ -772,7 +772,7 @@ struct FxProfileEntry // sizeof=0x1C
     int32_t activeTrailElemCount;
     int32_t pendingTrailElemCount;
 };
-static_assert(sizeof(FxProfileEntry) == 0x1C);
+static_assert(sizeof(FxProfileEntry) == (sizeof(void *) == 8 ? 0x20 : 0x1C));
 
 void __cdecl FX_DrawProfile(int32_t clientIndex, void(__cdecl *drawFunc)(char *), float *profilePos);
 FxProfileEntry *__cdecl FX_GetProfileEntry(const FxEffectDef *effectDef, FxProfileEntry *entryPool, int32_t *entryCount);
@@ -800,7 +800,7 @@ struct FxSprite // sizeof=0x20
     float minScreenRadius;
     int32_t flags;
 };
-static_assert(sizeof(FxSprite) == 0x20);
+static_assert(sizeof(FxSprite) == (sizeof(void *) == 8 ? 0x28 : 0x20));
 
 void __cdecl FX_SpriteGenerateVerts(FxGenerateVertsCmd *cmd);
 void __cdecl FX_GenerateSpriteCodeMeshVerts(FxSprite *sprite, FxGenerateVertsCmd *cmd);
@@ -1114,7 +1114,7 @@ struct FxCurveIterator // sizeof=0x8
     const FxCurve *master;
     int32_t currentKeyIndex;
 };
-static_assert(sizeof(FxCurveIterator) == 0x8);
+static_assert(sizeof(FxCurveIterator) == (sizeof(void *) == 8 ? 0x10 : 0x8));
 
 double __cdecl FxCurve_Interpolate1d(const float *key, float intermediateTime);
 void __cdecl FxCurve_Interpolate3d(const float *key, float intermediateTime, float *result);
@@ -1207,7 +1207,7 @@ struct FxEditorElemDef // sizeof=0x858
     float trailScrollTime;
     FxEditorTrailDef trailDef;
 };
-static_assert(sizeof(FxEditorElemDef) == 0x858);
+static_assert(sizeof(FxEditorElemDef) == (sizeof(void *) == 8 ? 0x958 : 0x858));
 
 struct FxEditorEffectDef // sizeof=0x10B44
 {                                       // ...
@@ -1215,20 +1215,20 @@ struct FxEditorEffectDef // sizeof=0x10B44
     int32_t elemCount;
     FxEditorElemDef elems[32];
 };
-static_assert(sizeof(FxEditorEffectDef) == 0x10B44);
+static_assert(sizeof(FxEditorEffectDef) == (sizeof(void *) == 8 ? 0x12B48 : 0x10B44));
 
 struct FxElemField // sizeof=0x8
 {                                       // ...
     const char *keyName;                // ...
     bool(__cdecl *handler)(const char **, FxEditorElemDef *); // ...
 };
-static_assert(sizeof(FxElemField) == 0x8);
+static_assert(sizeof(FxElemField) == (sizeof(void *) == 8 ? 0x10 : 0x8));
 
 struct FxFlagOutputSet // sizeof=0xC
 {                                       // ...
     int32_t *flags[3];                      // ...
 };
-static_assert(sizeof(FxFlagOutputSet) == 0xC);
+static_assert(sizeof(FxFlagOutputSet) == (sizeof(void *) == 8 ? 0x18 : 0xC));
 
 struct FxFlagDef // sizeof=0x10
 {
@@ -1237,7 +1237,7 @@ struct FxFlagDef // sizeof=0x10
     int32_t mask;
     int32_t value;
 };
-static_assert(sizeof(FxFlagDef) == 0x10);
+static_assert(sizeof(FxFlagDef) == (sizeof(void *) == 8 ? 0x18 : 0x10));
 
 enum FxSampleChannel : int32_t
 {                                       // ...
