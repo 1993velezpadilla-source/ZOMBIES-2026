@@ -63,6 +63,9 @@ func _physics_process(delta: float) -> void:
         velocity.y = JUMP_SPEED
     jump_touch = false
     move_and_slide()
+    # Physics queries must run inside a physics tick, not in _process().
+    if trigger_held and _shot_timer <= 0.0:
+        _shoot()
 
 func _process(delta: float) -> void:
     if health <= 0:
@@ -77,8 +80,6 @@ func _process(delta: float) -> void:
             var loaded: int = mini(MAG_CAPACITY - ammo, reserve_ammo)
             ammo += loaded
             reserve_ammo -= loaded
-    if trigger_held and _shot_timer <= 0.0:
-        _shoot()
     var target_x := 0.26 if aiming else 0.34
     var target_y := -0.16 if aiming else -0.27
     if _reload_timer > 0.0:
