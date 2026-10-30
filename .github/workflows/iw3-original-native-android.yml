@@ -366,6 +366,23 @@ jobs:
           echo "IW3_GAMEPLAY_PROVEN=false"
           echo "IW3_PLAYABLE_APK=false"
 
+          # Preserve a full original script VM object and prove its scheduler
+          # entry points are defined. This remains an unlinked audit artifact.
+          script_vm_object="$(find "$RUNNER_TEMP/iw3-build-arm64/CMakeFiles/iw3_sp_script_vm_full_compile.dir" -type f -name '*.o' -print -quit)"
+          test -n "$script_vm_object"
+          "$llvm_readelf" -h "$script_vm_object" | tee "$RUNNER_TEMP/iw3-script-vm-full-elf.txt"
+          grep -F 'ELF64' "$RUNNER_TEMP/iw3-script-vm-full-elf.txt"
+          grep -F 'AArch64' "$RUNNER_TEMP/iw3-script-vm-full-elf.txt"
+          "$llvm_nm" -C --defined-only "$script_vm_object" | tee "$RUNNER_TEMP/iw3-script-vm-full-defined.txt"
+          grep -F 'Scr_RunCurrentThreads()' "$RUNNER_TEMP/iw3-script-vm-full-defined.txt"
+          grep -F 'Scr_IncTime()' "$RUNNER_TEMP/iw3-script-vm-full-defined.txt"
+          "$llvm_nm" -C -u "$script_vm_object" | tee "$RUNNER_TEMP/iw3-script-vm-full-undefined.txt"
+          cp "$script_vm_object" "$RUNNER_TEMP/iw3-original-script-vm-arm64.o"
+          echo "IW3_ORIGINAL_SCRIPT_VM_AARCH64_OBJECT_PASS"
+          echo "IW3_SCRIPT_VM_RUNTIME_LINKED=false"
+          echo "IW3_GAMEPLAY_PROVEN=false"
+          echo "IW3_PLAYABLE_APK=false"
+
           # Verify that the complete upstream CL input TU, including its
           # Android CL_CreateCmd touch hook, compiles for the actual ARM64 ABI.
           # This object is an audit result only; it is not linked into JNI.
@@ -2088,6 +2105,11 @@ jobs:
             ${{ runner.temp }}/iw3-build-arm64/CMakeFiles/iw3_sp_script_parser_layout_full_compile.dir/**/*.o
             ${{ runner.temp }}/iw3-script-parser-layout-elf.txt
             ${{ runner.temp }}/iw3-script-parser-layout-defined.txt
+            ${{ runner.temp }}/iw3-original-script-vm-arm64.o
+            ${{ runner.temp }}/iw3-script-vm-full-elf.txt
+            ${{ runner.temp }}/iw3-script-vm-full-defined.txt
+            ${{ runner.temp }}/iw3-script-vm-full-undefined.txt
+            ${{ runner.temp }}/iw3-build-arm64/CMakeFiles/iw3_sp_script_vm_full_compile.dir/**/*.o
             ${{ runner.temp }}/iw3-build-arm64/CMakeFiles/iw3_sp_renderer_model_pose_full_compile.dir/**/*.o
             ${{ runner.temp }}/iw3-source/iw3_cl_createcmd.cpp
             ${{ runner.temp }}/iw3-original-cl-createcmd.json
