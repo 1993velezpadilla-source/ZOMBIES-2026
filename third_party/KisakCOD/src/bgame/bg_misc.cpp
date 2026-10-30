@@ -215,7 +215,20 @@ void __cdecl BG_RegisterShockVolumeDvars()
         iassert(channelName);
         iassert(strlen(channelName->name) < SND_MAX_ENTCHANNEL_NAMELENGTH);
 
-        sprintf_s(bgShockChannelNames[i], 80, "bg_shock_volume_%s", channelName->name);        
+#if defined(_WIN32)
+        sprintf_s(bgShockChannelNames[i], sizeof(bgShockChannelNames[i]), "bg_shock_volume_%s", channelName->name);
+#else
+        const int written = snprintf(
+            bgShockChannelNames[i],
+            sizeof(bgShockChannelNames[i]),
+            "bg_shock_volume_%s",
+            channelName->name);
+        if (written < 0 || static_cast<size_t>(written) >= sizeof(bgShockChannelNames[i]))
+        {
+            Com_Error(ERR_FATAL, "BG_RegisterShockVolumeDvars: channel name exceeds buffer");
+            return;
+        }
+#endif        
         min.value.max = 1.0;
         min.value.min = 0.0;
         bg_shock_volume[i] = Dvar_RegisterFloat(bgShockChannelNames[i], 0.5, min, DVAR_CHEAT, "");

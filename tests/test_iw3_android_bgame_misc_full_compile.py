@@ -23,6 +23,14 @@ class OriginalBGameMiscArm64Tests(unittest.TestCase):
         self.assertIn("player_meleeHeight = Dvar_RegisterFloat(", source)
         self.assertIn("player_meleeChargeFriction = Dvar_RegisterFloat(", source)
 
+    def test_android_channel_name_formatting_uses_bounded_posix_api(self):
+        source = ENGINE.read_text(encoding="utf-8")
+        self.assertIn("#if defined(_WIN32)", source)
+        self.assertIn("sprintf_s(bgShockChannelNames[i], sizeof(bgShockChannelNames[i])", source)
+        self.assertIn("snprintf(", source)
+        self.assertIn("static_cast<size_t>(written) >= sizeof(bgShockChannelNames[i])", source)
+        self.assertIn('Com_Error(ERR_FATAL, "BG_RegisterShockVolumeDvars: channel name exceeds buffer")', source)
+
     def test_workflow_links_full_bgame_object_to_original_dvar_object(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
         self.assertIn("iw3_sp_bgame_misc_full_compile.dir", workflow)

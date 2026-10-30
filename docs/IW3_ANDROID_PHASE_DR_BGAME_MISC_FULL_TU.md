@@ -44,3 +44,13 @@ The artifact is named `z2026-iw3-bgame-misc-full-dvar-arm64-NOT-APK` and contain
 - Playable APK: false.
 
 PR #4 remains open and unmerged.
+
+## First compile result and Android correction
+
+The first native workflow attempt for commit `0307ff5ccba37cd7c82192445c6d71624a10c34d` failed during the all-target CMake build before reaching the new link audit. The compiler pinpointed the remaining Windows CRT call at `bg_misc.cpp:218`:
+
+`error: use of undeclared identifier 'sprintf_s'`
+
+The original call formats the bounded `bgShockChannelNames[i]` entry as `bg_shock_volume_%s`. The engine source now retains the secure CRT `sprintf_s` call on Windows and uses Android's `snprintf` with the same destination size on non-Windows platforms. The Android branch checks the returned length and calls the original fatal engine error path instead of registering a truncated dvar name. A regression now protects the platform split and the fail-closed length check.
+
+The failed build is recorded in [run 41091115694](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41091115694). The new compile/link validation remains pending on the correction commit.
