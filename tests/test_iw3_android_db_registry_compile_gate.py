@@ -84,6 +84,17 @@ class OriginalDbRegistryCompileGateTests(unittest.TestCase):
         self.assertLess(windows, d3d)
         self.assertLess(d3d, end)
 
+    def test_android_registry_platform_services_have_real_posix_backing(self):
+        compat = (ROOT / "third_party/KisakCOD/src/database/db_registry_android_compat.h").read_text(encoding="utf-8")
+        platform = (ROOT / "android/iw3-native/iw3_android_platform.cpp").read_text(encoding="utf-8")
+        registry = REGISTRY.read_text(encoding="utf-8")
+        self.assertIn("CRITSECT_MISSING_ASSET = 0x17", compat)
+        self.assertIn("__atomic_add_fetch(value, 1u, __ATOMIC_SEQ_CST)", compat)
+        self.assertIn("__atomic_sub_fetch(value, 1u, __ATOMIC_SEQ_CST)", compat)
+        self.assertIn("char *Sys_DefaultInstallPath()", compat)
+        self.assertIn("char *Sys_DefaultInstallPath() {", platform)
+        self.assertIn("z2026_platform_copy_data_root(install_root, sizeof(install_root))", platform)
+        self.assertIn('#include "db_registry_android_compat.h"', registry)
     def test_renderer_backend_does_not_force_d3d9_sdk_on_android(self):
         source = (ROOT / "third_party/KisakCOD/src/gfx_d3d/rb_backend.h").read_text(encoding="utf-8")
         self.assertIn("#if !defined(__ANDROID__)\\n#include <d3d9.h>\\n#endif", source)
