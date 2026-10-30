@@ -44,7 +44,7 @@ class OriginalCommonBootstrapCompileGateTests(unittest.TestCase):
             self.assertIn("#if defined(__ANDROID__)", source)
             self.assertIn('#include "r_d3d9_opaque.h"', source)
             self.assertIn("#include <d3d9.h>", source)
-            self.assertRegex(source, r"#else\\s*#include <d3d9\\.h>\\s*#endif")
+            self.assertIn("#else\n#include <d3d9.h>\n#endif", source)
 
     def test_original_bootstrap_translation_unit_contains_engine_entrypoints(self):
         source = (ROOT / "third_party/KisakCOD/src/qcommon/common.cpp").read_text(encoding="utf-8")
