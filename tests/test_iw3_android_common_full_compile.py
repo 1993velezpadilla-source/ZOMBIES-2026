@@ -77,7 +77,7 @@ class OriginalCommonBootstrapCompileGateTests(unittest.TestCase):
         self.assertIn("#include <stdio.h>", server)
         self.assertIn("using _iobuf = FILE;", server)
         self.assertIn("FILE *g_fileMarkHistory;", demo)
-        self.assertIn("_iobuf *SV_DemoOpenFile", demo)
+        self.assertIn("_iobuf *__cdecl SV_DemoOpenFile", demo)
 
     def test_original_bootstrap_translation_unit_contains_engine_entrypoints(self):
         source = (ROOT / "third_party/KisakCOD/src/qcommon/common.cpp").read_text(encoding="utf-8")
