@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include "snd_stopsounds.h"
 
 #include <qcommon/qcommon.h>
@@ -18,13 +19,13 @@
 typedef char CHAR;
 typedef short SHORT;
 typedef int BOOL;
-typedef long LONG;
+typedef std::int32_t LONG;
 typedef CHAR *LPSTR, *PSTR;
-typedef unsigned long ULONG_PTR, *PULONG_PTR;
+typedef std::uintptr_t ULONG_PTR, *PULONG_PTR;
 typedef ULONG_PTR DWORD_PTR, *PDWORD_PTR;
-typedef unsigned long DWORD;
-typedef unsigned short WORD;
-typedef unsigned int UINT;
+typedef std::uint32_t DWORD;
+typedef std::uint16_t WORD;
+typedef std::uint32_t UINT;
 typedef void *LPVOID;
 typedef struct HWND__ *HWND;
 typedef int BOOL;
@@ -40,6 +41,11 @@ typedef struct wavehdr_tag *LPWAVEHDR;
 typedef struct HMIDIOUT__ *HMIDIOUT;
 typedef HMIDIOUT *LPHMIDIOUT;
 typedef DWORD FOURCC;
+#if defined(__ANDROID__)
+static_assert(sizeof(DWORD) == 4, "Win32 DWORD remains 32-bit on Android LP64");
+static_assert(sizeof(LONG) == 4, "Win32 LONG remains 32-bit on Android LP64");
+static_assert(sizeof(ULONG_PTR) == sizeof(void *), "ULONG_PTR remains pointer-sized");
+#endif
 
 #ifndef WAVE_MAPPER
 #define WAVE_MAPPER ((UINT)-1)
