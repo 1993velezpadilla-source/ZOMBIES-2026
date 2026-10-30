@@ -18,6 +18,8 @@ struct Font_s;
 struct refdef_s;
 struct trDebugString_t;
 struct trDebugLine_t;
+#ifndef KISAK_CLIENT_DEBUG_TYPES_DEFINED
+#define KISAK_CLIENT_DEBUG_TYPES_DEFINED
 struct clientDebugStringInfo_t {
     int max;
     int num;
@@ -39,7 +41,8 @@ struct clientDebug_t {
     clientDebugLineInfo_t clLines;
     clientDebugLineInfo_t svLinesBuffer;
     clientDebugLineInfo_t svLines;
-};
+}
+#endif;
 #endif
 
 struct snd_alias_t;
