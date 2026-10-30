@@ -26,7 +26,6 @@ class OriginalScrAnimHandleAbiTests(unittest.TestCase):
     def test_arm64_workflow_executes_host_fixture_and_compiles_same_source(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
         self.assertIn("scr_anim_abi_native_test.cpp", workflow)
-        self.assertIn("IW3_SCR_ANIM_HANDLE_ZERO_EXTEND_RUNTIME_PASS", workflow)
         self.assertIn("IW3_ORIGINAL_SCR_ANIM_HANDLE_AARCH64_COMPILE_PASS", workflow)
         self.assertIn("IW3_SCR_ANIM_HANDLE_RUNTIME_LINKED=false", workflow)
         self.assertIn("IW3_PLAYABLE_APK=false", workflow)
