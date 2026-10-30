@@ -1324,6 +1324,68 @@ jobs:
           echo "IW3_GAMEPLAY_PROVEN=false"
           echo "IW3_PLAYABLE_APK=false"
 
+      - name: Stage original BGame melee dvars and resolve client aim-assist range (NOT RUNTIME)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          input="$RUNNER_TEMP/iw3-original-client-input-with-platform-services-arm64.o"
+          source="$RUNNER_TEMP/iw3-source/iw3_melee_dvar_services.cpp"
+          report="$RUNNER_TEMP/iw3-original-melee-dvar-services.json"
+          object="$RUNNER_TEMP/iw3-original-melee-dvar-services-arm64.o"
+          combined="$RUNNER_TEMP/iw3-original-client-input-with-melee-dvars-arm64.o"
+          python3 tools/iw3_android/prepare_real_engine_melee_dvar_services.py \
+            --engine third_party/KisakCOD \
+            --output "$source" \
+            --report "$report"
+          test -s "$input"
+          test -s "$source"
+          common_flags=(
+            -std=c++20 -DKISAK_SP=1 -fms-extensions -Wall -Wextra -UNDEBUG -O2
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/bgame"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/qcommon"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/universal"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/server"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/game"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/sound"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/xanim"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/cgame"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/deps"
+          )
+          "$ndk/aarch64-linux-android26-clang++" "${common_flags[@]}" -c "$source" -o "$object"
+          "$ndk/llvm-readelf" -h "$object" | tee "$RUNNER_TEMP/iw3-melee-dvars-arm64-elf.txt"
+          grep -F 'Class:                             ELF64' "$RUNNER_TEMP/iw3-melee-dvars-arm64-elf.txt"
+          grep -F 'Machine:                           AArch64' "$RUNNER_TEMP/iw3-melee-dvars-arm64-elf.txt"
+          "$ndk/llvm-nm" -C --defined-only "$object" | tee "$RUNNER_TEMP/iw3-melee-dvars-defined.txt"
+          "$ndk/llvm-nm" -C -u "$object" | tee "$RUNNER_TEMP/iw3-melee-dvars-undefined.txt"
+          for symbol in player_meleeRange player_meleeWidth player_meleeHeight player_meleeChargeFriction z2026_android_register_original_melee_dvars; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-melee-dvars-defined.txt"
+            if grep -F "$symbol" "$RUNNER_TEMP/iw3-melee-dvars-undefined.txt"; then
+              echo "Original BGame melee dvar provider failed to define: $symbol" >&2
+              exit 1
+            fi
+          done
+
+          "$ndk/ld.lld" -m aarch64linux -r "$input" "$object" -o "$combined"
+          "$ndk/llvm-nm" -C --defined-only "$combined" | tee "$RUNNER_TEMP/iw3-client-input-with-melee-dvars-defined.txt"
+          "$ndk/llvm-nm" -C -u "$combined" | tee "$RUNNER_TEMP/iw3-client-input-with-melee-dvars-undefined.txt"
+          for symbol in player_meleeRange player_meleeWidth player_meleeHeight player_meleeChargeFriction; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-client-input-with-melee-dvars-defined.txt"
+            if grep -F "$symbol" "$RUNNER_TEMP/iw3-client-input-with-melee-dvars-undefined.txt"; then
+              echo "Original client/BGame melee dvar edge failed to resolve: $symbol" >&2
+              exit 1
+            fi
+          done
+          grep -F 'Dvar_RegisterFloat' "$RUNNER_TEMP/iw3-client-input-with-melee-dvars-undefined.txt"
+          echo "IW3_ORIGINAL_BGAME_MELEE_DVAR_PROVIDER_EDGE_RESOLVED_AARCH64_GREEN"
+          echo "IW3_BG_REGISTER_DVARS_RUNTIME_INVOKED=false"
+          echo "IW3_MELEE_DVARS_REGISTERED=false"
+          echo "IW3_CLIENT_RUNTIME_LINKED=false"
+          echo "IW3_REAL_MAP_LOADED=false"
+          echo "IW3_GAMEPLAY_PROVEN=false"
+          echo "IW3_PLAYABLE_APK=false"
+
       - name: Attach original client state provider evidence (NOT APK)
         uses: actions/upload-artifact@v4
         with:
@@ -1364,6 +1426,15 @@ jobs:
             ${{ runner.temp }}/iw3-original-client-input-with-platform-services-arm64.o
             ${{ runner.temp }}/iw3-client-input-with-platform-services-defined.txt
             ${{ runner.temp }}/iw3-client-input-with-platform-services-undefined.txt
+            ${{ runner.temp }}/iw3-source/iw3_melee_dvar_services.cpp
+            ${{ runner.temp }}/iw3-original-melee-dvar-services.json
+            ${{ runner.temp }}/iw3-original-melee-dvar-services-arm64.o
+            ${{ runner.temp }}/iw3-melee-dvars-arm64-elf.txt
+            ${{ runner.temp }}/iw3-melee-dvars-defined.txt
+            ${{ runner.temp }}/iw3-melee-dvars-undefined.txt
+            ${{ runner.temp }}/iw3-original-client-input-with-melee-dvars-arm64.o
+            ${{ runner.temp }}/iw3-client-input-with-melee-dvars-defined.txt
+            ${{ runner.temp }}/iw3-client-input-with-melee-dvars-undefined.txt
           retention-days: 30
 
       - name: Attach original client input helper evidence (NOT APK)

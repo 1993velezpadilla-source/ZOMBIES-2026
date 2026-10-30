@@ -1516,3 +1516,8 @@ This pass adds `tools/iw3_android/prepare_real_engine_cl_createcmd.py` and `test
 ### Phase DP — Android client aim-assist platform services (30 Oct 2026)
 
 See [IW3_ANDROID_PHASE_DP_CLIENT_AIMASSIST_PLATFORM_SERVICES.md](IW3_ANDROID_PHASE_DP_CLIENT_AIMASSIST_PLATFORM_SERVICES.md). This pass adds a fatal Android MyAssertHandler provider and compiles the complete original screen_placement.cpp translation unit. The ARM64 relocatable-link gate must resolve those two real client service edges while retaining player_meleeRange as an unresolved server runtime dependency. It does not initialize screen placement or link/invoke the client runtime; no map, renderer frame, gameplay, or playable APK is claimed.
+
+
+### Phase DQ — original BGame melee dvar service (30 Oct 2026)
+
+See [IW3_ANDROID_PHASE_DQ_BGAME_MELEE_DVARS.md](IW3_ANDROID_PHASE_DQ_BGAME_MELEE_DVARS.md). This pass stages the original BGame melee dvar storage and exact Dvar_RegisterFloat blocks from bg_misc.cpp, then links the provider with the original client/aim-assist audit object for AArch64. The Dvar_RegisterFloat service remains unresolved and the staged registration function is not invoked; this does not register live dvars or prove gameplay.
