@@ -224,9 +224,11 @@ class OriginalFilesystemAndroidPortTests(unittest.TestCase):
     def test_ndk_gate_links_original_filesystem_mutations_to_android_root_provider(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
         self.assertIn("iw3_sp_full_filesystem.dir", workflow)
-        self.assertIn("iw3_android_platform.cpp.o", workflow)
+        self.assertIn("libiw3_sp_iwd_directory_services.a", workflow)
         self.assertIn("IW3_ORIGINAL_FILESYSTEM_ROOTED_MUTATION_RELOCATABLE_LINK_PASS", workflow)
         self.assertIn("IW3_FULL_FILESYSTEM_RUNTIME_LINKED=false", workflow)
+        self.assertIn("IW3_ORIGINAL_SYSLISTFILES_PROVIDER_RESOLVED", workflow)
+        self.assertIn("Com_FilterPath", workflow)
         self.assertIn("iw3-original-filesystem-rooted-mutations-aarch64-NOT-APK", workflow)
         self.assertIn("${{ runner.temp }}/iw3-original-filesystem-rooted-mutations-arm64.o", workflow)
         self.assertNotIn("\\${{ runner.temp }}", workflow)

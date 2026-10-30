@@ -335,38 +335,41 @@ jobs:
           cmake --build "$RUNNER_TEMP/iw3-build-arm64" -j 2
 
           # Resolve the original filesystem's delete/rename edges against
-          # descriptor-relative Android services. This is a relocatable audit,
-          # not a complete filesystem/runtime link.
+          # the same audited IWD-directory service archive used by the startup graph.
+          # This remains a relocatable dependency audit, not a complete runtime link.
           fs_full_dir="$RUNNER_TEMP/iw3-build-arm64/CMakeFiles/iw3_sp_full_filesystem.dir"
           fs_com_files_object="$(find "$fs_full_dir" -type f -name 'com_files.cpp.o' -print -quit)"
           fs_state_object="$(find "$fs_full_dir" -type f -name 'com_files_state.cpp.o' -print -quit)"
           fs_handle_object="$(find "$fs_full_dir" -type f -name 'com_files_handle_table.cpp.o' -print -quit)"
-          platform_object="$(find "$RUNNER_TEMP/iw3-build-arm64/CMakeFiles/iw3_sp_math.dir" -type f -name 'iw3_android_platform.cpp.o' -print -quit)"
+          iwd_directory_archive="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_iwd_directory_services.a"
           test -s "$fs_com_files_object"
           test -s "$fs_state_object"
           test -s "$fs_handle_object"
-          test -s "$platform_object"
+          test -s "$iwd_directory_archive"
           llvm_readelf="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
           llvm_nm="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm"
           ld_lld="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/ld.lld"
           "$llvm_nm" -C -u "$fs_com_files_object" | tee "$RUNNER_TEMP/iw3-full-filesystem-rooted-mutations-before-undefined.txt"
-          grep -F 'z2026_platform_remove_engine_path' "$RUNNER_TEMP/iw3-full-filesystem-rooted-mutations-before-undefined.txt"
-          grep -F 'z2026_platform_rename_engine_path' "$RUNNER_TEMP/iw3-full-filesystem-rooted-mutations-before-undefined.txt"
-          "$llvm_nm" -C --defined-only "$platform_object" | tee "$RUNNER_TEMP/iw3-full-filesystem-rooted-platform-defined.txt"
-          grep -F 'z2026_platform_remove_engine_path' "$RUNNER_TEMP/iw3-full-filesystem-rooted-platform-defined.txt"
-          grep -F 'z2026_platform_rename_engine_path' "$RUNNER_TEMP/iw3-full-filesystem-rooted-platform-defined.txt"
+          for symbol in z2026_platform_remove_engine_path z2026_platform_rename_engine_path Sys_ListFiles FS_FreeFileList; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-full-filesystem-rooted-mutations-before-undefined.txt"
+          done
+          "$llvm_nm" -C --defined-only "$iwd_directory_archive" | tee "$RUNNER_TEMP/iw3-full-filesystem-rooted-platform-defined.txt"
+          for symbol in z2026_platform_remove_engine_path z2026_platform_rename_engine_path Sys_ListFiles FS_FreeFileList; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-full-filesystem-rooted-platform-defined.txt"
+          done
 
           fs_mutation_combined="$RUNNER_TEMP/iw3-original-filesystem-rooted-mutations-arm64.o"
-          "$ld_lld" -m aarch64linux -r "$fs_com_files_object" "$fs_state_object" "$fs_handle_object" "$platform_object" -o "$fs_mutation_combined"
+          "$ld_lld" -m aarch64linux -r --whole-archive "$iwd_directory_archive" --no-whole-archive \
+            "$fs_com_files_object" "$fs_state_object" "$fs_handle_object" -o "$fs_mutation_combined"
           "$llvm_readelf" -h "$fs_mutation_combined" | tee "$RUNNER_TEMP/iw3-full-filesystem-rooted-mutations-elf.txt"
           grep -F 'ELF64' "$RUNNER_TEMP/iw3-full-filesystem-rooted-mutations-elf.txt"
           grep -F 'AArch64' "$RUNNER_TEMP/iw3-full-filesystem-rooted-mutations-elf.txt"
           "$llvm_nm" -C --defined-only "$fs_mutation_combined" | tee "$RUNNER_TEMP/iw3-full-filesystem-rooted-mutations-defined.txt"
           "$llvm_nm" -C -u "$fs_mutation_combined" | tee "$RUNNER_TEMP/iw3-full-filesystem-rooted-mutations-undefined.txt"
-          for symbol in z2026_platform_remove_engine_path z2026_platform_rename_engine_path; do
+          for symbol in z2026_platform_remove_engine_path z2026_platform_rename_engine_path Sys_ListFiles FS_FreeFileList; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-full-filesystem-rooted-mutations-defined.txt"
             if grep -F " U $symbol" "$RUNNER_TEMP/iw3-full-filesystem-rooted-mutations-undefined.txt"; then
-              echo "Android rooted filesystem mutation service remained undefined: $symbol" >&2
+              echo "Original filesystem service remained undefined after relocatable link: $symbol" >&2
               exit 1
             fi
           done
@@ -374,10 +377,11 @@ jobs:
             count="$(grep -E -c " [BbDd] $symbol$" "$RUNNER_TEMP/iw3-full-filesystem-rooted-mutations-defined.txt" || true)"
             test "$count" -eq 1
           done
-          # Keep a real, unrelated filesystem dependency unresolved to prove
-          # this is not being presented as a complete runtime link.
-          grep -F 'Sys_ListFiles' "$RUNNER_TEMP/iw3-full-filesystem-rooted-mutations-undefined.txt"
+          # The wildcard matcher is the next real dependency in the original
+          # Sys_ListFiles path; keep it visible instead of linking a fake filter.
+          grep -F 'Com_FilterPath' "$RUNNER_TEMP/iw3-full-filesystem-rooted-mutations-undefined.txt"
           echo "IW3_ORIGINAL_FILESYSTEM_ROOTED_MUTATION_RELOCATABLE_LINK_PASS"
+          echo "IW3_ORIGINAL_SYSLISTFILES_PROVIDER_RESOLVED"
           echo "IW3_FULL_FILESYSTEM_RUNTIME_LINKED=false"
           echo "IW3_FS_STARTUP_RUNTIME_INVOKED=false"
           echo "IW3_REAL_MAP_LOADED=false"
@@ -999,7 +1003,7 @@ jobs:
             ${{ runner.temp }}/iw3-full-filesystem-rooted-mutations-undefined.txt
             ${{ runner.temp }}/iw3-original-filesystem-rooted-mutations-arm64.o
             ${{ runner.temp }}/iw3-build-arm64/CMakeFiles/iw3_sp_full_filesystem.dir/**/*.o
-            ${{ runner.temp }}/iw3-build-arm64/CMakeFiles/iw3_sp_math.dir/**/iw3_android_platform.cpp.o
+            ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_iwd_directory_services.a
 
       - name: Verify COMPLETE original IW3 frame compiled with real ARM64 state headers
         shell: bash
