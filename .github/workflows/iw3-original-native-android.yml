@@ -353,6 +353,19 @@ jobs:
           echo "IW3_GAMEPLAY_PROVEN=false"
           echo "IW3_PLAYABLE_APK=false"
 
+          # Compile-time ABI proof for the original parser's native runtime records.
+          parser_layout_object="$(find "$RUNNER_TEMP/iw3-build-arm64/CMakeFiles/iw3_sp_script_parser_layout_full_compile.dir" -type f -name '*.o' -print -quit)"
+          test -n "$parser_layout_object"
+          "$llvm_readelf" -h "$parser_layout_object" | tee "$RUNNER_TEMP/iw3-script-parser-layout-elf.txt"
+          grep -F 'ELF64' "$RUNNER_TEMP/iw3-script-parser-layout-elf.txt"
+          grep -F 'AArch64' "$RUNNER_TEMP/iw3-script-parser-layout-elf.txt"
+          "$llvm_nm" -C --defined-only "$parser_layout_object" | tee "$RUNNER_TEMP/iw3-script-parser-layout-defined.txt"
+          grep -F 'iw3_script_parser_layout_abi_anchor' "$RUNNER_TEMP/iw3-script-parser-layout-defined.txt"
+          echo "IW3_ORIGINAL_SCRIPT_PARSER_LP64_LAYOUT_AARCH64_OBJECT_PASS"
+          echo "IW3_SCRIPT_PARSER_RUNTIME_LINKED=false"
+          echo "IW3_GAMEPLAY_PROVEN=false"
+          echo "IW3_PLAYABLE_APK=false"
+
           # Verify that the complete upstream CL input TU, including its
           # Android CL_CreateCmd touch hook, compiles for the actual ARM64 ABI.
           # This object is an audit result only; it is not linked into JNI.
@@ -2072,6 +2085,9 @@ jobs:
             ${{ runner.temp }}/iw3-common-full-defined.txt
             ${{ runner.temp }}/iw3-common-full-undefined.txt
             ${{ runner.temp }}/iw3-build-arm64/CMakeFiles/iw3_sp_common_full_compile.dir/**/*.o
+            ${{ runner.temp }}/iw3-build-arm64/CMakeFiles/iw3_sp_script_parser_layout_full_compile.dir/**/*.o
+            ${{ runner.temp }}/iw3-script-parser-layout-elf.txt
+            ${{ runner.temp }}/iw3-script-parser-layout-defined.txt
             ${{ runner.temp }}/iw3-build-arm64/CMakeFiles/iw3_sp_renderer_model_pose_full_compile.dir/**/*.o
             ${{ runner.temp }}/iw3-source/iw3_cl_createcmd.cpp
             ${{ runner.temp }}/iw3-original-cl-createcmd.json

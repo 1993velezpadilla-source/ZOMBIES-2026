@@ -68,5 +68,48 @@ class Lp64ScriptLayoutTests(unittest.TestCase):
         self.assertEqual(hits, [], "Rename these engine callsites to the portable engine RNG: " + ", ".join(hits))
 
 
+
+    def test_original_parser_pointer_bearing_runtime_layouts_cover_win32_and_lp64(self):
+        header = (ENGINE / "script/scr_parser.h").read_text(encoding="utf-8")
+        expected = {
+            "OpcodeLookup": ("0x20", "0x18"),
+            "SourceBufferInfo": ("56", "44"),
+            "SaveSourceBufferInfo": ("0x10", "0x8"),
+            "scrParserGlob_t": ("0x50", "0x34"),
+            "scrParserPub_t": ("0x20", "0x10"),
+        }
+        for name, (lp64_size, win32_size) in expected.items():
+            with self.subTest(name=name):
+                self.assertIn(
+                    f"sizeof({name}) == (sizeof(void *) == 8 ? {lp64_size} : {win32_size})",
+                    header,
+                )
+
+    def test_original_parser_tracker_uses_native_struct_sizes_not_win32_literals(self):
+        source = (ENGINE / "script/scr_parser.cpp").read_text(encoding="utf-8")
+        start = source.index("void __cdecl TRACK_scr_parser()")
+        end = source.index("void __cdecl Scr_InitOpcodeLookup()", start)
+        body = source[start:end]
+        self.assertIn('track_static_alloc_internal(&scrParserGlob, sizeof(scrParserGlob), "scrParserGlob", 7);', body)
+        self.assertIn('track_static_alloc_internal(&scrParserPub, sizeof(scrParserPub), "scrParserPub", 7);', body)
+        self.assertNotRegex(body, r"track_static_alloc_internal\(&scrParserGlob,\s*52")
+        self.assertNotRegex(body, r"track_static_alloc_internal\(&scrParserPub,\s*16")
+
+    def test_android_ndk_compiles_the_original_parser_header_layout_fixture(self):
+        cmake = (ROOT / "android/iw3-native/CMakeLists.txt").read_text(encoding="utf-8")
+        self.assertIn("iw3_sp_script_parser_layout_full_compile OBJECT", cmake)
+        self.assertIn("script_parser_layout_native_test.cpp", cmake)
+        fixture = (ROOT / "android/iw3-native/script_parser_layout_native_test.cpp").read_text(encoding="utf-8")
+        for assertion in (
+            "sizeof(OpcodeLookup) == 0x20",
+            "sizeof(SourceBufferInfo) == 56",
+            "sizeof(SaveSourceBufferInfo) == 0x10",
+            "sizeof(scrParserGlob_t) == 0x50",
+            "sizeof(scrParserPub_t) == 0x20",
+            "offsetof(scrParserGlob_t, currentCodePos) == 40",
+            "offsetof(scrParserPub_t, scriptfilename) == 16",
+        ):
+            self.assertIn(assertion, fixture)
+
 if __name__ == "__main__":
     unittest.main()
