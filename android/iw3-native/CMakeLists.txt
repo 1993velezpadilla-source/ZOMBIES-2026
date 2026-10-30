@@ -315,6 +315,40 @@ if(ANDROID)
         -frounding-math -fno-fast-math)
 endif()
 
+# Compile the complete original command-system translation unit for Android ARM64.
+# This includes the real Cmd_Init, command registry/dispatch, Cbuf and tokenizer
+# implementations. It is an OBJECT-only portability gate: it is not linked into
+# the JNI diagnostic and does not claim the command system is initialized.
+if(ANDROID)
+    add_library(iw3_sp_cmd_full_compile OBJECT
+        "${IW3_ENGINE_SOURCE_ROOT}/qcommon/cmd.cpp")
+    target_include_directories(iw3_sp_cmd_full_compile PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+        "${IW3_ENGINE_SOURCE_ROOT}"
+        "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+        "${IW3_ENGINE_SOURCE_ROOT}/universal"
+        "${IW3_ENGINE_SOURCE_ROOT}/database"
+        "${IW3_ENGINE_SOURCE_ROOT}/win32"
+        "${IW3_ENGINE_SOURCE_ROOT}/script"
+        "${IW3_ENGINE_SOURCE_ROOT}/server"
+        "${IW3_ENGINE_SOURCE_ROOT}/game"
+        "${IW3_ENGINE_SOURCE_ROOT}/bgame"
+        "${IW3_ENGINE_SOURCE_ROOT}/cgame"
+        "${IW3_ENGINE_SOURCE_ROOT}/client"
+        "${IW3_ENGINE_SOURCE_ROOT}/ui"
+        "${IW3_ENGINE_SOURCE_ROOT}/sound"
+        "${IW3_ENGINE_SOURCE_ROOT}/gfx_d3d"
+        "${IW3_ENGINE_SOURCE_ROOT}/devgui"
+        "${IW3_ENGINE_SOURCE_ROOT}/xanim"
+        "${IW3_ENGINE_SOURCE_ROOT}/aim_assist"
+        "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+    target_compile_definitions(iw3_sp_cmd_full_compile PRIVATE
+        KISAK_SP=1 KISAK_OPENAL=1)
+    target_compile_options(iw3_sp_cmd_full_compile PRIVATE
+        -fms-extensions -Wall -Wextra -fsigned-char
+        -frounding-math -fno-fast-math)
+endif()
+
 # Compile an ABI fixture against the original script parser header. These
 # pointer-bearing structs are live runtime bookkeeping, not serialized assets.
 # This gate also protects TRACK_scr_parser from reverting to Win32 byte counts.
