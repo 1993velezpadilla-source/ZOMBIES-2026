@@ -27,6 +27,7 @@ typedef unsigned short WORD;
 typedef unsigned int UINT;
 typedef void *LPVOID;
 typedef struct HWND__ *HWND;
+typedef int BOOL;
 typedef struct HINSTANCE__ *HINSTANCE;
 typedef HINSTANCE HMODULE;
 typedef struct HWAVE__ *HWAVE;
