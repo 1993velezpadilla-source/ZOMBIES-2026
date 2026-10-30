@@ -43,9 +43,22 @@ renderer services had been implemented.
 
 The target now enables Clang's `-fms-extensions`, matching the extension mode
 already used by the existing original mover/trace source gate. A new source
-regression requires this flag. The retry is pending; the workflow log remains
-authoritative, and no pass is claimed until the ARM64 object and its unresolved
-renderer symbols are verified.
+regression requires this flag. The next attempt (`41010278394`) passed the
+MS-extension parsing stage but exposed the next real LP64 issues in the
+transitive original asset headers:
+
+- Win32-only size assertions for `GfxWorld`, `LoadedSound`, `SndCurve`,
+  `snd_alias_t`, and `snd_alias_list_t`.
+- An opaque desktop `HWND` declaration not supplied on the Android include path.
+- ODE's Windows-oriented `<vadefs.h>` include, unavailable in the NDK sysroot.
+
+This pass now records the measured Android LP64 in-memory sizes with
+Android-specific static assertions (the original Win32 assertions remain
+unchanged), declares `HWND` as an opaque pointer only on Android, and uses
+standard `<stdarg.h>` for ODE's `va_list` declaration on Android. These are
+ABI/header portability changes, not fake renderer or physics implementations.
+The next NDK retry is pending. No compile pass is claimed until the full object
+and expected unresolved renderer symbols are verified.
 
 ## Strict limits
 
