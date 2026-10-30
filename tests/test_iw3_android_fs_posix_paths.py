@@ -71,7 +71,7 @@ class AndroidOriginalFilesystemPosixPaths(unittest.TestCase):
         helper_start = source.index(
             "bool __cdecl FS_SV_BuildOSPath(const char *base, const char *filename, char *ospath)"
         )
-        helper_end = source.index("\\n}", helper_start)
+        helper_end = source.index("\n}", helper_start)
         helper = source[helper_start:helper_end]
         self.assertIn("FS_BuildOSPath(base, filename, \"\", ospath);", helper)
         self.assertIn("if (length < 2 ||", helper)
@@ -80,7 +80,7 @@ class AndroidOriginalFilesystemPosixPaths(unittest.TestCase):
         self.assertIn("FS_SV_BuildOSPath", GENERATOR.read_text(encoding="utf-8"))
         for name in ("FS_SV_FOpenFileRead", "FS_SV_FOpenFileWrite", "FS_SV_FileExists"):
             start = source.index("int __cdecl " + name + "(")
-            body = source[start:source.index("\\n}", start)]
+            body = source[start:source.index("\n}", start)]
             self.assertIn("FS_SV_BuildOSPath(", body)
             self.assertNotIn("ospath[v3 - &ospath[1] - 1]", body)
             self.assertNotIn("ospath[v6 - &ospath[1] - 1]", body)
