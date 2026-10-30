@@ -20,6 +20,7 @@ REQUIRED = (
     "IW3_JNI_IWD_FS_READ_PASS",
     "IW3_JNI_IWD_FS_OPEN_READ_CLOSE_PASS",
     "IW3_JNI_IWD_FS_CLONE_PASS",
+    "IW3_JNI_FSH_TABLE_SHARED_PASS",
     "IW3_JNI_FS_DIRECTORY_OPEN_READ_CLOSE_PASS",
     "IW3_JNI_SNAP_FLOAT_PASS",
     "IW3_JNI_IWD_NAMES_PASS",
@@ -125,7 +126,8 @@ def verify(log: str) -> dict:
         "original_fs_directory_open_read_close_lifecycle_executed": True,
         "original_fs_directory_fallback_read_executed": True,
         "original_fs_startup_path_bound_to_android_filesdir": True,
-        "original_upstream_fsh_table_integrated": False,
+        "original_upstream_fsh_table_integrated": True,
+        "full_original_com_files_translation_unit_linked": False,
         "touch_down_and_up_read_back_from_native": True,
         # These are adapter observations only. The running Activity does not
         # call original CL_CreateCmd or the live client/frame loop.

@@ -153,6 +153,12 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport(
     __android_log_print(iwd_fs_read_ok ? ANDROID_LOG_INFO : ANDROID_LOG_ERROR,
                         "IW3NativeGate", "IW3_JNI_IWD_FS_CLONE_%s",
                         iwd_fs_read_ok ? "PASS" : "FAIL");
+    // The successful original FS open/read/clone/close smoke uses the
+    // engine-owned fsh[65] defined by com_files_handle_table.cpp in this
+    // diagnostic shared library; the complete com_files.cpp TU remains separate.
+    __android_log_print(iwd_fs_read_ok ? ANDROID_LOG_INFO : ANDROID_LOG_ERROR,
+                        "IW3NativeGate", "IW3_JNI_FSH_TABLE_SHARED_%s",
+                        iwd_fs_read_ok ? "PASS" : "FAIL");
     __android_log_print(iwd_fs_disk_read_ok ? ANDROID_LOG_INFO : ANDROID_LOG_ERROR,
                         "IW3NativeGate", "IW3_JNI_FS_DIRECTORY_OPEN_READ_CLOSE_%s",
                         iwd_fs_disk_read_ok ? "PASS" : "FAIL");

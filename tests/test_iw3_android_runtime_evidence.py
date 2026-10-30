@@ -1,6 +1,14 @@
+from pathlib import Path
 import unittest
 
 from tools.iw3_android.verify_runtime_evidence import REQUIRED, verify
+
+
+ROOT = Path(__file__).resolve().parents[1]
+CMAKE = ROOT / "android/iw3-native/CMakeLists.txt"
+TABLE = ROOT / "third_party/KisakCOD/src/universal/com_files_handle_table.cpp"
+COMPAT = ROOT / "android/iw3-native/iw3_android_fs_read_compat.h"
+JNI = ROOT / "android/iw3-native/iw3_android_jni.cpp"
 
 
 def real_format_fixture():
@@ -20,6 +28,19 @@ def real_format_fixture():
 
 
 class NativeRuntimeEvidenceTests(unittest.TestCase):
+    def test_diagnostic_links_and_executes_original_shared_fsh_table(self):
+        cmake = CMAKE.read_text(encoding="utf-8")
+        start = cmake.index("add_library(iw3_sp_math SHARED")
+        end = cmake.index("target_include_directories(iw3_sp_math", start)
+        shared_target = cmake[start:end]
+        self.assertIn("com_files_handle_table.cpp", shared_target)
+        self.assertIn("EXTRACTED_FS_READ", shared_target)
+        self.assertIn("fileHandleData_t fsh[65] = {};", TABLE.read_text(encoding="utf-8"))
+        self.assertIn("extern fileHandleData_t fsh[65];", COMPAT.read_text(encoding="utf-8"))
+        jni = JNI.read_text(encoding="utf-8")
+        self.assertIn("IW3_JNI_FSH_TABLE_SHARED_%s", jni)
+        self.assertIn('iwd_fs_read_ok ? "PASS" : "FAIL"', jni)
+
     def test_complete_diagnostic_has_explicit_limits(self):
         result = verify(real_format_fixture())
         self.assertTrue(result["touch_down_and_up_read_back_from_native"])
@@ -35,7 +56,8 @@ class NativeRuntimeEvidenceTests(unittest.TestCase):
         self.assertTrue(result["original_fs_iwd_clone_handle_path_executed"])
         self.assertTrue(result["original_fs_directory_open_read_close_lifecycle_executed"])
         self.assertTrue(result["original_fs_directory_fallback_read_executed"])
-        self.assertFalse(result["original_upstream_fsh_table_integrated"])
+        self.assertTrue(result["original_upstream_fsh_table_integrated"])
+        self.assertFalse(result["full_original_com_files_translation_unit_linked"])
         self.assertFalse(result["arm64_device_execution_proven"])
         self.assertFalse(result["gameplay_proven"])
         self.assertFalse(result["original_cl_createcmd_touch_consumption_proven"])

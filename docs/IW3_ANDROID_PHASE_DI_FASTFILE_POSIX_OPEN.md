@@ -117,3 +117,23 @@ Artifact 12946239016 is the execution log, **not an APK and not gameplay**. Its 
 `playable_apk=false`.
 
 This narrows the next Android runtime gate: integrate the original FSH table/database registry and real FastFile loader into the process, then connect the live client frame and renderer. The emulator diagnostic does not close those gates.
+
+
+## Evidence semantics correction — shared original FSH table
+
+A review of `android/iw3-native/CMakeLists.txt`, the JNI source and the
+native smoke found that the earlier runtime-evidence JSON had a false-negative
+field: `original_upstream_fsh_table_integrated=false`. The diagnostic
+`iw3_sp_math` shared library already compiles the original
+`com_files_handle_table.cpp` definition together with the extracted original
+`FS_HandleForFile`, `FS_FOpenFileReadForThread`, `FS_Read` and
+`FS_FCloseFile` bodies. The smoke verifies primary/clone handle roles,
+reads both members, closes both handles and checks the shared `fsh[65]`
+entries are zeroed.
+
+Added a dedicated `IW3_JNI_FSH_TABLE_SHARED_PASS` marker, required by the
+log verifier. The evidence now correctly reports
+`original_upstream_fsh_table_integrated=true` while separately preserving
+`full_original_com_files_translation_unit_linked=false`. This is only the
+diagnostic shared library's original table/lifecycle; it is not the full
+filesystem runtime, FastFile loader, map, renderer or gameplay.
