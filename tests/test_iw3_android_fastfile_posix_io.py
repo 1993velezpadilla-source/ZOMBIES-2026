@@ -39,6 +39,20 @@ class FastFilePosixIoRegressionTests(unittest.TestCase):
         self.assertIn("g_load.posixReadError", read_stage)
         self.assertIn("posixEof", read_stage)
 
+    def test_android_file_metadata_and_close_use_posix_services(self):
+        source = (ROOT / "third_party/KisakCOD/src/database/db_file_load.cpp").read_text()
+        self.assertIn("fstat(fd, &fileStat)", source)
+        self.assertIn("close(fd)", source)
+        self.assertIn("CloseHandle(g_load.f)", source)
+
+    def test_generator_is_explicitly_a_source_body_harness_not_runtime(self):
+        generator = (ROOT / "tools/iw3_android/prepare_real_engine_db_read_posix.py").read_text()
+        self.assertIn("extract_function", generator)
+        self.assertIn("DB_ReadData", generator)
+        self.assertIn("DB_WaitXFileStage", generator)
+        self.assertIn('"playable_apk": False', generator)
+        self.assertIn("ReadFileEx", generator)
+
     def test_original_header_and_asset_deserialization_are_retained(self):
         source = (ROOT / "third_party/KisakCOD/src/database/db_file_load.cpp").read_text()
         self.assertIn("DB_ParseFastFileHeader", source)
