@@ -115,3 +115,18 @@ the updated run remains queued or in progress.
 
 The full original command system, `Cmd_Init()`, filesystem startup,
 renderer and gameplay are still **not** executing in an Android APK.
+
+## CMake default-build isolation
+
+The newly added full `cmd.cpp` OBJECT target would otherwise be built by
+every default Android CMake build, including the separate math/JNI diagnostic,
+before real OpenAL headers were supplied. Commit `ef48a307` marks only
+`iw3_sp_cmd_full_compile` as `EXCLUDE_FROM_ALL`, preserving the explicitly
+invoked focused ARM64 command gate. Optional `IW3_OPENAL_HEADERS_ROOT` is
+validated against real `AL/al.h`, `AL/alc.h`, and `AL/efx.h` if supplied
+for an explicit CMake build. Commit `8480422` adds regression assertions.
+
+This does not hide the full-TU portability gate: its dedicated workflow
+still compiles the authentic `cmd.cpp` with real OpenAL API headers. It does
+prevent an unrelated diagnostic default build from failing on an optional
+compile-only target. No command system runtime execution is claimed.
