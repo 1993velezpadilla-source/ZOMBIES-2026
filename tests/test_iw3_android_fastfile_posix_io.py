@@ -33,8 +33,8 @@ class FastFilePosixIoRegressionTests(unittest.TestCase):
         self.assertIn("g_load.posixBytesRead", wait_stage)
         self.assertIn("g_load.stream.avail_in +=", wait_stage)
         self.assertIn("Unexpected end of FastFile", source)
-        read_stage = source.split("void DB_ReadXFileStage()", 1)[1].split(
-            "int32_t __cdecl DB_ReadData()", 1
+        read_stage = source.split("void DB_ReadXFileStage()\\n{", 1)[1].split(
+            "int32_t __cdecl DB_ReadData()\\n{", 1
         )[0]
         self.assertIn("g_load.posixReadError", read_stage)
         self.assertIn("posixEof", read_stage)
