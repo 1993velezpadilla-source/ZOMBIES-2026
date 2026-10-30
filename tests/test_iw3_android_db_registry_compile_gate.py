@@ -84,6 +84,9 @@ class OriginalDbRegistryCompileGateTests(unittest.TestCase):
         self.assertLess(windows, d3d)
         self.assertLess(d3d, end)
 
+    def test_renderer_backend_does_not_force_d3d9_sdk_on_android(self):
+        source = (ROOT / "third_party/KisakCOD/src/gfx_d3d/rb_backend.h").read_text(encoding="utf-8")
+        self.assertIn("#if !defined(__ANDROID__)\\n#include <d3d9.h>\\n#endif", source)
     def test_original_r_gfx_selects_opaque_android_d3d_declarations(self):
         source = (ROOT / "third_party/KisakCOD/src/gfx_d3d/r_gfx.h").read_text(encoding="utf-8")
         self.assertIn('#if defined(__ANDROID__)\n#include "r_d3d9_opaque.h"\n#else\n#include <d3d9.h>\n#endif', source)
