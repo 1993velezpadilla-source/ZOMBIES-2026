@@ -183,7 +183,12 @@ void __cdecl DB_LoadXFileData(uint8_t *pos, uint32_t size)
     LABEL_19:
 #if defined(__ANDROID__)
         if (!g_load.stream.avail_in && g_load.posixEof && !g_load.outstandingReads)
+        {
+            // Match the original corrupt-stream path: release the inflater and
+            // close the POSIX descriptor before ERR_DROP unwinds the loader.
+            DB_CancelLoadXFile();
             Com_Error(ERR_DROP, "Unexpected end of FastFile '%s' while inflating", g_load.filename);
+        }
 #endif
         DB_WaitXFileStage();
         DB_ReadXFileStage();
