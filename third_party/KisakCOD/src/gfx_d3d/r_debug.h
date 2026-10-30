@@ -10,6 +10,8 @@ struct trDebugString_t // sizeof=0x80
     char text[96];
 };
 
+#ifndef KISAK_CLIENT_DEBUG_TYPES_DEFINED
+#define KISAK_CLIENT_DEBUG_TYPES_DEFINED
 struct clientDebugStringInfo_t // sizeof=0x10
 {                                       // ...
     int max;                            // ...
@@ -45,6 +47,7 @@ struct clientDebug_t // sizeof=0x68
     clientDebugLineInfo_t svLinesBuffer; // ...
     clientDebugLineInfo_t svLines;      // ...
 };
+#endif
 
 struct GfxDebugPoly // sizeof=0x18
 {
