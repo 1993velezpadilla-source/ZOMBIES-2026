@@ -43,8 +43,8 @@ Rename opens both parent directories beneath the root and calls `renameat`; the 
 
 - Host runtime regression exercises absolute and Windows-style engine paths, file removal, empty-directory removal, file rename, directory rename, sibling-prefix/traversal rejection, symlink-parent rejection, and symlink-leaf removal.
 - Source regression ensures all five original filesystem functions use the rooted services only on Android while preserving the Windows CRT calls.
-- NDK workflow performs an `ld.lld -r` link of the complete original filesystem TU, its canonical state/handle-table TUs, and the Android platform provider. It requires both new services to resolve and checks that `fs_searchpaths`, `fs_gamedir`, and `fsh` each have one definition.
-- The combined object deliberately retains `Sys_ListFiles` as an unresolved engine service, proving this is still a partial dependency audit rather than a complete filesystem runtime.
+- NDK workflow performs an `ld.lld -r` link of the complete original filesystem TU and its canonical state/handle-table TUs with the existing `iw3_sp_iwd_directory_services` archive (built with `IW3_IWD_DIRECTORY_LINK_AUDIT=1`). The link resolves `Sys_ListFiles`, `FS_FreeFileList`, and both new rooted mutation services, and checks that `fs_searchpaths`, `fs_gamedir`, and `fsh` each have one definition.
+- The original wildcard matcher `Com_FilterPath` remains undefined as the next real dependency in the file-list path. No diagnostic fallback or fake filter is linked; this remains a partial dependency audit, not a complete filesystem runtime.
 
 The artifact is named `iw3-original-filesystem-rooted-mutations-aarch64-NOT-APK`.
 
