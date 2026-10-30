@@ -62,3 +62,20 @@ The first native workflow attempt for commit `0307ff5ccba37cd7c82192445c6d71624a
 The original call formats the bounded `bgShockChannelNames[i]` entry as `bg_shock_volume_%s`. The engine source now retains the secure CRT `sprintf_s` call on Windows and uses Android's `snprintf` with the same destination size on non-Windows platforms. The Android branch checks the returned length and calls the original fatal engine error path instead of registering a truncated dvar name. A regression now protects the platform split and the fail-closed length check.
 
 The failed build is recorded in [run 41091115694](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41091115694). The new compile/link validation remains pending on the correction commit.
+
+## Final emulator-diagnostic result for this commit
+
+The x86_64 Android emulator diagnostic [41091658527](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41091658527) subsequently completed with **SUCCESS**. Its evidence validator confirmed execution of the original ZIP32/IWD parser and fixture mount/searchpath/read/close paths, including the imported IWD index, shared `fsh` table, directory fallback, and touch DOWN/UP readback into the diagnostic `usercmd_s` adapter.
+
+The same validator explicitly reported:
+
+- `full_original_com_files_translation_unit_linked=false`
+- `original_cl_createcmd_touch_consumption_proven=false`
+- `original_client_runtime_linked=false`
+- `real_map_loaded=false`
+- `renderer_frame_proven=false`
+- `arm64_device_execution_proven=false`
+- `gameplay_proven=false`
+- `playable_apk=false`
+
+This is emulator diagnostic evidence only, not proof of the native ARM64 engine or a playable build. The SP killhouse runtime diagnostic and source-only weapons workflow were cancelled in this run set and are not counted as passes.
