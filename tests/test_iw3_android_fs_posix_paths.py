@@ -48,8 +48,8 @@ class AndroidOriginalFilesystemPosixPaths(unittest.TestCase):
         localized_start = source.index(
             "void __cdecl FS_AddGameDirectory(char *path, char *dir, int bLanguageDirectory, int iLanguage)"
         )
-        iwd = source[iwd_start:source.index("\\n}", iwd_start)]
-        localized = source[localized_start:source.index("\\n}", localized_start)]
+        iwd = source[iwd_start:source.index("\n}", iwd_start)]
+        localized = source[localized_start:source.index("\n}", localized_start)]
         unsafe = "ospath[&ospath[strlen(ospath) + 1] - &ospath[1] - 1] = 0;"
         for body in (iwd, localized):
             self.assertNotIn(unsafe, body)
