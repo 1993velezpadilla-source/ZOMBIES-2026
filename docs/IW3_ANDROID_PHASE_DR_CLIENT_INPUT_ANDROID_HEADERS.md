@@ -21,7 +21,7 @@ The Android touch hook had been audited by extracting the original `CL_CreateCmd
 
 The original full Android ARM64 workflow passed on run [41021851085](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41021851085). Its source preflight reported **359 tests, OK**. The log contains `IW3_ORIGINAL_CLIENT_INPUT_AARCH64_OBJECT_PASS` and the defined `CL_CreateCmd(usercmd_s*)` symbol; the initial attempt failed on the three DevGui size assertions, and the subsequent run passed after the LP64 assertions were corrected.
 
-The workflow now archives the complete client-input object plus its ELF and symbol reports so the next run preserves that evidence as a downloadable artifact.
+The final run [41022290636](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41022290636) passed and its artifact [z2026-iw3-real-math-arm64-phase-a-NOT-APK (12962595753)](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41022290636/artifacts/12962595753) now archives the complete client-input object plus its ELF and symbol reports. The log confirms `IW3_ORIGINAL_CLIENT_INPUT_AARCH64_OBJECT_PASS` and `IW3_CLIENT_INPUT_RUNTIME_LINKED=false`.
 
 ## Explicit limits
 
