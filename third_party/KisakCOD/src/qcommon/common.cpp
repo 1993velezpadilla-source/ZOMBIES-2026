@@ -49,6 +49,9 @@
 #ifndef _vsnprintf
 #define _vsnprintf vsnprintf
 #endif
+#ifndef _snprintf
+#define _snprintf snprintf
+#endif
 
 // Preserve the engine's build banner without inheriting a Win32-only macro.
 #ifndef CPUSTRING
@@ -2427,8 +2430,8 @@ void Com_CheckError()
     Sys_LeaveCriticalSection(CRITSECT_COM_ERROR);
     if (v0)
     {
-        void * value = Sys_GetValue(2);
-        longjmp((int*)value, -1);
+        jmp_buf *value = (jmp_buf *)Sys_GetValue(2);
+        longjmp(*value, -1);
     }
 }
 

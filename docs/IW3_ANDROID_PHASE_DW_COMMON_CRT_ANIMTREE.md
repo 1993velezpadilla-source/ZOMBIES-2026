@@ -64,3 +64,12 @@ The first post-change preflight [41052809698](https://github.com/1993velezpadill
 Corrected the tests to assert the Android CRT and stdio declarations independently, and moved `scrAnimPub_t`/`scrAnimGlob_t` layout checks into a dedicated test that reads `script/scr_animtree.h`. This is a test-harness correction only; it does not alter the engine implementation. A fresh CI run is required before treating the pass as green.
 
 A second preflight attempt [41052971190](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41052971190) reduced the suite to one remaining matcher error: the original declaration is spelled `_iobuf *__cdecl SV_DemoOpenFile`, not `_iobuf *SV_DemoOpenFile`. Updated the regression to match the exact upstream calling-convention declaration. No engine source changed in this follow-up; the latest full ARM64 run must still complete before this phase can be marked green.
+
+## Additional NDK errors exposed after the preflight fix
+
+The next full compile [41053087448](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41053087448) passed the corrected 376-test preflight and host ASan/UBSan, then advanced the complete original `common.cpp` compile to two remaining errors:
+
+- `_snprintf` was another MSVC-only bounded formatting name. Android now maps it to Bionic `snprintf`; the original call explicitly terminates `buffer[maxlen - 1]`.
+- `Com_CheckError` cast the `Sys_GetValue(2)` jump-buffer pointer to `int *`. Bionic's `jmp_buf` has a different native representation. The original routine now uses the same `jmp_buf *` + `longjmp(*value, -1)` form already used by other `common.cpp` call sites.
+
+Regression coverage now checks the `_snprintf` mapping and requires the typed jump-buffer call. A fresh full ARM64 workflow must confirm this correction; run 41053087448 remains a failed pre-fix compile, not a pass.
