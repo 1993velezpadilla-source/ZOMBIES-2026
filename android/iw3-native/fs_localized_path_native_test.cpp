@@ -174,7 +174,12 @@ void MyAssertHandler(const char *, int, int, const char *, ...) {
 static void test_original_path_builder() {
     char path[256]{};
     FS_BuildOSPath("/private//iw3/", "main", "english//voice", path);
-    assert(std::strcmp(path, "\\private\\iw3\\main\\english\\voice") == 0);
+    assert(std::strcmp(path, "/private/iw3/main/english/voice") == 0);
+
+    // Android must retain the POSIX root through the authentic path builder.
+    FS_BuildOSPath("/private\\iw3//", "main", "maps\\mp//test.d3dbsp", path);
+    assert(std::strcmp(path, "/private/iw3/main/maps/mp/test.d3dbsp") == 0);
+    assert(path[0] == '/');
 
     std::string oversized(300, 'x');
     std::strcpy(path, "stale");
@@ -208,7 +213,7 @@ int main() {
     // language IDs must not alias the parent "main" directory as localized.
     assert(g_directory_probes == 1);
     assert(g_probed_paths.size() == 1);
-    assert(g_probed_paths[0] == "\\private\\iw3\\main\\english");
+    assert(g_probed_paths[0] == "/private/iw3/main/english");
     assert(g_iwd_scans == 2);
     assert(g_iwd_game_folders.size() == 2);
 
