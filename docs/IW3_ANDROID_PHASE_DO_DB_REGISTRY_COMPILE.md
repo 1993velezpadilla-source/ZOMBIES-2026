@@ -79,6 +79,27 @@ keeps the real SDK include on desktop only. This adds no renderer behavior.
 The next NDK build is still needed to discover remaining D3D declarations
 and the Windows-only zone-reorder CSV I/O. The complete registry is not yet
 compiled or linked.
+## Fourth NDK result: remove the last direct backend D3D9 include
+
+The compile attempt at [41013488779](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41013488779)
+passed the `r_init.h`/`win_local.h` guards and reached
+`gfx_d3d/rb_backend.h`, whose direct `<d3d9.h>` include was the next fatal
+error. The backend now keeps that SDK include desktop-only; its Android
+translation unit receives the same opaque D3D9 declarations through the
+original shared renderer data headers.
+
+The same attempt also exposed the next genuine DB registry service gaps:
+`_itoa`, `Sys_DefaultInstallPath`, Windows Interlocked increment/decrement
+calls, and the SP `CRITSECT_MISSING_ASSET` constant. An Android-only
+`db_registry_android_compat.h` now provides fixed-width atomic operations and
+the exact SP critical-section index. `Sys_DefaultInstallPath()` is backed by
+the configured filesDir via `z2026_platform_copy_data_root`; it does not
+return the process cwd. The decimal `_itoa` use is implemented with bounded
+`snprintf`.
+
+The Windows-only zone-reorder CSV operations are still to be ported or
+explicitly excluded from the Android runtime before the registry can link.
+No full DB registry compile or runtime pass has been claimed yet.
 ## What this does not prove
 
 This is a compile gate only. It does not link the database registry to the
