@@ -1,0 +1,36 @@
+name: Pixel Zombies - Godot source smoke
+
+on:
+  pull_request:
+    paths:
+      - "pixel_zombies_godot/**"
+      - ".github/workflows/pixel-zombies-godot-smoke.yml"
+  workflow_dispatch:
+
+jobs:
+  godot-headless:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download official Godot 4.6 editor
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 --retry-delay 3 \
+            -o /tmp/godot.zip \
+            https://github.com/godotengine/godot/releases/download/4.6-stable/Godot_v4.6-stable_linux.x86_64.zip
+          unzip -q /tmp/godot.zip -d /tmp
+          chmod +x /tmp/Godot_v4.6-stable_linux.x86_64
+      - name: Import Godot project
+        shell: bash
+        run: |
+          set -euo pipefail
+          /tmp/Godot_v4.6-stable_linux.x86_64 --headless --path pixel_zombies_godot --editor --quit 2>&1 | tee /tmp/godot-import.log
+          if grep -E 'SCRIPT ERROR|Parse Error|ERROR:' /tmp/godot-import.log; then exit 1; fi
+      - name: Boot and run 120 headless frames
+        shell: bash
+        run: |
+          set -euo pipefail
+          /tmp/Godot_v4.6-stable_linux.x86_64 --headless --path pixel_zombies_godot --quit-after 120 2>&1 | tee /tmp/godot-boot.log
+          if grep -E 'SCRIPT ERROR|Parse Error|ERROR:' /tmp/godot-boot.log; then exit 1; fi
