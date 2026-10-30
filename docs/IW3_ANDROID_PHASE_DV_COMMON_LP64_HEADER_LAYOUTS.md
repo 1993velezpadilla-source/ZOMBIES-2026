@@ -76,3 +76,12 @@ The Android common-bootstrap object target now searches `android/iw3-native/comm
 **Archive caution:** `FX_SaveEffectDefTableEntry_FileLoadObj` writes four bytes from a pointer variable into the memory file. That 32-bit archive representation must be audited/fixed as an explicit handle or stable identifier before using FX save/restore on LP64. The current pass changes in-memory pointer-bearing structure assertions only; it does not claim archive compatibility.
 
 The follow-up commits trigger a fresh PR/push CI run. Its result is pending inspection; neither the failed pre-change run nor the earlier failed run is counted as a pass.
+
+
+## Follow-up: compile-only OpenAL type boundary
+
+The next current-head CI run [41050508053](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41050508053) passed the 372-test native preflight and advanced past the previous LP64 assertions and missing build-number header. The NDK then stopped at `snd_local.h:6` because the clean source/NDK job has no OpenAL development headers (`AL/al.h`).
+
+The complete `common.cpp` bootstrap object only needs `ALuint`, `ALCdevice`, and `ALCcontext` to lay out the `AlLocal` state in `snd_local.h`; it does not compile or call the OpenAL driver. Added the narrowly scoped `IW3_ANDROID_COMMON_HEADER_ONLY_OPENAL` definition to `iw3_sp_common_full_compile` only. Under that definition, `snd_local.h` declares the exact OpenAL scalar/opaque types required by the header. All other translation units continue to include the real `AL/al.h`, `AL/alc.h`, and `AL/efx.h` headers. No OpenAL function body, fake audio backend, or runtime link was added.
+
+The next NDK run must prove the common object advances past this include boundary. The actual Android runtime still needs a real OpenAL Soft header/library dependency before the sound driver can be linked and initialized.
