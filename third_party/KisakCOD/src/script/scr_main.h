@@ -31,7 +31,7 @@ static const char *var_typename[] =
     "removed thread",
 };
 
-struct scrVarPub_t // sizeof=0x2007C
+struct scrVarPub_t // Win32: 0x2007C; LP64 runtime bookkeeping: 0x200A0
 {
     char* fieldBuffer;
     uint16_t canonicalStrCount;
@@ -70,7 +70,7 @@ struct scrVarPub_t // sizeof=0x2007C
     int totalObjectRefCount;
     volatile uint32_t totalVectorRefCount;
 };
-static_assert(sizeof(scrVarPub_t) == 0x2007C);
+static_assert(sizeof(scrVarPub_t) == (sizeof(void *) == 8 ? 0x200A0 : 0x2007C));
 
 struct PrecacheEntry // sizeof=0x8
 {                                       // ...
