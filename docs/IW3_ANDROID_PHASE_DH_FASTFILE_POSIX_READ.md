@@ -18,14 +18,14 @@ changing a shared file cursor, retries EINTR, accumulates short positive reads,
 reports the exact final short chunk, distinguishes EOF from I/O failure, and
 rejects invalid descriptors and offsets that cannot fit off_t.
 
-The original db_file_load.cpp is intended to use an Android-only read path and
-Android state for byte counts, error numbers, EOF and file offset. The Windows
-branch retains ReadFileEx and its original overlapped semantics. The Android
-stream path must add the exact byte count to zlib's avail_in, rather than
-assuming every read supplied 256 KiB, and treat unexpected compressed-stream
-EOF as a loader error. The original FastFile header parser, inflate calls, zone
-allocator, stream initialization and XAsset deserialization must remain in
-place.
+The original db_file_load.cpp now contains an Android-only positioned-read
+branch and Android state for byte counts, error numbers, EOF and file offset.
+The Windows branch retains ReadFileEx and its original overlapped semantics.
+The Android stream path adds the exact byte count to zlib's avail_in rather
+than assuming every read supplied 256 KiB, and treats unexpected compressed-
+stream EOF as a loader error. The original FastFile header parser, inflate
+calls, zone allocator, stream initialization and XAsset deserialization remain
+in place.
 
 The Android branch expects DB_LoadXFile()'s opaque f argument to be encoded
 with DBFastFilePosixOpaqueFromFd(fd); the caller that opens the FastFile must
@@ -38,6 +38,12 @@ The dedicated workflow runs a host executable against a real temporary file
 and cross-compiles the same test translation unit for ELF64/AArch64. The tests
 cover full 256-KiB reads, final short reads, EOF, invalid descriptors, offset
 overflow, zero-capacity reads and opaque descriptor encoding.
+
+A generator extracts the exact original DB_ReadData() and DB_WaitXFileStage()
+bodies into a small test harness with __ANDROID__ defined. CI executes those
+bodies against a real temporary file and cross-compiles that same generated
+translation unit for AArch64. This is stronger than a text-only test but still
+does not compile or link the entire db_file_load.cpp translation unit.
 
 This is a portability slice, not proof that db_file_load.cpp as a whole builds
 or runs on Android. The translation unit still depends on Windows declarations
