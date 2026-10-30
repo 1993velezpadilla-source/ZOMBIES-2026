@@ -293,7 +293,7 @@ void Cmd_Dumpraw_f(void)
                 f = fopen(outputPath.string().c_str(), "w");
                 if (!f)
                 {
-                    Com_PrintError(CON_CHANNEL_ERROR, "Could not write %s\\n", outputPath.string().c_str());
+                    Com_PrintError(CON_CHANNEL_ERROR, "Could not write %s\n", outputPath.string().c_str());
                     continue;
                 }
                 for (int row = 0; row < file.stringTable->columnCount; row++)
@@ -344,13 +344,12 @@ void Cmd_Dumpraw_f(void)
 
                         // create nested folders
                         std::filesystem::path sndfilepath = rawDir / realname;
-                        sndfilepath.remove_filename();
                         std::filesystem::create_directories(sndfilepath.parent_path());
 
                         f = fopen(sndfilepath.string().c_str(), "wb");
                         if (!f)
                         {
-                            Com_PrintError(CON_CHANNEL_ERROR, "Could not write %s\\n", sndfilepath.string().c_str());
+                            Com_PrintError(CON_CHANNEL_ERROR, "Could not write %s\n", sndfilepath.string().c_str());
                             continue;
                         }
                         // enjoy this long deref chain
@@ -376,15 +375,14 @@ void Cmd_Dumpraw_f(void)
 
                 // create nested folders
                 std::filesystem::path sndfilepath = rawDir / realname;
-                sndfilepath.remove_filename();
                 std::filesystem::create_directories(sndfilepath.parent_path());
 
                 f = fopen(sndfilepath.string().c_str(), "wb");
-                        if (!f)
-                        {
-                            Com_PrintError(CON_CHANNEL_ERROR, "Could not write %s\\n", sndfilepath.string().c_str());
-                            continue;
-                        }
+                if (!f)
+                {
+                    Com_PrintError(CON_CHANNEL_ERROR, "Could not write %s\n", sndfilepath.string().c_str());
+                    continue;
+                }
 
                 WriteWAVHeader(f, file.loadSnd->sound.info.data_len,
                     file.loadSnd->sound.info.rate,
@@ -403,7 +401,7 @@ void Cmd_Dumpraw_f(void)
                 f = fopen(outputPath.string().c_str(), "wb");
                 if (!f)
                 {
-                    Com_PrintError(CON_CHANNEL_ERROR, "Could not write %s\\n", outputPath.string().c_str());
+                    Com_PrintError(CON_CHANNEL_ERROR, "Could not write %s\n", outputPath.string().c_str());
                     continue;
                 }
                 fwrite(file.rawfile->buffer, file.rawfile->len, 1, f);
