@@ -319,7 +319,14 @@ void __cdecl DB_LoadXFileInternal()
     iassert(g_load.f);
     DB_ReadXFileStage();
     if (!g_load.outstandingReads)
+    {
+#if defined(__ANDROID__)
+        // Empty files never initialize the inflater, but still own the
+        // opened descriptor. Release it before the error unwinds the zone.
+        DB_CancelLoadXFile();
+#endif
         Com_Error(ERR_DROP, "Fastfile for zone '%s' is empty.", g_load.filename);
+    }
     DB_WaitXFileStage();
     DB_ReadXFileStage();
     DBFastFileHeader parsedHeader = {};
@@ -330,6 +337,9 @@ void __cdecl DB_LoadXFileInternal()
 
     if (headerStatus == DBFastFileHeaderStatus::TruncatedMagic)
     {
+#if defined(__ANDROID__)
+        DB_CancelLoadXFile();
+#endif
         MyAssertHandler(".\\database\\db_file_load.cpp", 598, 0, "%s", "sizeof( magic ) <= g_load.stream.avail_in");
         return;
     }
@@ -338,6 +348,9 @@ void __cdecl DB_LoadXFileInternal()
         g_load.stream.next_in += parsedHeader.consumed;
         g_load.stream.avail_in -= static_cast<uint32_t>(parsedHeader.consumed);
         KISAK_NULLSUB();
+#if defined(__ANDROID__)
+        DB_CancelLoadXFile();
+#endif
         Com_Error(ERR_DROP, "Fastfile for zone '%s' is corrupt or unreadable.", g_load.filename);
         return;
     }
@@ -345,6 +358,9 @@ void __cdecl DB_LoadXFileInternal()
     {
         g_load.stream.next_in += parsedHeader.consumed;
         g_load.stream.avail_in -= static_cast<uint32_t>(parsedHeader.consumed);
+#if defined(__ANDROID__)
+        DB_CancelLoadXFile();
+#endif
         MyAssertHandler(".\\database\\db_file_load.cpp", 608, 0, "%s", "sizeof(version) <= g_load.stream.avail_in");
         return;
     }
@@ -354,6 +370,9 @@ void __cdecl DB_LoadXFileInternal()
     {
         g_load.stream.next_in += parsedHeader.consumed;
         g_load.stream.avail_in -= static_cast<uint32_t>(parsedHeader.consumed);
+#if defined(__ANDROID__)
+        DB_CancelLoadXFile();
+#endif
         if (version >= 5)
             Com_Error(
                 ERR_DROP,
@@ -372,6 +391,9 @@ void __cdecl DB_LoadXFileInternal()
     }
     if (headerStatus != DBFastFileHeaderStatus::Ok)
     {
+#if defined(__ANDROID__)
+        DB_CancelLoadXFile();
+#endif
         MyAssertHandler(".\\database\\db_file_load.cpp", 610, 0, "%s", "headerStatus == DBFastFileHeaderStatus::Ok");
         return;
     }
@@ -399,7 +421,10 @@ void __cdecl DB_LoadXFileInternal()
         struct stat fileStat = {};
         const int fd = DBFastFilePosixFdFromOpaque(g_load.f);
         if (fd < 0 || fstat(fd, &fileStat) != 0 || fileStat.st_size > INT32_MAX)
+        {
+            DB_CancelLoadXFile();
             Com_Error(ERR_DROP, "Unable to query FastFile size for '%s'", g_load.filename);
+        }
         fileSize = static_cast<int32_t>(fileStat.st_size);
 #else
         fileSize = GetFileSize(g_load.f, 0);
