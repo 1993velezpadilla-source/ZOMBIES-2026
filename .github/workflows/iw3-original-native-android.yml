@@ -2111,6 +2111,72 @@ jobs:
           echo "IW3_GAMEPLAY_PROVEN=false"
           echo "IW3_PLAYABLE_APK=false"
 
+      - name: Compile full original BGame dvar TU and resolve its float-dvar service (NOT RUNTIME)
+        shell: bash
+        run: |
+          set -euo pipefail
+          build="$RUNNER_TEMP/iw3-build-arm64"
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          bg_misc_object="$(find "$build/CMakeFiles/iw3_sp_bgame_misc_full_compile.dir" -type f -name '*.o' -print -quit)"
+          dvar_object="$(find "$build/CMakeFiles/iw3_sp_full_dvar.dir" -type f -name 'dvar.cpp.o' -print -quit)"
+          test -s "$bg_misc_object"
+          test -s "$dvar_object"
+
+          "$ndk/llvm-readelf" -h "$bg_misc_object" | tee "$RUNNER_TEMP/iw3-bgame-misc-arm64-elf.txt"
+          grep -F 'ELF64' "$RUNNER_TEMP/iw3-bgame-misc-arm64-elf.txt"
+          grep -F 'AArch64' "$RUNNER_TEMP/iw3-bgame-misc-arm64-elf.txt"
+          "$ndk/llvm-nm" -C --defined-only "$bg_misc_object" | tee "$RUNNER_TEMP/iw3-bgame-misc-defined.txt"
+          grep -F 'BG_RegisterDvars()' "$RUNNER_TEMP/iw3-bgame-misc-defined.txt"
+          for symbol in player_meleeRange player_meleeWidth player_meleeHeight player_meleeChargeFriction; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-bgame-misc-defined.txt"
+          done
+          "$ndk/llvm-nm" -C -u "$bg_misc_object" | tee "$RUNNER_TEMP/iw3-bgame-misc-undefined-before.txt"
+          grep -F 'Dvar_RegisterFloat(' "$RUNNER_TEMP/iw3-bgame-misc-undefined-before.txt"
+
+          "$ndk/llvm-nm" -C --defined-only "$dvar_object" | tee "$RUNNER_TEMP/iw3-original-dvar-float-defined.txt"
+          grep -F 'Dvar_RegisterFloat(' "$RUNNER_TEMP/iw3-original-dvar-float-defined.txt"
+          combined="$RUNNER_TEMP/iw3-original-bgame-misc-plus-dvar-arm64.o"
+          "$ndk/ld.lld" -m aarch64linux -r "$bg_misc_object" "$dvar_object" -o "$combined"
+          "$ndk/llvm-readelf" -h "$combined" | tee "$RUNNER_TEMP/iw3-bgame-misc-dvar-combined-elf.txt"
+          grep -F 'ELF64' "$RUNNER_TEMP/iw3-bgame-misc-dvar-combined-elf.txt"
+          grep -F 'AArch64' "$RUNNER_TEMP/iw3-bgame-misc-dvar-combined-elf.txt"
+          "$ndk/llvm-nm" -C --defined-only "$combined" | tee "$RUNNER_TEMP/iw3-bgame-misc-dvar-combined-defined.txt"
+          "$ndk/llvm-nm" -C -u "$combined" | tee "$RUNNER_TEMP/iw3-bgame-misc-dvar-combined-undefined.txt"
+          grep -F 'BG_RegisterDvars()' "$RUNNER_TEMP/iw3-bgame-misc-dvar-combined-defined.txt"
+          for symbol in player_meleeRange player_meleeWidth player_meleeHeight player_meleeChargeFriction; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-bgame-misc-dvar-combined-defined.txt"
+          done
+          grep -F 'Dvar_RegisterFloat(' "$RUNNER_TEMP/iw3-bgame-misc-dvar-combined-defined.txt"
+          if grep -F 'Dvar_RegisterFloat(' "$RUNNER_TEMP/iw3-bgame-misc-dvar-combined-undefined.txt"; then
+            echo "Original BGame -> Dvar_RegisterFloat edge remained unresolved" >&2
+            exit 1
+          fi
+          echo "IW3_ORIGINAL_BGAME_MISC_DVAR_AARCH64_OBJECT_PASS"
+          echo "IW3_ORIGINAL_BGAME_MISC_DVAR_FLOAT_RELOCATABLE_LINK_PASS"
+          echo "IW3_BGAME_MISC_RUNTIME_INVOKED=false"
+          echo "IW3_BGAME_DVARS_REGISTERED=false"
+          echo "IW3_CLIENT_RUNTIME_LINKED=false"
+          echo "IW3_REAL_MAP_LOADED=false"
+          echo "IW3_GAMEPLAY_PROVEN=false"
+          echo "IW3_PLAYABLE_APK=false"
+
+      - name: Preserve full original BGame dvar registration evidence (NOT APK)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: z2026-iw3-bgame-misc-full-dvar-arm64-NOT-APK
+          path: |
+            ${{ runner.temp }}/iw3-bgame-misc-arm64-elf.txt
+            ${{ runner.temp }}/iw3-bgame-misc-defined.txt
+            ${{ runner.temp }}/iw3-bgame-misc-undefined-before.txt
+            ${{ runner.temp }}/iw3-original-dvar-float-defined.txt
+            ${{ runner.temp }}/iw3-original-bgame-misc-plus-dvar-arm64.o
+            ${{ runner.temp }}/iw3-bgame-misc-dvar-combined-elf.txt
+            ${{ runner.temp }}/iw3-bgame-misc-dvar-combined-defined.txt
+            ${{ runner.temp }}/iw3-bgame-misc-dvar-combined-undefined.txt
+          if-no-files-found: warn
+          retention-days: 30
+
       - name: Execute original scr_anim_s payload ABI regression and compile it for ARM64
         shell: bash
         run: |

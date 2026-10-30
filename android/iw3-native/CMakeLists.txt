@@ -262,6 +262,39 @@ if(ANDROID)
         -frounding-math -fno-fast-math)
 endif()
 
+# Compile the complete original BGame dvar-registration translation unit for Android ARM64.
+# Unlike the earlier four-dvar source slice, this compiles the authentic bg_misc.cpp
+# in full. It remains OBJECT-only until the complete BGame/client runtime is linked.
+if(ANDROID)
+    add_library(iw3_sp_bgame_misc_full_compile OBJECT
+        "${IW3_ENGINE_SOURCE_ROOT}/bgame/bg_misc.cpp")
+    target_include_directories(iw3_sp_bgame_misc_full_compile PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+        "${IW3_ENGINE_SOURCE_ROOT}"
+        "${IW3_ENGINE_SOURCE_ROOT}/client"
+        "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+        "${IW3_ENGINE_SOURCE_ROOT}/universal"
+        "${IW3_ENGINE_SOURCE_ROOT}/ui"
+        "${IW3_ENGINE_SOURCE_ROOT}/devgui"
+        "${IW3_ENGINE_SOURCE_ROOT}/gfx_d3d"
+        "${IW3_ENGINE_SOURCE_ROOT}/game"
+        "${IW3_ENGINE_SOURCE_ROOT}/cgame"
+        "${IW3_ENGINE_SOURCE_ROOT}/server"
+        "${IW3_ENGINE_SOURCE_ROOT}/bgame"
+        "${IW3_ENGINE_SOURCE_ROOT}/sound"
+        "${IW3_ENGINE_SOURCE_ROOT}/script"
+        "${IW3_ENGINE_SOURCE_ROOT}/xanim"
+        "${IW3_ENGINE_SOURCE_ROOT}/database"
+        "${IW3_ENGINE_SOURCE_ROOT}/aim_assist"
+        "${IW3_ENGINE_SOURCE_ROOT}/win32"
+        "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+    target_compile_definitions(iw3_sp_bgame_misc_full_compile PRIVATE
+        KISAK_SP=1 KISAK_OPENAL=1)
+    target_compile_options(iw3_sp_bgame_misc_full_compile PRIVATE
+        -fms-extensions -Wall -Wextra -fsigned-char
+        -frounding-math -fno-fast-math)
+endif()
+
 # Compile the complete original Com_Init/Com_Frame translation unit for Android
 # ARM64. This is the core bootstrap TU, not an extracted body or test harness.
 # Keep it object-only until its real platform/service graph and renderer are
