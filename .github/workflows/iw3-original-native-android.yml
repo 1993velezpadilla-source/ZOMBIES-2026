@@ -1458,8 +1458,57 @@ jobs:
               exit 1
             fi
           done
-          grep -F 'Sys_LockWrite' "$RUNNER_TEMP/iw3-client-input-with-original-dvar-undefined.txt"
-          grep -F 'Sys_UnlockWrite' "$RUNNER_TEMP/iw3-client-input-with-original-dvar-undefined.txt"
+          # The full original dvar.cpp now resolves Dvar_RegisterFloat, but it
+          # still calls the writer gate. Reuse the already-tested Android port
+          # of KisakCOD's original FastCriticalSection writer algorithm and
+          # prove the client/dvar chain no longer leaves either edge undefined.
+          lock_source="$GITHUB_WORKSPACE/android/iw3-native/iw3_android_fs_lock_io.cpp"
+          lock_object="$RUNNER_TEMP/iw3-client-dvar-lock-provider-arm64.o"
+          lock_combined="$RUNNER_TEMP/iw3-client-input-with-dvar-lock-provider-arm64.o"
+          test -s "$lock_source"
+          "$ndk/aarch64-linux-android26-clang++" \
+            -std=c++20 -DKISAK_SP=1 -Wall -Wextra -Werror -UNDEBUG -O2 \
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src" \
+            -c "$lock_source" -o "$lock_object"
+          "$ndk/llvm-readelf" -h "$lock_object" | tee "$RUNNER_TEMP/iw3-client-dvar-lock-provider-elf.txt"
+          grep -F 'Class:                             ELF64' "$RUNNER_TEMP/iw3-client-dvar-lock-provider-elf.txt"
+          grep -F 'Machine:                           AArch64' "$RUNNER_TEMP/iw3-client-dvar-lock-provider-elf.txt"
+          "$ndk/llvm-nm" -C --defined-only "$lock_object" | tee "$RUNNER_TEMP/iw3-client-dvar-lock-provider-defined.txt"
+          for symbol in 'Sys_LockWrite(FastCriticalSection*)' 'Sys_UnlockWrite(FastCriticalSection*)'; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-client-dvar-lock-provider-defined.txt"
+          done
+
+          "$ndk/ld.lld" -m aarch64linux -r "$dvar_combined" "$lock_object" -o "$lock_combined"
+          "$ndk/llvm-nm" -C --defined-only "$lock_combined" | tee "$RUNNER_TEMP/iw3-client-dvar-lock-combined-defined.txt"
+          "$ndk/llvm-nm" -C -u "$lock_combined" | tee "$RUNNER_TEMP/iw3-client-dvar-lock-combined-undefined.txt"
+          for symbol in 'Sys_LockWrite(FastCriticalSection*)' 'Sys_UnlockWrite(FastCriticalSection*)'; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-client-dvar-lock-combined-defined.txt"
+            if grep -F "$symbol" "$RUNNER_TEMP/iw3-client-dvar-lock-combined-undefined.txt"; then
+              echo "Android writer-gate provider failed to resolve original client/dvar service: $symbol" >&2
+              exit 1
+            fi
+          done
+          python3 - "$lock_source" "$lock_object" "$lock_combined" "$RUNNER_TEMP/iw3-client-dvar-lock-link.json" <<'PY'
+          import hashlib, json, pathlib, sys
+          source, obj, combined, report = map(pathlib.Path, sys.argv[1:])
+          data = {
+              "provider_source": str(source.relative_to(pathlib.Path.cwd())),
+              "provider_source_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+              "provider_object": obj.name,
+              "combined_object": combined.name,
+              "elf_architecture": "ELF64/AArch64",
+              "resolved_symbols": ["Sys_LockWrite(FastCriticalSection*)", "Sys_UnlockWrite(FastCriticalSection*)"],
+              "provider_algorithm": "original KisakCOD writer-gate semantics; sequentially-consistent atomics; sched_yield contention yield",
+              "runtime_linked": False,
+              "runtime_invoked": False,
+              "real_map_loaded": False,
+              "gameplay_proven": False,
+              "playable_apk": False
+          }
+          report.write_text(json.dumps(data, indent=2) + "\\n", encoding="utf-8")
+          print(json.dumps(data, indent=2))
+          PY
+          echo "IW3_ORIGINAL_BGAME_MELEE_DVAR_WRITER_GATE_EDGES_RESOLVED_AARCH64_GREEN"
           echo "IW3_ORIGINAL_BGAME_MELEE_DVARS_DVAR_REGISTER_FLOAT_EDGE_RESOLVED_AARCH64_GREEN"
           echo "IW3_ORIGINAL_BGAME_MELEE_DVAR_PROVIDER_EDGE_RESOLVED_AARCH64_GREEN"
           echo "IW3_BG_REGISTER_DVARS_RUNTIME_INVOKED=false"
@@ -1518,6 +1567,12 @@ jobs:
             ${{ runner.temp }}/iw3-original-client-input-with-melee-dvars-arm64.o
             ${{ runner.temp }}/iw3-client-input-with-melee-dvars-defined.txt
             ${{ runner.temp }}/iw3-client-input-with-melee-dvars-undefined.txt
+            ${{ runner.temp }}/iw3-client-dvar-lock-provider-arm64.o
+            ${{ runner.temp }}/iw3-client-dvar-lock-provider-elf.txt
+            ${{ runner.temp }}/iw3-client-dvar-lock-provider-defined.txt
+            ${{ runner.temp }}/iw3-client-dvar-lock-combined-defined.txt
+            ${{ runner.temp }}/iw3-client-dvar-lock-combined-undefined.txt
+            ${{ runner.temp }}/iw3-client-dvar-lock-link.json
           retention-days: 30
 
       - name: Attach original client input helper evidence (NOT APK)
