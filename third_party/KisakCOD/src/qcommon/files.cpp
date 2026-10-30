@@ -8,7 +8,8 @@
 #include <sound/snd_public.h>
 
 int fs_numServerReferencedIwds;
-char basename[64];
+// Avoid the POSIX basename() identifier exported by Android/Linux libc.
+char fs_mapBaseName[64];
 const char *fs_serverReferencedIwdNames[1024];
 int fs_serverReferencedIwds[1024];
 
@@ -19,12 +20,12 @@ char *__cdecl FS_GetMapBaseName(char *mapname)
 {
     // A map path can originate from external game data. The original
     // decompilation indexed mapname[length - 3] even for short strings and
-    // copied an unbounded basename into this 64-byte static buffer.
+    // copied an unbounded map basename into this 64-byte static buffer.
     iassert( mapname );
     if (!mapname)
     {
-        basename[0] = 0;
-        return basename;
+        fs_mapBaseName[0] = 0;
+        return fs_mapBaseName;
     }
     if (!I_strnicmp(mapname, "maps/mp/", 8))
         mapname += 8;
@@ -37,25 +38,25 @@ char *__cdecl FS_GetMapBaseName(char *mapname)
         // cannot be stripped safely and must not underflow the length.
         if (mapLength < 7)
         {
-            basename[0] = 0;
-            return basename;
+            fs_mapBaseName[0] = 0;
+            return fs_mapBaseName;
         }
         baseLength = mapLength - 7;
     }
-    if (baseLength >= sizeof(basename))
+    if (baseLength >= sizeof(fs_mapBaseName))
     {
         // Do not silently truncate a map identifier to a different name.
-        basename[0] = 0;
-        return basename;
+        fs_mapBaseName[0] = 0;
+        return fs_mapBaseName;
     }
-    memcpy(basename, mapname, baseLength);
-    basename[baseLength] = 0;
+    memcpy(fs_mapBaseName, mapname, baseLength);
+    fs_mapBaseName[baseLength] = 0;
     for (size_t i = 0; i < baseLength; ++i)
     {
-        if (basename[i] == '%')
-            basename[i] = '_';
+        if (fs_mapBaseName[i] == '%')
+            fs_mapBaseName[i] = '_';
     }
-    return basename;
+    return fs_mapBaseName;
 }
 
 BOOL __cdecl FS_serverPak(const char *pak)
