@@ -224,7 +224,10 @@ struct scr_anim_s // sizeof=0x4
     }
     scr_anim_s(int i)
     {
-        linkPointer = (const char *)i; // KISAKHACK
+        // Preserve the original 32-bit payload when this union widens on LP64.
+        // The value is stored as an integer bit pattern; it is not dereferenced here.
+        linkPointer = reinterpret_cast<const char *> (
+            static_cast<std::uintptr_t>(static_cast<std::uint32_t>(i)));
     }
     // ...
     //$76411D3CC105A18E6E4A61D5A929E310 ___u0; // ...

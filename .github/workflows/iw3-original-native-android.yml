@@ -2111,6 +2111,47 @@ jobs:
           echo "IW3_GAMEPLAY_PROVEN=false"
           echo "IW3_PLAYABLE_APK=false"
 
+      - name: Execute original scr_anim_s payload ABI regression and compile it for ARM64
+        shell: bash
+        run: |
+          set -euo pipefail
+          source="$GITHUB_WORKSPACE/android/iw3-native/scr_anim_abi_native_test.cpp"
+          include_flags=(
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/deps"
+          )
+          common_flags=(
+            -std=c++20 -DKISAK_SP=1 -DKISAK_OPENAL=1 -fms-extensions
+            -Wall -Wextra -UNDEBUG -O2
+          )
+          host="$RUNNER_TEMP/iw3-scr-anim-abi-host"
+          clang++ "${common_flags[@]}" "${include_flags[@]}" "$source" -o "$host"
+          "$host" | tee "$RUNNER_TEMP/iw3-scr-anim-abi-host.txt"
+
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          arm64="$RUNNER_TEMP/iw3-scr-anim-abi-arm64.o"
+          "$ndk/aarch64-linux-android26-clang++" "${common_flags[@]}" "${include_flags[@]}" -c "$source" -o "$arm64"
+          "$ndk/llvm-readelf" -h "$arm64" | tee "$RUNNER_TEMP/iw3-scr-anim-abi-arm64-elf.txt"
+          grep -F 'Class:                             ELF64' "$RUNNER_TEMP/iw3-scr-anim-abi-arm64-elf.txt"
+          grep -F 'Machine:                           AArch64' "$RUNNER_TEMP/iw3-scr-anim-abi-arm64-elf.txt"
+          echo "IW3_ORIGINAL_SCR_ANIM_HANDLE_AARCH64_COMPILE_PASS"
+          echo "IW3_SCR_ANIM_HANDLE_RUNTIME_LINKED=false"
+          echo "IW3_REAL_MAP_LOADED=false"
+          echo "IW3_GAMEPLAY_PROVEN=false"
+          echo "IW3_PLAYABLE_APK=false"
+
+      - name: Preserve scr_anim_s ABI evidence (NOT APK)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: z2026-iw3-scr-anim-handle-arm64-NOT-APK
+          path: |
+            ${{ runner.temp }}/iw3-scr-anim-abi-host.txt
+            ${{ runner.temp }}/iw3-scr-anim-abi-arm64.o
+            ${{ runner.temp }}/iw3-scr-anim-abi-arm64-elf.txt
+          if-no-files-found: warn
+          retention-days: 30
+
       - name: Attach original BGame weapon AArch64 audit (NOT APK)
         if: always()
         uses: actions/upload-artifact@v4
