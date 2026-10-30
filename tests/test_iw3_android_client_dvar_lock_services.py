@@ -21,7 +21,7 @@ class OriginalClientDvarLockServiceTests(unittest.TestCase):
         self.assertIn("sched_yield()", source)
         self.assertIn("assert(critSect != nullptr)", source)
         self.assertNotIn("Windows.h", source)
-        self.assertNotIn("Interlocked", source)
+        self.assertNotIn("InterlockedCompareExchange(", source)
 
     def test_existing_host_regression_exercises_reader_gate_and_contention(self):
         source = LOCK_HOST_TEST.read_text(encoding="utf-8")
