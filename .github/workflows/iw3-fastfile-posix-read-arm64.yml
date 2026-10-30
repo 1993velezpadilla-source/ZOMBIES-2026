@@ -1,0 +1,91 @@
+name: IW3 original FastFile POSIX reader ARM64 portability (NOT GAME)
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/iw3-fastfile-posix-read-arm64.yml'
+      - 'third_party/KisakCOD/src/database/db_file_load.cpp'
+      - 'third_party/KisakCOD/src/database/database.h'
+      - 'third_party/KisakCOD/src/database/db_fastfile_posix_io.h'
+      - 'android/iw3-native/db_fastfile_posix_io_native_test.cpp'
+      - 'tests/test_iw3_android_fastfile_posix_io.py'
+  push:
+    branches:
+      - feature/iw3-native-android-arm64-20261025
+    paths:
+      - '.github/workflows/iw3-fastfile-posix-read-arm64.yml'
+      - 'third_party/KisakCOD/src/database/db_file_load.cpp'
+      - 'third_party/KisakCOD/src/database/database.h'
+      - 'third_party/KisakCOD/src/database/db_fastfile_posix_io.h'
+      - 'android/iw3-native/db_fastfile_posix_io_native_test.cpp'
+      - 'tests/test_iw3_android_fastfile_posix_io.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: iw3-fastfile-posix-read-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  posix-read-portability:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      NDK_VER: "27.2.12479018"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run source-level regression and native POSIX reader tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest tests/test_iw3_android_fastfile_posix_io.py -v
+          c++ -std=c++20 -Wall -Wextra -Werror -UNDEBUG \
+            -I third_party/KisakCOD/src/database \
+            android/iw3-native/db_fastfile_posix_io_native_test.cpp \
+            -o "$RUNNER_TEMP/db_fastfile_posix_io_test"
+          "$RUNNER_TEMP/db_fastfile_posix_io_test"
+
+      - name: Install pinned Android NDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdk="$RUNNER_TEMP/android-sdk"
+          mkdir -p "$sdk/cmdline-tools/latest"
+          curl -fLsS --retry 3 -o "$RUNNER_TEMP/commandline-tools.zip" \
+            'https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip'
+          unzip -qo "$RUNNER_TEMP/commandline-tools.zip" -d "$RUNNER_TEMP/commandline-tools"
+          mv "$RUNNER_TEMP/commandline-tools/cmdline-tools/"* "$sdk/cmdline-tools/latest/"
+          yes | "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" --licenses >/dev/null || true
+          "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" "ndk;${NDK_VER}"
+          echo "ANDROID_NDK_HOME=$sdk/ndk/${NDK_VER}" >> "$GITHUB_ENV"
+
+      - name: Compile the same POSIX reader test for Android ARM64
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          "$ndk/aarch64-linux-android26-clang++" \
+            -std=c++20 -Wall -Wextra -Werror -UNDEBUG \
+            -I third_party/KisakCOD/src/database \
+            -c android/iw3-native/db_fastfile_posix_io_native_test.cpp \
+            -o "$RUNNER_TEMP/db_fastfile_posix_io_aarch64.o"
+          "$ndk/llvm-readelf" -h "$RUNNER_TEMP/db_fastfile_posix_io_aarch64.o" \
+            | tee "$RUNNER_TEMP/db-fastfile-posix-io-elf.txt"
+          grep -F 'ELF64' "$RUNNER_TEMP/db-fastfile-posix-io-elf.txt"
+          grep -F 'AArch64' "$RUNNER_TEMP/db-fastfile-posix-io-elf.txt"
+          echo "IW3_FASTFILE_POSIX_READER_AARCH64_OBJECT_PASS"
+          echo "IW3_FASTFILE_LOADER_RUNTIME_INTEGRATED=false"
+          echo "IW3_REAL_MAP_LOADED=false"
+          echo "IW3_GAMEPLAY_PROVEN=false"
+          echo "IW3_PLAYABLE_APK=false"
+
+      - name: Upload reader evidence (NOT APK)
+        uses: actions/upload-artifact@v4
+        with:
+          name: iw3-fastfile-posix-reader-aarch64-NOT-APK
+          path: |
+            ${{ runner.temp }}/db-fastfile-posix-io-elf.txt
+            ${{ runner.temp }}/db_fastfile_posix_io_aarch64.o
