@@ -41,8 +41,8 @@ struct clientDebug_t {
     clientDebugLineInfo_t clLines;
     clientDebugLineInfo_t svLinesBuffer;
     clientDebugLineInfo_t svLines;
-}
-#endif;
+};
+#endif
 #endif
 
 struct snd_alias_t;
