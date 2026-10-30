@@ -1,4 +1,11 @@
 #pragma once
+
+#if defined(__ANDROID__)
+#include <stdio.h>
+// MSVC exposes FILE as struct _iobuf. Bionic exposes FILE directly; keep
+// the original SP demo declarations type-compatible with sv_demo.cpp's FILE*.
+using _iobuf = FILE;
+#endif
 #include "server_frame.h"
 #include <qcommon/ent.h>
 

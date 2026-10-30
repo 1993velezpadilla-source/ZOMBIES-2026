@@ -57,6 +57,8 @@ class CommonLp64HeaderLayoutTests(unittest.TestCase):
             "FuncDebugData": ("0x18", "0x10"),
             "scrVmDebugPub_t": ("0x26410", "0x24210"),
             "scrVmGlob_t": ("0x2048", "0x2028"),
+            "scrAnimPub_t": ("0x820", "0x41C"),
+            "scrAnimGlob_t": ("0x218", "0x20C"),
         }
         for name, (lp64, win32) in layouts.items():
             with self.subTest(struct=name):

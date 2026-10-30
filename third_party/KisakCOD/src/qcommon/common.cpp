@@ -42,6 +42,28 @@
 
 #include <setjmp.h>
 
+#if defined(__ANDROID__)
+// Bionic provides the bounded C99 interfaces used by the original common
+// module. The engine call sites ignore the MSVC-specific truncation return
+// value and explicitly terminate their destination buffers.
+#ifndef _vsnprintf
+#define _vsnprintf vsnprintf
+#endif
+
+// Preserve the engine's build banner without inheriting a Win32-only macro.
+#ifndef CPUSTRING
+#if defined(__aarch64__)
+#define CPUSTRING "android-arm64"
+#elif defined(__x86_64__)
+#define CPUSTRING "android-x86_64"
+#elif defined(__arm__)
+#define CPUSTRING "android-arm"
+#else
+#define CPUSTRING "android"
+#endif
+#endif
+#endif
+
 
 #ifdef KISAK_SP
 #include <game/g_local.h>
@@ -396,7 +418,10 @@ void Com_Prefetch(const void* s, const uint32_t bytes, e_prefetch type)
 	case PRE_WRITE: break;
 	case PRE_READ:
 	case PRE_READ_WRITE:
-#ifdef _M_X686
+#if defined(__ANDROID__)
+        // ARM64 uses the compiler's non-temporal read-prefetch intrinsic.
+        __builtin_prefetch(s, 0, 0);
+#elif defined(_M_X686)
 		__asm
 		{
 			mov		ebx, s
@@ -447,14 +472,23 @@ void Com_OpenLogFile()
 {
     const char* BuildNumber; // eax
     const char* v1; // [esp-4h] [ebp-14h]
+#if defined(__ANDROID__)
+    time_t aclock;
+#else
     __int64 aclock; // [esp+0h] [ebp-10h] BYREF
+#endif
     tm* newtime; // [esp+Ch] [ebp-4h]
 
     if (Sys_IsMainThread() && !opening_qconsole)
     {
         opening_qconsole = 1;
+#if defined(__ANDROID__)
+        time(&aclock);
+        newtime = localtime(&aclock);
+#else
         _time64(&aclock);
         newtime = _localtime64(&aclock);
+#endif
 #ifdef KISAK_MP
         logfile = FS_FOpenTextFileWrite("console_mp.log");
 #elif KISAK_SP
