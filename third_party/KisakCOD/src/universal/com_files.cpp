@@ -1686,7 +1686,13 @@ void __cdecl FS_AddIwdFilesForGameDirectory(char *path, char *pszGameFolder)
     char *s0[1024]; // [esp+14Ch] [ebp-1000h] BYREF
 
     FS_BuildOSPath(path, pszGameFolder, (char *)"", ospath);
-    ospath[&ospath[strlen(ospath) + 1] - &ospath[1] - 1] = 0;
+    // FS_BuildOSPath leaves an empty path if the Android app-private root
+    // exceeds the engine's 256-byte path boundary. Do not index ospath[-1].
+    const size_t directoryLength = strlen(ospath);
+    if (directoryLength < 2 ||
+        (ospath[directoryLength - 1] != '/' && ospath[directoryLength - 1] != '\\'))
+        return;
+    ospath[directoryLength - 1] = '\0';
     // Sys_ListFiles may fail or return no entries on Android storage errors.
     // Never inspect an uninitialized count or dereference a null list.
     numfiles = 0;
@@ -1869,7 +1875,13 @@ void __cdecl FS_AddGameDirectory(char *path, char *dir, int bLanguageDirectory, 
     if (bLanguageDirectory)
     {
         FS_BuildOSPath(path, szGameFolder, (char *)"", ospath);
-        ospath[&ospath[strlen(ospath) + 1] - &ospath[1] - 1] = 0;
+        // An overlong Android root must not produce an ospath[-1] write
+        // or a probe of a bogus localized directory.
+        const size_t directoryLength = strlen(ospath);
+        if (directoryLength < 2 ||
+            (ospath[directoryLength - 1] != '/' && ospath[directoryLength - 1] != '\\'))
+            return;
+        ospath[directoryLength - 1] = '\0';
         if (!Sys_DirectoryHasContents(ospath))
             return;
     }
