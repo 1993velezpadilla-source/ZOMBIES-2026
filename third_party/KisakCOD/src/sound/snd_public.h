@@ -53,6 +53,13 @@ typedef DWORD FOURCC;
 #endif
 #endif
 #endif
+
+#if defined(__ANDROID__)
+// The original sound API retains an opaque HWND parameter for desktop callers;
+// Android does not create or dereference this Win32 window handle.
+typedef struct HWND__ *HWND;
+#endif
+
 #include <gfx_d3d/fxprimitives.h>
 #include <universal/memfile.h>
 
@@ -175,7 +182,11 @@ struct LoadedSound // sizeof=0x2C
     const char *name;
     MssSoundCOD4 sound;
 };
+#if defined(__ANDROID__)
+static_assert(sizeof(LoadedSound) == 64);
+#else
 static_assert(sizeof(LoadedSound) == 44);
+#endif
 
 struct StreamFileNameRaw // sizeof=0x8
 {                                       // ...
@@ -214,7 +225,11 @@ struct SndCurve // sizeof=0x48
     int knotCount;                      // ...
     float knots[8][2];                  // ...
 };
+#if defined(__ANDROID__)
+static_assert(sizeof(SndCurve) == 80);
+#else
 static_assert(sizeof(SndCurve) == 72);
+#endif
 
 struct MSSSpeakerLevels // sizeof=0x10
 {                                       // ...
@@ -267,7 +282,11 @@ struct snd_alias_t // sizeof=0x5C
     float envelopPercentage;
     SpeakerMap *speakerMap;
 };
+#if defined(__ANDROID__)
+static_assert(sizeof(snd_alias_t) == 128);
+#else
 static_assert(sizeof(snd_alias_t) == 92);
+#endif
 
 struct snd_alias_list_t // sizeof=0xC
 {                                       // ...
@@ -275,7 +294,11 @@ struct snd_alias_list_t // sizeof=0xC
     snd_alias_t *head;                  // ...
     int count;                          // ...
 };
+#if defined(__ANDROID__)
+static_assert(sizeof(snd_alias_list_t) == 24);
+#else
 static_assert(sizeof(snd_alias_list_t) == 12);
+#endif
 
 struct snd_entchannel_info_t // sizeof=0x50
 {                                       // ...
