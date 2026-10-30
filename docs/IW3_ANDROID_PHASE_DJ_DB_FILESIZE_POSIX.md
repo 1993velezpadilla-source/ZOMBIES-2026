@@ -22,3 +22,15 @@ This is still a portability increment, not a FastFile loader proof. The complete
 ## Remaining gate
 
 Compile the exact original database caller in the actual Android runtime target, resolve the database service graph without no-op stubs, and then demonstrate authentic FastFile deserialization and BSP/map initialization before claiming renderer or gameplay progress. Keep PR #4 open and unmerged.
+
+
+## CI result for the code revision `8ee30edb59130c47e77da744d70dadbe4a241f35`
+
+- Dedicated FastFile POSIX reader/opener workflow: [run 40992335708](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40992335708) — **PASS**.
+- The source regression suites completed successfully: 7 reader tests and 6 opener/caller tests. One earlier run failed because the new source test matched a newline-sensitive function signature; the selector was changed to search the signature prefix and the subsequent run passed.
+- Native POSIX reader test: `IW3_FASTFILE_POSIX_IO_TESTS_PASS checks=14`.
+- Exact extracted original `DB_ReadData()` / `DB_WaitXFileStage()` harness: `IW3_ORIGINAL_DB_READ_POSIX_BODY_PASS checks=12`.
+- NDK compile emitted ELF64/AArch64 objects for the POSIX reader, original read-body harness and rooted platform opener/size test. The log includes `IW3_FASTFILE_POSIX_OPEN_HELPER_AARCH64_OBJECT_PASS`.
+- Artifact [12949712302](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40992335708/artifacts/12949712302) contains object files and reports only, not an APK.
+
+At the time of this update, the broader original-source ARM64 audit and JNI diagnostic build were still running. They are not counted as passed here. Even if they pass, they do not prove that the complete database registry is linked into the Android runtime or that a FastFile/map is loaded.
