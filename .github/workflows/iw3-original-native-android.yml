@@ -1643,6 +1643,10 @@ jobs:
             ${{ runner.temp }}/iw3-original-g-runframe-plus-entity-arm64.o
             ${{ runner.temp }}/iw3-g-runframe-entity-defined.txt
             ${{ runner.temp }}/iw3-g-runframe-entity-undefined.txt
+            ${{ runner.temp }}/iw3-db-file-load-elf.txt
+            ${{ runner.temp }}/iw3-db-file-load-defined.txt
+            ${{ runner.temp }}/iw3-db-file-load-undefined.txt
+            ${{ runner.temp }}/iw3-build-arm64/CMakeFiles/iw3_sp_db_file_load_full_compile.dir/**/*.o
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_iwd_mount.a
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_iwd_services.a
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_unzip.a
