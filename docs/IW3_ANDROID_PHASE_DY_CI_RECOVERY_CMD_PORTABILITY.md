@@ -84,3 +84,34 @@ NDK compile or Android runtime execution. Do not infer gameplay.
    APK only when every gate passes.
 
 No Godot, no replacement engine, no diagnostic-JNI-as-game claim.
+
+## CI observation and follow-up — real OpenAL header dependency
+
+Focused full-command run
+[41103747583](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41103747583)
+completed **FAILURE**. The job logs confirm the tokenizer preparation ran and
+the Android NDK began compiling the **complete original** `cmd.cpp`, but the
+compiler stopped at `third_party/KisakCOD/src/sound/snd_local.h:14`:
+
+```text
+fatal error: 'AL/al.h' file not found
+23 warnings and 1 error generated.
+```
+
+This is a real external OpenAL API header dependency, not a successful object
+build and not evidence of a runnable audio subsystem.
+
+Commit `54e204c` updates the focused workflow to install `libopenal-dev`
+on the Linux runner, stage its **real** `AL/al.h`, `AL/alc.h` and `AL/efx.h`
+API headers in an isolated temporary include directory, and provide that
+include root to the Android NDK compiler. It does **not** enable the
+`IW3_ANDROID_COMMON_HEADER_ONLY_OPENAL` substitute declarations or
+pretend OpenAL runtime libraries have been linked into Android.
+
+Commit `b5a2322` adds a regression requiring the real header staging.
+The next focused workflow execution must be inspected for the next compiler
+error or a real ELF64/AArch64 `cmd.cpp` object. No PASS is claimed while
+the updated run remains queued or in progress.
+
+The full original command system, `Cmd_Init()`, filesystem startup,
+renderer and gameplay are still **not** executing in an Android APK.
