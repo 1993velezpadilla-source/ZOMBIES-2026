@@ -141,5 +141,14 @@ class Lp64ScriptLayoutTests(unittest.TestCase):
         self.assertIn("target_compile_definitions(iw3_sp_script_vm_full_compile PRIVATE KISAK_SP=1)", cmake)
         self.assertIn("IW3_CLIENT_RUNTIME_LINKED=false", (ROOT / "docs/IW3_ANDROID_PHASE_EA_SCRIPT_VM_LP64_TRACKING.md").read_text(encoding="utf-8"))
 
+
+    def test_original_script_vm_compile_gate_is_not_linked_into_jni_diagnostic(self):
+        cmake = (ROOT / "android/iw3-native/CMakeLists.txt").read_text(encoding="utf-8")
+        target_start = cmake.index("add_library(iw3_sp_script_vm_full_compile OBJECT")
+        target_end = cmake.index("endif()", target_start)
+        target_block = cmake[target_start:target_end]
+        self.assertIn("script/scr_vm.cpp", target_block)
+        self.assertNotIn("iw3_sp_script_vm_full_compile", cmake[cmake.index("add_library(iw3_sp_math SHARED"):])
+
 if __name__ == "__main__":
     unittest.main()
