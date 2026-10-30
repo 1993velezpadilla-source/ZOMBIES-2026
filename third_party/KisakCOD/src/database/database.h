@@ -3,6 +3,7 @@
 #include <cstddef>
 
 #include <zlib/zlib.h>
+#include <qcommon/fast_critical_section.h>
 
 #include <xanim/xanim.h>
 #include <xanim/xmodel.h>
