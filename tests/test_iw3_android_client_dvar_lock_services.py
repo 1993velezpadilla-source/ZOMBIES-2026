@@ -30,7 +30,7 @@ class OriginalClientDvarLockServiceTests(unittest.TestCase):
         self.assertIn("constexpr int kThreadCount = 8", source)
         self.assertIn("constexpr int kIterations = 12000", source)
         cmake = CMAKE.read_text(encoding="utf-8")
-        self.assertIn('"\${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_fs_lock_io.cpp"', cmake)
+        self.assertIn('"${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_fs_lock_io.cpp"', cmake)
         self.assertIn("iw3_original_fs_logfile_state_and_writer_lock", cmake)
 
     def test_arm64_client_dvar_audit_compiles_and_links_the_real_provider(self):
