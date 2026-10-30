@@ -1,6 +1,12 @@
 #include <universal/q_shared.h>
 #include "database.h"
 #include "db_fastfile_header.h"
+#if defined(__ANDROID__)
+#include "db_fastfile_posix_io.h"
+#include <sys/stat.h>
+#include <cerrno>
+#include <cstdint>
+#endif
 
 #include <qcommon/threads.h>
 #include <win32/win_local.h>
@@ -18,7 +24,14 @@ struct DB_LoadData // sizeof=0x68
     const char* filename;               // ...
     XZoneMemory* zoneMem;               // ...
     int32_t outstandingReads;               // ...
+#if defined(__ANDROID__)
+    uint64_t posixOffset;
+    size_t posixBytesRead;
+    int posixReadError;
+    bool posixEof;
+#else
     OVERLAPPED overlapped;             // ...
+#endif
     z_stream_s stream;                  // ...
     uint8_t* compressBufferStart; // ...
     uint8_t* compressBufferEnd; // ...
@@ -33,8 +46,13 @@ bool g_anyFastFileLoaded;
 #endif
 
 DB_LoadData g_load;
+#if defined(__ANDROID__)
+volatile int32_t g_loadedSize;
+volatile int32_t g_loadedExternalBytes;
+#else
 LONG g_loadedSize;
 LONG g_loadedExternalBytes;
+#endif
 volatile int32_t g_totalSize;
 volatile int32_t g_totalExternalBytes;
 int32_t g_trackLoadProgress;
@@ -58,7 +76,14 @@ void __cdecl DB_CancelLoadXFile()
         DB_AuthLoad_InflateEnd(&g_load.stream);
         if (!g_load.f)
             MyAssertHandler(".\\database\\db_file_load.cpp", 165, 0, "%s", "g_load.f");
+#if defined(__ANDROID__)
+        const int fd = DBFastFilePosixFdFromOpaque(g_load.f);
+        if (fd >= 0)
+            close(fd);
+        g_load.f = nullptr;
+#else
         CloseHandle(g_load.f);
+#endif
     }
 }
 
@@ -71,15 +96,25 @@ int32_t DB_WaitXFileStage()
     if (g_load.outstandingReads <= 0)
         MyAssertHandler(".\\database\\db_file_load.cpp", 280, 0, "%s", "g_load.outstandingReads > 0");
     --g_load.outstandingReads;
+#if defined(__ANDROID__)
+    result = __atomic_add_fetch(&g_loadedSize, 1, __ATOMIC_SEQ_CST);
+    g_load.stream.avail_in += static_cast<uint32_t>(g_load.posixBytesRead);
+    g_load.posixBytesRead = 0;
+#else
     SleepEx(0xFFFFFFFF, 1);
     result = InterlockedIncrement(&g_loadedSize);
     g_load.stream.avail_in += 0x40000;
+#endif
     return result;
 }
 
 void __cdecl DB_LoadedExternalData(int32_t size)
 {
+#if defined(__ANDROID__)
+    __atomic_add_fetch(&g_loadedExternalBytes, size, __ATOMIC_SEQ_CST);
+#else
     InterlockedExchangeAdd(&g_loadedExternalBytes, size);
+#endif
 }
 
 double __cdecl DB_GetLoadedFraction()
@@ -146,6 +181,10 @@ void __cdecl DB_LoadXFileData(uint8_t *pos, uint32_t size)
             MyAssertHandler(".\\database\\db_file_load.cpp", 402, 0, "%s\n\t%s", "err == Z_OK", v2);
         }
     LABEL_19:
+#if defined(__ANDROID__)
+        if (!g_load.stream.avail_in && g_load.posixEof && !g_load.outstandingReads)
+            Com_Error(ERR_DROP, "Unexpected end of FastFile '%s' while inflating", g_load.filename);
+#endif
         DB_WaitXFileStage();
         DB_ReadXFileStage();
     }
@@ -157,8 +196,13 @@ void DB_ReadXFileStage()
     {
         if (g_load.outstandingReads)
             MyAssertHandler(".\\database\\db_file_load.cpp", 254, 0, "%s", "!g_load.outstandingReads");
+#if defined(__ANDROID__)
+        if (!DB_ReadData() && g_load.posixReadError != 0)
+            Com_Error(ERR_DROP, "Read error of FastFile '%s' (errno %d)", g_load.filename, g_load.posixReadError);
+#else
         if (!DB_ReadData() && GetLastError() != 38)
             Com_Error(ERR_DROP, "Read error of file '%s'", g_load.filename);
+#endif
     }
 }
 
@@ -172,6 +216,35 @@ int32_t __cdecl DB_ReadData()
         MyAssertHandler(".\\database\\db_file_load.cpp", 189, 0, "%s", "g_load.f");
     if (g_load.interrupt)
         g_load.interrupt();
+#if defined(__ANDROID__)
+    const int fd = DBFastFilePosixFdFromOpaque(g_load.f);
+    if (fd < 0)
+    {
+        g_load.posixReadError = EBADF;
+        return 0;
+    }
+    if (g_load.posixEof)
+        return 0;
+    fileBuffer = &g_load.compressBufferStart[g_load.posixOffset % 0x80000];
+    size_t bytesRead = 0;
+    int readError = 0;
+    if (DBFastFilePosixReadAt(fd, fileBuffer, 0x40000u, g_load.posixOffset,
+                              &bytesRead, &readError) != 0)
+    {
+        g_load.posixReadError = readError;
+        return 0;
+    }
+    if (bytesRead == 0)
+    {
+        g_load.posixEof = true;
+        return 0;
+    }
+    g_load.posixBytesRead = bytesRead;
+    g_load.posixReadError = 0;
+    ++g_load.outstandingReads;
+    g_load.posixOffset += 0x40000u;
+    return 1;
+#else
     fileBuffer = &g_load.compressBufferStart[g_load.overlapped.Offset % 0x80000];
     Sys_WaitDatabaseThread();
     if (!ReadFileEx(g_load.f, fileBuffer, 0x40000u, &g_load.overlapped, (LPOVERLAPPED_COMPLETION_ROUTINE)DB_FileReadCompletion))
@@ -179,8 +252,10 @@ int32_t __cdecl DB_ReadData()
     ++g_load.outstandingReads;
     g_load.overlapped.Offset += 0x40000;
     return 1;
+#endif
 }
 
+#if !defined(__ANDROID__)
 void __stdcall DB_FileReadCompletion(
     uint32_t dwErrorCode,
     uint32_t dwNumberOfBytesTransfered,
@@ -188,6 +263,7 @@ void __stdcall DB_FileReadCompletion(
 {
     ;
 }
+#endif
 
 void __cdecl DB_LoadDelayedImages()
 {
@@ -303,7 +379,15 @@ void __cdecl DB_LoadXFileInternal()
     DB_LoadXFileData((uint8_t *)&file, sizeof(XFile));
     if (g_trackLoadProgress)
     {
+#if defined(__ANDROID__)
+        struct stat fileStat = {};
+        const int fd = DBFastFilePosixFdFromOpaque(g_load.f);
+        if (fd < 0 || fstat(fd, &fileStat) != 0 || fileStat.st_size > INT32_MAX)
+            Com_Error(ERR_DROP, "Unable to query FastFile size for '%s'", g_load.filename);
+        fileSize = static_cast<int32_t>(fileStat.st_size);
+#else
         fileSize = GetFileSize(g_load.f, 0);
+#endif
         if (file.externalSize + fileSize >= 0x100000)
         {
             g_totalSize = (fileSize + 0x3FFFF) / 0x40000 - g_loadedSize;
