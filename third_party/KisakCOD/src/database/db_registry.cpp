@@ -3273,19 +3273,25 @@ void __cdecl DB_Cleanup()
 int32_t __cdecl DB_FileSize(const char *zoneName, int32_t isMod)
 {
     char filename[260]; // [esp+0h] [ebp-110h] BYREF
-    int32_t size; // [esp+108h] [ebp-8h]
-    void *zoneFile; // [esp+10Ch] [ebp-4h]
 
     if (isMod)
         DB_BuildOSPath_Mod(zoneName, 0x100u, filename);
     else
         DB_BuildOSPath(zoneName, 0x100u, filename);
+#if defined(__ANDROID__)
+    // Use the same filesDir-confined open/stat/close path as the actual
+    // FastFile loader; never pass an Android path to Win32 HANDLE APIs.
+    return DBFastFilePosixFileSizeEnginePath(filename);
+#else
+    int32_t size; // [esp+108h] [ebp-8h]
+    void *zoneFile; // [esp+10Ch] [ebp-4h]
     zoneFile = CreateFileA(filename, 0x80000000, 1u, 0, 3u, 0x60000000u, 0);
     if (zoneFile == (void *)-1)
         return 0;
     size = GetFileSize(zoneFile, 0);
     CloseHandle(zoneFile);
     return size;
+#endif
 }
 
 void __cdecl Load_GetCurrentZoneHandle(uint8_t *handle)
