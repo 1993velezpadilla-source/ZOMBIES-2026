@@ -36,27 +36,44 @@
 
 #include <setjmp.h>
 
+#if defined(__ANDROID__)
+// Platform provider is supplied by the eventual Android system layer; this
+// declaration keeps the original fatal path explicit in compile-only audits.
+void __cdecl Sys_Error(const char *error, ...);
+#endif
+
 
 void Log(char const *format, ...)
 {
     char buffer[4096] = { 0 };
-    static bool bFirst = true;
-    FILE* logFile = NULL;
-
-    if (bFirst) {
-        logFile = fopen("F:\\swaglord.txt", "w"); // create new log
-        fprintf(logFile, "--Start of log--\n");
-        bFirst = false;
-    }
-    else {
-        logFile = fopen("F:\\swaglord.txt", "a"); // append to log
-    }
-    setbuf(logFile, NULL); // Turn off buffered I/O, decreases performance but if crash occurs, no unflushed buffer.
     va_list args;
     va_start(args, format);
-    vsnprintf(buffer, 4096, format, args);
-    fprintf(logFile, buffer);
+    vsnprintf(buffer, sizeof(buffer), format, args);
     va_end(args);
+
+    static bool bFirst = true;
+    FILE* logFile = nullptr;
+    if (bFirst)
+    {
+        logFile = fopen("F:\\swaglord.txt", "w");
+        bFirst = false;
+        if (logFile)
+            fputs("--Start of log--\n", logFile);
+    }
+    else
+    {
+        logFile = fopen("F:\\swaglord.txt", "a");
+    }
+
+    // This legacy diagnostic helper must remain safe when its Windows-only
+    // destination is unavailable on Android.
+    if (!logFile)
+    {
+        fputs(buffer, stderr);
+        return;
+    }
+    setbuf(logFile, nullptr);
+    fputs(buffer, logFile);
     fclose(logFile);
 }
 
