@@ -241,6 +241,11 @@ int32_t __cdecl DB_ReadData()
     }
     g_load.posixBytesRead = bytesRead;
     g_load.posixReadError = 0;
+    // DBFastFilePosixReadAt retries short positive reads until the requested
+    // chunk is full or pread reports EOF. A short successful result therefore
+    // proves physical EOF; publish it now so truncated streams fail before
+    // issuing a redundant read beyond the end of the FastFile.
+    g_load.posixEof = bytesRead < 0x40000u;
     ++g_load.outstandingReads;
     g_load.posixOffset += 0x40000u;
     return 1;
