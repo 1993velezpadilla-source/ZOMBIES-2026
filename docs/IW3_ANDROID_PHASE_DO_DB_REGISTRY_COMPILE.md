@@ -66,6 +66,19 @@ for desktop builds. `IsConfigFile` now uses its actual boolean return semantics
 instead of importing Win32's `BOOL` typedef. This does not replace any engine
 service implementation. The next NDK attempt will reveal remaining Windows file
 operations in the optional zone-reorder CSV path.
+## Third NDK result: renderer backend still imported D3D9 directly
+
+With the Win32 local header excluded, the next Android compile attempt
+[41013294122](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41013294122)
+passed the new qcommon include boundary and stopped at
+`gfx_d3d/rb_backend.h:5`, which independently included `d3d9.h`. Its required
+opaque interface types are already supplied through the original shared
+`r_material.h`/`r_gfx.h` Android declaration path, so the backend header now
+keeps the real SDK include on desktop only. This adds no renderer behavior.
+
+The next NDK build is still needed to discover remaining D3D declarations
+and the Windows-only zone-reorder CSV I/O. The complete registry is not yet
+compiled or linked.
 ## What this does not prove
 
 This is a compile gate only. It does not link the database registry to the
