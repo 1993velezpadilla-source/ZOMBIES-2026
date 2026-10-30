@@ -23,7 +23,7 @@ class OriginalIw3WorkflowIntegrityTests(unittest.TestCase):
             1,
         )
         self.assertEqual(
-            source.count("name: z2026-iw3-original-native-arm64"),
+            source.count("name: z2026-iw3-real-math-arm64-phase-a-NOT-APK"),
             1,
         )
 
