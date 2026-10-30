@@ -48,6 +48,36 @@ class OriginalDbRegistryCompileGateTests(unittest.TestCase):
         self.assertIn("iw3-db-registry-undefined.txt", source)
         self.assertIn("IW3_PLAYABLE_APK=false", source)
 
+    def test_android_d3d9_header_exposes_only_opaque_abi_types(self):
+        source = (ROOT / "third_party/KisakCOD/src/gfx_d3d/r_d3d9_opaque.h").read_text(encoding="utf-8")
+        for declaration in (
+            "enum _D3DFORMAT : int",
+            "D3DFMT_D24S8 = 75",
+            "D3DFMT_D24X8 = 77",
+            "D3DFMT_D16 = 80",
+            "enum _D3DCUBEMAP_FACES : int",
+            "struct _D3DDISPLAYMODE",
+            "static_assert(sizeof(_D3DDISPLAYMODE) == 16",
+            "struct IDirect3DDevice9;",
+        ):
+            self.assertIn(declaration, source)
+        self.assertNotIn("CreateDevice(", source)
+        self.assertNotIn("inline", source)
+
+    def test_r_init_uses_sdk_headers_only_outside_android(self):
+        source = (ROOT / "third_party/KisakCOD/src/gfx_d3d/r_init.h").read_text(encoding="utf-8")
+        guard = source.index("#if !defined(__ANDROID__)")
+        windows = source.index("#include <Windows.h>", guard)
+        d3d = source.index("#include <d3d9.h>", windows)
+        end = source.index("#endif", d3d)
+        self.assertLess(guard, windows)
+        self.assertLess(windows, d3d)
+        self.assertLess(d3d, end)
+
+    def test_original_r_gfx_selects_opaque_android_d3d_declarations(self):
+        source = (ROOT / "third_party/KisakCOD/src/gfx_d3d/r_gfx.h").read_text(encoding="utf-8")
+        self.assertIn('#if defined(__ANDROID__)\n#include "r_d3d9_opaque.h"\n#else\n#include <d3d9.h>\n#endif', source)
+
 
 if __name__ == "__main__":
     unittest.main()
