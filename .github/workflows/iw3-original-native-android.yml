@@ -779,6 +779,16 @@ jobs:
           # engine source C++ module ported and linked into a native .so.
           echo "IW3_ORIGINAL_SOURCE_ANDROID_ARM64_ELF_GREEN"
 
+      - name: Preserve original FastFile loader ARM64 object (NOT APK)
+        uses: actions/upload-artifact@v4
+        with:
+          name: iw3-original-db-file-load-aarch64-object-NOT-APK
+          path: |
+            ${{ runner.temp }}/iw3-db-file-load-elf.txt
+            ${{ runner.temp }}/iw3-db-file-load-defined.txt
+            ${{ runner.temp }}/iw3-db-file-load-undefined.txt
+            ${{ runner.temp }}/iw3-build-arm64/CMakeFiles/iw3_sp_db_file_load_full_compile.dir/**/*.o
+
       - name: Verify COMPLETE original IW3 frame compiled with real ARM64 state headers
         shell: bash
         run: |
@@ -1576,10 +1586,8 @@ jobs:
           echo "IW3_PLAYABLE_APK=false"
 
       - name: Attach evidence and compiled native module (NOT an APK)
-        if: always()
         uses: actions/upload-artifact@v4
         with:
-          if-no-files-found: warn
           name: z2026-iw3-real-math-arm64-phase-a-NOT-APK
           path: |
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_math.so
