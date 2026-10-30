@@ -12,7 +12,13 @@ WORKFLOW = ROOT / ".github/workflows/iw3-original-native-android.yml"
 class OriginalDbRegistryCompileGateTests(unittest.TestCase):
     def test_original_registry_uses_the_real_android_fastfile_opener(self):
         source = REGISTRY.read_text(encoding="utf-8")
-        self.assertIn('#if defined(__ANDROID__)\\n#include "db_fastfile_posix_open.h"\\n#include "db_registry_android_compat.h"\\n#endif', source)
+        android = source.index("#if defined(__ANDROID__)")
+        opener = source.index('#include "db_fastfile_posix_open.h"', android)
+        compat = source.index('#include "db_registry_android_compat.h"', opener)
+        end = source.index("#endif", compat)
+        self.assertLess(android, opener)
+        self.assertLess(opener, compat)
+        self.assertLess(compat, end)
         self.assertIn("DBFastFilePosixOpenEnginePath(filename, &zoneFileSize, &zoneOpenError)", source)
         self.assertIn("zone->fileSize = zoneFileSize;", source)
         self.assertIn("return DBFastFilePosixFileSizeEnginePath(filename);", source)
