@@ -17,6 +17,15 @@ class OriginalDbRegistryCompileGateTests(unittest.TestCase):
         self.assertIn("zone->fileSize = zoneFileSize;", source)
         self.assertIn("return DBFastFilePosixFileSizeEnginePath(filename);", source)
 
+    def test_android_registry_does_not_import_win32_directinput_local_header(self):
+        source = REGISTRY.read_text(encoding="utf-8")
+        android_branch = source.index("#if defined(__ANDROID__)\n#include <qcommon/qcommon.h>")
+        win_local = source.index("#include <win32/win_local.h>")
+        branch_end = source.index("#endif", android_branch)
+        self.assertLess(android_branch, win_local)
+        self.assertLess(win_local, len(source))
+        self.assertLess(branch_end, win_local)
+        self.assertIn("bool __cdecl IsConfigFile(const char *name)", source)
     def test_windows_file_open_path_remains_separate(self):
         source = REGISTRY.read_text(encoding="utf-8")
         self.assertIn("#else\n    if (I_stricmp(zoneName, \"mp_patch\"))", source)
