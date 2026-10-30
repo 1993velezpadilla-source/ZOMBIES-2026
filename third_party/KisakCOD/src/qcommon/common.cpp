@@ -9,7 +9,9 @@
 #include <client/client.h>
 #include <win32/win_net_debug.h>
 #include <bgame/bg_local.h>
+#if !defined(IW3_ANDROID_DISABLE_SCRIPT_DEBUGGER)
 #include <script/scr_debugger.h>
+#endif
 #include "com_bsp.h"
 #include "com_playerprofile.h"
 #include <universal/com_files.h>
@@ -294,7 +296,11 @@ void __cdecl Debug_Frame(int localClientNum)
     ++com_lastFrameIndex;
     while (1)
     {
+#if !defined(IW3_ANDROID_DISABLE_SCRIPT_DEBUGGER)
         newEvent = Scr_UpdateDebugSocket();
+#else
+        newEvent = 0;
+#endif
         newEvent2 = Debug_EventLoop(localClientNum);
         com_frameTime = Sys_Milliseconds();
         if (com_lastFrameTime[lastFrameIndex] > com_frameTime)
@@ -308,12 +314,14 @@ void __cdecl Debug_Frame(int localClientNum)
     cls.realFrametime = Com_ModifyMsec(msec);
     cls.realtime += cls.frametime;
     CL_UpdateSound();
+#if !defined(IW3_ANDROID_DISABLE_SCRIPT_DEBUGGER)
     if (Scr_CanDrawScript())
     {
         R_BeginDebugFrame();
         Scr_DrawScript();
         R_EndDebugFrame();
     }
+#endif
 #ifdef KISAK_MP
     iassert( (bgs == 0) );
     bgs = oldBgs;
@@ -2127,7 +2135,9 @@ void __cdecl Com_CheckSyncFrame()
 #ifdef KISAK_SP
     SV_WaitSaveGame();
 #endif
+#if !defined(IW3_ANDROID_DISABLE_SCRIPT_DEBUGGER)
     Scr_UpdateRemoteDebugger();
+#endif
     DB_Update();
 }
 

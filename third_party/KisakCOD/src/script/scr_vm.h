@@ -3,7 +3,9 @@
 
 #include <xanim/xanim.h>
 
+#if !defined(IW3_ANDROID_DISABLE_SCRIPT_DEBUGGER)
 #include "scr_debugger.h"
+#endif
 #include <bgame/bg_local.h>
 
 enum $3FAD84344DD9017EDEA6C2E0F6A382A4 : __int32

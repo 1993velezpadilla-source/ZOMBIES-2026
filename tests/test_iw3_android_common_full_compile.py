@@ -46,6 +46,20 @@ class OriginalCommonBootstrapCompileGateTests(unittest.TestCase):
             self.assertIn("#include <d3d9.h>", source)
             self.assertIn("#else\n#include <d3d9.h>\n#endif", source)
 
+    def test_android_common_bootstrap_excludes_only_optional_desktop_script_debugger(self):
+        cmake = (ROOT / "android/iw3-native/CMakeLists.txt").read_text(encoding="utf-8")
+        start = cmake.index("add_library(iw3_sp_common_full_compile OBJECT")
+        end = cmake.index("endif()", start)
+        self.assertIn("IW3_ANDROID_DISABLE_SCRIPT_DEBUGGER=1", cmake[start:end])
+
+        common = (ROOT / "third_party/KisakCOD/src/qcommon/common.cpp").read_text(encoding="utf-8")
+        vm = (ROOT / "third_party/KisakCOD/src/script/scr_vm.h").read_text(encoding="utf-8")
+        self.assertIn("#if !defined(IW3_ANDROID_DISABLE_SCRIPT_DEBUGGER)\n#include <script/scr_debugger.h>\n#endif", common)
+        self.assertIn("#if !defined(IW3_ANDROID_DISABLE_SCRIPT_DEBUGGER)\n#include \"scr_debugger.h\"\n#endif", vm)
+        for call in ("Scr_UpdateDebugSocket()", "Scr_CanDrawScript()", "Scr_DrawScript()", "Scr_UpdateRemoteDebugger()"):
+            self.assertIn(call, common)
+        self.assertIn("newEvent = 0;", common)
+
     def test_original_bootstrap_translation_unit_contains_engine_entrypoints(self):
         source = (ROOT / "third_party/KisakCOD/src/qcommon/common.cpp").read_text(encoding="utf-8")
         self.assertRegex(source, r"void\s+__cdecl\s+Com_Init\s*\(")
