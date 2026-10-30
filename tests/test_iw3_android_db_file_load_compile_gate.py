@@ -115,6 +115,8 @@ class OriginalDbFileLoadCompileGateTests(unittest.TestCase):
         renderer = (ROOT / "third_party/KisakCOD/src/gfx_d3d/r_debug.h").read_text(encoding="utf-8")
         self.assertIn("#ifndef KISAK_CLIENT_DEBUG_TYPES_DEFINED", client)
         self.assertIn("#ifndef KISAK_CLIENT_DEBUG_TYPES_DEFINED", renderer)
+        self.assertIn("clientDebugLineInfo_t svLines;\n};\n#endif", client)
+        self.assertNotIn("#endif;", client)
         sound = (ROOT / "third_party/KisakCOD/src/sound/snd_public.h").read_text(encoding="utf-8")
         self.assertIn("typedef struct HWND__ *HWND;\ntypedef int BOOL;\n#endif", sound)
 
