@@ -49,6 +49,10 @@ class OriginalCommandTokenizerTests(unittest.TestCase):
         workflow = WORKFLOW.read_text(encoding="utf-8")
         self.assertIn("IW3_EXTRACTED_CMD_TOKENIZER", cmake)
         self.assertIn("add_library(iw3_sp_cmd_tokenizer STATIC", cmake)
+        self.assertIn("add_library(iw3_sp_cmd_full_compile OBJECT", cmake)
+        self.assertIn("${IW3_ENGINE_SOURCE_ROOT}/qcommon/cmd.cpp", cmake)
+        self.assertIn("IW3_ORIGINAL_CMD_FULL_TU_AARCH64_OBJECT_PASS", workflow)
+        self.assertIn("IW3_CMD_INIT_INVOKED=false", workflow)
         self.assertNotIn(
             "target_link_libraries(iw3_sp_math PRIVATE iw3_sp_cmd_tokenizer",
             cmake,
