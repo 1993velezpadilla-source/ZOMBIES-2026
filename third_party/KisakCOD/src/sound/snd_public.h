@@ -56,9 +56,10 @@ typedef DWORD FOURCC;
 #endif
 
 #if defined(__ANDROID__)
-// The original sound API retains an opaque HWND parameter for desktop callers;
-// Android does not create or dereference this Win32 window handle.
+// The original sound API retains opaque Win32 parameter types for desktop
+// callers. Android does not create or dereference these handles.
 typedef struct HWND__ *HWND;
+typedef int BOOL;
 #endif
 
 #include <gfx_d3d/fxprimitives.h>
