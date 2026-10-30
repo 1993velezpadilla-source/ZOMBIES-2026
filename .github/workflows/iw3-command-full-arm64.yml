@@ -1,0 +1,117 @@
+name: IW3 original command translation unit ARM64 portability (NOT GAME)
+
+on:
+  push:
+    branches:
+      - feature/iw3-native-android-arm64-20261025
+    paths:
+      - '.github/workflows/iw3-command-full-arm64.yml'
+      - 'third_party/KisakCOD/src/qcommon/cmd.cpp'
+      - 'third_party/KisakCOD/src/qcommon/cmd.h'
+      - 'third_party/KisakCOD/src/qcommon/threads.h'
+      - 'third_party/KisakCOD/src/win32/win_local.h'
+      - 'third_party/KisakCOD/src/script/scr_debugger.h'
+      - 'third_party/KisakCOD/src/script/scr_yacc.h'
+      - 'android/iw3-native/CMakeLists.txt'
+      - 'tests/test_iw3_android_cmd_tokenizer.py'
+      - 'tools/iw3_android/prepare_real_engine_cmd_tokenizer.py'
+  pull_request:
+    branches:
+      - feature/zombies-offline-sp-weapons-20261024
+    paths:
+      - '.github/workflows/iw3-command-full-arm64.yml'
+      - 'third_party/KisakCOD/src/qcommon/cmd.cpp'
+      - 'third_party/KisakCOD/src/qcommon/cmd.h'
+      - 'third_party/KisakCOD/src/qcommon/threads.h'
+      - 'third_party/KisakCOD/src/win32/win_local.h'
+      - 'third_party/KisakCOD/src/script/scr_debugger.h'
+      - 'third_party/KisakCOD/src/script/scr_yacc.h'
+      - 'android/iw3-native/CMakeLists.txt'
+      - 'tests/test_iw3_android_cmd_tokenizer.py'
+      - 'tools/iw3_android/prepare_real_engine_cmd_tokenizer.py'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: iw3-command-full-arm64-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  original-command-arm64:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      NDK_VER: "27.2.12479018"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify original tokenizer extraction and regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s tests -p 'test_iw3_android_cmd_tokenizer.py' -v
+          python3 tools/iw3_android/prepare_real_engine_cmd_tokenizer.py \
+            --engine third_party/KisakCOD \
+            --output "$RUNNER_TEMP/iw3_cmd_tokenizer.cpp" \
+            --report "$RUNNER_TEMP/iw3_cmd_tokenizer.json"
+          grep -F '"original_tokenizer_and_end_functions_preserved_verbatim": true' "$RUNNER_TEMP/iw3_cmd_tokenizer.json"
+          grep -F '"playable_apk": false' "$RUNNER_TEMP/iw3_cmd_tokenizer.json"
+
+      - name: Install pinned Android NDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdk="$RUNNER_TEMP/android-sdk"
+          mkdir -p "$sdk/cmdline-tools/latest"
+          curl -fLsS --retry 3 -o "$RUNNER_TEMP/commandline-tools.zip" \
+            'https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip'
+          unzip -qo "$RUNNER_TEMP/commandline-tools.zip" -d "$RUNNER_TEMP/commandline-tools"
+          mv "$RUNNER_TEMP/commandline-tools/cmdline-tools/"* "$sdk/cmdline-tools/latest/"
+          yes | "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" --licenses >/dev/null || true
+          "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" "ndk;${NDK_VER}"
+          echo "ANDROID_NDK_HOME=$sdk/ndk/${NDK_VER}" >> "$GITHUB_ENV"
+
+      - name: Compile the complete original KisakCOD cmd.cpp for Android ARM64
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          source="$GITHUB_WORKSPACE/third_party/KisakCOD/src/qcommon/cmd.cpp"
+          object="$RUNNER_TEMP/iw3-original-cmd-full-aarch64.o"
+          test -s "$source"
+          "$ndk/aarch64-linux-android26-clang++" \
+            -std=c++20 -DKISAK_SP=1 -DKISAK_OPENAL=1 -fms-extensions \
+            -Wall -Wextra -UNDEBUG -O2 -fsigned-char -frounding-math -fno-fast-math \
+            -I "$GITHUB_WORKSPACE/third_party/KisakCOD/src" \
+            -I "$GITHUB_WORKSPACE/third_party/KisakCOD/deps" \
+            -c "$source" -o "$object"
+          "$ndk/llvm-readelf" -h "$object" | tee "$RUNNER_TEMP/iw3-cmd-full-elf.txt"
+          grep -F 'Class:                             ELF64' "$RUNNER_TEMP/iw3-cmd-full-elf.txt"
+          grep -F 'Machine:                           AArch64' "$RUNNER_TEMP/iw3-cmd-full-elf.txt"
+          "$ndk/llvm-nm" -C --defined-only "$object" | tee "$RUNNER_TEMP/iw3-cmd-full-defined.txt"
+          for symbol in 'Cmd_Init()' 'Cmd_AddCommandInternal(' 'Cmd_ExecuteSingleCommand(' 'Cmd_TokenizeString(char*)' 'Cmd_EndTokenizedString()'; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-cmd-full-defined.txt"
+          done
+          "$ndk/llvm-nm" -C -u "$object" | tee "$RUNNER_TEMP/iw3-cmd-full-undefined.txt"
+          echo "IW3_ORIGINAL_CMD_FULL_TU_AARCH64_OBJECT_PASS"
+          echo "IW3_CMD_FULL_TU_RUNTIME_LINKED=false"
+          echo "IW3_CMD_INIT_INVOKED=false"
+          echo "IW3_FS_STARTUP_RUNTIME_INVOKED=false"
+          echo "IW3_REAL_MAP_LOADED=false"
+          echo "IW3_PLAYABLE_APK=false"
+
+      - name: Preserve command-system portability evidence (NOT APK)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: iw3-original-command-full-aarch64-NOT-APK
+          path: |
+            ${{ runner.temp }}/iw3-original-cmd-full-aarch64.o
+            ${{ runner.temp }}/iw3-cmd-full-elf.txt
+            ${{ runner.temp }}/iw3-cmd-full-defined.txt
+            ${{ runner.temp }}/iw3-cmd-full-undefined.txt
+            ${{ runner.temp }}/iw3_cmd_tokenizer.cpp
+            ${{ runner.temp }}/iw3_cmd_tokenizer.json
+          if-no-files-found: warn
+          retention-days: 30
