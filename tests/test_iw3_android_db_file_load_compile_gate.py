@@ -125,6 +125,14 @@ class OriginalDbFileLoadCompileGateTests(unittest.TestCase):
         self.assertIn("- 'third_party/KisakCOD/src/**'", source)
         self.assertIn("- 'third_party/KisakCOD/deps/**'", source)
 
+    def test_original_loader_evidence_upload_runs_even_if_later_edges_fail(self):
+        source = WORKFLOW.read_text(encoding="utf-8")
+        step = source.index("- name: Attach evidence and compiled native module (NOT an APK)")
+        upload = source.index("uses: actions/upload-artifact@v4", step)
+        self.assertIn("if: always()", source[step:upload])
+        self.assertIn("iw3-db-file-load-elf.txt", source[upload:])
+        self.assertIn("iw3-db-file-load-undefined.txt", source[upload:])
+
 
 if __name__ == "__main__":
     unittest.main()
