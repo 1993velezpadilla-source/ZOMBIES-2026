@@ -26,6 +26,12 @@ through short positive reads and returns a short count only after `pread()`
 reports EOF. A full 256 KiB read does not set EOF; a final short read does.
 The original Windows `ReadFileEx` branch remains unchanged.
 
+The same truncated-EOF branch now calls the original `DB_CancelLoadXFile()`
+before `Com_Error(ERR_DROP, ...)`, matching the existing corrupt-inflater
+error path. This releases the inflater and closes the Android POSIX descriptor
+before the engine unwinds the failed zone load. A source regression verifies
+the cleanup call occurs before the error dispatch.
+
 The extracted-function harness in
 `tools/iw3_android/prepare_real_engine_db_read_posix.py` now asserts that the
 short final chunk publishes EOF immediately. The source regression also
