@@ -62,7 +62,8 @@ class OriginalCommonBootstrapCompileGateTests(unittest.TestCase):
 
     def test_android_common_uses_bionic_crt_time_and_prefetch_services(self):
         source = (ROOT / "third_party/KisakCOD/src/qcommon/common.cpp").read_text(encoding="utf-8")
-        self.assertIn("#if defined(__ANDROID__)\\n#ifndef _vsnprintf\\n#define _vsnprintf vsnprintf", source)
+        self.assertIn("#if defined(__ANDROID__)", source)
+        self.assertIn("#define _vsnprintf vsnprintf", source)
         self.assertIn('__builtin_prefetch(s, 0, 0);', source)
         self.assertIn("time_t aclock;", source)
         self.assertIn("time(&aclock);", source)
@@ -72,7 +73,8 @@ class OriginalCommonBootstrapCompileGateTests(unittest.TestCase):
     def test_android_server_demo_file_type_alias_matches_bionic_FILE(self):
         server = (ROOT / "third_party/KisakCOD/src/server/server.h").read_text(encoding="utf-8")
         demo = (ROOT / "third_party/KisakCOD/src/server/sv_demo.cpp").read_text(encoding="utf-8")
-        self.assertIn("#if defined(__ANDROID__)\\n#include <stdio.h>\\n", server)
+        self.assertIn("#if defined(__ANDROID__)", server)
+        self.assertIn("#include <stdio.h>", server)
         self.assertIn("using _iobuf = FILE;", server)
         self.assertIn("FILE *g_fileMarkHistory;", demo)
         self.assertIn("_iobuf *SV_DemoOpenFile", demo)

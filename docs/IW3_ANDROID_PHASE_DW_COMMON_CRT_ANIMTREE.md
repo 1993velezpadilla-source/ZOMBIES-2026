@@ -56,3 +56,9 @@ The follow-up run must confirm the complete original `common.cpp` object compile
 This pass does not link `Com_Init/Com_Frame` into the Android runtime. It does not mount owner-supplied IWD/FastFiles through the live engine, load a BSP, present an original renderer frame, connect touch to the running client command loop, or demonstrate weapon/actor gameplay on physical ARM64 hardware.
 
 The JNI APK remains diagnostic only. PR #4 must remain open and unmerged.
+
+## Preflight follow-up
+
+The first post-change preflight [41052809698](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41052809698) stopped before NDK compilation because the new regression checks encoded literal backslash-n sequences and placed animation-tree layouts in the script-VM header test. The engine changes were not reached by that run.
+
+Corrected the tests to assert the Android CRT and stdio declarations independently, and moved `scrAnimPub_t`/`scrAnimGlob_t` layout checks into a dedicated test that reads `script/scr_animtree.h`. This is a test-harness correction only; it does not alter the engine implementation. A fresh CI run is required before treating the pass as green.

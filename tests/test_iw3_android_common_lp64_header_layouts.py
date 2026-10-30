@@ -57,12 +57,15 @@ class CommonLp64HeaderLayoutTests(unittest.TestCase):
             "FuncDebugData": ("0x18", "0x10"),
             "scrVmDebugPub_t": ("0x26410", "0x24210"),
             "scrVmGlob_t": ("0x2048", "0x2028"),
-            "scrAnimPub_t": ("0x820", "0x41C"),
-            "scrAnimGlob_t": ("0x218", "0x20C"),
         }
         for name, (lp64, win32) in layouts.items():
             with self.subTest(struct=name):
                 require_layout(source, name, lp64, win32)
+
+    def test_animation_tree_runtime_pointer_layouts_preserve_win32_and_lp64(self):
+        source = (SRC / "script/scr_animtree.h").read_text(encoding="utf-8")
+        require_layout(source, "scrAnimPub_t", "0x820", "0x41C")
+        require_layout(source, "scrAnimGlob_t", "0x218", "0x20C")
 
     def test_effect_runtime_pointer_layouts_preserve_win32_and_lp64(self):
         source = (SRC / "EffectsCore/fx_system.h").read_text(encoding="utf-8")
