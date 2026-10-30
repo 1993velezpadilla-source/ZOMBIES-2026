@@ -39,6 +39,8 @@ const char **__cdecl FS_ListFilteredFiles(
     const char *filter, FsListBehavior_e behavior, int *numfiles);
 int __cdecl FS_IwdIsPure(iwd_t *iwd);
 int Sys_DirectoryHasContents(const char *directory);
+// Used by the original FS_CreatePath body in the startup archive.
+void __cdecl Sys_Mkdir(const char *path);
 void FS_RegisterDvars();
 void __cdecl Com_ReadCDKey();
 bool __cdecl FS_GameDirDomainFunc(dvar_s *dvar, DvarValue newValue);
