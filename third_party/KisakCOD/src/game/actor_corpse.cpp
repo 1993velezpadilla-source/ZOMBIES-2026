@@ -317,7 +317,6 @@ void __cdecl G_PruneLoadedCorpses()
         --v1;
     } while (v1);
     v2 = 0;
-    v3 = 0;
     v4 = (unsigned int*)corpseIndices;
     for (v3 = 0; v3 < ARRAY_COUNT(g_scr_data.actorCorpseInfo); ++v3)
     {
