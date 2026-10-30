@@ -69,10 +69,9 @@ class FastFilePosixIoRegressionTests(unittest.TestCase):
 
     def test_android_read_error_cleans_up_before_err_drop(self):
         source = (ROOT / "third_party/KisakCOD/src/database/db_file_load.cpp").read_text()
-        # Anchor on the definition, not the earlier forward declaration.
-        read_stage = source.split("\\nvoid DB_ReadXFileStage()\\n{", 1)[1].split(
-            "\\nint32_t __cdecl DB_ReadData()\\n{", 1
-        )[0]
+        # rindex selects the definition rather than the forward declaration.
+        start = source.rindex("void DB_ReadXFileStage()")
+        read_stage = source[start:].split("int32_t __cdecl DB_ReadData()", 1)[0]
         android_error = read_stage.split(
             "if (!DB_ReadData() && g_load.posixReadError != 0)", 1
         )[1].split("#else", 1)[0]
