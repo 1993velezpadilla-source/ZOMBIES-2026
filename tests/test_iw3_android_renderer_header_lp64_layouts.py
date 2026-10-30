@@ -19,6 +19,11 @@ EXPECTED = {
         "static_assert(sizeof(MaterialTechniqueSet) == (sizeof(void *) == 8 ? 296u : 148u));": "static_assert(sizeof(MaterialTechniqueSet) == 148);",
         "static_assert(sizeof(Material) == (sizeof(void *) == 8 ? 104u : 80u));": "static_assert(sizeof(Material) == 80);",
     },
+    "third_party/KisakCOD/src/gfx_d3d/r_dobj_skin.h": {
+        "static_assert(sizeof(GfxModelSurfaceInfo) == (sizeof(void *) == 8 ? 16u : 12u));": "static_assert(sizeof(GfxModelSurfaceInfo) == 12);",
+        "static_assert(sizeof(GfxModelSkinnedSurface) == (sizeof(void *) == 8 ? 40u : 24u));": "static_assert(sizeof(GfxModelSkinnedSurface) == 24);",
+        "static_assert(sizeof(GfxModelRigidSurface) == (sizeof(void *) == 8 ? 72u : 56u));": "static_assert(sizeof(GfxModelRigidSurface) == 56);",
+    },
     "third_party/KisakCOD/src/devgui/devgui.h": {
         "static_assert(sizeof(DevMenuChild) == (sizeof(void *) == 8 ? 8u : 0x4u));": "static_assert(sizeof(DevMenuChild) == 0x4);",
         "static_assert(sizeof(DevMenuItem) == (sizeof(void *) == 8 ? 0x30u : 0x28u));": "static_assert(sizeof(DevMenuItem) == 0x28);",
@@ -37,7 +42,7 @@ class IW3PointerBearingHeaderLp64LayoutTests(unittest.TestCase):
                     self.assertNotIn(old_assertion, content)
 
     def test_all_pointer_width_layout_assertions_are_covered(self):
-        self.assertEqual(sum(len(items) for items in EXPECTED.values()), 11)
+        self.assertEqual(sum(len(items) for items in EXPECTED.values()), 14)
         self.assertIn(
             "static_assert(sizeof(Material) == (sizeof(void *) == 8 ? 104u : 80u));",
             (ROOT / "third_party/KisakCOD/src/gfx_d3d/r_material.h").read_text(encoding="utf-8"),
