@@ -87,6 +87,56 @@ class FastFilePosixIoRegressionTests(unittest.TestCase):
         self.assertIn('Com_Error(ERR_DROP, "Read error of file', windows_error)
         self.assertNotIn("DB_CancelLoadXFile();", windows_error)
 
+    def test_android_fastfile_header_failures_release_fd_before_dispatch(self):
+        source = (ROOT / "third_party/KisakCOD/src/database/db_file_load.cpp").read_text()
+        start = source.index("void __cdecl DB_LoadXFileInternal()")
+        end = source.index("bool __cdecl DB_IsMinimumFastFileLoaded()", start)
+        body = source[start:end]
+
+        cases = (
+            (
+                'if (!g_load.outstandingReads)',
+                'DB_WaitXFileStage();',
+                "Com_Error(",
+            ),
+            (
+                'if (headerStatus == DBFastFileHeaderStatus::TruncatedMagic)',
+                'if (headerStatus == DBFastFileHeaderStatus::InvalidMagic)',
+                "MyAssertHandler(",
+            ),
+            (
+                'if (headerStatus == DBFastFileHeaderStatus::InvalidMagic)',
+                'if (headerStatus == DBFastFileHeaderStatus::TruncatedVersion)',
+                "Com_Error(",
+            ),
+            (
+                'if (headerStatus == DBFastFileHeaderStatus::TruncatedVersion)',
+                'version = parsedHeader.version;',
+                "MyAssertHandler(",
+            ),
+            (
+                'if (headerStatus == DBFastFileHeaderStatus::UnsupportedVersion)',
+                'if (headerStatus != DBFastFileHeaderStatus::Ok)',
+                "Com_Error(",
+            ),
+            (
+                'if (headerStatus != DBFastFileHeaderStatus::Ok)',
+                'fileIsSecure = parsedHeader.secure;',
+                "MyAssertHandler(",
+            ),
+            (
+                'if (fd < 0 || fstat(fd, &fileStat) != 0 || fileStat.st_size > INT32_MAX)',
+                'fileSize = static_cast<int32_t>(fileStat.st_size);',
+                "Com_Error(",
+            ),
+        )
+        for start_marker, end_marker, dispatch in cases:
+            with self.subTest(path=start_marker):
+                block = body.split(start_marker, 1)[1].split(end_marker, 1)[0]
+                self.assertIn("#if defined(__ANDROID__)", block)
+                self.assertIn("DB_CancelLoadXFile();", block)
+                self.assertLess(block.index("DB_CancelLoadXFile();"), block.index(dispatch))
+
     def test_windows_callback_declaration_is_guarded_only_for_android(self):
         header = (ROOT / "third_party/KisakCOD/src/database/database.h").read_text()
         source = (ROOT / "third_party/KisakCOD/src/database/db_file_load.cpp").read_text()
