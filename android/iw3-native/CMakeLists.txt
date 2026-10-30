@@ -128,7 +128,7 @@ if(ANDROID)
         "${IW3_ENGINE_SOURCE_ROOT}/../deps")
     target_compile_definitions(iw3_sp_db_file_load_full_compile PRIVATE KISAK_SP=1)
     target_compile_options(iw3_sp_db_file_load_full_compile PRIVATE
-        -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
+        -fms-extensions -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
 endif()
 
 # Compile the authentic parser/session routines when the source-audit workflow
