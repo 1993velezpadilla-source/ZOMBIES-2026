@@ -148,7 +148,8 @@ int main()
 
     Check(DB_ReadData() == 1, "original DB_ReadData accepts final short chunk");
     Check(g_load.outstandingReads == 1 && g_load.posixBytesRead == tail
-          && g_load.posixOffset == 2 * chunk, "short chunk advances one fixed ring slot");
+          && g_load.posixOffset == 2 * chunk && g_load.posixEof,
+          "short final chunk advances one ring slot and publishes physical EOF");
     Check(std::memcmp(ring.data() + chunk, input.data() + chunk, tail) == 0,
           "second ring slot contains final bytes");
     Check(DB_WaitXFileStage() == 2 && g_load.stream.avail_in == chunk + tail,
@@ -191,6 +192,8 @@ def main() -> int:
             raise SystemExit(f"original DB_ReadData Android branch lost {token}")
     if "g_load.posixBytesRead" not in wait_body or "__atomic_add_fetch" not in wait_body:
         raise SystemExit("original DB_WaitXFileStage Android byte-count path missing")
+    if "g_load.posixEof = bytesRead < 0x40000u;" not in read_body:
+        raise SystemExit("original DB_ReadData must publish EOF on a final short chunk")
     if "ReadFileEx" not in read_body:
         raise SystemExit("Windows ReadFileEx path must remain in original function")
 
