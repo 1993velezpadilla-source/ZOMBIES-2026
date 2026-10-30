@@ -125,7 +125,7 @@ class FastFilePosixIoRegressionTests(unittest.TestCase):
                 "MyAssertHandler(",
             ),
             (
-                'if (fd < 0 || fstat(fd, &fileStat) != 0 || fileStat.st_size > INT32_MAX)',
+                '#if defined(__ANDROID__)\n        struct stat fileStat = {};',
                 'fileSize = static_cast<int32_t>(fileStat.st_size);',
                 "Com_Error(",
             ),
