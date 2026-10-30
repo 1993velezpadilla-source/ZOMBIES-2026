@@ -157,5 +157,68 @@ class Lp64ScriptLayoutTests(unittest.TestCase):
         self.assertNotIn("LPVOID __cdecl yy_flex_alloc", header)
 
 
+
+    def test_original_vm_debugger_evaluator_and_compiler_layouts_are_lp64_aware(self):
+        expected = {
+            "script/scr_debugger.h": (
+                "sizeof(debugger_sval_s) == (sizeof(void *) == 8 ? 0x8 : 0x4)",
+                "sizeof(sval_u) == (sizeof(void *) == 8 ? 0x8 : 0x4)",
+                "sizeof(ScriptExpression_t) == (sizeof(void *) == 8 ? 0x18 : 0xC)",
+                "sizeof(Scr_Breakpoint) == (sizeof(void *) == 8 ? 0x30 : 0x1C)",
+                "sizeof(Scr_WatchElement_s) == (sizeof(void *) == 8 ? 0xA0 : 0x64)",
+                "sizeof(scrDebuggerGlob_t) == (sizeof(void *) == 8 ? 0x368 : 0x2B8)",
+            ),
+            "script/scr_evaluate.h": (
+                "sizeof(ArchivedCanonicalStringInfo) == (sizeof(void *) == 8 ? 0x10 : 0x8)",
+                "sizeof(scrEvaluateGlob_t) == (sizeof(void *) == 8 ? 0x20 : 0x10)",
+            ),
+            "script/scr_compiler.h": (
+                "sizeof(CaseStatementInfo) == (sizeof(void *) == 8 ? 0x20 : 0x10)",
+                "sizeof(BreakStatementInfo) == (sizeof(void *) == 8 ? 0x18 : 0xC)",
+                "sizeof(ContinueStatementInfo) == (sizeof(void *) == 8 ? 0x18 : 0xC)",
+                "sizeof(VariableCompileValue) == (sizeof(void *) == 8 ? 0x18 : 0xC)",
+                "sizeof(scrCompileGlob_t) == (sizeof(void *) == 8 ? 0x390 : 0x1D8)",
+            ),
+        }
+        for relative_path, assertions in expected.items():
+            header = (ENGINE / relative_path).read_text(encoding="utf-8")
+            for assertion in assertions:
+                with self.subTest(path=relative_path, assertion=assertion):
+                    self.assertIn(assertion, header)
+
+    def test_script_vm_static_tracking_uses_native_object_sizes(self):
+        source = (ENGINE / "script/scr_vm.cpp").read_text(encoding="utf-8")
+        start = source.index("void __cdecl TRACK_scr_vm()")
+        end = source.index("void __cdecl Scr_ClearErrorMessage()", start)
+        body = source[start:end]
+        for expression in ("sizeof(scrVmGlob)", "sizeof(scrVmPub)", "sizeof(g_script_error)", "sizeof(scrVmDebugPub)"):
+            self.assertIn(expression, body)
+        for win32_size in ("8232", "17192", "2112", "147984"):
+            self.assertNotIn(win32_size, body)
+
+    def test_script_vm_diagnostic_logging_is_format_safe_and_null_safe(self):
+        source = (ENGINE / "script/scr_vm.cpp").read_text(encoding="utf-8")
+        self.assertIn("if (!logFile)", source)
+        self.assertIn("fputs(buffer, logFile);", source)
+        self.assertNotIn("fprintf(logFile, buffer)", source)
+        self.assertIn("void __cdecl Sys_Error(const char *error, ...);", source)
+
+    def test_android_input_header_does_not_require_win32_tagpoint(self):
+        header = (ENGINE / "win32/win_input.h").read_text(encoding="utf-8")
+        self.assertIn("#if !defined(__ANDROID__)\nvoid __cdecl IN_SetCursorPos(tagPOINT x);\n#endif", header)
+
+    def test_arm64_fixture_asserts_script_vm_live_layouts(self):
+        fixture = (ROOT / "android/iw3-native/script_parser_layout_native_test.cpp").read_text(encoding="utf-8")
+        for assertion in (
+            "sizeof(scrVarPub_t) == 0x200A0",
+            "sizeof(scrVmGlob_t) == 0x2048",
+            "sizeof(scrVmPub_t) == 0x8540",
+            "sizeof(scrVmDebugPub_t) == 0x26410",
+            "sizeof(scrDebuggerGlob_t) == 0x368",
+            "sizeof(scrCompileGlob_t) == 0x390",
+        ):
+            self.assertIn(assertion, fixture)
+
+
 if __name__ == "__main__":
     unittest.main()
