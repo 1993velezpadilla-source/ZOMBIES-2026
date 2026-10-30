@@ -398,8 +398,9 @@ endif()
 
 # Compile the original cmd_args storage declaration and Cmd_Argc/Cmd_Argv
 # accessors extracted from cmd.cpp for the filesystem-startup dependency audit.
-# The tokenizer/dispatcher is still absent; this archive is not linked into the
-# JNI diagnostic APK and is not a complete command runtime.
+# The original tokenizer core is staged in a separate archive below; command
+# initialization/registration/dispatch are still absent. Neither archive is
+# linked into the JNI diagnostic APK or treated as a complete command runtime.
 if(IW3_EXTRACTED_CMD_ARGS)
     if(NOT EXISTS "${IW3_EXTRACTED_CMD_ARGS}")
         message(FATAL_ERROR "Configured original Cmd_Argc/Cmd_Argv extraction path does not exist")
@@ -429,6 +430,26 @@ if(IW3_EXTRACTED_CMD_ARGS)
         add_test(NAME iw3_original_cmd_arg_accessors_host_runtime
                  COMMAND iw3_cmd_args_native_test)
     endif()
+endif()
+
+# Stage the exact original command tokenizer core and its private pool state.
+# This resolves the FS startup command-tokenization link edge without pulling
+# the Win32-bound command dispatcher/registration code into Android.
+if(IW3_EXTRACTED_CMD_TOKENIZER)
+    if(NOT EXISTS "${IW3_EXTRACTED_CMD_TOKENIZER}")
+        message(FATAL_ERROR "Original command tokenizer extraction path does not exist")
+    endif()
+    add_library(iw3_sp_cmd_tokenizer STATIC "${IW3_EXTRACTED_CMD_TOKENIZER}")
+    target_include_directories(iw3_sp_cmd_tokenizer PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+        "${IW3_REAL_HEADER_ROOT}"
+        "${IW3_ENGINE_SOURCE_ROOT}"
+        "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+        "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+    target_compile_definitions(iw3_sp_cmd_tokenizer PRIVATE KISAK_SP=1)
+    target_compile_options(iw3_sp_cmd_tokenizer PRIVATE
+        -ffunction-sections -fdata-sections
+        -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
 endif()
 
 if(IW3_EXTRACTED_COM_PRINT_WARNING)

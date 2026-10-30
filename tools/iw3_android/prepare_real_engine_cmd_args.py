@@ -2,8 +2,9 @@
 """Extract original KisakCOD command argument state/accessors for ARM64 auditing.
 
 The original CmdArgs cmd_args storage declaration and two upstream accessor
-bodies are staged verbatim. The tokenizer/dispatcher are not extracted and this
-archive is not linked into the JNI diagnostic APK or a playable runtime.
+bodies are staged verbatim. The tokenizer is staged separately by
+prepare_real_engine_cmd_tokenizer.py; the command dispatcher is not extracted.
+This archive is not linked into the JNI diagnostic APK or a playable runtime.
 """
 from __future__ import annotations
 
@@ -88,6 +89,7 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
         "original_Cmd_Argv_body_preserved": True,
         "original_cmd_args_state_declaration_preserved": True,
         "cmd_args_state_definition_in_audit_archive": True,
+        "command_tokenizer_extracted_by_separate_original_archive": True,
         "command_tokenizer_not_reimplemented": True,
         "command_dispatcher_not_extracted": True,
         "archive_linked_to_jni": False,
