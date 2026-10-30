@@ -36,6 +36,7 @@ FUNCTIONS = (
     "void __cdecl FS_ReplaceSeparators(char *path)",
     "void __cdecl FS_BuildOSPath(const char *base, const char *game, const char *qpath, char *ospath)",
     "void __cdecl FS_BuildOSPathForThread(const char *base, const char *game, const char *qpath, char *ospath, FsThread thread)",
+    "int __cdecl FS_CreatePath(char *OSPath)",
     "void __cdecl FS_DisplayPath(int bLanguageCull)",
     "void __cdecl FS_Path_f()",
     "void __cdecl FS_FullPath_f()",
