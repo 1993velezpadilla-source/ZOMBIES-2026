@@ -42,7 +42,7 @@ static int I_strnicmp(const char *a, const char *b, int n) {
 static int I_stricmp(const char *a, const char *b) {
     return strcasecmp(a, b);
 }
-char basename[64];
+char fs_mapBaseName[64];
 /* ORIGINAL_IW3_MAP_FUNCTION */
 int main(int argc, char **argv) {
     if (argc != 2) return 2;
@@ -70,7 +70,7 @@ int main(int argc, char **argv) {
         body = function_source(source, SIGNATURE)
         assert "mapLength >= 3" in body
         assert "mapLength < 7" in body
-        assert "baseLength >= sizeof(basename)" in body
+        assert "baseLength >= sizeof(fs_mapBaseName)" in body
         assert "basename[0] = 0" in body
         assert "mapname[v2 - 3]" not in body
 
