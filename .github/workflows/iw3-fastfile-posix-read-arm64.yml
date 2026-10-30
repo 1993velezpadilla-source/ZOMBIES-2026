@@ -47,6 +47,15 @@ jobs:
             android/iw3-native/db_fastfile_posix_io_native_test.cpp \
             -o "$RUNNER_TEMP/db_fastfile_posix_io_test"
           "$RUNNER_TEMP/db_fastfile_posix_io_test"
+          python3 tools/iw3_android/prepare_real_engine_db_read_posix.py \
+            --engine third_party/KisakCOD \
+            --output "$RUNNER_TEMP/iw3-original-db-read-posix-harness.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-db-read-posix-report.json"
+          c++ -std=c++20 -Wall -Wextra -Werror -UNDEBUG \
+            -I third_party/KisakCOD/src/database \
+            "$RUNNER_TEMP/iw3-original-db-read-posix-harness.cpp" \
+            -o "$RUNNER_TEMP/iw3-original-db-read-posix-harness"
+          "$RUNNER_TEMP/iw3-original-db-read-posix-harness"
 
       - name: Install pinned Android NDK
         shell: bash
@@ -72,11 +81,21 @@ jobs:
             -I third_party/KisakCOD/src/database \
             -c android/iw3-native/db_fastfile_posix_io_native_test.cpp \
             -o "$RUNNER_TEMP/db_fastfile_posix_io_aarch64.o"
+          "$ndk/aarch64-linux-android26-clang++" \
+            -std=c++20 -Wall -Wextra -Werror -UNDEBUG \
+            -I third_party/KisakCOD/src/database \
+            -c "$RUNNER_TEMP/iw3-original-db-read-posix-harness.cpp" \
+            -o "$RUNNER_TEMP/iw3-original-db-read-posix-harness-aarch64.o"
           "$ndk/llvm-readelf" -h "$RUNNER_TEMP/db_fastfile_posix_io_aarch64.o" \
             | tee "$RUNNER_TEMP/db-fastfile-posix-io-elf.txt"
           grep -F 'ELF64' "$RUNNER_TEMP/db-fastfile-posix-io-elf.txt"
           grep -F 'AArch64' "$RUNNER_TEMP/db-fastfile-posix-io-elf.txt"
+          "$ndk/llvm-readelf" -h "$RUNNER_TEMP/iw3-original-db-read-posix-harness-aarch64.o" \
+            | tee "$RUNNER_TEMP/iw3-original-db-read-posix-harness-elf.txt"
+          grep -F 'ELF64' "$RUNNER_TEMP/iw3-original-db-read-posix-harness-elf.txt"
+          grep -F 'AArch64' "$RUNNER_TEMP/iw3-original-db-read-posix-harness-elf.txt"
           echo "IW3_FASTFILE_POSIX_READER_AARCH64_OBJECT_PASS"
+          echo "IW3_ORIGINAL_DB_READ_POSIX_BODY_AARCH64_COMPILE_PASS"
           echo "IW3_FASTFILE_LOADER_RUNTIME_INTEGRATED=false"
           echo "IW3_REAL_MAP_LOADED=false"
           echo "IW3_GAMEPLAY_PROVEN=false"
@@ -89,3 +108,7 @@ jobs:
           path: |
             ${{ runner.temp }}/db-fastfile-posix-io-elf.txt
             ${{ runner.temp }}/db_fastfile_posix_io_aarch64.o
+            ${{ runner.temp }}/iw3-original-db-read-posix-harness.cpp
+            ${{ runner.temp }}/iw3-original-db-read-posix-harness-aarch64.o
+            ${{ runner.temp }}/iw3-original-db-read-posix-harness-elf.txt
+            ${{ runner.temp }}/iw3-original-db-read-posix-report.json
