@@ -30,8 +30,10 @@ struct vidConfig_t // sizeof=0x30 — subset needed by r_init; matches client_mp
 #include "r_image.h"
 #include "r_fog.h"
 
+#if !defined(__ANDROID__)
 #include <Windows.h>
 #include <d3d9.h>
+#endif
 
 enum GfxRenderer : __int32
 {                                       // ...
