@@ -72,10 +72,10 @@ the next client-input edge and failed in step 9 because the Android
 `clientDebug*` guard had lost the struct's terminating semicolon during the
 guard insertion (`#endif;` was parsed as an invalid directive). That source
 syntax is corrected in commit `89cc69c`, and a regression now checks both the
-terminator and absence of `#endif;`. The evidence upload was changed to run
-with `if: always()` so the successful FastFile-loader object and undefined
-symbol report are retained even when a later touch/client edge fails. The
-retry is pending.
+terminator and absence of `#endif;`. To retain the already-compiled loader
+object even if a later client/touch gate fails, a dedicated artifact upload
+now runs immediately after the original-loader ARM64 audit and before the
+downstream frame/client checks. The retry is pending.
 
 The loader object compile is a real source-portability milestone, **not** a
 runtime link: its database/authentication/stream services and the three
