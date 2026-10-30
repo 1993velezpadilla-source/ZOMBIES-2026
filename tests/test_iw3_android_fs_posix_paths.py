@@ -22,7 +22,7 @@ class AndroidOriginalFilesystemPosixPaths(unittest.TestCase):
         body = source[start:end]
         self.assertIn("#if defined(__ANDROID__) || defined(IW3_FS_POSIX_PATHS_TEST)", body)
         self.assertIn("constexpr char nativeSeparator = '/';", body)
-        self.assertIn("constexpr char nativeSeparator = '\\';", body)
+        self.assertIn("constexpr char nativeSeparator = '\\\\';", body)
         self.assertIn("*dst++ = nativeSeparator;", body)
         self.assertNotIn("*dst++ = 92;", body)
         self.assertIn("FS_ReplaceSeparators(ospath);", source)
