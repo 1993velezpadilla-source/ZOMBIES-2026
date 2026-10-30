@@ -226,6 +226,19 @@ int main() {
     // services; path registration and language filtering remain engine code.
     char base[] = "/private/iw3";
     char game[] = "main";
+
+    // Execute the authentic FS_AddGameDirectory path after the original
+    // builder rejects an overlong app-private root. No invalid directory
+    // probe, IWD scan or searchpath registration may follow the fatal error.
+    std::string overlongRoot = "/" + std::string(300, 'r');
+    g_fatal_errors = 0;
+    FS_AddGameDirectory(overlongRoot.data(), game, 1, 0);
+    assert(g_fatal_errors == 1);
+    assert(g_directory_probes == 0);
+    assert(g_iwd_scans == 0);
+    assert(fs_searchpaths == nullptr);
+    std::puts("IW3_ORIGINAL_FS_OVERLONG_LOCALIZED_PATH_FAIL_CLOSED_PASS");
+
     FS_AddLocalizedGameDirectory(base, game);
 
     // Only English has a language name in the Android adapter. Unsupported
