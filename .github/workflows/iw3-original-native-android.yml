@@ -349,6 +349,23 @@ jobs:
           echo "IW3_CLIENT_RUNTIME_INVOKED=false"
           echo "IW3_PLAYABLE_APK=false"
 
+          # Audit the original DObj pose/bounds module used by actor/model rendering.
+          # The D3D9 renderer backend is still not portable or linked on Android.
+          pose_object="$(find "$RUNNER_TEMP/iw3-build-arm64/CMakeFiles/iw3_sp_renderer_model_pose_full_compile.dir" -type f -name '*.o' -print -quit)"
+          test -n "$pose_object"
+          "$llvm_readelf" -h "$pose_object" | tee "$RUNNER_TEMP/iw3-renderer-model-pose-elf.txt"
+          grep -F 'ELF64' "$RUNNER_TEMP/iw3-renderer-model-pose-elf.txt"
+          grep -F 'AArch64' "$RUNNER_TEMP/iw3-renderer-model-pose-elf.txt"
+          "$llvm_nm" -C --defined-only "$pose_object" | tee "$RUNNER_TEMP/iw3-renderer-model-pose-defined.txt"
+          grep -F 'R_DObjCalcPose(GfxSceneEntity const*, DObj_s const*, int*)' "$RUNNER_TEMP/iw3-renderer-model-pose-defined.txt"
+          grep -F 'R_UpdateSceneEntBounds(GfxSceneEntity*, GfxSceneEntity**, DObj_s const**, int)' "$RUNNER_TEMP/iw3-renderer-model-pose-defined.txt"
+          "$llvm_nm" -C -u "$pose_object" | tee "$RUNNER_TEMP/iw3-renderer-model-pose-undefined.txt"
+          echo "IW3_ORIGINAL_RENDERER_MODEL_POSE_AARCH64_OBJECT_PASS"
+          echo "IW3_RENDERER_BACKEND_LINKED=false"
+          echo "IW3_REAL_MAP_LOADED=false"
+          echo "IW3_RENDERER_FRAME_PROVEN=false"
+          echo "IW3_PLAYABLE_APK=false"
+
           # Audit the complete original FastFile loader TU, not just extracted
           # helper bodies. Renderer services intentionally remain undefined.
           db_loader_object="$(find "$RUNNER_TEMP/iw3-build-arm64/CMakeFiles/iw3_sp_db_file_load_full_compile.dir" -type f -name '*.o' -print -quit)"

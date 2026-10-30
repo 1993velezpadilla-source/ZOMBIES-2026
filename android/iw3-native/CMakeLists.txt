@@ -214,6 +214,30 @@ if(ANDROID)
         -frounding-math -fno-fast-math)
 endif()
 
+# Compile the complete original actor/model-pose translation unit for Android ARM64.
+# This preserves authentic DObj pose/bounds code as a portability gate only. It
+# does not provide a GPU backend, link the renderer into JNI, or claim a rendered actor.
+if(ANDROID)
+    add_library(iw3_sp_renderer_model_pose_full_compile OBJECT
+        "${IW3_ENGINE_SOURCE_ROOT}/gfx_d3d/r_model_pose.cpp")
+    target_include_directories(iw3_sp_renderer_model_pose_full_compile PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+        "${IW3_ENGINE_SOURCE_ROOT}"
+        "${IW3_ENGINE_SOURCE_ROOT}/client"
+        "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+        "${IW3_ENGINE_SOURCE_ROOT}/universal"
+        "${IW3_ENGINE_SOURCE_ROOT}/gfx_d3d"
+        "${IW3_ENGINE_SOURCE_ROOT}/game"
+        "${IW3_ENGINE_SOURCE_ROOT}/cgame"
+        "${IW3_ENGINE_SOURCE_ROOT}/bgame"
+        "${IW3_ENGINE_SOURCE_ROOT}/xanim"
+        "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+    target_compile_definitions(iw3_sp_renderer_model_pose_full_compile PRIVATE KISAK_SP=1)
+    target_compile_options(iw3_sp_renderer_model_pose_full_compile PRIVATE
+        -fms-extensions -Wall -Wextra -fsigned-char
+        -frounding-math -fno-fast-math)
+endif()
+
 # Compile the authentic parser/session routines when the source-audit workflow
 # supplies the extracted file. The JNI diagnostic shares this CMakeLists but does
 # not stage/link this audit archive, so absence is not a configure-time failure.
