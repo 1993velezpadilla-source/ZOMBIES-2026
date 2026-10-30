@@ -12,7 +12,7 @@ try:
 except ModuleNotFoundError:
     from prepare_g_runframe_prereqs import function_source
 
-SOURCE = Path("src/universal/com_memory.cpp")
+SOURCE = Path("src/universal/com_memory_hunk_user.cpp")
 FUNCTIONS = (
     "HunkUser* __cdecl Hunk_UserCreate(int32_t maxSize, const char* name, bool fixed, bool tempMem, int32_t type)",
     "void* Hunk_UserAlloc(HunkUser* user, uint32_t size, int32_t alignment)",

@@ -2300,11 +2300,6 @@ void __cdecl Com_GetBspFilename(char *filename, uint32_t size, const char *mapna
 #endif
 }
 
-void __cdecl FS_FreeFileList(const char **list)
-{
-    if (list)
-        Hunk_UserDestroy((HunkUser *)*(list - 1));
-}
 
 uint32_t __cdecl FS_FTell(int f)
 {

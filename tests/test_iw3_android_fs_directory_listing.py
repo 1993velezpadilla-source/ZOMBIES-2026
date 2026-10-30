@@ -22,9 +22,9 @@ class AndroidFilesystemDirectoryListingTests(unittest.TestCase):
         self.assertIn("*entry_count = names.size()", body)
 
     def test_sys_list_files_keeps_iwd_cap_and_supports_real_queries(self):
-        source = (ROOT / "android/iw3-native/iw3_android_iwd_directory_io.cpp").read_text()
+        source = (ROOT / "android/iw3-native/iw3_android_list_files.cpp").read_text()
         start = source.index("char **Sys_ListFiles(const char *directory, const char *extension,")
-        end = source.index("void __cdecl FS_FreeFileList", start)
+        end = len(source)
         body = source[start:end]
         self.assertIn("z2026_platform_list_iwd_files", body)
         self.assertIn("z2026_platform_list_directory_entries", body)

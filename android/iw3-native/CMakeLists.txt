@@ -84,6 +84,52 @@ if(NOT EXISTS "${IW3_ENGINE_SOURCE_ROOT}/game/g_runframe.cpp")
     message(FATAL_ERROR "Complete original IW3 SP frame source required")
 endif()
 
+# Use the same original HunkUser module in native, diagnostic and Windows builds.
+add_library(iw3_sp_hunk_user STATIC
+    "${IW3_ENGINE_SOURCE_ROOT}/universal/com_memory_hunk_user.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_hunk_virtual.cpp")
+target_include_directories(iw3_sp_hunk_user PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${IW3_REAL_HEADER_ROOT}"
+    "${IW3_ENGINE_SOURCE_ROOT}"
+    "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+    "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+target_compile_definitions(iw3_sp_hunk_user PRIVATE KISAK_SP=1)
+target_compile_options(iw3_sp_hunk_user PRIVATE
+    -ffunction-sections -fdata-sections -Wall -Wextra
+    -fsigned-char -frounding-math -fno-fast-math)
+
+if(NOT ANDROID)
+    add_executable(iw3_hunk_user_native_test
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/hunk_user_native_test.cpp")
+    target_include_directories(iw3_hunk_user_native_test PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+        "${IW3_REAL_HEADER_ROOT}"
+        "${IW3_ENGINE_SOURCE_ROOT}"
+        "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+        "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+    target_link_libraries(iw3_hunk_user_native_test PRIVATE iw3_sp_hunk_user)
+    target_compile_options(iw3_hunk_user_native_test PRIVATE
+        -UNDEBUG -ffunction-sections -fdata-sections -Wall -Wextra)
+    target_link_options(iw3_hunk_user_native_test PRIVATE -Wl,--gc-sections)
+    add_test(NAME iw3_hunk_user_native_test COMMAND iw3_hunk_user_native_test)
+endif()
+
+# Platform services for linking the complete filesystem TU. Do not include
+# extracted com_files helpers here: the full original object already owns them.
+add_library(iw3_sp_full_filesystem_platform STATIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_platform.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_list_files.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_assert.cpp")
+target_include_directories(iw3_sp_full_filesystem_platform PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}" "${IW3_ENGINE_SOURCE_ROOT}"
+    "${IW3_ENGINE_SOURCE_ROOT}/universal"
+    "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+    "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+target_compile_definitions(iw3_sp_full_filesystem_platform PRIVATE KISAK_SP=1)
+target_compile_options(iw3_sp_full_filesystem_platform PRIVATE
+    -ffunction-sections -fdata-sections -Wall -Wextra)
+
 # Compile the authentic filesystem startup functions on every configured
 # build. Silently omitting this target made it too easy for an ABI gate to pass
 # without even compiling FS_RegisterDvars/FS_Startup/FS_InitFilesystem.
@@ -595,6 +641,8 @@ if(IW3_EXTRACTED_IWD_DIRECTORY_SERVICES)
     add_library(iw3_sp_iwd_directory_services STATIC
         "${IW3_EXTRACTED_IWD_DIRECTORY_SERVICES}"
         "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_iwd_directory_io.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_list_files.cpp"
+        "${IW3_ENGINE_SOURCE_ROOT}/universal/com_files_list.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_iwd_lookup_io.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_unzip_io.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_platform.cpp")
@@ -649,37 +697,6 @@ if(IW3_EXTRACTED_LANGUAGE)
         -ffunction-sections -fdata-sections -Wall -Wextra
         -fsigned-char -frounding-math -fno-fast-math)
 
-    if(IW3_EXTRACTED_HUNK_USER)
-        add_library(iw3_sp_hunk_user STATIC
-            "${IW3_EXTRACTED_HUNK_USER}"
-            "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_hunk_virtual.cpp")
-        target_include_directories(iw3_sp_hunk_user PRIVATE
-            "${CMAKE_CURRENT_SOURCE_DIR}"
-            "${IW3_REAL_HEADER_ROOT}"
-            "${IW3_ENGINE_SOURCE_ROOT}"
-            "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
-            "${IW3_ENGINE_SOURCE_ROOT}/../deps")
-        target_compile_definitions(iw3_sp_hunk_user PRIVATE KISAK_SP=1)
-        target_compile_options(iw3_sp_hunk_user PRIVATE
-            -ffunction-sections -fdata-sections -Wall -Wextra
-            -fsigned-char -frounding-math -fno-fast-math)
-
-        if(NOT ANDROID)
-            add_executable(iw3_hunk_user_native_test
-                "${CMAKE_CURRENT_SOURCE_DIR}/tests/hunk_user_native_test.cpp")
-            target_include_directories(iw3_hunk_user_native_test PRIVATE
-                "${CMAKE_CURRENT_SOURCE_DIR}"
-                "${IW3_REAL_HEADER_ROOT}"
-                "${IW3_ENGINE_SOURCE_ROOT}"
-                "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
-                "${IW3_ENGINE_SOURCE_ROOT}/../deps")
-            target_link_libraries(iw3_hunk_user_native_test PRIVATE iw3_sp_hunk_user)
-            target_compile_options(iw3_hunk_user_native_test PRIVATE
-                -UNDEBUG -ffunction-sections -fdata-sections -Wall -Wextra)
-            target_link_options(iw3_hunk_user_native_test PRIVATE -Wl,--gc-sections)
-            add_test(NAME iw3_hunk_user_native_test COMMAND iw3_hunk_user_native_test)
-        endif()
-    endif()
 
     if(NOT ANDROID)
         add_executable(iw3_language_native_test
@@ -857,6 +874,8 @@ add_library(iw3_sp_math SHARED
     "${IW3_EXTRACTED_UNZIP}"
     "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_unzip_io.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_iwd_directory_io.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_list_files.cpp"
+    "${IW3_ENGINE_SOURCE_ROOT}/universal/com_files_list.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_iwd_lookup_io.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/iw3_unzip_native_smoke.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/native_math_abi.cpp"
@@ -871,7 +890,7 @@ target_include_directories(iw3_sp_math PRIVATE
     "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
     "${IW3_ENGINE_SOURCE_ROOT}/../deps")
 find_library(IW3_Z_LIBRARY z REQUIRED)
-target_link_libraries(iw3_sp_math PRIVATE "${IW3_Z_LIBRARY}")
+target_link_libraries(iw3_sp_math PRIVATE "${IW3_Z_LIBRARY}" iw3_sp_hunk_user)
 set_target_properties(iw3_sp_math PROPERTIES
     CXX_VISIBILITY_PRESET hidden
     VISIBILITY_INLINES_HIDDEN YES
@@ -891,6 +910,7 @@ if(ANDROID)
     # are wired into the runtime; never substitute extracted diagnostic bodies.
     add_library(iw3_sp_full_filesystem OBJECT
         "${IW3_ENGINE_SOURCE_ROOT}/universal/com_files.cpp"
+        "${IW3_ENGINE_SOURCE_ROOT}/universal/com_files_list.cpp"
         "${IW3_ENGINE_SOURCE_ROOT}/universal/com_files_state.cpp"
         "${IW3_ENGINE_SOURCE_ROOT}/universal/com_files_handle_table.cpp")
     target_include_directories(iw3_sp_full_filesystem PRIVATE
@@ -984,6 +1004,23 @@ if(ANDROID)
         -Wall -Wextra -Werror)
 else()
     enable_testing()
+
+    add_executable(iw3_file_list_native_test
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/file_list_native_test.cpp"
+        "${IW3_ENGINE_SOURCE_ROOT}/universal/com_files_list.cpp"
+        "${IW3_EXTRACTED_IWD_SERVICES}")
+    target_include_directories(iw3_file_list_native_test PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}" "${IW3_ENGINE_SOURCE_ROOT}"
+        "${IW3_ENGINE_SOURCE_ROOT}/universal"
+        "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+        "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+    target_compile_definitions(iw3_file_list_native_test PRIVATE KISAK_SP=1 RELEASE_ASSERTS=1)
+    target_compile_options(iw3_file_list_native_test PRIVATE
+        -UNDEBUG -ffunction-sections -fdata-sections)
+    target_link_options(iw3_file_list_native_test PRIVATE -Wl,--gc-sections)
+    target_link_libraries(iw3_file_list_native_test PRIVATE
+        iw3_sp_full_filesystem_platform iw3_sp_hunk_user iw3_sp_filter iw3_sp_android_assert)
+    add_test(NAME iw3_file_list_native_ownership COMMAND iw3_file_list_native_test)
 
     add_executable(iw3_android_assert_host_test
         "${CMAKE_CURRENT_SOURCE_DIR}/assert_native_test.cpp")

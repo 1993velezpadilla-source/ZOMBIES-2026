@@ -8,6 +8,7 @@ on:
       - 'android/iw3-native/**'
       - 'tools/iw3_android/**'
       - 'tests/test_iw3_android_*.py'
+      - 'tests/fixtures/iw3_cmd_dispatch_runtime.cpp'
       - 'third_party/KisakCOD/src/**'
       - 'third_party/KisakCOD/deps/**'
   push:
@@ -20,6 +21,7 @@ on:
       - third_party/KisakCOD/src/**
       - 'third_party/KisakCOD/deps/**'
       - tests/test_iw3_android_*.py
+      - 'tests/fixtures/iw3_cmd_dispatch_runtime.cpp'
       - third_party/KisakCOD/src/universal/com_math_anglevectors.cpp
 
 permissions:
@@ -276,6 +278,9 @@ jobs:
           cmake --build "$RUNNER_TEMP/iw3-build-host" -j 2
           ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1 \
             ctest --test-dir "$RUNNER_TEMP/iw3-build-host" --output-on-failure
+          IW3_CMD_TEST_CXXFLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer" \
+            ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1 \
+            python3 -m unittest discover -s tests -p 'test_iw3_android_cmd_dispatch_runtime.py' -v
           echo "IW3_REAL_SOURCE_HOST_ASAN_UBSAN_GREEN"
 
       - name: Install Android NDK for compiling original C++ engine function
@@ -341,32 +346,36 @@ jobs:
           cmake --build "$RUNNER_TEMP/iw3-build-arm64" -j 2
 
           # Resolve the original filesystem's delete/rename edges against
-          # the same audited IWD-directory service archive used by the startup graph.
+          # the platform-only provider; original filesystem functions have one owner.
           # This remains a relocatable dependency audit, not a complete runtime link.
           fs_full_dir="$RUNNER_TEMP/iw3-build-arm64/CMakeFiles/iw3_sp_full_filesystem.dir"
           fs_com_files_object="$(find "$fs_full_dir" -type f -name 'com_files.cpp.o' -print -quit)"
           fs_state_object="$(find "$fs_full_dir" -type f -name 'com_files_state.cpp.o' -print -quit)"
           fs_handle_object="$(find "$fs_full_dir" -type f -name 'com_files_handle_table.cpp.o' -print -quit)"
-          iwd_directory_archive="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_iwd_directory_services.a"
+          fs_list_object="$(find "$fs_full_dir" -type f -name 'com_files_list.cpp.o' -print -quit)"
+          fs_platform_archive="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_full_filesystem_platform.a"
+          fs_hunk_archive="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_hunk_user.a"
           test -s "$fs_com_files_object"
           test -s "$fs_state_object"
           test -s "$fs_handle_object"
-          test -s "$iwd_directory_archive"
+          test -s "$fs_platform_archive"
+          test -s "$fs_hunk_archive"
+          test -s "$fs_list_object"
           llvm_readelf="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
           llvm_nm="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm"
           ld_lld="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/ld.lld"
           "$llvm_nm" -C -u "$fs_com_files_object" | tee "$RUNNER_TEMP/iw3-full-filesystem-rooted-mutations-before-undefined.txt"
-          for symbol in z2026_platform_remove_engine_path z2026_platform_rename_engine_path Sys_ListFiles FS_FreeFileList; do
+          for symbol in z2026_platform_remove_engine_path z2026_platform_rename_engine_path Sys_ListFiles; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-full-filesystem-rooted-mutations-before-undefined.txt"
           done
-          "$llvm_nm" -C --defined-only "$iwd_directory_archive" | tee "$RUNNER_TEMP/iw3-full-filesystem-rooted-platform-defined.txt"
-          for symbol in z2026_platform_remove_engine_path z2026_platform_rename_engine_path Sys_ListFiles FS_FreeFileList; do
+          "$llvm_nm" -C --defined-only "$fs_platform_archive" | tee "$RUNNER_TEMP/iw3-full-filesystem-rooted-platform-defined.txt"
+          for symbol in z2026_platform_remove_engine_path z2026_platform_rename_engine_path Sys_ListFiles; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-full-filesystem-rooted-platform-defined.txt"
           done
 
           fs_mutation_combined="$RUNNER_TEMP/iw3-original-filesystem-rooted-mutations-arm64.o"
-          "$ld_lld" -m aarch64linux -r --whole-archive "$iwd_directory_archive" --no-whole-archive \
-            "$fs_com_files_object" "$fs_state_object" "$fs_handle_object" -o "$fs_mutation_combined"
+          "$ld_lld" -m aarch64linux -r --whole-archive "$fs_platform_archive" "$fs_hunk_archive" --no-whole-archive \
+            "$fs_com_files_object" "$fs_list_object" "$fs_state_object" "$fs_handle_object" -o "$fs_mutation_combined"
           "$llvm_readelf" -h "$fs_mutation_combined" | tee "$RUNNER_TEMP/iw3-full-filesystem-rooted-mutations-elf.txt"
           grep -F 'ELF64' "$RUNNER_TEMP/iw3-full-filesystem-rooted-mutations-elf.txt"
           grep -F 'AArch64' "$RUNNER_TEMP/iw3-full-filesystem-rooted-mutations-elf.txt"
@@ -737,14 +746,6 @@ jobs:
             exit 1
           fi
           echo "IW3_ORIGINAL_CMD_ARGS_STATE_DVAR_COMBINED_AARCH64_LINK_GREEN"
-          for symbol in 'Cmd_TokenizeString(char*)' 'Cmd_EndTokenizedString()'; do
-            grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-startup-defined.txt"
-            if grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-startup-undefined.txt"; then
-              echo "Original Dvar/startup tokenizer entry point unexpectedly unresolved: $symbol" >&2
-              exit 1
-            fi
-          done
-          echo "IW3_ORIGINAL_CMD_TOKENIZER_DVAR_STARTUP_AARCH64_LINK_GREEN"
 
           if grep -F 'Vec4Compare' "$RUNNER_TEMP/iw3-full-dvar-unresolved.txt"; then
             echo "Original Vec4Compare dependency should have been resolved from the extracted KisakCOD body" >&2
@@ -785,6 +786,14 @@ jobs:
             exit 1
           fi
           echo "IW3_ORIGINAL_CMD_ARGS_STATE_DVAR_COMBINED_AARCH64_LINK_GREEN"
+          for symbol in 'Cmd_TokenizeString(char*)' 'Cmd_EndTokenizedString()'; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-startup-defined.txt"
+            if grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-startup-undefined.txt"; then
+              echo "Original Dvar/startup tokenizer entry point unexpectedly unresolved: $symbol" >&2
+              exit 1
+            fi
+          done
+          echo "IW3_ORIGINAL_CMD_TOKENIZER_DVAR_STARTUP_AARCH64_LINK_GREEN"
           for symbol in Dvar_RegisterInt Dvar_RegisterString Dvar_RegisterBool; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-startup-defined.txt"
             if grep -F "$symbol" "$RUNNER_TEMP/iw3-fs-dvar-startup-undefined.txt"; then

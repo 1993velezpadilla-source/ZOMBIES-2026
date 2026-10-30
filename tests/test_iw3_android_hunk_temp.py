@@ -44,6 +44,7 @@ class OriginalHunkTempAllocatorTests(unittest.TestCase):
 
     def test_vendored_core_hunk_allocators_no_longer_truncate_addresses(self):
         source = (ENGINE / "src/universal/com_memory.cpp").read_text(encoding="utf-8")
+        source += (ENGINE / "src/universal/com_memory_hunk_user.cpp").read_text(encoding="utf-8")
         header = (ENGINE / "src/universal/com_memory.h").read_text(encoding="utf-8")
         for marker in (
             "endBuf = Hunk_PageBase(&s_hunkData[s_hunkTotal - hunk_high.permanent]);",

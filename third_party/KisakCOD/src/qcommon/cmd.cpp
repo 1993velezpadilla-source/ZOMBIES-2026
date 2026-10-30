@@ -1225,7 +1225,7 @@ void __cdecl Cmd_ExecuteSingleCommand(int32_t  localClientNum, int32_t  controll
             Cmd_CheckNotify();
 #endif
             arg0 = Cmd_Argv(0);
-            for (itr = cmd_functions; itr->next; itr = itr->next)
+            for (itr = cmd_functions; itr; itr = itr->next)
             {
                 if (!I_stricmp(arg0, itr->name))
                 {

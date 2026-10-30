@@ -47,7 +47,7 @@ class OriginalHunkUserTests(unittest.TestCase):
             self.assertNotIn(forbidden, staged)
 
     def test_vendored_hunk_user_functions_are_already_lp64_safe(self):
-        source = (ENGINE / "src/universal/com_memory.cpp").read_text(encoding="utf-8")
+        source = (ENGINE / "src/universal/com_memory_hunk_user.cpp").read_text(encoding="utf-8")
         for marker in (
             "user->end = reinterpret_cast<uintptr_t>(user) + static_cast<uintptr_t>(maxSize);",
             "user->pos = reinterpret_cast<uintptr_t>(user->buf);",
