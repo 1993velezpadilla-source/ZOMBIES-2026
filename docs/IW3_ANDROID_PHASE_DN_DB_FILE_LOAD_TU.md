@@ -60,6 +60,25 @@ ABI/header portability changes, not fake renderer or physics implementations.
 The next NDK retry is pending. No compile pass is claimed until the full object
 and expected unresolved renderer symbols are verified.
 
+The following attempt (`41010620368`) got past the renderer-header and ODE
+include blockers but exposed the broader original asset ABI surface:
+
+- LP64 sizes for `XModel`, `XModelPiece(s)`, `XModelSurfs`,
+  `XModelPartsLoad`, `XAnimIndices`, `XAnimParts`, `WeaponDef`,
+  `RawFile`, `XAsset`, `ScriptStringList`, `XAssetList`,
+  `XRigidVertList`, `XSurfaceVertexInfo`, and `XSurface`.
+- Duplicate `clientDebug*` declarations reached through the original
+  renderer and client include graph.
+- The original `BOOL` declaration required by the XAnim header surface.
+
+The current pass records the measured LP64 runtime sizes in Android-only
+assertions, adds a shared guard for the duplicate client debug declarations,
+and supplies the opaque `BOOL` alias. This is **not** a claim that serialized
+FastFile records have become LP64: the file format still carries 32-bit
+serialized offsets/pointers, and the original loader must explicitly relocate
+those into the larger runtime structures before a real FastFile can load.
+That conversion remains a blocking runtime task.
+
 ## Strict limits
 
 This is a **compile-only** original-source milestone. It does not link
