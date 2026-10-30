@@ -246,6 +246,7 @@ if(ANDROID)
     add_library(iw3_sp_common_full_compile OBJECT
         "${IW3_ENGINE_SOURCE_ROOT}/qcommon/common.cpp")
     target_include_directories(iw3_sp_common_full_compile PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/common_compat"
         "${CMAKE_CURRENT_SOURCE_DIR}"
         "${IW3_ENGINE_SOURCE_ROOT}"
         "${IW3_ENGINE_SOURCE_ROOT}/../deps")
