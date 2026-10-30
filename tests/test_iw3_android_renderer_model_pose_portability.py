@@ -29,6 +29,10 @@ class OriginalRendererModelPosePortabilityTests(unittest.TestCase):
 
     def test_source_is_the_original_engine_pose_module_not_a_replacement(self):
         source = POSE.read_text(encoding="utf-8")
+        self.assertIn("#if defined(__ANDROID__)", source)
+        self.assertIn("__atomic_compare_exchange_n(&sceneEnt->cull.state, &expectedCullState, 1u,", source)
+        self.assertIn("__ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST", source)
+        self.assertIn("InterlockedCompareExchange((volatile LONG *)&sceneEnt->cull, 1, 0) != 0", source)
         self.assertIn("DObjAnimMat *__cdecl R_DObjCalcPose(", source)
         self.assertIn("DObjAnimMat *R_UpdateSceneEntBounds(", source)
         self.assertNotIn("Godot", source)

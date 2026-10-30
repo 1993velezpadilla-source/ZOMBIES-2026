@@ -10,6 +10,9 @@ The latest head (`c9901841b3aadcc02705b8281ebfc3e6b83bfc5f`) had a full ARM64 co
 
 ## What changed
 
+- Ported the scene-entity cull claim in the original `R_UpdateSceneEntBounds`: Android now uses a sequentially-consistent 32-bit atomic compare/exchange on the exact original `cull.state` field. Windows keeps the original `InterlockedCompareExchange` path.
+- This is a real synchronization portability fix; it does not replace actor bounds/pose logic.
+
 - Added the Android-only CMake OBJECT target `iw3_sp_renderer_model_pose_full_compile`.
 - Compiles the original source with the authentic SP headers and Android ABI, without replacing pose logic.
 - Added a CI inspection of ELF architecture and the original `R_DObjCalcPose` and `R_UpdateSceneEntBounds` symbols.
