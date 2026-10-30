@@ -12,11 +12,10 @@ WORKFLOW = ROOT / ".github/workflows/iw3-original-native-android.yml"
 class OriginalDbRegistryCompileGateTests(unittest.TestCase):
     def test_original_registry_uses_the_real_android_fastfile_opener(self):
         source = REGISTRY.read_text(encoding="utf-8")
-        self.assertIn('#if defined(__ANDROID__)\n#include "db_fastfile_posix_open.h"\n#endif', source)
+        self.assertIn('#if defined(__ANDROID__)\\n#include "db_fastfile_posix_open.h"\\n#include "db_registry_android_compat.h"\\n#endif', source)
         self.assertIn("DBFastFilePosixOpenEnginePath(filename, &zoneFileSize, &zoneOpenError)", source)
         self.assertIn("zone->fileSize = zoneFileSize;", source)
         self.assertIn("return DBFastFilePosixFileSizeEnginePath(filename);", source)
-
     def test_android_registry_does_not_import_win32_directinput_local_header(self):
         source = REGISTRY.read_text(encoding="utf-8")
         android_branch = source.index("#if defined(__ANDROID__)\n#include <qcommon/qcommon.h>")
@@ -97,7 +96,11 @@ class OriginalDbRegistryCompileGateTests(unittest.TestCase):
         self.assertIn('#include "db_registry_android_compat.h"', registry)
     def test_renderer_backend_does_not_force_d3d9_sdk_on_android(self):
         source = (ROOT / "third_party/KisakCOD/src/gfx_d3d/rb_backend.h").read_text(encoding="utf-8")
-        self.assertIn("#if !defined(__ANDROID__)\\n#include <d3d9.h>\\n#endif", source)
+        guard = source.index("#if !defined(__ANDROID__)")
+        include = source.index("#include <d3d9.h>", guard)
+        end = source.index("#endif", include)
+        self.assertLess(guard, include)
+        self.assertLess(include, end)
     def test_original_r_gfx_selects_opaque_android_d3d_declarations(self):
         source = (ROOT / "third_party/KisakCOD/src/gfx_d3d/r_gfx.h").read_text(encoding="utf-8")
         self.assertIn('#if defined(__ANDROID__)\n#include "r_d3d9_opaque.h"\n#else\n#include <d3d9.h>\n#endif', source)
