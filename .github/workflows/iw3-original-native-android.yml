@@ -330,6 +330,25 @@ jobs:
             -DIW3_REAL_HEADER_ROOT="$GITHUB_WORKSPACE/third_party/KisakCOD/src/universal"
           cmake --build "$RUNNER_TEMP/iw3-build-arm64" -j 2
 
+          # Verify that the complete upstream CL input TU, including its
+          # Android CL_CreateCmd touch hook, compiles for the actual ARM64 ABI.
+          # This object is an audit result only; it is not linked into JNI.
+          client_input_object="$(find "$RUNNER_TEMP/iw3-build-arm64/CMakeFiles/iw3_sp_client_input_full_compile.dir" -type f -name '*.o' -print -quit)"
+          test -n "$client_input_object"
+          llvm_readelf="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
+          llvm_nm="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm"
+          "$llvm_readelf" -h "$client_input_object" | tee "$RUNNER_TEMP/iw3-client-input-full-elf.txt"
+          grep -F 'ELF64' "$RUNNER_TEMP/iw3-client-input-full-elf.txt"
+          grep -F 'AArch64' "$RUNNER_TEMP/iw3-client-input-full-elf.txt"
+          "$llvm_nm" -C --defined-only "$client_input_object" | tee "$RUNNER_TEMP/iw3-client-input-full-defined.txt"
+          grep -F 'CL_CreateCmd(usercmd_s*)' "$RUNNER_TEMP/iw3-client-input-full-defined.txt"
+          "$llvm_nm" -C -u "$client_input_object" | tee "$RUNNER_TEMP/iw3-client-input-full-undefined.txt"
+          grep -F 'z2026_platform_apply_touch_to_usercmd' "$RUNNER_TEMP/iw3-client-input-full-undefined.txt"
+          echo "IW3_ORIGINAL_CLIENT_INPUT_AARCH64_OBJECT_PASS"
+          echo "IW3_CLIENT_INPUT_RUNTIME_LINKED=false"
+          echo "IW3_CLIENT_RUNTIME_INVOKED=false"
+          echo "IW3_PLAYABLE_APK=false"
+
           # Audit the complete original FastFile loader TU, not just extracted
           # helper bodies. Renderer services intentionally remain undefined.
           db_loader_object="$(find "$RUNNER_TEMP/iw3-build-arm64/CMakeFiles/iw3_sp_db_file_load_full_compile.dir" -type f -name '*.o' -print -quit)"
