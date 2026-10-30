@@ -20,6 +20,7 @@ class OriginalDbFileLoadCompileGateTests(unittest.TestCase):
         self.assertLess(guard, include)
         self.assertLess(include, end_guard)
         self.assertIn("#if !defined(__ANDROID__)\nvoid __stdcall DB_FileReadCompletion", source)
+        self.assertIn("#include <qcommon/fast_critical_section.h>", source)
 
     def test_full_loader_uses_android_declarations_not_d3d_headers(self):
         source = LOADER_CPP.read_text(encoding="utf-8")
@@ -115,7 +116,7 @@ class OriginalDbFileLoadCompileGateTests(unittest.TestCase):
         self.assertIn("#ifndef KISAK_CLIENT_DEBUG_TYPES_DEFINED", client)
         self.assertIn("#ifndef KISAK_CLIENT_DEBUG_TYPES_DEFINED", renderer)
         sound = (ROOT / "third_party/KisakCOD/src/sound/snd_public.h").read_text(encoding="utf-8")
-        self.assertIn("typedef int BOOL;", sound)
+        self.assertIn("typedef struct HWND__ *HWND;\ntypedef int BOOL;\n#endif", sound)
 
     def test_native_workflow_triggers_when_vendored_dependencies_change(self):
         source = WORKFLOW.read_text(encoding="utf-8")
