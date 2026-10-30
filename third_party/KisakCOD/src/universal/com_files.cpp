@@ -75,8 +75,11 @@ char *__cdecl FS_ReferencedIwdPureChecksums()
     numIwds = 0;
     info6[8191] = 0;
     info6[8190] = 0;
-    info6[strlen(info6)] = '@';
-    info6[strlen(info6)] = ' ';
+    // The buffer is reused across filesystem restarts. Appending at strlen()
+    // without a terminator reused stale bytes on the next checksum query.
+    info6[0] = '@';
+    info6[1] = ' ';
+    info6[2] = '\0';
     for (search = fs_searchpaths; search; search = search->next)
     {
         if (search->iwd && !search->bLocalized)
