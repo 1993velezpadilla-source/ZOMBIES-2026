@@ -1260,6 +1260,70 @@ jobs:
           echo "IW3_GAMEPLAY_PROVEN=false"
           echo "IW3_PLAYABLE_APK=false"
 
+      - name: Resolve original client aim-assist platform services (NOT RUNTIME)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          input="$RUNNER_TEMP/iw3-original-client-input-with-aimassist-melee-arm64.o"
+          screen_source="$GITHUB_WORKSPACE/third_party/KisakCOD/src/client/screen_placement.cpp"
+          assert_source="$GITHUB_WORKSPACE/android/iw3-native/iw3_android_assert.cpp"
+          screen_object="$RUNNER_TEMP/iw3-original-screen-placement-arm64.o"
+          assert_object="$RUNNER_TEMP/iw3-android-assert-provider-arm64.o"
+          combined="$RUNNER_TEMP/iw3-original-client-input-with-platform-services-arm64.o"
+          test -s "$input"
+          common_flags=(
+            -std=c++20 -DKISAK_SP=1 -fms-extensions -Wall -Wextra -UNDEBUG -O2
+            -I"$GITHUB_WORKSPACE/android/iw3-native"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/client"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/ui"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/qcommon"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/universal"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/gfx_d3d"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/game"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/cgame"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src/bgame"
+            -I"$GITHUB_WORKSPACE/third_party/KisakCOD/deps"
+          )
+          "$ndk/aarch64-linux-android26-clang++" "${common_flags[@]}" -c "$screen_source" -o "$screen_object"
+          "$ndk/aarch64-linux-android26-clang++" "${common_flags[@]}" -c "$assert_source" -o "$assert_object"
+
+          for object in "$screen_object" "$assert_object"; do
+            elf="$RUNNER_TEMP/$(basename "$object").elf.txt"
+            "$ndk/llvm-readelf" -h "$object" | tee "$elf"
+            grep -F 'Class:                             ELF64' "$elf"
+            grep -F 'Machine:                           AArch64' "$elf"
+          done
+
+          "$ndk/llvm-nm" -C --defined-only "$screen_object" | tee "$RUNNER_TEMP/iw3-screen-placement-defined.txt"
+          "$ndk/llvm-nm" -C -u "$screen_object" | tee "$RUNNER_TEMP/iw3-screen-placement-undefined.txt"
+          "$ndk/llvm-nm" -C --defined-only "$assert_object" | tee "$RUNNER_TEMP/iw3-android-assert-defined.txt"
+          "$ndk/llvm-nm" -C -u "$assert_object" | tee "$RUNNER_TEMP/iw3-android-assert-undefined.txt"
+          grep -F 'scrPlaceView' "$RUNNER_TEMP/iw3-screen-placement-defined.txt"
+          grep -F 'MyAssertHandler' "$RUNNER_TEMP/iw3-android-assert-defined.txt"
+
+          "$ndk/ld.lld" -m aarch64linux -r "$input" "$screen_object" "$assert_object" -o "$combined"
+          "$ndk/llvm-nm" -C --defined-only "$combined" | tee "$RUNNER_TEMP/iw3-client-input-with-platform-services-defined.txt"
+          "$ndk/llvm-nm" -C -u "$combined" | tee "$RUNNER_TEMP/iw3-client-input-with-platform-services-undefined.txt"
+          for symbol in MyAssertHandler scrPlaceView; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-client-input-with-platform-services-defined.txt"
+            if grep -F "$symbol" "$RUNNER_TEMP/iw3-client-input-with-platform-services-undefined.txt"; then
+              echo "Original client platform edge failed to resolve: $symbol" >&2
+              exit 1
+            fi
+          done
+          # The server-owned melee range dvar remains a real runtime dependency.
+          grep -F 'player_meleeRange' "$RUNNER_TEMP/iw3-client-input-with-platform-services-undefined.txt"
+          echo "IW3_ORIGINAL_CLIENT_AIMASSIST_PLATFORM_SERVICE_EDGES_RESOLVED_AARCH64_GREEN"
+          echo "IW3_CLIENT_RUNTIME_LINKED=false"
+          echo "IW3_SCREEN_PLACEMENT_RUNTIME_INITIALIZED=false"
+          echo "IW3_AIMASSIST_DVARS_REGISTERED=false"
+          echo "IW3_CGAME_INITIALIZED=false"
+          echo "IW3_REAL_MAP_LOADED=false"
+          echo "IW3_GAMEPLAY_PROVEN=false"
+          echo "IW3_PLAYABLE_APK=false"
+
       - name: Attach original client state provider evidence (NOT APK)
         uses: actions/upload-artifact@v4
         with:
@@ -1289,6 +1353,17 @@ jobs:
             ${{ runner.temp }}/iw3-original-client-input-with-aimassist-melee-arm64.o
             ${{ runner.temp }}/iw3-client-input-with-aimassist-melee-defined.txt
             ${{ runner.temp }}/iw3-client-input-with-aimassist-melee-undefined.txt
+            ${{ runner.temp }}/iw3-original-screen-placement-arm64.o
+            ${{ runner.temp }}/iw3-original-screen-placement-arm64.o.elf.txt
+            ${{ runner.temp }}/iw3-screen-placement-defined.txt
+            ${{ runner.temp }}/iw3-screen-placement-undefined.txt
+            ${{ runner.temp }}/iw3-android-assert-provider-arm64.o
+            ${{ runner.temp }}/iw3-android-assert-provider-arm64.o.elf.txt
+            ${{ runner.temp }}/iw3-android-assert-defined.txt
+            ${{ runner.temp }}/iw3-android-assert-undefined.txt
+            ${{ runner.temp }}/iw3-original-client-input-with-platform-services-arm64.o
+            ${{ runner.temp }}/iw3-client-input-with-platform-services-defined.txt
+            ${{ runner.temp }}/iw3-client-input-with-platform-services-undefined.txt
           retention-days: 30
 
       - name: Attach original client input helper evidence (NOT APK)

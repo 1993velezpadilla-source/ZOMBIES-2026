@@ -1511,3 +1511,8 @@ This pass adds `tools/iw3_android/prepare_real_engine_cl_createcmd.py` and `test
 - ARM64 object/report artifact [12864594953](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40799653566/artifacts/12864594953) is not an APK; JNI artifact [12865720936](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40799653491/artifacts/12865720936) is diagnostic only.
 
 **Boundary:** compiling the original command builder is not the same as executing it. Client state/input dependencies remain unresolved; no live frame, map, renderer, weapon/actor gameplay, physical ARM64 execution, or playable APK is proven. Keep PR #4 open and unmerged.
+
+
+### Phase DP — Android client aim-assist platform services (30 Oct 2026)
+
+See [IW3_ANDROID_PHASE_DP_CLIENT_AIMASSIST_PLATFORM_SERVICES.md](IW3_ANDROID_PHASE_DP_CLIENT_AIMASSIST_PLATFORM_SERVICES.md). This pass adds a fatal Android MyAssertHandler provider and compiles the complete original screen_placement.cpp translation unit. The ARM64 relocatable-link gate must resolve those two real client service edges while retaining player_meleeRange as an unresolved server runtime dependency. It does not initialize screen placement or link/invoke the client runtime; no map, renderer frame, gameplay, or playable APK is claimed.

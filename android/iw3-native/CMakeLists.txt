@@ -7,6 +7,16 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+# Native Android fatal-assert service for original engine modules. The upstream
+# assertive.cpp implementation is Win32-bound; this provider preserves fatal
+# invariant handling and reports the original file/line/type/message.
+add_library(iw3_sp_android_assert STATIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_assert.cpp")
+target_compile_options(iw3_sp_android_assert PRIVATE -Wall -Wextra)
+if(ANDROID)
+    target_link_libraries(iw3_sp_android_assert PUBLIC log)
+endif()
+
 if(NOT IW3_EXTRACTED_MATH OR NOT EXISTS "${IW3_EXTRACTED_MATH}")
     message(FATAL_ERROR "Supply -DIW3_EXTRACTED_MATH=<generated real KisakCOD source>; no mock math allowed")
 endif()
@@ -147,6 +157,29 @@ if(ANDROID)
     target_compile_definitions(iw3_sp_db_registry_full_compile PRIVATE KISAK_SP=1)
     target_compile_options(iw3_sp_db_registry_full_compile PRIVATE
         -fms-extensions -ferror-limit=0 -fno-inline -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
+endif()
+
+# Compile the complete original client screen-placement translation unit for
+# Android ARM64. It owns scrPlaceView and the real viewport setup routines;
+# this object is audited separately and is not linked into the JNI diagnostic.
+if(ANDROID)
+    add_library(iw3_sp_screen_placement_full_compile OBJECT
+        "${IW3_ENGINE_SOURCE_ROOT}/client/screen_placement.cpp")
+    target_include_directories(iw3_sp_screen_placement_full_compile PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+        "${IW3_ENGINE_SOURCE_ROOT}"
+        "${IW3_ENGINE_SOURCE_ROOT}/client"
+        "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+        "${IW3_ENGINE_SOURCE_ROOT}/universal"
+        "${IW3_ENGINE_SOURCE_ROOT}/ui"
+        "${IW3_ENGINE_SOURCE_ROOT}/gfx_d3d"
+        "${IW3_ENGINE_SOURCE_ROOT}/game"
+        "${IW3_ENGINE_SOURCE_ROOT}/cgame"
+        "${IW3_ENGINE_SOURCE_ROOT}/bgame"
+        "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+    target_compile_definitions(iw3_sp_screen_placement_full_compile PRIVATE KISAK_SP=1)
+    target_compile_options(iw3_sp_screen_placement_full_compile PRIVATE
+        -fms-extensions -Wall -Wextra -fsigned-char -frounding-math -fno-fast-math)
 endif()
 
 # Compile the authentic parser/session routines when the source-audit workflow
@@ -704,6 +737,13 @@ if(ANDROID)
         -Wall -Wextra -Werror)
 else()
     enable_testing()
+
+    add_executable(iw3_android_assert_host_test
+        "${CMAKE_CURRENT_SOURCE_DIR}/assert_native_test.cpp")
+    target_link_libraries(iw3_android_assert_host_test PRIVATE iw3_sp_android_assert)
+    target_compile_options(iw3_android_assert_host_test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+    add_test(NAME iw3_android_assert_provider_abort_semantics
+             COMMAND iw3_android_assert_host_test)
 
     add_executable(iw3_fastfile_header_native_test
         "${CMAKE_CURRENT_SOURCE_DIR}/db_fastfile_header_native_test.cpp")
