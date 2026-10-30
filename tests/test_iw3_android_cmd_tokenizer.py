@@ -74,5 +74,19 @@ class OriginalCommandTokenizerTests(unittest.TestCase):
         )
 
 
+    def test_complete_original_command_dump_uses_portable_android_paths(self):
+        source = ENGINE.read_text(encoding="utf-8")
+        dump = source.split("void Cmd_Dumpraw_f(void)", 1)[1].split("// avail end", 1)[0]
+        self.assertNotIn("fopen_s(", dump)
+        self.assertNotIn("std::format(", dump)
+        self.assertIn('std::filesystem::path(fs_basepath->current.string) / "raw"', dump)
+        self.assertIn('std::filesystem::path(fs_basepath->current.string) / "zone" / "english"', dump)
+        self.assertIn("std::filesystem::path p(file.stringTable->name);", dump)
+        self.assertEqual(dump.count("f = fopen("), 4)
+        self.assertEqual(dump.count("std::filesystem::create_directories(sndfilepath.parent_path());"), 2)
+        self.assertNotIn("sndfilepath.remove_filename()", dump)
+        self.assertIn("void Cmd_Init()", source)
+
+
 if __name__ == "__main__":
     unittest.main()
