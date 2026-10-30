@@ -66,6 +66,24 @@ class OriginalDbFileLoadCompileGateTests(unittest.TestCase):
         ):
             self.assertIn(marker, source)
 
+    def test_android_lp64_asset_layouts_are_not_mistaken_for_win32_disk_layouts(self):
+        bsp = (ROOT / "third_party/KisakCOD/src/gfx_d3d/r_bsp.h").read_text(encoding="utf-8")
+        sound = (ROOT / "third_party/KisakCOD/src/sound/snd_public.h").read_text(encoding="utf-8")
+        self.assertIn("#if defined(__ANDROID__)\n// Native LP64 engine layout.", bsp)
+        self.assertIn("static_assert(sizeof(GfxWorld) == 1032);", bsp)
+        for declaration in (
+            "static_assert(sizeof(LoadedSound) == 64);",
+            "static_assert(sizeof(SndCurve) == 80);",
+            "static_assert(sizeof(snd_alias_t) == 128);",
+            "static_assert(sizeof(snd_alias_list_t) == 24);",
+        ):
+            self.assertIn(declaration, sound)
+        self.assertIn("typedef struct HWND__ *HWND;", sound)
+
+    def test_ode_uses_portable_stdarg_header_on_android(self):
+        source = (ROOT / "third_party/KisakCOD/deps/ode/error.h").read_text(encoding="utf-8")
+        self.assertIn("#if defined(__ANDROID__)\n#include <stdarg.h>\n#else\n#include <vadefs.h>\n#endif", source)
+
 
 if __name__ == "__main__":
     unittest.main()
