@@ -73,3 +73,34 @@ The next full compile [41053087448](https://github.com/1993velezpadilla-source/Z
 - `Com_CheckError` cast the `Sys_GetValue(2)` jump-buffer pointer to `int *`. Bionic's `jmp_buf` has a different native representation. The original routine now uses the same `jmp_buf *` + `longjmp(*value, -1)` form already used by other `common.cpp` call sites.
 
 Regression coverage now checks the `_snprintf` mapping and requires the typed jump-buffer call. A fresh full ARM64 workflow must confirm this correction; run 41053087448 remains a failed pre-fix compile, not a pass.
+
+## Final validation on the corrected source revision
+
+The complete native Android source workflow [41053424641](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41053424641) completed **SUCCESS** on source revision `c450b7e2e0ed6a6386607c8e53a3798f95185a72`.
+
+Verified results:
+
+- Source preflight: **376 Python tests passed**.
+- Host CTest: **25/25 passed**.
+- Host AddressSanitizer + UndefinedBehaviorSanitizer CTest: **25/25 passed**, with leak detection enabled.
+- Original KisakCOD common/bootstrap translation unit `common.cpp`: **ELF64/AArch64 object compile PASS**, marker `IW3_ORIGINAL_COMMON_BOOTSTRAP_AARCH64_OBJECT_PASS`.
+- Original complete `G_RunFrame` frame archive: **PASS** with authentic SP state headers; archive SHA-256 `d05b274b62f20f16554d83f266b0d3921dac3dbfe141991dd51106b968e0abed`.
+- Original client input/touch hook, client movement helpers, aim-assist/melee providers, FastFile loader, DB registry, IWD indexer, filtered file list, actor pointer-width routines, mover/trace chain and BGame weapon loader: all their AArch64 compile/link audit steps passed in this run.
+- The original frame's dependency report still lists unported runtime services: `G_UpdatePlayer`, `G_UpdatePlayerTriggers`, `G_RunFrameForEntity`, `Scr_RunCurrentThreads`, `Scr_IncTime`, `ClientEndFrame`, `G_UpdateActorCorpses`, `Actor_DumpEventListners`, and `Path_RunBadPlaces`.
+
+The separate JNI integration [41053424705](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41053424705) also passed packaging/signature validation. Its artifact [12976116291](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41053424705/artifacts/12976116291) is explicitly **`NOT-A-GAME`** and is not a playable engine package.
+
+## Remaining hard gates
+
+This successful source build is still not a game runtime:
+
+- `IW3_COMMON_BOOTSTRAP_RUNTIME_LINKED=false`
+- `IW3_CLIENT_INPUT_RUNTIME_LINKED=false`
+- `IW3_RENDERER_BACKEND_LINKED=false`
+- `IW3_RENDERER_FRAME_PROVEN=false`
+- `IW3_REAL_MAP_LOADED=false`
+- `IW3_GAMEPLAY_PROVEN=false`
+
+The original D3D9 renderer is still not backed by a native Android graphics implementation. The Android process has not yet linked and invoked the full original bootstrap, database/filesystem service graph, client frame and SP frame together. No owner-supplied IWD/FastFile has been mounted by that complete runtime, no BSP scene has been presented, and no physical ARM64 device has demonstrated touch-driven weapon/actor gameplay.
+
+**Conclusion:** the compile/ABI blockers in this pass are fixed and verified; the next engineering gate is actual runtime linkage and a real Android renderer/map frame, not another diagnostic APK. PR #4 remains open and unmerged.
