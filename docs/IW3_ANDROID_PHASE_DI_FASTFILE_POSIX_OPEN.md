@@ -75,3 +75,28 @@ includes the authentic `qcommon/msg.h` through `iw3_android_usercmd_compat.h`.
 Added the engine source root to the NDK include search path so the original
 header resolves. This follow-up must pass the restarted ARM64 workflow before
 being counted as validated.
+
+
+## Observed CI results for this pass (2026-10-30 UTC)
+
+- FastFile POSIX reader/opener ARM64 gate: [run 40984678623](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40984678623) **passed**. It ran 7 existing POSIX-reader Python regressions and 5 opener/caller regressions; the native reader test reported 14 checks; the generated exact-body `DB_ReadData`/`DB_WaitXFileStage` harness reported 12 checks; and the NDK emitted ELF64/AArch64 objects for the reader, exact-body harness and rooted platform opener test. Artifact 12946163729 contains objects/reports only, not an APK.
+- Original engine ARM64 audit: [run 40984678658](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40984678658) **passed**. Host CTest passed 24/24 in both Release and ASan/UBSan configurations. The NDK compile/link gates passed for the complete original SP frame, original client command/touch/aim-assist edges, original player/trigger/mover/actor routines and the existing filesystem/IWD dependency archives. Artifacts 12946855588, 12945853656, 12945524638 and 12945509548 are native objects/archives/reports, not an APK.
+- JNI integration: [run 40984678636](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40984678636) **passed** and produced artifact 12945874927. It is explicitly a signed ARM64 JNI diagnostic package, not a playable game.
+- The source-level regression confirms the Android caller branch no longer uses Win32 open/size calls and that the mod-directory string dvar is read through its pointer member. The host platform test executes the exact shared opener helper against a real rooted fixture, including descriptor decoding/read, symlink rejection and sibling-root escape rejection.
+
+## Remaining unverified boundary
+
+Neither the full `db_registry.cpp` translation unit nor the Android branch of
+`DB_TryLoadXFileInternal()` has yet been compiled and linked into the Android
+runtime. The opener helper is host-executed and separately cross-compiled for
+AArch64; the caller wiring is currently guarded by source-level regression.
+The Android emulator JNI run is still a diagnostic (x86_64 emulator), and
+there is no observed FastFile deserialization, real BSP/map load, original
+renderer frame, touch-driven live simulation, weapon/actor gameplay on an
+ARM64 device, or playable APK.
+
+Next engineering gate: compile the exact Android `DB_TryLoadXFileInternal`
+caller path with original database types, then resolve the remaining
+`DB_LoadXFileInternal` platform services (notably geometry/delayed-image
+finalization and authenticated/compressed FastFile services) before attempting
+a real zone load. Keep PR #4 open and unmerged.
