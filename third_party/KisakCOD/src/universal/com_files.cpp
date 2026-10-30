@@ -396,6 +396,15 @@ void __cdecl FS_ReplaceSeparators(char *path)
     char *dst; // [esp+4h] [ebp-8h]
     bool wasSep; // [esp+Bh] [ebp-1h]
 
+    // Android filesystem services (openat, directory enumeration and rooted
+    // dataDir checks) require POSIX separators. Preserve the original Win32
+    // backslash contract for Windows builds and exercise Android's branch in
+    // the native host startup regression.
+#if defined(__ANDROID__) || defined(IW3_FS_POSIX_PATHS_TEST)
+    constexpr char nativeSeparator = '/';
+#else
+    constexpr char nativeSeparator = '\\';
+#endif
     wasSep = 0;
     src = path;
     dst = path;
@@ -406,7 +415,7 @@ void __cdecl FS_ReplaceSeparators(char *path)
             if (!wasSep)
             {
                 wasSep = 1;
-                *dst++ = 92;
+                *dst++ = nativeSeparator;
             }
         }
         else
@@ -500,13 +509,21 @@ int __cdecl FS_CreatePath(char *OSPath)
     }
     else
     {
+        // FS_BuildOSPath now emits native separators on Android. Use the
+        // same separator when creating intermediate directories; otherwise
+        // writes to nested game-data paths silently skip mkdir on POSIX.
+#if defined(__ANDROID__) || defined(IW3_FS_POSIX_PATHS_TEST)
+        constexpr char nativeSeparator = '/';
+#else
+        constexpr char nativeSeparator = '\\';
+#endif
         for (ofs = OSPath + 1; *ofs; ++ofs)
         {
-            if (*ofs == 92)
+            if (*ofs == nativeSeparator)
             {
                 *ofs = 0;
                 Sys_Mkdir(OSPath);
-                *ofs = 92;
+                *ofs = nativeSeparator;
             }
         }
         return 0;
