@@ -1469,6 +1469,66 @@ bool __cdecl DB_CompareReorderEntries(const DBReorderAssetEntry& e0, const DBReo
 
 void DB_EndReorderZone()
 {
+#if defined(__ANDROID__)
+    if (!s_dbReorder.entryCount)
+        return;
+    s_dbReorder.alreadyFinished = 1;
+    char csvName[256];
+    char bakName[256];
+    char line[512];
+    Com_sprintf(csvName, sizeof(csvName), "zone_source/%s.csv", s_dbReorder.zoneName);
+    Com_sprintf(bakName, sizeof(bakName), "%s.bak", csvName);
+    if (z2026_platform_mkdir("zone_source") != 0)
+        return;
+    (void)z2026_platform_unlink_file(bakName);
+    char *previousCsv = nullptr;
+    uint32_t previousSize = 0;
+    if (DB_ReadAndroidZoneSourceCsv(csvName, &previousCsv, &previousSize))
+    {
+        const int backupResult = z2026_platform_write_file(bakName, previousCsv, previousSize);
+        std::free(previousCsv);
+        if (backupResult < 0 || static_cast<uint32_t>(backupResult) != previousSize)
+            return;
+        (void)z2026_platform_unlink_file(csvName);
+    }
+    bool wroteBlank = false;
+    DB_SetReorderIncludeSequence();
+    std::sort(s_dbReorder.entries, s_dbReorder.entries + s_dbReorder.entryCount, DB_CompareReorderEntries);
+    std::string output;
+    output.reserve(static_cast<std::size_t>(s_dbReorder.entryCount) * 48u);
+    for (uint32_t entryIter = 0; entryIter < s_dbReorder.entryCount; ++entryIter)
+    {
+        DBReorderAssetEntry *entry = &s_dbReorder.entries[entryIter];
+        if (!wroteBlank && entry->sequence == -1)
+        {
+            switch (entry->type)
+            {
+            case ASSET_TYPE_SOUND:
+            case ASSET_TYPE_CLIPMAP:
+            case ASSET_TYPE_CLIPMAP_PVS:
+            case ASSET_TYPE_LOCALIZE_ENTRY:
+            case ASSET_TYPE_STRING:
+                break;
+            default:
+                wroteBlank = true;
+                output.append("\\r\\n", 2);
+                break;
+            }
+        }
+        const int bytes = entry->type == ASSET_TYPE_WEAPON
+            ? Com_sprintf(line, sizeof(line), "%s,%s%s\\r\\n", entry->typeString, "mp/", entry->assetName)
+            : (entry->type == ASSET_TYPE_SOUND
+                ? Com_sprintf(line, sizeof(line), "%s,%s,%s,%s\\r\\n", entry->typeString, entry->assetName, s_dbReorder.zoneName, "all_mp")
+                : Com_sprintf(line, sizeof(line), "%s,%s\\r\\n", entry->typeString, entry->assetName));
+        if (bytes < 0 || static_cast<std::size_t>(bytes) >= sizeof(line))
+            return;
+        output.append(line, static_cast<std::size_t>(bytes));
+    }
+    const int written = z2026_platform_write_file(csvName, output.data(), output.size());
+    if (written < 0 || static_cast<std::size_t>(written) != output.size())
+        (void)z2026_platform_unlink_file(csvName);
+#else
+
     DBReorderAssetEntry *entry; // [esp+180h] [ebp-41Ch]
     bool wroteBlank; // [esp+187h] [ebp-415h]
     DWORD bytesa; // [esp+188h] [ebp-414h]
@@ -1541,8 +1601,8 @@ void DB_EndReorderZone()
             CloseHandle(file);
         }
     }
+#endif
 }
-
 char __cdecl DB_RegisterAllReorderAssetsOfType(int32_t type, XAssetEntry *assetEntry)
 {
     DBReorderAssetEntry *entry; // [esp+0h] [ebp-8h]
@@ -2546,29 +2606,24 @@ void __cdecl DB_AddReorderAsset(const char *typeString, const char *assetName)
 
 void __cdecl DB_BeginReorderZone(const char *zoneName)
 {
-    char v1; // [esp+3h] [ebp-259h]
-    char *v2; // [esp+8h] [ebp-254h]
-    const char *v3; // [esp+Ch] [ebp-250h]
-    char *from; // [esp+10h] [ebp-24Ch]
-    DBReorderAssetEntry *entry; // [esp+14h] [ebp-248h]
-    char assetType[32]; // [esp+18h] [ebp-244h] BYREF
-    uint32_t size; // [esp+38h] [ebp-224h]
-    void *file; // [esp+3Ch] [ebp-220h]
-    int32_t success; // [esp+40h] [ebp-21Ch]
-    char assetName[256]; // [esp+44h] [ebp-218h] BYREF
-    char csvName[256]; // [esp+144h] [ebp-118h] BYREF
-    const char *parse; // [esp+248h] [ebp-14h] BYREF
-    char *csv; // [esp+24Ch] [ebp-10h]
-    char *to; // [esp+250h] [ebp-Ch]
-    DWORD read; // [esp+254h] [ebp-8h] BYREF
-    DWORD entryIter; // [esp+258h] [ebp-4h]
-
-    for (entryIter = 0; entryIter < s_dbReorder.entryCount; ++entryIter)
+#if defined(__ANDROID__)
+    char v1;
+    const char *v3 = zoneName;
+    char *v2 = s_dbReorder.zoneName;
+    DBReorderAssetEntry *entry;
+    char assetType[32];
+    char assetName[256];
+    char csvName[256];
+    const char *parse;
+    char *csv = nullptr;
+    char *to;
+    uint32_t size = 0;
+    for (uint32_t entryIter = 0; entryIter < s_dbReorder.entryCount; ++entryIter)
     {
         entry = &s_dbReorder.entries[entryIter];
-        free((void *)entry->assetName);
+        std::free((void *)entry->assetName);
         if (entry->type == ASSET_TYPE_STRING)
-            free((void *)entry->typeString);
+            std::free((void *)entry->typeString);
     }
     s_dbReorder.entryCount = 0;
     s_dbReorder.sequence = 2;
@@ -2577,56 +2632,114 @@ void __cdecl DB_BeginReorderZone(const char *zoneName)
     s_dbReorder.loadedSound = 0;
     s_dbReorder.loadedLocalization = 0;
     s_dbReorder.lastEntry = 0;
-    v3 = zoneName;
-    v2 = s_dbReorder.zoneName;
-    do
-    {
-        v1 = *v3;
-        *v2++ = *v3++;
-    } while (v1);
+    do { v1 = *v3; *v2++ = *v3++; } while (v1);
     Sys_LockWrite(&s_dbReorder.critSect);
-    Com_sprintf(csvName, 0x100u, "..\\share\\zone_source\\%s.csv", zoneName);
-    file = CreateFileA(csvName, 0x80000000, 0, 0, 3u, 0, 0);
-    if (file == (void *)-1)
+    Com_sprintf(csvName, sizeof(csvName), "zone_source/%s.csv", zoneName);
+    if (!DB_ReadAndroidZoneSourceCsv(csvName, &csv, &size))
     {
         Sys_UnlockWrite(&s_dbReorder.critSect);
+        return;
     }
-    else
+    to = csv;
+    for (char *from = csv; *from; ++from)
     {
-        size = GetFileSize(file, 0);
-        csv = (char *)malloc(size + 1);
-        success = ReadFile(file, csv, size, &read, 0);
-        CloseHandle(file);
-        if (success && read == size)
+        if (*from != 13)
+            *to++ = *from;
+    }
+    *to = 0;
+    for (parse = csv; DB_NextZoneCsvToken(&parse, assetType, sizeof(assetType), 1); ++parse)
+    {
+        if (DB_NextZoneCsvToken(&parse, assetName, sizeof(assetName), 0) && assetType[0] && assetName[0])
+            DB_AddReorderAsset(assetType, assetName);
+        while (*parse && *parse != 10)
+            ++parse;
+        if (!*parse)
+            break;
+    }
+    std::free(csv);
+    Sys_UnlockWrite(&s_dbReorder.critSect);
+#else
+    char v1; // [esp+3h] [ebp-259h]
+        char *v2; // [esp+8h] [ebp-254h]
+        const char *v3; // [esp+Ch] [ebp-250h]
+        char *from; // [esp+10h] [ebp-24Ch]
+        DBReorderAssetEntry *entry; // [esp+14h] [ebp-248h]
+        char assetType[32]; // [esp+18h] [ebp-244h] BYREF
+        uint32_t size; // [esp+38h] [ebp-224h]
+        void *file; // [esp+3Ch] [ebp-220h]
+        int32_t success; // [esp+40h] [ebp-21Ch]
+        char assetName[256]; // [esp+44h] [ebp-218h] BYREF
+        char csvName[256]; // [esp+144h] [ebp-118h] BYREF
+        const char *parse; // [esp+248h] [ebp-14h] BYREF
+        char *csv; // [esp+24Ch] [ebp-10h]
+        char *to; // [esp+250h] [ebp-Ch]
+        DWORD read; // [esp+254h] [ebp-8h] BYREF
+        DWORD entryIter; // [esp+258h] [ebp-4h]
+    
+        for (entryIter = 0; entryIter < s_dbReorder.entryCount; ++entryIter)
         {
-            csv[size] = 0;
-            to = csv;
-            for (from = csv; *from; ++from)
-            {
-                if (*from != 13)
-                    *to++ = *from;
-            }
-            *to = 0;
-            for (parse = csv; DB_NextZoneCsvToken(&parse, assetType, 0x20u, 1); ++parse)
-            {
-                if (DB_NextZoneCsvToken(&parse, assetName, 0x100u, 0) && assetType[0] && assetName[0])
-                    DB_AddReorderAsset(assetType, assetName);
-                while (*parse && *parse != 10)
-                    ++parse;
-                if (!*parse)
-                    break;
-            }
-            free(csv);
+            entry = &s_dbReorder.entries[entryIter];
+            free((void *)entry->assetName);
+            if (entry->type == ASSET_TYPE_STRING)
+                free((void *)entry->typeString);
+        }
+        s_dbReorder.entryCount = 0;
+        s_dbReorder.sequence = 2;
+        s_dbReorder.sequenceForIncludes = 3;
+        s_dbReorder.alreadyFinished = 0;
+        s_dbReorder.loadedSound = 0;
+        s_dbReorder.loadedLocalization = 0;
+        s_dbReorder.lastEntry = 0;
+        v3 = zoneName;
+        v2 = s_dbReorder.zoneName;
+        do
+        {
+            v1 = *v3;
+            *v2++ = *v3++;
+        } while (v1);
+        Sys_LockWrite(&s_dbReorder.critSect);
+        Com_sprintf(csvName, 0x100u, "..\\share\\zone_source\\%s.csv", zoneName);
+        file = CreateFileA(csvName, 0x80000000, 0, 0, 3u, 0, 0);
+        if (file == (void *)-1)
+        {
             Sys_UnlockWrite(&s_dbReorder.critSect);
         }
         else
         {
-            free(csv);
-            Sys_UnlockWrite(&s_dbReorder.critSect);
+            size = GetFileSize(file, 0);
+            csv = (char *)malloc(size + 1);
+            success = ReadFile(file, csv, size, &read, 0);
+            CloseHandle(file);
+            if (success && read == size)
+            {
+                csv[size] = 0;
+                to = csv;
+                for (from = csv; *from; ++from)
+                {
+                    if (*from != 13)
+                        *to++ = *from;
+                }
+                *to = 0;
+                for (parse = csv; DB_NextZoneCsvToken(&parse, assetType, 0x20u, 1); ++parse)
+                {
+                    if (DB_NextZoneCsvToken(&parse, assetName, 0x100u, 0) && assetType[0] && assetName[0])
+                        DB_AddReorderAsset(assetType, assetName);
+                    while (*parse && *parse != 10)
+                        ++parse;
+                    if (!*parse)
+                        break;
+                }
+                free(csv);
+                Sys_UnlockWrite(&s_dbReorder.critSect);
+            }
+            else
+            {
+                free(csv);
+                Sys_UnlockWrite(&s_dbReorder.critSect);
+            }
         }
-    }
+#endif
 }
-
 char __cdecl DB_ShouldLoadFromModDir(const char *zoneName)
 {
     const char *strPos; // [esp+0h] [ebp-8h]
