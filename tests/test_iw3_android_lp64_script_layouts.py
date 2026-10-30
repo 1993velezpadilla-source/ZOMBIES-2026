@@ -229,6 +229,23 @@ class Lp64ScriptLayoutTests(unittest.TestCase):
         self.assertNotIn("time = __rdtsc();", source)
         self.assertNotIn("timeSpent = __rdtsc() - time;", source)
 
+    def test_original_frame_script_vm_scheduler_edges_are_relocatably_audited(self):
+        workflow = (ROOT / ".github/workflows/iw3-original-native-android.yml").read_text(encoding="utf-8")
+        frame = (ENGINE / "game/g_runframe.cpp").read_text(encoding="utf-8")
+        vm = (ENGINE / "script/scr_vm.cpp").read_text(encoding="utf-8")
+        self.assertIn("Scr_RunCurrentThreads();", frame)
+        self.assertIn("Scr_IncTime();", frame)
+        self.assertIn("void __cdecl Scr_RunCurrentThreads()", vm)
+        self.assertIn("void __cdecl Scr_IncTime()", vm)
+        self.assertIn('ld.lld" -r "$frame_object" "$script_vm_object"', workflow)
+        self.assertIn("iw3-frame-script-vm-before-undefined.txt", workflow)
+        self.assertIn("iw3-frame-script-vm-undefined.txt", workflow)
+        self.assertIn("IW3_ORIGINAL_FRAME_SCRIPT_VM_RELOCATABLE_LINK_PASS", workflow)
+        self.assertIn("IW3_FRAME_SCRIPT_VM_RUNTIME_LINKED=false", workflow)
+        self.assertIn("IW3_PLAYABLE_APK=false", workflow)
+        self.assertIn("grep -F 'G_UpdatePlayer'", workflow)
+
+
 
 if __name__ == "__main__":
     unittest.main()
