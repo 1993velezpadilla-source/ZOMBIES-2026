@@ -35,6 +35,22 @@ class FastFilePosixOpenRegression(unittest.TestCase):
         self.assertNotIn("GetFileSize", android)
         self.assertIn("CreateFileA", windows)
 
+    def test_original_db_file_size_uses_posix_helper_only_on_android(self):
+        source = REGISTRY.read_text(encoding="utf-8")
+        start = source.index("int32_t __cdecl DB_FileSize(const char *zoneName, int32_t isMod)\\n{")
+        end = source.index("\\nvoid __cdecl Load_GetCurrentZoneHandle", start)
+        body = source[start:end]
+        self.assertIn("DBFastFilePosixFileSizeEnginePath(filename)", body)
+        android_start = body.index("#if defined(__ANDROID__)")
+        android_end = body.index("#else", android_start)
+        android = body[android_start:android_end]
+        windows_end = body.index("#endif", android_end)
+        windows = body[android_end:windows_end]
+        for forbidden in ("CreateFileA", "GetFileSize", "CloseHandle"):
+            self.assertNotIn(forbidden, android)
+        for expected in ("CreateFileA", "GetFileSize", "CloseHandle"):
+            self.assertIn(expected, windows)
+
     def test_open_helper_checks_rooted_fd_type_size_and_opaque_encoding(self):
         source = OPEN_HELPER.read_text(encoding="utf-8")
         self.assertIn("z2026_platform_open_engine_path_fd(path)", source)
