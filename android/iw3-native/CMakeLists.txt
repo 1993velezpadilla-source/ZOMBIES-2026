@@ -238,6 +238,24 @@ if(ANDROID)
         -frounding-math -fno-fast-math)
 endif()
 
+# Compile the complete original Com_Init/Com_Frame translation unit for Android
+# ARM64. This is the core bootstrap TU, not an extracted body or test harness.
+# Keep it object-only until its real platform/service graph and renderer are
+# linked; it is intentionally NOT linked into the JNI diagnostic APK.
+if(ANDROID)
+    add_library(iw3_sp_common_full_compile OBJECT
+        "${IW3_ENGINE_SOURCE_ROOT}/qcommon/common.cpp")
+    target_include_directories(iw3_sp_common_full_compile PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+        "${IW3_ENGINE_SOURCE_ROOT}"
+        "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+    target_compile_definitions(iw3_sp_common_full_compile PRIVATE
+        KISAK_SP=1 KISAK_OPENAL=1)
+    target_compile_options(iw3_sp_common_full_compile PRIVATE
+        -fms-extensions -Wall -Wextra -fsigned-char
+        -frounding-math -fno-fast-math)
+endif()
+
 # Compile the authentic parser/session routines when the source-audit workflow
 # supplies the extracted file. The JNI diagnostic shares this CMakeLists but does
 # not stage/link this audit archive, so absence is not a configure-time failure.
