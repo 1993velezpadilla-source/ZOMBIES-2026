@@ -77,13 +77,13 @@ class OriginalFilesystemStringDvarABITests(unittest.TestCase):
         self.assertNotIn("fs_gameDirVar->current.integer", source)
 
         shutdown_start = source.index("void __cdecl BG_ShutdownWeaponDefFiles()")
-        shutdown_end = source.index("\nvoid __cdecl BG_ClearWeaponDef()", shutdown_start)
+        shutdown_end = source.index("\n\nvoid __cdecl BG_ClearWeaponDef()", shutdown_start)
         shutdown = source[shutdown_start:shutdown_end]
         self.assertIn(r"fs_gameDirVar->current.string[0] != '\0'", shutdown)
         self.assertNotIn("current.integer", shutdown)
 
         load_start = source.index("WeaponDef *__cdecl BG_LoadWeaponDef(const char *name)")
-        load_end = source.index("\nWeaponDef *__cdecl BG_LoadWeaponDef_FastFile", load_start)
+        load_end = source.index("\n\nWeaponDef *__cdecl BG_LoadWeaponDef_FastFile", load_start)
         load = source[load_start:load_end]
         self.assertIn(r"fs_gameDirVar->current.string[0] != '\0' || !IsFastFileLoad()", load)
         self.assertNotIn("fs_gameDirVar->current.integer", load)
