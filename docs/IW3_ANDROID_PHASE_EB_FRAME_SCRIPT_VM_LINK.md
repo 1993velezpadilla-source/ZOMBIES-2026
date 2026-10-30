@@ -17,7 +17,7 @@ The gate:
 2. Verifies both original definitions exist in the VM object.
 3. Creates a combined AArch64 relocatable object and checks its ELF architecture.
 4. Verifies both scheduler symbols are defined and no longer undefined in the combined object.
-5. Requires an unrelated gameplay service (`G_UpdatePlayer`) to remain undefined, demonstrating that the combined object is intentionally partial and does **not** claim full engine linkage.
+5. Requires an unrelated gameplay service (`G_UpdatePlayerTriggers(gentity_s*)`) to remain undefined, demonstrating that the combined object is intentionally partial and does **not** claim full engine linkage.
 6. Preserves the before/after symbol reports and combined object in the CI artifact.
 
 A source regression test checks that the gate remains present and that the frame/runtime/playable-APK flags stay explicitly false.
