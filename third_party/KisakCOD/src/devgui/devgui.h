@@ -38,6 +38,8 @@ struct DevGuiInput // sizeof=0x70
 };
 static_assert(sizeof(DevGuiInput) == 0x70);
 
+// DevGui menu structures are process-local runtime state, not serialized assets.
+// Their native pointers widen on LP64, while the Win32 build keeps original sizes.
 union DevMenuChild // sizeof=0x4
 {                                       // ...
     const char *command;

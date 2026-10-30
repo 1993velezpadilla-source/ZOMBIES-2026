@@ -1,4 +1,4 @@
-"""Regression tests for 32-bit and LP64 runtime layout assertions in IW3 headers."""
+"""Regression tests for 32-bit and LP64 pointer-bearing engine header layouts."""
 from pathlib import Path
 import unittest
 

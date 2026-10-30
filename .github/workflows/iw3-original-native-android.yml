@@ -1841,6 +1841,10 @@ jobs:
           path: |
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_math.so
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_frame.a
+            ${{ runner.temp }}/iw3-client-input-full-elf.txt
+            ${{ runner.temp }}/iw3-client-input-full-defined.txt
+            ${{ runner.temp }}/iw3-client-input-full-undefined.txt
+            ${{ runner.temp }}/iw3-build-arm64/CMakeFiles/iw3_sp_client_input_full_compile.dir/**/*.o
             ${{ runner.temp }}/iw3-source/iw3_cl_createcmd.cpp
             ${{ runner.temp }}/iw3-original-cl-createcmd.json
             ${{ runner.temp }}/iw3-original-cl-createcmd-arm64.o
