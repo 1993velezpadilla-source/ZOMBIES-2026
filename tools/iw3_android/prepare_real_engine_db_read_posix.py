@@ -165,7 +165,7 @@ int main()
 
     close(fd);
     std::printf("IW3_ORIGINAL_DB_READ_POSIX_BODY_PASS checks=%d\n", g_checks);
-    return g_checks == 10 ? 0 : 2;
+    return g_checks == 12 ? 0 : 2;
 }
 """
 
