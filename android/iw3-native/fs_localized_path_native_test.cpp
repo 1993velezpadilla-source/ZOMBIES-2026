@@ -207,21 +207,21 @@ static void test_original_path_builder() {
     char server_path[256]{};
     assert(FS_SV_BuildOSPath("/private/iw3", "players/profile.cfg", server_path));
     assert(std::strcmp(server_path, "/private/iw3/players/profile.cfg") == 0);
-    assert(FS_SV_BuildOSPath("/private/iw3", "main\\\\test.iwd", server_path));
+    assert(FS_SV_BuildOSPath("/private/iw3", "main\\test.iwd", server_path));
     assert(std::strcmp(server_path, "/private/iw3/main/test.iwd") == 0);
     std::strcpy(server_path, "stale");
     assert(!FS_SV_BuildOSPath("", "config.cfg", server_path));
-    assert(server_path[0] == '\\0');
+    assert(server_path[0] == '\0');
     std::strcpy(server_path, "stale");
     assert(!FS_SV_BuildOSPath("/private/iw3", "", server_path));
-    assert(server_path[0] == '\\0');
+    assert(server_path[0] == '\0');
 
     std::string oversized(300, 'x');
     g_fatal_errors = 0;
     std::strcpy(server_path, "stale");
     assert(!FS_SV_BuildOSPath(oversized.c_str(), "config.cfg", server_path));
     assert(g_fatal_errors == 1);
-    assert(server_path[0] == '\\0');
+    assert(server_path[0] == '\0');
     std::puts("IW3_ORIGINAL_FS_SV_PATH_GUARD_PASS");
     std::strcpy(path, "stale");
     FS_BuildOSPathForThread(oversized.c_str(), "main", "", path, FS_THREAD_BACKEND);
