@@ -328,6 +328,28 @@ jobs:
             -DIW3_REAL_HEADER_ROOT="$GITHUB_WORKSPACE/third_party/KisakCOD/src/universal"
           cmake --build "$RUNNER_TEMP/iw3-build-arm64" -j 2
 
+          # Audit the complete original FastFile loader TU, not just extracted
+          # helper bodies. Renderer services intentionally remain undefined.
+          db_loader_object="$(find "$RUNNER_TEMP/iw3-build-arm64/CMakeFiles/iw3_sp_db_file_load_full_compile.dir" -type f -name '*.o' -print -quit)"
+          test -n "$db_loader_object"
+          llvm_readelf="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
+          llvm_nm="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm"
+          "$llvm_readelf" -h "$db_loader_object" | tee "$RUNNER_TEMP/iw3-db-file-load-elf.txt"
+          grep -F 'ELF64' "$RUNNER_TEMP/iw3-db-file-load-elf.txt"
+          grep -F 'AArch64' "$RUNNER_TEMP/iw3-db-file-load-elf.txt"
+          "$llvm_nm" -C --defined-only "$db_loader_object" | tee "$RUNNER_TEMP/iw3-db-file-load-defined.txt"
+          grep -F 'DB_LoadXFileInternal()' "$RUNNER_TEMP/iw3-db-file-load-defined.txt"
+          "$llvm_nm" -C -u "$db_loader_object" | tee "$RUNNER_TEMP/iw3-db-file-load-undefined.txt"
+          grep -F 'R_DelayLoadImage' "$RUNNER_TEMP/iw3-db-file-load-undefined.txt"
+          grep -F 'R_FinishStaticVertexBuffer' "$RUNNER_TEMP/iw3-db-file-load-undefined.txt"
+          grep -F 'R_FinishStaticIndexBuffer' "$RUNNER_TEMP/iw3-db-file-load-undefined.txt"
+          echo "IW3_ORIGINAL_DB_FILE_LOAD_AARCH64_OBJECT_PASS"
+          echo "IW3_DB_RENDERER_SERVICE_EDGES_UNRESOLVED_EXPECTED"
+          echo "IW3_DB_FILE_LOAD_RUNTIME_LINKED=false"
+          echo "IW3_REAL_MAP_LOADED=false"
+          echo "IW3_GAMEPLAY_PROVEN=false"
+          echo "IW3_PLAYABLE_APK=false"
+
           fs_read_archive="$RUNNER_TEMP/iw3-build-arm64/libiw3_sp_fs_read.a"
           test -s "$fs_read_archive"
           llvm_nm="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm"
