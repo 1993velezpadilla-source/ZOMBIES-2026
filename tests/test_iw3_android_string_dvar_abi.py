@@ -74,18 +74,18 @@ class OriginalFilesystemStringDvarABITests(unittest.TestCase):
 
     def test_bgame_weapon_paths_use_native_width_game_directory_string(self):
         source = BG_WEAPONS_SOURCE.read_text(encoding="utf-8")
-        self.assertNotRegex(source, r"\\bfs_gameDirVar->current\\.integer\\b")
+        self.assertNotIn("fs_gameDirVar->current.integer", source)
 
         shutdown_start = source.index("void __cdecl BG_ShutdownWeaponDefFiles()")
-        shutdown_end = source.index("\\nvoid __cdecl BG_ClearWeaponDef()", shutdown_start)
+        shutdown_end = source.index("\nvoid __cdecl BG_ClearWeaponDef()", shutdown_start)
         shutdown = source[shutdown_start:shutdown_end]
-        self.assertIn("fs_gameDirVar->current.string[0] != '\\\\0'", shutdown)
+        self.assertIn(r"fs_gameDirVar->current.string[0] != '\0'", shutdown)
         self.assertNotIn("current.integer", shutdown)
 
         load_start = source.index("WeaponDef *__cdecl BG_LoadWeaponDef(const char *name)")
-        load_end = source.index("\\nWeaponDef *__cdecl BG_LoadWeaponDef_FastFile", load_start)
+        load_end = source.index("\nWeaponDef *__cdecl BG_LoadWeaponDef_FastFile", load_start)
         load = source[load_start:load_end]
-        self.assertIn("fs_gameDirVar->current.string[0] != '\\\\0' || !IsFastFileLoad()", load)
+        self.assertIn(r"fs_gameDirVar->current.string[0] != '\0' || !IsFastFileLoad()", load)
         self.assertNotIn("fs_gameDirVar->current.integer", load)
 
         # This neighboring dvar is numeric and must continue using integer.
