@@ -32,29 +32,24 @@ XAnimTree_s *__cdecl G_GetActorCorpseIndexAnimTree(unsigned int index)
 
 int __cdecl G_GetActorCorpseIndex(gentity_s *ent)
 {
-    int number; // r9
-    int result; // r3
-    int *p_entnum; // r11
+    const int number = ent->s.number;
 
-    number = ent->s.number;
-    result = 0;
-    p_entnum = &g_scr_data.actorCorpseInfo[0].entnum;
-    while (*p_entnum != number)
+    // actorCorpseInfo is a fixed 16-entry runtime array. Use its declared
+    // bound instead of comparing truncated 32-bit pointer values: that
+    // comparison is invalid on Android's LP64 ABI.
+    for (int result = 0; result < ARRAY_COUNT(g_scr_data.actorCorpseInfo); ++result)
     {
-        p_entnum += 8;
-        ++result;
-        if ((int)p_entnum >= (int)&g_scr_data.actorBackup)
-        {
-            if (!alwaysfails)
-                MyAssertHandler(
-                    "c:\\trees\\cod3\\cod3src\\src\\game\\actor_corpse.cpp",
-                    51,
-                    0,
-                    "G_GetActorCorpseIndex called for non actor corpse");
-            return 0;
-        }
+        if (g_scr_data.actorCorpseInfo[result].entnum == number)
+            return result;
     }
-    return result;
+
+    if (!alwaysfails)
+        MyAssertHandler(
+            "c:\\trees\\cod3\\cod3src\\src\\game\\actor_corpse.cpp",
+            51,
+            0,
+            "G_GetActorCorpseIndex called for non actor corpse");
+    return 0;
 }
 
 int G_GetFreeActorCorpseIndex(int reuse)
@@ -302,7 +297,6 @@ void __cdecl G_PruneLoadedCorpses()
     signed int v2; // r28
     int v3; // r11
     unsigned int *v4; // r9
-    int *p_entnum; // r10
     gentity_s *ent; // r30
     int v7; // r27
     int *v8; // r29
@@ -325,18 +319,15 @@ void __cdecl G_PruneLoadedCorpses()
     v2 = 0;
     v3 = 0;
     v4 = (unsigned int*)corpseIndices;
-    p_entnum = &g_scr_data.actorCorpseInfo[0].entnum;
-    do
+    for (v3 = 0; v3 < ARRAY_COUNT(g_scr_data.actorCorpseInfo); ++v3)
     {
-        if (*p_entnum >= 0)
+        if (g_scr_data.actorCorpseInfo[v3].entnum >= 0)
         {
             *v4 = v3;
             ++v2;
             ++v4;
         }
-        p_entnum += 8;
-        ++v3;
-    } while ((int)p_entnum < (int)&g_scr_data.actorBackup);
+    }
     if (v2 > 6)
     {
         ent = G_Find(0, offsetof(gentity_s, classname), scr_const.player);
