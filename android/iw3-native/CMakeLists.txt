@@ -238,6 +238,30 @@ if(ANDROID)
         -frounding-math -fno-fast-math)
 endif()
 
+# Compile the complete original actor-corpse translation unit for Android ARM64.
+# This includes the real G_UpdateActorCorpses/G_RemoveActorCorpses implementation.
+# Keep it object-only: it is a frame-service provider audit, not an Android runtime.
+if(ANDROID)
+    add_library(iw3_sp_actor_corpse_full_compile OBJECT
+        "${IW3_ENGINE_SOURCE_ROOT}/game/actor_corpse.cpp")
+    target_include_directories(iw3_sp_actor_corpse_full_compile PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+        "${IW3_ENGINE_SOURCE_ROOT}"
+        "${IW3_ENGINE_SOURCE_ROOT}/client"
+        "${IW3_ENGINE_SOURCE_ROOT}/qcommon"
+        "${IW3_ENGINE_SOURCE_ROOT}/universal"
+        "${IW3_ENGINE_SOURCE_ROOT}/gfx_d3d"
+        "${IW3_ENGINE_SOURCE_ROOT}/game"
+        "${IW3_ENGINE_SOURCE_ROOT}/cgame"
+        "${IW3_ENGINE_SOURCE_ROOT}/bgame"
+        "${IW3_ENGINE_SOURCE_ROOT}/xanim"
+        "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+    target_compile_definitions(iw3_sp_actor_corpse_full_compile PRIVATE KISAK_SP=1)
+    target_compile_options(iw3_sp_actor_corpse_full_compile PRIVATE
+        -fms-extensions -Wall -Wextra -fsigned-char
+        -frounding-math -fno-fast-math)
+endif()
+
 # Compile the complete original Com_Init/Com_Frame translation unit for Android
 # ARM64. This is the core bootstrap TU, not an extracted body or test harness.
 # Keep it object-only until its real platform/service graph and renderer are
