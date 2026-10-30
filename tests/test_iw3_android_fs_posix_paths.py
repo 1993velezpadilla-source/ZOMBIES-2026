@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "third_party/KisakCOD/src/universal/com_files.cpp"
 NATIVE = ROOT / "android/iw3-native/fs_localized_path_native_test.cpp"
 CMAKE = ROOT / "android/iw3-native/CMakeLists.txt"
+GENERATOR = ROOT / "tools/iw3_android/prepare_real_engine_fs_startup.py"
 
 
 class AndroidOriginalFilesystemPosixPaths(unittest.TestCase):
@@ -35,6 +36,8 @@ class AndroidOriginalFilesystemPosixPaths(unittest.TestCase):
         self.assertIn("#if defined(__ANDROID__) || defined(IW3_FS_POSIX_PATHS_TEST)", body)
         self.assertIn("if (*ofs == nativeSeparator)", body)
         self.assertIn("Sys_Mkdir(OSPath);", body)
+        self.assertIn('"int __cdecl FS_CreatePath(char *OSPath)"',
+                      GENERATOR.read_text(encoding="utf-8"))
         self.assertIn("*ofs = nativeSeparator;", body)
 
     def test_host_exercises_real_path_builder_not_a_fake(self):
@@ -46,6 +49,9 @@ class AndroidOriginalFilesystemPosixPaths(unittest.TestCase):
         self.assertIn('"/private/iw3/main/english/voice"', test)
         self.assertIn('"/private/iw3/main/maps/mp/test.d3dbsp"', test)
         self.assertIn('g_probed_paths[0] == "/private/iw3/main/english"', test)
+        self.assertIn("assert(FS_CreatePath(nested) == 0);", test)
+        self.assertIn("assert(FS_CreatePath(traversal) == 1);", test)
+        self.assertIn("g_mkdir_paths.size() == 4", test)
 
 
 if __name__ == "__main__":
