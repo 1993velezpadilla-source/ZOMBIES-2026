@@ -66,6 +66,31 @@ class AndroidOriginalFilesystemPosixPaths(unittest.TestCase):
         self.assertIn("assert(g_iwd_scans == 0);", native)
         self.assertIn("IW3_ORIGINAL_FS_OVERLONG_LOCALIZED_PATH_FAIL_CLOSED_PASS", native)
 
+    def test_server_file_paths_guard_overlong_roots_before_io(self):
+        source = SOURCE.read_text(encoding="utf-8")
+        helper_start = source.index(
+            "bool __cdecl FS_SV_BuildOSPath(const char *base, const char *filename, char *ospath)"
+        )
+        helper_end = source.index("\\n}", helper_start)
+        helper = source[helper_start:helper_end]
+        self.assertIn("FS_BuildOSPath(base, filename, \"\", ospath);", helper)
+        self.assertIn("if (length < 2 ||", helper)
+        self.assertIn("ospath[length - 1] = '\\0';", helper)
+        self.assertIn("return false;", helper)
+        self.assertIn("FS_SV_BuildOSPath", GENERATOR.read_text(encoding="utf-8"))
+        for name in ("FS_SV_FOpenFileRead", "FS_SV_FOpenFileWrite", "FS_SV_FileExists"):
+            start = source.index("int __cdecl " + name + "(")
+            body = source[start:source.index("\\n}", start)]
+            self.assertIn("FS_SV_BuildOSPath(", body)
+            self.assertNotIn("ospath[v3 - &ospath[1] - 1]", body)
+            self.assertNotIn("ospath[v6 - &ospath[1] - 1]", body)
+            self.assertNotIn("ospath[&ospath[strlen(ospath) + 1]", body)
+            self.assertNotIn("testpath[&testpath[strlen(testpath) + 1]", body)
+        native = NATIVE.read_text(encoding="utf-8")
+        self.assertIn('FS_SV_BuildOSPath(oversized.c_str(), "config.cfg", server_path)', native)
+        self.assertIn('FS_SV_BuildOSPath("", "config.cfg", server_path)', native)
+        self.assertIn('IW3_ORIGINAL_FS_SV_PATH_GUARD_PASS', native)
+
     def test_host_exercises_real_path_builder_not_a_fake(self):
         cmake = CMAKE.read_text(encoding="utf-8")
         test = NATIVE.read_text(encoding="utf-8")
