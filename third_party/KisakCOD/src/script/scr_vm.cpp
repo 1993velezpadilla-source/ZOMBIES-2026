@@ -216,8 +216,13 @@ int __cdecl Scr_GetFunctionHandle(const char* filename, const char* name)
             "pos.type == VAR_CODE::pos || pos.type == VAR_DEVELOPER_CODE::pos");
     if (!Scr_IsInOpcodeMemory(v3.u.codePosValue))
         return 0;
-    result = v3.u.intValue - (uint32_t)scrVarPub.programBuffer;
-    if ((const char*)v3.u.intValue == scrVarPub.programBuffer)
+    // Function handles are offsets into the active script program buffer.
+    // Subtract native pointers before narrowing to the legacy int handle.
+    const auto codeOffset = v3.u.codePosValue - scrVarPub.programBuffer;
+    if (codeOffset < 0 || codeOffset > 0x7fffffff)
+        return 0;
+    result = static_cast<int>(codeOffset);
+    if (v3.u.codePosValue == scrVarPub.programBuffer)
         MyAssertHandler(".\\script\\scr_main.cpp", 106, 0, "%s", "result");
     return result;
 }
