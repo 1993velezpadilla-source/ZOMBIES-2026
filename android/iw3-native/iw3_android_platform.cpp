@@ -357,6 +357,17 @@ extern "C" IW3_ANDROID_EXPORT int z2026_platform_copy_data_root(
     return static_cast<int>(g_data_root_path.size());
 }
 
+// Original filesystem/database service: resolve the engine install root to
+// the already configured app-private filesDir. The caller receives stable
+// storage and the subsequent POSIX opener still enforces descriptor-rooted
+// confinement; this is not the process working directory.
+char *Sys_DefaultInstallPath() {
+    static char install_root[1024]{};
+    if (z2026_platform_copy_data_root(install_root, sizeof(install_root)) < 0)
+        install_root[0] = '\0';
+    return install_root;
+}
+
 extern "C" IW3_ANDROID_EXPORT int z2026_platform_read_file(
     const char *relative, void *out, std::size_t capacity) {
     if ((!out && capacity != 0) || !valid_path(relative) ||
