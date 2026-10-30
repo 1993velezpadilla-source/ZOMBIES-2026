@@ -17,13 +17,15 @@ class OriginalCommandStringDvarABITests(unittest.TestCase):
 
     def test_raw_dump_paths_use_native_width_string_member(self):
         self.assertIn(
-            'std::format("{}\\\\raw\\\\", (char *)fs_basepath->current.string)',
+            'std::filesystem::path(fs_basepath->current.string) / "raw"',
             self.dumpraw,
         )
         self.assertIn(
-            'std::format("{}\\\\zone\\\\english\\\\", (char *)fs_basepath->current.string)',
+            'std::filesystem::path(fs_basepath->current.string) / "zone" / "english"',
             self.dumpraw,
         )
+        self.assertNotIn("std::format(", self.dumpraw)
+        self.assertNotIn("fopen_s(", self.dumpraw)
         self.assertEqual(self.dumpraw.count("fs_basepath->current.string"), 2)
         self.assertNotIn("fs_basepath->current.integer", self.dumpraw)
 
