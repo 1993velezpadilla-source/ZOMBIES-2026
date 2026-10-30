@@ -42,6 +42,15 @@ intermediate directory creation for POSIX paths.
 - [f1e52d4](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/f1e52d4ca98a77519b007b9e1aa405ce966bef7f)
   and [d5af3ec](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/d5af3ec846d3494c61123416276729c1d4857b04):
   add source and test-wiring regression assertions.
+- [770d60e](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/770d60e853a12ea302eebb06508c18f2fbc8f136)
+  and [0577489](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/0577489491000036a8e9b49989af6e126f870cc2):
+  stage the authentic `FS_CreatePath` function in the original FS startup
+  archive and declare its actual `Sys_Mkdir` platform ABI.
+- [13c664e](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/13c664e6bdd6d864e44451115087f07e3ff1446f)
+  and [24430b6](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/24430b6f4e942a707641ee03c224421d1adaf6e3):
+  execute the original `FS_CreatePath` body with a host platform spy,
+  checking four POSIX parent paths, restored input and refusal of `..`
+  traversal; assert extraction and invocation in the Python regression.
 
 ## Evidence and remaining gates
 
