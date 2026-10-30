@@ -326,7 +326,7 @@ if(ANDROID)
         "${IW3_ENGINE_SOURCE_ROOT}/../deps")
     target_compile_definitions(iw3_sp_script_vm_full_compile PRIVATE KISAK_SP=1)
     target_compile_options(iw3_sp_script_vm_full_compile PRIVATE
-        -fms-extensions -fno-inline -Wall -Wextra -fsigned-char
+        -fms-extensions -fno-inline -ferror-limit=0 -Wall -Wextra -fsigned-char
         -frounding-math -fno-fast-math)
 endif()
 
