@@ -9,6 +9,7 @@ on:
       - 'third_party/KisakCOD/src/database/db_fastfile_posix_io.h'
       - 'android/iw3-native/db_fastfile_posix_io_native_test.cpp'
       - 'tests/test_iw3_android_fastfile_posix_io.py'
+      - 'tools/iw3_android/prepare_real_engine_db_read_posix.py'
   push:
     branches:
       - feature/iw3-native-android-arm64-20261025
@@ -19,6 +20,7 @@ on:
       - 'third_party/KisakCOD/src/database/db_fastfile_posix_io.h'
       - 'android/iw3-native/db_fastfile_posix_io_native_test.cpp'
       - 'tests/test_iw3_android_fastfile_posix_io.py'
+      - 'tools/iw3_android/prepare_real_engine_db_read_posix.py'
   workflow_dispatch:
 
 permissions:
