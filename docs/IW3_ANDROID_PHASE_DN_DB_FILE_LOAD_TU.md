@@ -57,8 +57,31 @@ Android-specific static assertions (the original Win32 assertions remain
 unchanged), declares `HWND` as an opaque pointer only on Android, and uses
 standard `<stdarg.h>` for ODE's `va_list` declaration on Android. These are
 ABI/header portability changes, not fake renderer or physics implementations.
-The next NDK retry is pending. No compile pass is claimed until the full object
-and expected unresolved renderer symbols are verified.
+The NDK retry `41011196636` **did compile the complete original
+`db_file_load.cpp` translation unit for ELF64/AArch64**. The workflow verified
+`DB_LoadXFileInternal()` is defined and that `R_DelayLoadImage`,
+`R_FinishStaticVertexBuffer`, and `R_FinishStaticIndexBuffer` remain unresolved
+renderer-service edges. It emitted:
+
+- `IW3_ORIGINAL_DB_FILE_LOAD_AARCH64_OBJECT_PASS`
+- `IW3_DB_RENDERER_SERVICE_EDGES_UNRESOLVED_EXPECTED`
+- `IW3_DB_FILE_LOAD_RUNTIME_LINKED=false`
+
+The full original frame compile also passed in step 8. The workflow then reached
+the next client-input edge and failed in step 9 because the Android
+`clientDebug*` guard had lost the struct's terminating semicolon during the
+guard insertion (`#endif;` was parsed as an invalid directive). That source
+syntax is corrected in commit `89cc69c`, and a regression now checks both the
+terminator and absence of `#endif;`. The evidence upload was changed to run
+with `if: always()` so the successful FastFile-loader object and undefined
+symbol report are retained even when a later touch/client edge fails. The
+retry is pending.
+
+The loader object compile is a real source-portability milestone, **not** a
+runtime link: its database/authentication/stream services and the three
+renderer services are still unresolved. The FastFile disk format also remains
+32-bit; the LP64 runtime-size assertions do not implement disk-record decoding
+or pointer relocation.
 
 The following attempt (`41010620368`) got past the renderer-header and ODE
 include blockers but exposed the broader original asset ABI surface:
