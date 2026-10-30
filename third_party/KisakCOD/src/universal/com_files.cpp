@@ -994,11 +994,15 @@ bool __cdecl FS_Delete(const char *filename)
 
     FS_CheckFileSystemStarted();
     if (!filename)
-        MyAssertHandler(".\\universal\\com_files.cpp", 2205, 0, "%s", "filename");
+        MyAssertHandler(".\\.\\universal\\.\\com_files.cpp", 2205, 0, "%s", "filename");
     if (!*filename)
         return 0;
     FS_BuildOSPath((char *)fs_homepath->current.string, fs_gamedir, filename, ospath);
+#if defined(__ANDROID__)
+    return z2026_platform_remove_engine_path(ospath) == 0;
+#else
     return remove(ospath) != -1;
+#endif
 }
 
 uint32_t __cdecl FS_Read(uint8_t *buffer, uint32_t len, int h)
@@ -2897,7 +2901,11 @@ void __cdecl FS_CopyFile(char *fromOSPath, char *toOSPath)
 
 void __cdecl FS_Remove(const char *osPath)
 {
+#if defined(__ANDROID__)
+    (void)z2026_platform_remove_engine_path(osPath);
+#else
     remove(osPath);
+#endif
 }
 
 void __cdecl FS_SV_Rename(char *from, char *to)
@@ -2913,11 +2921,17 @@ void __cdecl FS_SV_Rename(char *from, char *to)
     to_ospath[strlen(to_ospath) - 1] = 0;
     if (fs_debug->current.integer)
         Com_Printf(CON_CHANNEL_FILES, "FS_SV_Rename: %s --> %s\n", from_ospath, to_ospath);
+#if defined(__ANDROID__)
+    if (z2026_platform_rename_engine_path(from_ospath, to_ospath) != 0)
+        Com_PrintWarning(CON_CHANNEL_FILES,
+            "FS_SV_Rename: rooted rename failed: %s --> %s\n", from_ospath, to_ospath);
+#else
     if (rename(from_ospath, to_ospath))
     {
         FS_CopyFile(from_ospath, to_ospath);
         FS_Remove(from_ospath);
     }
+#endif
 }
 
 int __cdecl FS_SV_FileExists(char *file)
@@ -3119,11 +3133,15 @@ bool __cdecl FS_DeleteInDir(char *filename, char *dir)
 
     FS_CheckFileSystemStarted();
     if (!filename)
-        MyAssertHandler(".\\universal\\com_files.cpp", 2231, 0, "%s", "filename");
+        MyAssertHandler(".\\.\\universal\\.\\com_files.cpp", 2231, 0, "%s", "filename");
     if (!*filename)
         return 0;
     FS_BuildOSPath(fs_homepath->current.string, dir, filename, ospath);
+#if defined(__ANDROID__)
+    return z2026_platform_remove_engine_path(ospath) == 0;
+#else
     return remove(ospath) != -1;
+#endif
 }
 
 void __cdecl FS_Rename(char *from, char *fromDir, char *to, char *toDir)
@@ -3136,6 +3154,11 @@ void __cdecl FS_Rename(char *from, char *fromDir, char *to, char *toDir)
     FS_BuildOSPath(fs_homepath->current.string, toDir, to, to_ospath);
     if (fs_debug->current.integer)
         Com_Printf(CON_CHANNEL_FILES, "FS_Rename: %s --> %s\n", from_ospath, to_ospath);
+#if defined(__ANDROID__)
+    if (z2026_platform_rename_engine_path(from_ospath, to_ospath) != 0)
+        Com_PrintWarning(CON_CHANNEL_FILES,
+            "FS_Rename: rooted rename failed: %s --> %s\n", from_ospath, to_ospath);
+#else
     if (rename(from_ospath, to_ospath))
     {
         FS_Remove(to_ospath);
@@ -3145,4 +3168,5 @@ void __cdecl FS_Rename(char *from, char *fromDir, char *to, char *toDir)
             FS_Remove(from_ospath);
         }
     }
+#endif
 }

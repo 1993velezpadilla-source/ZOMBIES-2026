@@ -54,6 +54,11 @@ IW3_ANDROID_EXPORT int z2026_platform_directory_has_contents(const char *directo
 IW3_ANDROID_EXPORT int z2026_platform_write_file(
     const char *relative_path, const void *source, std::size_t length);
 IW3_ANDROID_EXPORT int z2026_platform_unlink_file(const char *relative_path);
+// Root-confined mutations for original com_files.cpp engine paths.
+// Paths are normalized beneath the retained app-private data root.
+IW3_ANDROID_EXPORT int z2026_platform_remove_engine_path(const char *engine_path);
+IW3_ANDROID_EXPORT int z2026_platform_rename_engine_path(
+    const char *from_engine_path, const char *to_engine_path);
 IW3_ANDROID_EXPORT int z2026_platform_mkdir(const char *relative_path);
 IW3_ANDROID_EXPORT int z2026_platform_rmdir(const char *relative_path);
 

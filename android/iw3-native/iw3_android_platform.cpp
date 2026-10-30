@@ -679,6 +679,66 @@ extern "C" IW3_ANDROID_EXPORT int z2026_platform_unlink_file(
     return rc;
 }
 
+extern "C" IW3_ANDROID_EXPORT int z2026_platform_remove_engine_path(
+    const char *engine_path) {
+    char relative[1024]{};
+    std::lock_guard<std::mutex> lock(g_data_mutex);
+    if (g_data_root_fd < 0 ||
+        !normalize_engine_path(engine_path, relative, false)) return -1;
+
+    char leaf[256]{};
+    const int parent = open_parent_beneath_root(g_data_root_fd, relative, leaf);
+    if (parent < 0) return -1;
+
+    struct stat entry{};
+    if (fstatat(parent, leaf, &entry, AT_SYMLINK_NOFOLLOW) != 0) {
+        close(parent);
+        return -1;
+    }
+    const int flags = S_ISDIR(entry.st_mode) ? AT_REMOVEDIR : 0;
+    const int result = unlinkat(parent, leaf, flags);
+    close(parent);
+    return result;
+}
+
+extern "C" IW3_ANDROID_EXPORT int z2026_platform_rename_engine_path(
+    const char *from_engine_path, const char *to_engine_path) {
+    char from_relative[1024]{};
+    char to_relative[1024]{};
+    std::lock_guard<std::mutex> lock(g_data_mutex);
+    if (g_data_root_fd < 0 ||
+        !normalize_engine_path(from_engine_path, from_relative, false) ||
+        !normalize_engine_path(to_engine_path, to_relative, false)) return -1;
+
+    char from_leaf[256]{};
+    char to_leaf[256]{};
+    const int from_parent =
+        open_parent_beneath_root(g_data_root_fd, from_relative, from_leaf);
+    if (from_parent < 0) return -1;
+    const int to_parent =
+        open_parent_beneath_root(g_data_root_fd, to_relative, to_leaf);
+    if (to_parent < 0) {
+        close(from_parent);
+        return -1;
+    }
+
+    struct stat source_entry{};
+    if (fstatat(from_parent, from_leaf, &source_entry, AT_SYMLINK_NOFOLLOW) != 0 ||
+        S_ISLNK(source_entry.st_mode)) {
+        close(to_parent);
+        close(from_parent);
+        return -1;
+    }
+
+    // renameat moves files or directories relative to already-opened,
+    // no-follow parents. FS_SV_Rename uses directory paths in the original engine.
+    const int result = renameat(from_parent, from_leaf, to_parent, to_leaf);
+    close(to_parent);
+    close(from_parent);
+    return result;
+}
+
+
 extern "C" IW3_ANDROID_EXPORT int z2026_platform_touch_event(
     int id, float x, float y, int down) {
     if (id < 0 || id >= kAndroidPointerIdCount ||

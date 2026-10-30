@@ -303,6 +303,88 @@ int main() {
     assert(z2026_platform_list_iwd_files("../", iwd_names, sizeof(iwd_names),
                                          &overflow_count) == -1);
     assert(z2026_platform_unlink_file("generated.iwd") == 0);
+
+    // Exercise the original filesystem's absolute/Windows-style engine-path
+    // mutation boundary. These helpers must stay inside filesDir and must not
+    // follow symlinked parent directories or symlink leaf targets.
+    const std::string mutation_dir = std::string(root) + "/mutation";
+    assert(mkdir(mutation_dir.c_str(), 0700) == 0);
+    auto write_mutation_file = [](const std::string &file, const char *bytes,
+                                  std::size_t length) {
+        const int mutation_fd = open(
+            file.c_str(), O_WRONLY | O_CREAT | O_EXCL, 0600);
+        assert(mutation_fd >= 0);
+        assert(write(mutation_fd, bytes, length) == static_cast<ssize_t>(length));
+        assert(close(mutation_fd) == 0);
+    };
+
+    const std::string remove_path = mutation_dir + "/remove.txt";
+    write_mutation_file(remove_path, "remove", 6);
+    const std::string windows_remove_path =
+        std::string(root) + "\\mutation\\remove.txt";
+    assert(z2026_platform_remove_engine_path(windows_remove_path.c_str()) == 0);
+    assert(access(remove_path.c_str(), F_OK) != 0);
+
+    const std::string rename_source = mutation_dir + "/rename-source.txt";
+    const std::string rename_destination = mutation_dir + "/rename-destination.txt";
+    write_mutation_file(rename_source, "move", 4);
+    const std::string windows_rename_destination =
+        std::string(root) + "\\mutation\\rename-destination.txt";
+    assert(z2026_platform_rename_engine_path(
+        rename_source.c_str(), windows_rename_destination.c_str()) == 0);
+    assert(access(rename_source.c_str(), F_OK) != 0);
+    const int renamed_fd = open(rename_destination.c_str(), O_RDONLY);
+    assert(renamed_fd >= 0);
+    char renamed_bytes[4]{};
+    assert(read(renamed_fd, renamed_bytes, sizeof(renamed_bytes)) == 4);
+    assert(std::memcmp(renamed_bytes, "move", 4) == 0);
+    assert(close(renamed_fd) == 0);
+
+    // FS_SV_Rename also moves game directories, so the rooted rename provider
+    // must preserve directory-rename semantics as well as regular-file moves.
+    const std::string directory_source = mutation_dir + "/directory-source";
+    const std::string directory_destination = mutation_dir + "/directory-destination";
+    assert(mkdir(directory_source.c_str(), 0700) == 0);
+    assert(z2026_platform_rename_engine_path(
+        directory_source.c_str(), directory_destination.c_str()) == 0);
+    struct stat renamed_directory{};
+    assert(stat(directory_destination.c_str(), &renamed_directory) == 0);
+    assert(S_ISDIR(renamed_directory.st_mode));
+    assert(rmdir(directory_destination.c_str()) == 0);
+
+    const std::string guarded_source = mutation_dir + "/guarded-source.txt";
+    write_mutation_file(guarded_source, "stay", 4);
+    const std::string sibling_escape =
+        std::string(root) + "-sibling/mutation/escaped.txt";
+    assert(z2026_platform_rename_engine_path(
+        guarded_source.c_str(), sibling_escape.c_str()) == -1);
+    assert(access(guarded_source.c_str(), F_OK) == 0);
+    assert(z2026_platform_remove_engine_path("/etc/passwd") == -1);
+    assert(z2026_platform_remove_engine_path(
+        (std::string(root) + "/../outside.txt").c_str()) == -1);
+
+    const std::string linked_parent = std::string(root) + "/mutation-link";
+    assert(symlink(mutation_dir.c_str(), linked_parent.c_str()) == 0);
+    const std::string symlink_parent_destination = linked_parent + "/blocked.txt";
+    assert(z2026_platform_rename_engine_path(
+        guarded_source.c_str(), symlink_parent_destination.c_str()) == -1);
+    assert(access(guarded_source.c_str(), F_OK) == 0);
+    assert(unlink(linked_parent.c_str()) == 0);
+
+    const std::string symlink_leaf = mutation_dir + "/external-link";
+    assert(symlink("/etc/passwd", symlink_leaf.c_str()) == 0);
+    assert(z2026_platform_remove_engine_path(symlink_leaf.c_str()) == 0);
+    struct stat removed_link{};
+    assert(lstat(symlink_leaf.c_str(), &removed_link) != 0);
+
+    const std::string empty_directory = mutation_dir + "/empty-directory";
+    assert(mkdir(empty_directory.c_str(), 0700) == 0);
+    assert(z2026_platform_remove_engine_path(empty_directory.c_str()) == 0);
+    assert(access(empty_directory.c_str(), F_OK) != 0);
+
+    assert(unlink(rename_destination.c_str()) == 0);
+    assert(unlink(guarded_source.c_str()) == 0);
+    assert(rmdir(mutation_dir.c_str()) == 0);
     assert(z2026_platform_open_read_fd("generated.iwd") == -1);
     // Actual IW3 game data is nested (e.g. main/zone), not flat.
     // Exercise an app-owned nested file while rejecting directory symlinks.

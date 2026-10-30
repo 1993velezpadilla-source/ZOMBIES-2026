@@ -11,6 +11,9 @@ GFX = ROOT / "third_party/KisakCOD/src/gfx_d3d/r_gfx.h"
 MATERIAL = ROOT / "third_party/KisakCOD/src/gfx_d3d/r_material.h"
 D3D9_OPAQUE = ROOT / "third_party/KisakCOD/src/gfx_d3d/r_d3d9_opaque.h"
 FS_COMPAT = ROOT / "android/iw3-native/iw3_android_filesystem_compat.h"
+PLATFORM_CPP = ROOT / "android/iw3-native/iw3_android_platform.cpp"
+PLATFORM_HEADER = ROOT / "android/iw3-native/iw3_android_platform.h"
+WORKFLOW = ROOT / ".github/workflows/iw3-original-native-android.yml"
 CHECKSUM_HEADER = ROOT / "third_party/KisakCOD/src/qcommon/com_checksum.h"
 SND_STOP_HEADER = ROOT / "third_party/KisakCOD/src/sound/snd_stopsounds.h"
 SND_PUBLIC = ROOT / "third_party/KisakCOD/src/sound/snd_public.h"
@@ -177,6 +180,54 @@ class OriginalFilesystemAndroidPortTests(unittest.TestCase):
         self.assertIn("extern int fs_fakeChkSum;", header)
         self.assertIn("extern char lastValidBase[256];", header)
         self.assertIn("extern char lastValidGame[256];", header)
+
+
+    def test_android_delete_and_rename_paths_use_rooted_engine_mutation_services(self):
+        source = SOURCE.read_text(encoding="utf-8")
+        cases = (
+            ("bool __cdecl FS_Delete(const char *filename)", "z2026_platform_remove_engine_path", "remove(ospath)"),
+            ("bool __cdecl FS_DeleteInDir(char *filename, char *dir)", "z2026_platform_remove_engine_path", "remove(ospath)"),
+            ("void __cdecl FS_Remove(const char *osPath)", "z2026_platform_remove_engine_path", "remove(osPath)"),
+            ("void __cdecl FS_SV_Rename(char *from, char *to)", "z2026_platform_rename_engine_path", "rename(from_ospath, to_ospath)"),
+            ("void __cdecl FS_Rename(char *from, char *fromDir, char *to, char *toDir)", "z2026_platform_rename_engine_path", "rename(from_ospath, to_ospath)"),
+        )
+        for signature, android_service, windows_call in cases:
+            with self.subTest(signature=signature):
+                body = function_body(source, signature)
+                android = body.split("#if defined(__ANDROID__)", 1)[1].split("#else", 1)[0]
+                windows = body.split("#else", 1)[1].split("#endif", 1)[0]
+                self.assertIn(android_service, android)
+                self.assertNotIn(windows_call, android)
+                self.assertIn(windows_call, windows)
+
+    def test_rooted_engine_mutation_providers_are_descriptor_relative_and_nofollow(self):
+        platform = PLATFORM_CPP.read_text(encoding="utf-8")
+        remove_body = function_body(
+            platform, 'extern "C" IW3_ANDROID_EXPORT int z2026_platform_remove_engine_path('
+        )
+        self.assertIn("normalize_engine_path", remove_body)
+        self.assertIn("open_parent_beneath_root", remove_body)
+        self.assertIn("fstatat(parent, leaf, &entry, AT_SYMLINK_NOFOLLOW)", remove_body)
+        self.assertIn("unlinkat(parent, leaf, flags)", remove_body)
+
+        rename_body = function_body(
+            platform, 'extern "C" IW3_ANDROID_EXPORT int z2026_platform_rename_engine_path('
+        )
+        self.assertIn("normalize_engine_path", rename_body)
+        self.assertIn("open_parent_beneath_root", rename_body)
+        self.assertIn("fstatat(from_parent, from_leaf, &source_entry, AT_SYMLINK_NOFOLLOW)", rename_body)
+        self.assertIn("renameat(from_parent, from_leaf, to_parent, to_leaf)", rename_body)
+        header = PLATFORM_HEADER.read_text(encoding="utf-8")
+        self.assertIn("z2026_platform_remove_engine_path", header)
+        self.assertIn("z2026_platform_rename_engine_path", header)
+
+    def test_ndk_gate_links_original_filesystem_mutations_to_android_root_provider(self):
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn("iw3_sp_full_filesystem.dir", workflow)
+        self.assertIn("iw3_android_platform.cpp.o", workflow)
+        self.assertIn("IW3_ORIGINAL_FILESYSTEM_ROOTED_MUTATION_RELOCATABLE_LINK_PASS", workflow)
+        self.assertIn("IW3_FULL_FILESYSTEM_RUNTIME_LINKED=false", workflow)
+        self.assertIn("iw3-original-filesystem-rooted-mutations-aarch64-NOT-APK", workflow)
 
 
 if __name__ == "__main__":
