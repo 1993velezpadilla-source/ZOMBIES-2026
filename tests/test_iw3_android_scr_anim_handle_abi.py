@@ -17,7 +17,7 @@ class OriginalScrAnimHandleAbiTests(unittest.TestCase):
 
     def test_native_fixture_executes_the_real_header_constructor_without_dereference(self):
         source = FIXTURE.read_text(encoding="utf-8")
-        self.assertIn("#include <game/bg_local.h>", source)
+        self.assertIn("#include <bgame/bg_local.h>", source)
         self.assertIn("std::bit_cast<int>(bits)", source)
         self.assertIn("reinterpret_cast<std::uintptr_t>(value.linkPointer)", source)
         self.assertIn("IW3_SCR_ANIM_HANDLE_ZERO_EXTEND_RUNTIME_PASS", source)

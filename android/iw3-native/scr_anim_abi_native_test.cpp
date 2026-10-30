@@ -4,7 +4,7 @@
 #include <bit>
 #include <cstdint>
 #include <cstdio>
-#include <game/bg_local.h>
+#include <bgame/bg_local.h>
 
 static_assert(sizeof(int) == sizeof(std::uint32_t));
 static_assert(sizeof(std::uintptr_t) >= sizeof(std::uint32_t));

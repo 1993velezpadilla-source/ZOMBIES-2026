@@ -18,7 +18,7 @@ The original constructor now explicitly converts the input through `std::uint32_
 
 ## Regression and CI
 
-The new C++ fixture includes the actual `game/bg_local.h` and executes the original constructor with payloads `0`, `1`, `0x12345678`, `0x7fffffff`, `0x80000000`, and `0xffffffff`. It round-trips the stored value through `uintptr_t`, verifies zero-extension on 64-bit hosts, and never dereferences the encoded value.
+The new C++ fixture includes the actual `bgame/bg_local.h` and executes the original constructor with payloads `0`, `1`, `0x12345678`, `0x7fffffff`, `0x80000000`, and `0xffffffff`. It round-trips the stored value through `uintptr_t`, verifies zero-extension on 64-bit hosts, and never dereferences the encoded value.
 
 The workflow runs the fixture on the host, compiles the same fixture for Android ARM64, verifies ELF64/AArch64, and uploads the object and logs as **NOT APK** evidence. Python preflight guards the exact source conversion and the runtime boundary markers.
 
