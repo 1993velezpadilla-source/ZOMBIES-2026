@@ -57,7 +57,7 @@ int main() {
     searchpath_s search{nullptr, &iwd, false};
     fs_searchpaths = &search;
     for (int n = 0; n < 4; ++n)
-        assert(std::string(FS_ReferencedIwdPureChecksums()) == "@ 5 20 ");
+        assert(std::string(FS_ReferencedIwdPureChecksums()) == "@ 5 21 ");
 }
 """.replace("__IW3_ORIGINAL__", original)
         with tempfile.TemporaryDirectory() as temp:
