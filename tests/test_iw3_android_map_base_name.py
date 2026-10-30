@@ -71,7 +71,7 @@ int main(int argc, char **argv) {
         assert "mapLength >= 3" in body
         assert "mapLength < 7" in body
         assert "baseLength >= sizeof(fs_mapBaseName)" in body
-        assert "basename[0] = 0" in body
+        assert "fs_mapBaseName[0] = 0" in body
         assert "mapname[v2 - 3]" not in body
 
     def check(self, value, expected):
