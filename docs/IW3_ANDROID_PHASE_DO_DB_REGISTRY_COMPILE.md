@@ -100,6 +100,30 @@ return the process cwd. The decimal `_itoa` use is implemented with bounded
 The Windows-only zone-reorder CSV operations are still to be ported or
 explicitly excluded from the Android runtime before the registry can link.
 No full DB registry compile or runtime pass has been claimed yet.
+## POSIX port of the optional zone-reorder file path
+
+The next compile exposed Windows-only calls in the original optional
+`zone_reorder` CSV path (`CreateFileA`, `WriteFile`, `DeleteFileA`,
+`CloseHandle`) and the missing Win32 critical-section API. Rather than
+declare fake Win32 functions, Android now reads and writes reorder CSVs under
+the private `filesDir/zone_source/` directory:
+
+- `DB_BeginReorderZone()` reads through `DB_ReadAndroidZoneSourceCsv()`,
+  which opens with `DBFastFilePosixOpenEnginePath()`, loops over partial
+  `read()` results and `EINTR`, and closes the descriptor on every path.
+- `DB_EndReorderZone()` preserves the CSV line formats and CRLF endings,
+  writes through `z2026_platform_write_file()`, and keeps a `.bak` copy of
+  the prior file when one exists.
+- The missing-asset critical section maps the original SP index `0x17` to a
+  real `FastCriticalSection` protected with `Sys_LockWrite/UnlockWrite`.
+- `_stricmp`/`_strnicmp` map to the engine's own `I_stricmp/I_strnicmp`;
+  Interlocked increment/decrement use sequentially consistent compiler
+  atomics; `Sys_DefaultInstallPath()` resolves to the configured app-private
+  data root.
+
+This is a real Android implementation for the optional developer reorder
+file path, not a no-op. `Sys_Error` remains an explicit unresolved system
+service until the original Android fatal-error path is linked.
 ## What this does not prove
 
 This is a compile gate only. It does not link the database registry to the
