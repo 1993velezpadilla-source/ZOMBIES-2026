@@ -1783,7 +1783,7 @@ jobs:
           object="$RUNNER_TEMP/iw3-original-bg-weapons-arm64.o"
           test -s "$source"
           "$ndk/aarch64-linux-android26-clang++" \
-            -std=c++20 -DKISAK_SP=1 -fms-extensions -Wall -Wextra -UNDEBUG -O2 \
+            -std=c++20 -DKISAK_SP=1 -DKISAK_OPENAL=1 -fms-extensions -Wall -Wextra -UNDEBUG -O2 \
             -I"$GITHUB_WORKSPACE/third_party/KisakCOD/src" \
             -I"$GITHUB_WORKSPACE/third_party/KisakCOD/deps" \
             -c "$source" -o "$object"
