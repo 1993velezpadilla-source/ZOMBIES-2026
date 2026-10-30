@@ -112,6 +112,7 @@ jobs:
           "$ndk/aarch64-linux-android26-clang++" \
             -std=c++20 -Wall -Wextra -Werror -UNDEBUG \
             -I android/iw3-native \
+            -I third_party/KisakCOD/src \
             -I third_party/KisakCOD/src/database \
             -c android/iw3-native/platform_native_test.cpp \
             -o "$RUNNER_TEMP/iw3-fastfile-posix-open-platform-test-aarch64.o"

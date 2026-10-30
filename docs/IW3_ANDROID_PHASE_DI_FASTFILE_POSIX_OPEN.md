@@ -59,3 +59,19 @@ touch-driven live client frame, weapon/actor gameplay, physical ARM64 runtime,
 or playable APK is claimed.
 
 Keep PR #4 open and unmerged.
+
+
+## Follow-up — mod-directory string dvar ABI and mod probe
+
+The opener path also calls the original `DB_BuildOSPath_Mod()`. A source
+audit found that this helper, `DB_ModFileExists()`, and the referenced-zone
+list still read `fs_gameDirVar` through the integer union member. Replaced
+those pointer reads with the original string union member. The Android
+`DB_ModFileExists()` path now probes through the same rooted POSIX opener and
+closes the decoded descriptor; the Windows path remains unchanged.
+
+The dedicated AArch64 compile initially stopped because the platform test
+includes the authentic `qcommon/msg.h` through `iw3_android_usercmd_compat.h`.
+Added the engine source root to the NDK include search path so the original
+header resolves. This follow-up must pass the restarted ARM64 workflow before
+being counted as validated.

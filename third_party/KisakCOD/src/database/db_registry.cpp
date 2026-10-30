@@ -482,7 +482,7 @@ char *__cdecl DB_ReferencedFFNameList()
                 I_strncat(g_zoneNameList, 2080, " ");
             if (g_zones[i].modZone)
             {
-                I_strncat(g_zoneNameList, 2080, (const char*)fs_gameDirVar->current.integer);
+                I_strncat(g_zoneNameList, 2080, fs_gameDirVar->current.string);
                 I_strncat(g_zoneNameList, 2080, "/");
             }
             I_strncat(g_zoneNameList, 2080, g_zones[i].name);
@@ -652,7 +652,7 @@ void __cdecl DB_BuildOSPath_Mod(const char *zoneName, uint32_t size, char *filen
     char *v3; // eax
     const char *string; // [esp-8h] [ebp-8h]
 
-    if (!*(_BYTE *)fs_gameDirVar->current.integer)
+    if (!fs_gameDirVar->current.string || !fs_gameDirVar->current.string[0])
         MyAssertHandler(".\\database\\db_registry.cpp", 3204, 0, "%s", "IsUsingMods()");
     string = fs_gameDirVar->current.string;
     v3 = Sys_DefaultInstallPath();
@@ -664,14 +664,26 @@ bool __cdecl DB_ModFileExists()
     char filename[256]; // [esp+0h] [ebp-108h] BYREF
     void *zoneFile; // [esp+104h] [ebp-4h]
 
-    if (!*(_BYTE *)fs_gameDirVar->current.integer)
+    if (!fs_gameDirVar->current.string || !fs_gameDirVar->current.string[0])
         return 0;
     DB_BuildOSPath_Mod("mod", 0x100u, filename);
+#if defined(__ANDROID__)
+    uint32_t fileSize = 0;
+    int openError = 0;
+    zoneFile = DBFastFilePosixOpenEnginePath(filename, &fileSize, &openError);
+    if (zoneFile == (void *)-1)
+        return 0;
+    const int fd = DBFastFilePosixFdFromOpaque(zoneFile);
+    if (fd < 0)
+        return 0;
+    return close(fd) == 0;
+#else
     zoneFile = CreateFileA(filename, 0x80000000, 1u, 0, 3u, 0x60000000u, 0);
     if (zoneFile == (void *)-1)
         return 0;
     CloseHandle(zoneFile);
     return 1;
+#endif
 }
 
 void __cdecl DB_EndRecoverLostDevice()
@@ -2696,7 +2708,7 @@ int32_t __cdecl DB_TryLoadXFileInternal(char *zoneName, int32_t zoneFlags)
 #else
     if (I_stricmp(zoneName, "mp_patch"))
     {
-        if (*(_BYTE *)fs_gameDirVar->current.integer && DB_ShouldLoadFromModDir(zoneName))
+        if (fs_gameDirVar->current.string && fs_gameDirVar->current.string[0] && DB_ShouldLoadFromModDir(zoneName))
         {
             DB_BuildOSPath_Mod(zoneName, 256, filename);
             zoneFile = CreateFileA(filename, 0x80000000, 1u, 0, 3u, 0x60000000u, 0);
