@@ -40,6 +40,13 @@ The first attempt reached the original `scr_vm.cpp` compile and exposed further 
 - The unused legacy `Log` helper now checks failed file opens and writes formatted text with `fputs`, avoiding the format-string warning and null FILE crash.
 - The original VM's fatal `Sys_Error` call is declared for Android compilation only; no fake implementation was added.
 
+
+## Latest completed compile evidence
+
+Run [41082714011](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41082714011) completed SUCCESS on head `61931abf9d176318af6af0f8576ad907bdb39d3a`. Its log contains `[ 16%] Built target iw3_sp_script_vm_full_compile`; the original `scr_vm.cpp` translation unit compiled as an AArch64 object after the LP64 layout and counter fixes. The same run reports 401 Python tests and two CTest runs with 25/25 passing. This is compile evidence only.
+
+A subsequent fix replaces the two truncating expressions in `Scr_GetFunctionHandle()` with native pointer subtraction and a range check. The workflow now also verifies that the VM object defines `Scr_RunCurrentThreads()` and `Scr_IncTime()`, then uploads the object and symbol reports. That newer workflow run is the one that must validate the final object and artifact paths.
+
 The fresh CI run must still confirm the full compile gate. Any remaining errors are to be treated as blockers, not as evidence of a working scheduler.
 
 The next NDK diagnostic identified x86-only `__rdtsc()` calls in optional script profiling. The Android ARM64 path now reads `cntvct_el0` through the architectural virtual counter; non-ARM builds retain the original `__rdtsc()` intrinsic. This only makes the profiling counter compile-portable; Android counter-frequency calibration and profile-accuracy validation remain unproven.
