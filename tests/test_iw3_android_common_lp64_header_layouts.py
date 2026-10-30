@@ -55,6 +55,18 @@ class CommonLp64HeaderLayoutTests(unittest.TestCase):
             "FxBeam": ("0x38", "0x34"),
             "FxBeamInfo": ("0x1508", "0x1384"),
             "FxPostLight": ("0x28", "0x24"),
+            "FxPostLightInfo": ("0xF08", "0xD84"),
+            "FxGenerateVertsCmd": ("0x58", "0x44"),
+            "FxEffectDefTableEntry": ("0x10", "0x8"),
+            "FxEffectDefTable": ("0x4008", "0x2004"),
+            "FxProfileEntry": ("0x20", "0x1C"),
+            "FxSprite": ("0x28", "0x20"),
+            "FxCurveIterator": ("0x10", "0x8"),
+            "FxEditorElemDef": ("0x958", "0x858"),
+            "FxEditorEffectDef": ("0x12B48", "0x10B44"),
+            "FxElemField": ("0x10", "0x8"),
+            "FxFlagOutputSet": ("0x18", "0xC"),
+            "FxFlagDef": ("0x18", "0x10"),
         }
         for name, (lp64, win32) in layouts.items():
             with self.subTest(struct=name):
