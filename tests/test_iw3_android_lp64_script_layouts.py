@@ -220,5 +220,15 @@ class Lp64ScriptLayoutTests(unittest.TestCase):
             self.assertIn(assertion, fixture)
 
 
+
+    def test_script_vm_profiling_uses_arm64_architectural_counter(self):
+        source = (ENGINE / "script/scr_vm.cpp").read_text(encoding="utf-8")
+        self.assertIn("mrs %0, cntvct_el0", source)
+        self.assertIn("static inline uint64_t IW3_ScriptProfileCounter()", source)
+        self.assertIn("return __rdtsc();", source)
+        self.assertNotIn("time = __rdtsc();", source)
+        self.assertNotIn("timeSpent = __rdtsc() - time;", source)
+
+
 if __name__ == "__main__":
     unittest.main()
