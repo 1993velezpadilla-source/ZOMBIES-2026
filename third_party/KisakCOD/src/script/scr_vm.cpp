@@ -201,10 +201,12 @@ void __cdecl Scr_ShutdownGameStrings()
 
 void __cdecl TRACK_scr_vm()
 {
-    track_static_alloc_internal(&scrVmGlob, 8232, "scrVmGlob", 7);
-    track_static_alloc_internal(&scrVmPub, 17192, "scrVmPub", 7);
-    track_static_alloc_internal(g_script_error, 2112, "g_script_error", 7);
-    track_static_alloc_internal(&scrVmDebugPub, 147984, "scrVmDebugPub", 0);
+    // These are live runtime globals. Use the active ABI's sizes instead of
+    // the original Win32 byte counts so LP64 tracking covers the full objects.
+    track_static_alloc_internal(&scrVmGlob, sizeof(scrVmGlob), "scrVmGlob", 7);
+    track_static_alloc_internal(&scrVmPub, sizeof(scrVmPub), "scrVmPub", 7);
+    track_static_alloc_internal(g_script_error, sizeof(g_script_error), "g_script_error", 7);
+    track_static_alloc_internal(&scrVmDebugPub, sizeof(scrVmDebugPub), "scrVmDebugPub", 0);
 }
 
 void __cdecl Scr_ClearErrorMessage()
