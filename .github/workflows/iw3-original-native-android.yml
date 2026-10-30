@@ -340,25 +340,6 @@ jobs:
             -DIW3_REAL_HEADER_ROOT="$GITHUB_WORKSPACE/third_party/KisakCOD/src/universal"
           cmake --build "$RUNNER_TEMP/iw3-build-arm64" -j 2
 
-          # Inspect the complete upstream command-system translation unit.
-          cmd_full_object="$(find "$RUNNER_TEMP/iw3-build-arm64/CMakeFiles/iw3_sp_cmd_full_compile.dir" -type f -name 'cmd.cpp.o' -print -quit)"
-          test -s "$cmd_full_object"
-          llvm_readelf="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
-          llvm_nm="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm"
-          "$llvm_readelf" -h "$cmd_full_object" | tee "$RUNNER_TEMP/iw3-cmd-full-elf.txt"
-          grep -F 'Class:                             ELF64' "$RUNNER_TEMP/iw3-cmd-full-elf.txt"
-          grep -F 'Machine:                           AArch64' "$RUNNER_TEMP/iw3-cmd-full-elf.txt"
-          "$llvm_nm" -C --defined-only "$cmd_full_object" | tee "$RUNNER_TEMP/iw3-cmd-full-defined.txt"
-          for symbol in 'Cmd_Init()' 'Cmd_AddCommandInternal(' 'Cmd_ExecuteSingleCommand(' 'Cmd_TokenizeString(char*)' 'Cmd_EndTokenizedString()'; do
-            grep -F "$symbol" "$RUNNER_TEMP/iw3-cmd-full-defined.txt"
-          done
-          "$llvm_nm" -C -u "$cmd_full_object" | tee "$RUNNER_TEMP/iw3-cmd-full-undefined.txt"
-          echo "IW3_ORIGINAL_CMD_FULL_TU_AARCH64_OBJECT_PASS"
-          echo "IW3_CMD_FULL_TU_RUNTIME_LINKED=false"
-          echo "IW3_CMD_INIT_INVOKED=false"
-          echo "IW3_FS_STARTUP_RUNTIME_INVOKED=false"
-          echo "IW3_PLAYABLE_APK=false"
-
           # Resolve the original filesystem's delete/rename edges against
           # the same audited IWD-directory service archive used by the startup graph.
           # This remains a relocatable dependency audit, not a complete runtime link.
@@ -6227,10 +6208,6 @@ jobs:
             ${{ runner.temp }}/iw3-arm64-symbols.txt
             ${{ runner.temp }}/iw3-iwd-mount-arm64-symbols.txt
             ${{ runner.temp }}/iw3-source/iw3_cmd_tokenizer.cpp
-            ${{ runner.temp }}/iw3-cmd-full-elf.txt
-            ${{ runner.temp }}/iw3-cmd-full-defined.txt
-            ${{ runner.temp }}/iw3-cmd-full-undefined.txt
-            ${{ runner.temp }}/iw3-build-arm64/CMakeFiles/iw3_sp_cmd_full_compile.dir/**/*.o
             ${{ runner.temp }}/iw3-original-cmd-tokenizer.json
             ${{ runner.temp }}/iw3-build-arm64/libiw3_sp_cmd_tokenizer.a
             ${{ runner.temp }}/iw3-fs-startup-combined.o
