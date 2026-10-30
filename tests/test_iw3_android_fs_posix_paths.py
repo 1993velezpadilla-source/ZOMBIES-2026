@@ -40,6 +40,32 @@ class AndroidOriginalFilesystemPosixPaths(unittest.TestCase):
                       GENERATOR.read_text(encoding="utf-8"))
         self.assertIn("*ofs = nativeSeparator;", body)
 
+    def test_overlong_iwd_and_localized_paths_fail_closed(self):
+        source = SOURCE.read_text(encoding="utf-8")
+        iwd_start = source.index(
+            "void __cdecl FS_AddIwdFilesForGameDirectory(char *path, char *pszGameFolder)"
+        )
+        localized_start = source.index(
+            "void __cdecl FS_AddGameDirectory(char *path, char *dir, int bLanguageDirectory, int iLanguage)"
+        )
+        iwd = source[iwd_start:source.index("\\n}", iwd_start)]
+        localized = source[localized_start:source.index("\\n}", localized_start)]
+        unsafe = "ospath[&ospath[strlen(ospath) + 1] - &ospath[1] - 1] = 0;"
+        for body in (iwd, localized):
+            self.assertNotIn(unsafe, body)
+            self.assertIn("const size_t directoryLength = strlen(ospath);", body)
+            self.assertIn("if (directoryLength < 2 ||", body)
+            self.assertIn("ospath[directoryLength - 1] = '\\0';", body)
+        self.assertLess(iwd.index("if (directoryLength < 2 ||"),
+                        iwd.index("list = Sys_ListFiles("))
+        self.assertLess(localized.index("if (directoryLength < 2 ||"),
+                        localized.index("if (!Sys_DirectoryHasContents(ospath))"))
+        native = NATIVE.read_text(encoding="utf-8")
+        self.assertIn("FS_AddGameDirectory(overlongRoot.data(), game, 1, 0);", native)
+        self.assertIn("assert(g_directory_probes == 0);", native)
+        self.assertIn("assert(g_iwd_scans == 0);", native)
+        self.assertIn("IW3_ORIGINAL_FS_OVERLONG_LOCALIZED_PATH_FAIL_CLOSED_PASS", native)
+
     def test_host_exercises_real_path_builder_not_a_fake(self):
         cmake = CMAKE.read_text(encoding="utf-8")
         test = NATIVE.read_text(encoding="utf-8")
