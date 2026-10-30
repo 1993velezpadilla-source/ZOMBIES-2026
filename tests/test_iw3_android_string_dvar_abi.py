@@ -96,6 +96,7 @@ class OriginalFilesystemStringDvarABITests(unittest.TestCase):
         self.assertIn("Compile original BGame weapon loader for Android ARM64 (NOT RUNTIME)", workflow)
         self.assertIn("IW3_ORIGINAL_BGAME_WEAPONS_AARCH64_OBJECT_PASS", workflow)
         self.assertIn("IW3_BG_WEAPONS_RUNTIME_LINKED=false", workflow)
+        self.assertIn("-DKISAK_OPENAL=1", workflow)
 
     def test_original_melee_dvar_registration_resolves_against_original_dvar_object(self):
         workflow = (ROOT / ".github/workflows/iw3-original-native-android.yml").read_text(encoding="utf-8")
