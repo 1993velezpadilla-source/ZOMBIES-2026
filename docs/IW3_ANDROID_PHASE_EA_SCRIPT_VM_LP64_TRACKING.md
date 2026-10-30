@@ -41,3 +41,6 @@ The first attempt reached the original `scr_vm.cpp` compile and exposed further 
 - The original VM's fatal `Sys_Error` call is declared for Android compilation only; no fake implementation was added.
 
 The fresh CI run must still confirm the full compile gate. Any remaining errors are to be treated as blockers, not as evidence of a working scheduler.
+
+The next NDK diagnostic identified x86-only `__rdtsc()` calls in optional script profiling. The Android ARM64 path now reads `cntvct_el0` through the architectural virtual counter; non-ARM builds retain the original `__rdtsc()` intrinsic. This only makes the profiling counter compile-portable; Android counter-frequency calibration and profile-accuracy validation remain unproven.
+
