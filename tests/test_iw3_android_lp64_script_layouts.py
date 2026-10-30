@@ -244,6 +244,9 @@ class Lp64ScriptLayoutTests(unittest.TestCase):
         self.assertIn("IW3_FRAME_SCRIPT_VM_RUNTIME_LINKED=false", workflow)
         self.assertIn("IW3_PLAYABLE_APK=false", workflow)
         self.assertIn("grep -F 'G_UpdatePlayer'", workflow)
+        self.assertIn("G_RunFrame(ServerFrameExtent, int)", workflow)
+        self.assertIn("iw3-frame-original-elf.txt", workflow)
+        self.assertIn("iw3-original-frame-plus-script-vm-arm64.o", workflow)
 
 
 
