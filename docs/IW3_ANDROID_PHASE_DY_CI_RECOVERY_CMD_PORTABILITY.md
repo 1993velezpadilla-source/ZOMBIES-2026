@@ -182,3 +182,28 @@ Until that CI is complete, **do not claim native workflow PASS**.
 
 The user-facing completion condition remains entirely unmet: no original
 bootstrap, real map, rendered frame, live touch/gameplay, or playable APK.
+
+## Subsequent native build failure — tokenizer console declarations
+
+After the regression updates, native run
+[41104884361](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41104884361)
+passed the source-test stage and reached the Android CMake build, but
+failed compiling the generated original tokenizer TU:
+
+```text
+iw3_cmd_tokenizer.cpp:174:20: error: 'CON_CHANNEL_SYSTEM' was not declared
+iw3_cmd_tokenizer.cpp:174:9: error: 'Com_Printf' was not declared
+```
+
+The original `qcommon/cmd.cpp` already includes `qcommon.h` and compiles
+successfully as a full ARM64 object in the focused gate. The extracted
+tokenizer source omitted this real header while retaining the original
+`AssertCmdArgsConsistency` function body. Commit `c56e117` adds
+`#include <qcommon/qcommon.h>` to the generated tokenizer TU. This is
+a declaration dependency from the authentic engine, **not** a fake console
+implementation. Commit `6334711` adds a generator regression requiring
+the include. A new native workflow must pass before claiming this fix
+CI-green.
+
+No gameplay, real map, renderer, touch-client execution or playable APK
+has been demonstrated.
