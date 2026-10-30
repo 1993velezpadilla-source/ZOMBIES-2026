@@ -120,6 +120,61 @@ jobs:
           echo "IW3_REAL_MAP_LOADED=false"
           echo "IW3_PLAYABLE_APK=false"
 
+      - name: Relocatable link of three complete original engine units (NOT GAME)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          root="$GITHUB_WORKSPACE/third_party/KisakCOD/src"
+          object_dir="$RUNNER_TEMP"
+          cmd="$object_dir/iw3-original-cmd-full-aarch64.o"
+          fs="$object_dir/iw3-original-com-files-full-aarch64.o"
+          dvar="$object_dir/iw3-original-dvar-full-aarch64.o"
+          combined="$object_dir/iw3-original-cmd-files-dvar-aarch64.o"
+          test -s "$cmd"
+          # The actual original translation units, not generated source slices.
+          for entry in "universal/com_files.cpp:$fs" "universal/dvar.cpp:$dvar"; do
+            source="${entry%%:*}"
+            object="${entry#*:}"
+            "$ndk/aarch64-linux-android26-clang++" \
+              -std=c++20 -DKISAK_SP=1 -fms-extensions -UNDEBUG -O2 \
+              -fsigned-char -frounding-math -fno-fast-math \
+              -I "$GITHUB_WORKSPACE/android/iw3-native" \
+              -I "$root" \
+              -I "$GITHUB_WORKSPACE/third_party/KisakCOD/deps" \
+              -c "$root/$source" -o "$object"
+          done
+          for object in "$cmd" "$fs" "$dvar"; do
+            "$ndk/llvm-readelf" -h "$object" | grep -F 'Machine:                           AArch64'
+          done
+          "$ndk/llvm-nm" -C -u "$cmd" > "$object_dir/iw3-original-cmd-before-undefined.txt"
+          "$ndk/llvm-nm" -C -u "$dvar" > "$object_dir/iw3-original-dvar-before-undefined.txt"
+          # Verify genuine cross-unit dependencies existed before linking.
+          grep -F 'FS_FOpenFileRead(char const*, int*)' "$object_dir/iw3-original-cmd-before-undefined.txt"
+          grep -F 'Dvar_FindVar(char const*)' "$object_dir/iw3-original-cmd-before-undefined.txt"
+          grep -F 'Cmd_Argv(int)' "$object_dir/iw3-original-dvar-before-undefined.txt"
+          "$ndk/ld.lld" -m aarch64linux -r "$cmd" "$fs" "$dvar" -o "$combined"
+          "$ndk/llvm-readelf" -h "$combined" | tee "$object_dir/iw3-original-cmd-files-dvar-elf.txt"
+          "$ndk/llvm-nm" -C --defined-only "$combined" > "$object_dir/iw3-original-cmd-files-dvar-defined.txt"
+          "$ndk/llvm-nm" -C -u "$combined" > "$object_dir/iw3-original-cmd-files-dvar-undefined.txt"
+          for symbol in 'Cmd_Init()' 'Cmd_Argv(int)' 'FS_FOpenFileRead(char const*, int*)' 'Dvar_FindVar(char const*)'; do
+            grep -F "$symbol" "$object_dir/iw3-original-cmd-files-dvar-defined.txt"
+            if grep -F " U $symbol" "$object_dir/iw3-original-cmd-files-dvar-undefined.txt"; then
+              echo "Original engine cross-unit dependency unresolved: $symbol" >&2
+              exit 1
+            fi
+          done
+          # Unresolved renderer/server/platform dependencies must remain visible.
+          test -s "$object_dir/iw3-original-cmd-files-dvar-undefined.txt"
+          echo "IW3_ORIGINAL_CMD_FS_DVAR_FULL_TU_RELOCATABLE_LINK_PASS"
+          echo "IW3_ORIGINAL_ENGINE_RUNTIME_LINKED=false"
+          echo "IW3_CMD_INIT_INVOKED=false"
+          echo "IW3_FS_STARTUP_RUNTIME_INVOKED=false"
+          echo "IW3_REAL_MAP_LOADED=false"
+          echo "IW3_RENDERER_FRAME_PROVEN=false"
+          echo "IW3_GAMEPLAY_PROVEN=false"
+          echo "IW3_PLAYABLE_APK=false"
+
       - name: Preserve command-system portability evidence (NOT APK)
         if: always()
         uses: actions/upload-artifact@v4
@@ -130,6 +185,14 @@ jobs:
             ${{ runner.temp }}/iw3-cmd-full-elf.txt
             ${{ runner.temp }}/iw3-cmd-full-defined.txt
             ${{ runner.temp }}/iw3-cmd-full-undefined.txt
+            ${{ runner.temp }}/iw3-original-com-files-full-aarch64.o
+            ${{ runner.temp }}/iw3-original-dvar-full-aarch64.o
+            ${{ runner.temp }}/iw3-original-cmd-files-dvar-aarch64.o
+            ${{ runner.temp }}/iw3-original-cmd-before-undefined.txt
+            ${{ runner.temp }}/iw3-original-dvar-before-undefined.txt
+            ${{ runner.temp }}/iw3-original-cmd-files-dvar-elf.txt
+            ${{ runner.temp }}/iw3-original-cmd-files-dvar-defined.txt
+            ${{ runner.temp }}/iw3-original-cmd-files-dvar-undefined.txt
             ${{ runner.temp }}/iw3_cmd_tokenizer.cpp
             ${{ runner.temp }}/iw3_cmd_tokenizer.json
           if-no-files-found: warn
