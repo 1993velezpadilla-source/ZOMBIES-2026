@@ -55,6 +55,7 @@ class OriginalDbRegistryCompileGateTests(unittest.TestCase):
         self.assertIn("target_compile_definitions(iw3_sp_db_registry_full_compile PRIVATE KISAK_SP=1)", source)
         self.assertIn("-fms-extensions", source[target:])
         self.assertIn("-ferror-limit=0", source[target:])
+        self.assertIn("-fno-inline", source[target:])
         self.assertIn("-Wall -Wextra", source[target:])
 
     def test_arm64_workflow_checks_registry_object_and_real_entry_points(self):
