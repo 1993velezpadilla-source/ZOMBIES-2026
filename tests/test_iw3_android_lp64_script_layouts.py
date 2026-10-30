@@ -149,7 +149,7 @@ class Lp64ScriptLayoutTests(unittest.TestCase):
         target_block = cmake[target_start:target_end]
         self.assertIn("script/scr_vm.cpp", target_block)
         self.assertNotIn("iw3_sp_script_vm_full_compile", cmake[cmake.index("add_library(iw3_sp_math SHARED"):])
-\n
+
     def test_original_script_yacc_header_uses_abi_neutral_allocator_pointer(self):
         header = (ENGINE / "script/scr_yacc.h").read_text(encoding="utf-8")
         self.assertNotIn("#include <Windows.h>", header)
