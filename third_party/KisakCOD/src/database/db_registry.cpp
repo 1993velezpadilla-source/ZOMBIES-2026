@@ -1511,15 +1511,15 @@ void DB_EndReorderZone()
                 break;
             default:
                 wroteBlank = true;
-                output.append("\\r\\n", 2);
+                output.append("\r\n", 2);
                 break;
             }
         }
         const int bytes = entry->type == ASSET_TYPE_WEAPON
-            ? Com_sprintf(line, sizeof(line), "%s,%s%s\\r\\n", entry->typeString, "mp/", entry->assetName)
+            ? Com_sprintf(line, sizeof(line), "%s,%s%s\r\n", entry->typeString, "mp/", entry->assetName)
             : (entry->type == ASSET_TYPE_SOUND
-                ? Com_sprintf(line, sizeof(line), "%s,%s,%s,%s\\r\\n", entry->typeString, entry->assetName, s_dbReorder.zoneName, "all_mp")
-                : Com_sprintf(line, sizeof(line), "%s,%s\\r\\n", entry->typeString, entry->assetName));
+                ? Com_sprintf(line, sizeof(line), "%s,%s,%s,%s\r\n", entry->typeString, entry->assetName, s_dbReorder.zoneName, "all_mp")
+                : Com_sprintf(line, sizeof(line), "%s,%s\r\n", entry->typeString, entry->assetName));
         if (bytes < 0 || static_cast<std::size_t>(bytes) >= sizeof(line))
             return;
         output.append(line, static_cast<std::size_t>(bytes));
