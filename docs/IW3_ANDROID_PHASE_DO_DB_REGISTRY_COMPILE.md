@@ -29,6 +29,28 @@ A new source regression verifies that the Android branch still uses the
 filesDir-confined POSIX FastFile opener while the original Windows branch
 retains its Win32 path.
 
+## First NDK result and measured blocker
+
+The first full-registry compile attempt (workflow run
+[41012437729](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41012437729))
+reached the new object target and failed at the renderer declaration boundary,
+not in the database function bodies. Clang reported:
+
+- missing `_D3DCUBEMAP_FACES`;
+- missing `D3DFMT_D24S8`, `D3DFMT_D24X8`, and `D3DFMT_D16`;
+- an unconditional `Windows.h` include from the original `r_init.h`.
+
+The Android shared-renderer headers already selected `r_d3d9_opaque.h`, but
+that header only forward-declared `_D3DFORMAT` and a subset of D3D interfaces.
+This iteration extends it with ABI-sized enum declarations, the 16-byte
+`_D3DDISPLAYMODE` layout, and opaque interface/window declarations. It also
+guards the Windows/D3D9 SDK includes in `r_init.h` so Android uses the existing
+opaque ABI boundary. No D3D implementation or renderer stub is added.
+
+The retry is required to discover the next include/platform edge. The initial
+failure is preserved as evidence; it is not counted as an Android registry
+compile pass.
+
 ## What this does not prove
 
 This is a compile gate only. It does not link the database registry to the
