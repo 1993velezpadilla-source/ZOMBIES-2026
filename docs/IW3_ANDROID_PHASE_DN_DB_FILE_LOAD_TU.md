@@ -73,11 +73,19 @@ include blockers but exposed the broader original asset ABI surface:
 
 The current pass records the measured LP64 runtime sizes in Android-only
 assertions, adds a shared guard for the duplicate client debug declarations,
-and supplies the opaque `BOOL` alias. This is **not** a claim that serialized
-FastFile records have become LP64: the file format still carries 32-bit
-serialized offsets/pointers, and the original loader must explicitly relocate
-those into the larger runtime structures before a real FastFile can load.
-That conversion remains a blocking runtime task.
+and uses the standard ODE varargs header. The next compile exposed two remaining
+header-surface issues: the first `BOOL` alias had landed only inside the legacy
+MSS fallback (which is skipped when `MSS_H` is already defined), and
+`database.h` had relied on `win_local.h` to transitively provide
+`FastCriticalSection`. The Android `BOOL` alias is now in the unconditional
+Android branch and `database.h` includes the shared critical-section header
+directly. The new retry is pending.
+
+This is **not** a claim that serialized FastFile records have become LP64: the
+file format still carries 32-bit serialized offsets/pointers, and the original
+loader must explicitly relocate those into the larger runtime structures
+before a real FastFile can load. That conversion remains a blocking runtime
+task.
 
 ## Strict limits
 
