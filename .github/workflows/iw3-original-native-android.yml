@@ -383,6 +383,42 @@ jobs:
           echo "IW3_GAMEPLAY_PROVEN=false"
           echo "IW3_PLAYABLE_APK=false"
 
+          # Link the complete original SP frame object with the complete original
+          # script VM object. This is a relocatable symbol-resolution audit only:
+          # other gameplay providers remain unresolved, and the result is NOT linked
+          # into the JNI diagnostic or represented as a running game.
+          frame_object="$(find "$RUNNER_TEMP/iw3-build-arm64/CMakeFiles/iw3_sp_frame.dir" -type f -name '*.o' -print -quit)"
+          test -n "$frame_object"
+          "$llvm_nm" -C -u "$frame_object" | tee "$RUNNER_TEMP/iw3-frame-script-vm-before-undefined.txt"
+          grep -F 'Scr_RunCurrentThreads()' "$RUNNER_TEMP/iw3-frame-script-vm-before-undefined.txt"
+          grep -F 'Scr_IncTime()' "$RUNNER_TEMP/iw3-frame-script-vm-before-undefined.txt"
+          frame_vm_combined="$RUNNER_TEMP/iw3-original-frame-plus-script-vm-arm64.o"
+          "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/ld.lld" -r "$frame_object" "$script_vm_object" -o "$frame_vm_combined"
+          "$llvm_readelf" -h "$frame_vm_combined" | tee "$RUNNER_TEMP/iw3-frame-script-vm-elf.txt"
+          grep -F 'ELF64' "$RUNNER_TEMP/iw3-frame-script-vm-elf.txt"
+          grep -F 'AArch64' "$RUNNER_TEMP/iw3-frame-script-vm-elf.txt"
+          "$llvm_nm" -C --defined-only "$frame_vm_combined" | tee "$RUNNER_TEMP/iw3-frame-script-vm-defined.txt"
+          grep -F 'Scr_RunCurrentThreads()' "$RUNNER_TEMP/iw3-frame-script-vm-defined.txt"
+          grep -F 'Scr_IncTime()' "$RUNNER_TEMP/iw3-frame-script-vm-defined.txt"
+          "$llvm_nm" -C -u "$frame_vm_combined" | tee "$RUNNER_TEMP/iw3-frame-script-vm-undefined.txt"
+          if grep -F 'Scr_RunCurrentThreads()' "$RUNNER_TEMP/iw3-frame-script-vm-undefined.txt"; then
+            echo "ERROR: Scr_RunCurrentThreads remained undefined after the relocatable link" >&2
+            exit 1
+          fi
+          if grep -F 'Scr_IncTime()' "$RUNNER_TEMP/iw3-frame-script-vm-undefined.txt"; then
+            echo "ERROR: Scr_IncTime remained undefined after the relocatable link" >&2
+            exit 1
+          fi
+          # Keep a known real gameplay edge unresolved to prove this is only a
+          # partial graph audit and not a false claim of complete engine linkage.
+          grep -F 'G_UpdatePlayer' "$RUNNER_TEMP/iw3-frame-script-vm-undefined.txt"
+          cp "$frame_vm_combined" "$RUNNER_TEMP/iw3-original-frame-plus-script-vm-arm64.o"
+          echo "IW3_ORIGINAL_FRAME_SCRIPT_VM_RELOCATABLE_LINK_PASS"
+          echo "IW3_FRAME_SCRIPT_VM_RUNTIME_LINKED=false"
+          echo "IW3_REAL_MAP_LOADED=false"
+          echo "IW3_GAMEPLAY_PROVEN=false"
+          echo "IW3_PLAYABLE_APK=false"
+
           # Verify that the complete upstream CL input TU, including its
           # Android CL_CreateCmd touch hook, compiles for the actual ARM64 ABI.
           # This object is an audit result only; it is not linked into JNI.
@@ -2110,6 +2146,11 @@ jobs:
             ${{ runner.temp }}/iw3-script-vm-full-defined.txt
             ${{ runner.temp }}/iw3-script-vm-full-undefined.txt
             ${{ runner.temp }}/iw3-build-arm64/CMakeFiles/iw3_sp_script_vm_full_compile.dir/**/*.o
+            ${{ runner.temp }}/iw3-frame-script-vm-before-undefined.txt
+            ${{ runner.temp }}/iw3-frame-script-vm-elf.txt
+            ${{ runner.temp }}/iw3-frame-script-vm-defined.txt
+            ${{ runner.temp }}/iw3-frame-script-vm-undefined.txt
+            ${{ runner.temp }}/iw3-original-frame-plus-script-vm-arm64.o
             ${{ runner.temp }}/iw3-build-arm64/CMakeFiles/iw3_sp_renderer_model_pose_full_compile.dir/**/*.o
             ${{ runner.temp }}/iw3-source/iw3_cl_createcmd.cpp
             ${{ runner.temp }}/iw3-original-cl-createcmd.json
