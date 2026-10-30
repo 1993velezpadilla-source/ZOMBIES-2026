@@ -84,6 +84,11 @@ class OriginalDbFileLoadCompileGateTests(unittest.TestCase):
         source = (ROOT / "third_party/KisakCOD/deps/ode/error.h").read_text(encoding="utf-8")
         self.assertIn("#if defined(__ANDROID__)\n#include <stdarg.h>\n#else\n#include <vadefs.h>\n#endif", source)
 
+    def test_native_workflow_triggers_when_vendored_dependencies_change(self):
+        source = WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn("- 'third_party/KisakCOD/src/**'", source)
+        self.assertIn("- 'third_party/KisakCOD/deps/**'", source)
+
 
 if __name__ == "__main__":
     unittest.main()
