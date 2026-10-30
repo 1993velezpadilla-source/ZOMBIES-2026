@@ -348,6 +348,21 @@ jobs:
           echo "IW3_ORIGINAL_DB_FILE_LOAD_AARCH64_OBJECT_PASS"
           echo "IW3_DB_RENDERER_SERVICE_EDGES_UNRESOLVED_EXPECTED"
           echo "IW3_DB_FILE_LOAD_RUNTIME_LINKED=false"
+
+          # Audit the complete original asset/zone registry TU as a separate
+          # compile-only object. Its remaining renderer/Win32 service edges are
+          # expected to stay undefined; this object is not linked into JNI.
+          db_registry_object="$(find "$RUNNER_TEMP/iw3-build-arm64/CMakeFiles/iw3_sp_db_registry_full_compile.dir" -type f -name '*.o' -print -quit)"
+          test -n "$db_registry_object"
+          "$llvm_readelf" -h "$db_registry_object" | tee "$RUNNER_TEMP/iw3-db-registry-elf.txt"
+          grep -F 'ELF64' "$RUNNER_TEMP/iw3-db-registry-elf.txt"
+          grep -F 'AArch64' "$RUNNER_TEMP/iw3-db-registry-elf.txt"
+          "$llvm_nm" -C --defined-only "$db_registry_object" | tee "$RUNNER_TEMP/iw3-db-registry-defined.txt"
+          grep -F 'DB_TryLoadXFileInternal' "$RUNNER_TEMP/iw3-db-registry-defined.txt"
+          grep -F 'DB_FileSize' "$RUNNER_TEMP/iw3-db-registry-defined.txt"
+          "$llvm_nm" -C -u "$db_registry_object" | tee "$RUNNER_TEMP/iw3-db-registry-undefined.txt"
+          echo "IW3_ORIGINAL_DB_REGISTRY_AARCH64_OBJECT_PASS"
+          echo "IW3_DB_REGISTRY_RUNTIME_LINKED=false"
           echo "IW3_REAL_MAP_LOADED=false"
           echo "IW3_GAMEPLAY_PROVEN=false"
           echo "IW3_PLAYABLE_APK=false"
@@ -788,6 +803,10 @@ jobs:
             ${{ runner.temp }}/iw3-db-file-load-defined.txt
             ${{ runner.temp }}/iw3-db-file-load-undefined.txt
             ${{ runner.temp }}/iw3-build-arm64/CMakeFiles/iw3_sp_db_file_load_full_compile.dir/**/*.o
+            ${{ runner.temp }}/iw3-db-registry-elf.txt
+            ${{ runner.temp }}/iw3-db-registry-defined.txt
+            ${{ runner.temp }}/iw3-db-registry-undefined.txt
+            ${{ runner.temp }}/iw3-build-arm64/CMakeFiles/iw3_sp_db_registry_full_compile.dir/**/*.o
 
       - name: Verify COMPLETE original IW3 frame compiled with real ARM64 state headers
         shell: bash
