@@ -65,6 +65,7 @@ def prepare(engine: Path, output: Path, report_path: Path | None = None) -> dict
         "#include <universal/q_shared.h>\n"
         "#include <universal/assertive.h>\n"
         "#include <qcommon/cmd.h>\n"
+        "#include <qcommon/qcommon.h>\n"
         "#include <cstdint>\n\n"
         + state + "\n\n"
         + "\n\n".join(bodies)
