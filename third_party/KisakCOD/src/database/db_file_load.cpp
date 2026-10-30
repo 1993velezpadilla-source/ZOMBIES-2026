@@ -203,7 +203,13 @@ void DB_ReadXFileStage()
             MyAssertHandler(".\\database\\db_file_load.cpp", 254, 0, "%s", "!g_load.outstandingReads");
 #if defined(__ANDROID__)
         if (!DB_ReadData() && g_load.posixReadError != 0)
-            Com_Error(ERR_DROP, "Read error of FastFile '%s' (errno %d)", g_load.filename, g_load.posixReadError);
+        {
+            // Preserve the read failure before cleanup, which releases the
+            // inflater and closes the original POSIX descriptor.
+            const int readError = g_load.posixReadError;
+            DB_CancelLoadXFile();
+            Com_Error(ERR_DROP, "Read error of FastFile '%s' (errno %d)", g_load.filename, readError);
+        }
 #else
         if (!DB_ReadData() && GetLastError() != 38)
             Com_Error(ERR_DROP, "Read error of file '%s'", g_load.filename);
