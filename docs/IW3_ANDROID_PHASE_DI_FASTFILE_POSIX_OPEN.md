@@ -100,3 +100,20 @@ caller path with original database types, then resolve the remaining
 `DB_LoadXFileInternal` platform services (notably geometry/delayed-image
 finalization and authenticated/compressed FastFile services) before attempting
 a real zone load. Keep PR #4 open and unmerged.
+
+
+## Android emulator diagnostic after the opener pass
+
+[Run 40984678680](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40984678680) completed successfully on the x86_64 Android emulator. The native log confirms execution of the original ZIP32 stored/deflate parser, original `FS_LoadZipFile`, search-path insertion, game-directory scan, IWD lookup/read and open/read/close lifecycle against the app-private root. It also reads back touch DOWN/UP, sprint and slide-chord data through the diagnostic `usercmd_s` adapter and observes pause/resume.
+
+Artifact 12946239016 is the execution log, **not an APK and not gameplay**. Its evidence explicitly remains:
+`original_upstream_fsh_table_integrated=false`,
+`original_cl_createcmd_touch_consumption_proven=false`,
+`original_client_runtime_linked=false`,
+`real_map_loaded=false`,
+`renderer_frame_proven=false`,
+`arm64_device_execution_proven=false`,
+`gameplay_proven=false`, and
+`playable_apk=false`.
+
+This narrows the next Android runtime gate: integrate the original FSH table/database registry and real FastFile loader into the process, then connect the live client frame and renderer. The emulator diagnostic does not close those gates.
