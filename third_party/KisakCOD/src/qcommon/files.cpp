@@ -17,23 +17,43 @@ extern int fs_fakeChkSum;
 
 char *__cdecl FS_GetMapBaseName(char *mapname)
 {
-    uint32_t v2; // [esp+0h] [ebp-18h]
-    int c; // [esp+10h] [ebp-8h]
-    signed int len; // [esp+14h] [ebp-4h]
-
+    // A map path can originate from external game data. The original
+    // decompilation indexed mapname[length - 3] even for short strings and
+    // copied an unbounded basename into this 64-byte static buffer.
     iassert( mapname );
+    if (!mapname)
+    {
+        basename[0] = 0;
+        return basename;
+    }
     if (!I_strnicmp(mapname, "maps/mp/", 8))
         mapname += 8;
-    v2 = strlen(mapname);
-    len = v2;
-    if (!I_stricmp(&mapname[v2 - 3], "bsp"))
-        len = v2 - 7;
-    memcpy((uint8_t *)basename, (uint8_t *)mapname, len);
-    basename[len] = 0;
-    for (c = 0; c < len; ++c)
+
+    const size_t mapLength = strlen(mapname);
+    size_t baseLength = mapLength;
+    if (mapLength >= 3 && !I_stricmp(mapname + mapLength - 3, "bsp"))
     {
-        if (basename[c] == 37)
-            basename[c] = 95;
+        // The IW3 .d3dbsp suffix is seven bytes. A shorter BSP-like name
+        // cannot be stripped safely and must not underflow the length.
+        if (mapLength < 7)
+        {
+            basename[0] = 0;
+            return basename;
+        }
+        baseLength = mapLength - 7;
+    }
+    if (baseLength >= sizeof(basename))
+    {
+        // Do not silently truncate a map identifier to a different name.
+        basename[0] = 0;
+        return basename;
+    }
+    memcpy(basename, mapname, baseLength);
+    basename[baseLength] = 0;
+    for (size_t i = 0; i < baseLength; ++i)
+    {
+        if (basename[i] == '%')
+            basename[i] = '_';
     }
     return basename;
 }
