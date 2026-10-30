@@ -992,14 +992,14 @@ jobs:
         with:
           name: iw3-original-filesystem-rooted-mutations-aarch64-NOT-APK
           path: |
-            \${{ runner.temp }}/iw3-full-filesystem-rooted-mutations-before-undefined.txt
-            \${{ runner.temp }}/iw3-full-filesystem-rooted-platform-defined.txt
-            \${{ runner.temp }}/iw3-full-filesystem-rooted-mutations-elf.txt
-            \${{ runner.temp }}/iw3-full-filesystem-rooted-mutations-defined.txt
-            \${{ runner.temp }}/iw3-full-filesystem-rooted-mutations-undefined.txt
-            \${{ runner.temp }}/iw3-original-filesystem-rooted-mutations-arm64.o
-            \${{ runner.temp }}/iw3-build-arm64/CMakeFiles/iw3_sp_full_filesystem.dir/**/*.o
-            \${{ runner.temp }}/iw3-build-arm64/CMakeFiles/iw3_sp_math.dir/**/iw3_android_platform.cpp.o
+            ${{ runner.temp }}/iw3-full-filesystem-rooted-mutations-before-undefined.txt
+            ${{ runner.temp }}/iw3-full-filesystem-rooted-platform-defined.txt
+            ${{ runner.temp }}/iw3-full-filesystem-rooted-mutations-elf.txt
+            ${{ runner.temp }}/iw3-full-filesystem-rooted-mutations-defined.txt
+            ${{ runner.temp }}/iw3-full-filesystem-rooted-mutations-undefined.txt
+            ${{ runner.temp }}/iw3-original-filesystem-rooted-mutations-arm64.o
+            ${{ runner.temp }}/iw3-build-arm64/CMakeFiles/iw3_sp_full_filesystem.dir/**/*.o
+            ${{ runner.temp }}/iw3-build-arm64/CMakeFiles/iw3_sp_math.dir/**/iw3_android_platform.cpp.o
 
       - name: Verify COMPLETE original IW3 frame compiled with real ARM64 state headers
         shell: bash

@@ -228,6 +228,8 @@ class OriginalFilesystemAndroidPortTests(unittest.TestCase):
         self.assertIn("IW3_ORIGINAL_FILESYSTEM_ROOTED_MUTATION_RELOCATABLE_LINK_PASS", workflow)
         self.assertIn("IW3_FULL_FILESYSTEM_RUNTIME_LINKED=false", workflow)
         self.assertIn("iw3-original-filesystem-rooted-mutations-aarch64-NOT-APK", workflow)
+        self.assertIn("${{ runner.temp }}/iw3-original-filesystem-rooted-mutations-arm64.o", workflow)
+        self.assertNotIn("\\${{ runner.temp }}", workflow)
 
 
 if __name__ == "__main__":
