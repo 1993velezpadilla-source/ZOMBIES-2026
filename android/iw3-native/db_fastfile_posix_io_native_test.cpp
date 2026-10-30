@@ -109,5 +109,5 @@ int main()
 
     close(fd);
     std::printf("IW3_FASTFILE_POSIX_IO_TESTS_PASS checks=%d\n", checks);
-    return checks == 11 ? 0 : 2;
+    return checks == 14 ? 0 : 2;
 }
