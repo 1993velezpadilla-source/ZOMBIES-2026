@@ -2,6 +2,7 @@
 #include "database.h"
 #if defined(__ANDROID__)
 #include "db_fastfile_posix_open.h"
+#include "db_registry_android_compat.h"
 #endif
 
 #include <qcommon/files.h>
