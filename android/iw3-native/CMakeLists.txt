@@ -317,10 +317,12 @@ endif()
 
 # Compile the complete original command-system translation unit for Android ARM64.
 # This includes the real Cmd_Init, command registry/dispatch, Cbuf and tokenizer
-# implementations. It is an OBJECT-only portability gate: it is not linked into
-# the JNI diagnostic and does not claim the command system is initialized.
+# implementations. It is an explicit OBJECT-only portability gate, excluded
+# from default JNI/math builds until real OpenAL headers are supplied.
+# The dedicated ARM64 workflow compiles this same authentic source with real
+# OpenAL Soft API headers. No command runtime is initialized by this target.
 if(ANDROID)
-    add_library(iw3_sp_cmd_full_compile OBJECT
+    add_library(iw3_sp_cmd_full_compile OBJECT EXCLUDE_FROM_ALL
         "${IW3_ENGINE_SOURCE_ROOT}/qcommon/cmd.cpp")
     target_include_directories(iw3_sp_cmd_full_compile PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}"
@@ -342,6 +344,15 @@ if(ANDROID)
         "${IW3_ENGINE_SOURCE_ROOT}/xanim"
         "${IW3_ENGINE_SOURCE_ROOT}/aim_assist"
         "${IW3_ENGINE_SOURCE_ROOT}/../deps")
+    if(IW3_OPENAL_HEADERS_ROOT)
+        if(NOT EXISTS "${IW3_OPENAL_HEADERS_ROOT}/AL/al.h" OR
+           NOT EXISTS "${IW3_OPENAL_HEADERS_ROOT}/AL/alc.h" OR
+           NOT EXISTS "${IW3_OPENAL_HEADERS_ROOT}/AL/efx.h")
+            message(FATAL_ERROR "Original IW3 command target requires real OpenAL API headers")
+        endif()
+        target_include_directories(iw3_sp_cmd_full_compile PRIVATE
+            "${IW3_OPENAL_HEADERS_ROOT}")
+    endif()
     target_compile_definitions(iw3_sp_cmd_full_compile PRIVATE
         KISAK_SP=1 KISAK_OPENAL=1)
     target_compile_options(iw3_sp_cmd_full_compile PRIVATE
