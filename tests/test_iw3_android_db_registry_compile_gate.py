@@ -89,6 +89,30 @@ class OriginalDbRegistryCompileGateTests(unittest.TestCase):
         self.assertLess(windows, d3d)
         self.assertLess(d3d, end)
 
+    def test_android_zone_reorder_csv_uses_rooted_posix_file_io(self):
+        source = REGISTRY.read_text(encoding="utf-8")
+        end_start = source.index("void DB_EndReorderZone()")
+        end_else = source.index("#else", end_start)
+        end_android = source[end_start:end_else]
+        begin_start = source.index("void __cdecl DB_BeginReorderZone(const char *zoneName)")
+        begin_else = source.index("#else", begin_start)
+        begin_android = source[begin_start:begin_else]
+        for token in ("zone_source/%s.csv", "DB_ReadAndroidZoneSourceCsv", "z2026_platform_write_file"):
+            self.assertIn(token, end_android)
+        for token in ("zone_source/%s.csv", "DB_ReadAndroidZoneSourceCsv", "read"):
+            self.assertIn(token, begin_android)
+        for forbidden in ("CreateFileA", "WriteFile", "DeleteFileA", "CloseHandle"):
+            self.assertNotIn(forbidden, end_android)
+            self.assertNotIn(forbidden, begin_android)
+        self.assertIn('output.append("\\r\\n", 2);', end_android)
+
+    def test_android_missing_asset_lock_is_not_a_noop(self):
+        compat = (ROOT / "third_party/KisakCOD/src/database/db_registry_android_compat.h").read_text(encoding="utf-8")
+        self.assertIn("Sys_LockWrite(&DB_AndroidMissingAssetCriticalSection())", compat)
+        self.assertIn("Sys_UnlockWrite(&DB_AndroidMissingAssetCriticalSection())", compat)
+        self.assertIn("DBFastFilePosixOpenEnginePath(path, &fileSize, &openError)", compat)
+        self.assertIn("read(fd, buffer + transferred, fileSize - transferred)", compat)
+        self.assertIn("close(fd)", compat)
     def test_android_registry_platform_services_have_real_posix_backing(self):
         compat = (ROOT / "third_party/KisakCOD/src/database/db_registry_android_compat.h").read_text(encoding="utf-8")
         platform = (ROOT / "android/iw3-native/iw3_android_platform.cpp").read_text(encoding="utf-8")
