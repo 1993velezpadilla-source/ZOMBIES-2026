@@ -12,7 +12,13 @@
 #include <qcommon/threads.h>
 #include <qcommon/com_bsp.h>
 #include <gfx_d3d/r_init.h>
+#if defined(__ANDROID__)
+#include <qcommon/qcommon.h>
+#include <qcommon/fast_critical_section.h>
+#include <qcommon/net_chan.h>
+#else
 #include <win32/win_local.h>
+#endif
 #include <gfx_d3d/rb_uploadshaders.h>
 #include <gfx_d3d/r_image.h>
 #include <universal/com_files.h>
@@ -1745,7 +1751,7 @@ XAssetHeader __cdecl DB_FindXAssetDefaultHeaderInternal(XAssetType type)
     return assetEntry->entry.asset.header;
 }
 
-BOOL __cdecl IsConfigFile(const char *name)
+bool __cdecl IsConfigFile(const char *name)
 {
     iassert(name);
     return (strstr(name, ".cfg") != NULL);
