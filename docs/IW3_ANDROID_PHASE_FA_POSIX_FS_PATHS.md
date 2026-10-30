@@ -51,6 +51,11 @@ intermediate directory creation for POSIX paths.
   execute the original `FS_CreatePath` body with a host platform spy,
   checking four POSIX parent paths, restored input and refusal of `..`
   traversal; assert extraction and invocation in the Python regression.
+- [255dbcc](https://github.com/1993velezpadilla-source/ZOMBIES-2026/commit/255dbcc234cea7554a98855c16e2f4c0f515a8b9):
+  add a host C++ compile-and-execute regression that extracts the actual
+  `FS_ReplaceSeparators` and `FS_CreatePath` bodies, checks native POSIX
+  and preserved Win32 behavior, verifies four mkdir parent calls and rejects
+  a traversal path. It is host evidence, not Android gameplay.
 
 ## Evidence and remaining gates
 
