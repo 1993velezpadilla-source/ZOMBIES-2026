@@ -12,7 +12,7 @@ class OriginalRendererModelPosePortabilityTests(unittest.TestCase):
     def test_android_build_compiles_the_complete_original_pose_translation_unit(self):
         cmake = CMAKE.read_text(encoding="utf-8")
         self.assertIn("add_library(iw3_sp_renderer_model_pose_full_compile OBJECT", cmake)
-        self.assertIn('"\${IW3_ENGINE_SOURCE_ROOT}/gfx_d3d/r_model_pose.cpp"', cmake)
+        self.assertIn('"${IW3_ENGINE_SOURCE_ROOT}/gfx_d3d/r_model_pose.cpp"', cmake)
         self.assertIn("target_compile_definitions(iw3_sp_renderer_model_pose_full_compile PRIVATE KISAK_SP=1)", cmake)
         self.assertNotIn("target_link_libraries(iw3_sp_math PRIVATE iw3_sp_renderer_model_pose_full_compile", cmake)
 
