@@ -5,6 +5,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "third_party/KisakCOD/src/client/cl_input.cpp"
 CMAKE = ROOT / "android/iw3-native/CMakeLists.txt"
+WIN_LOCAL = ROOT / "third_party/KisakCOD/src/win32/win_local.h"
 WORKFLOW = ROOT / ".github/workflows/iw3-original-native-android.yml"
 
 
@@ -62,6 +63,28 @@ class OriginalClientInputAbiTests(unittest.TestCase):
         self.assertIn("grep -E 'IW3_JNI_USERCMD attack=0 buttons=2 '", probe)
         self.assertIn("grep -E 'IW3_JNI_USERCMD attack=0 buttons=514 '", probe)
         self.assertIn("NOT a game engine", jni)
+
+    def test_win32_sdk_headers_are_excluded_from_android_client_input(self):
+        source = WIN_LOCAL.read_text(encoding="utf-8")
+        self.assertIn("#if !defined(_XBOX) && !defined(__ANDROID__)\n// These SDK headers", source)
+        for header in ("<dinput.h>", "<winsock.h>", "<wsipx.h>"):
+            position = source.index(header)
+            guard = source.rfind("#if !defined(_XBOX) && !defined(__ANDROID__)", 0, position)
+            end = source.find("#endif", position)
+            self.assertGreaterEqual(guard, 0, header)
+            self.assertGreater(end, position, header)
+        self.assertIn("#if defined(__ANDROID__)\n// BOOL is a Win32 SDK type", source)
+        self.assertIn("#if !defined(__ANDROID__)\nextern HWND g_splashWnd;", source)
+
+    def test_full_original_client_input_is_compiled_for_arm64_but_not_linked_to_jni(self):
+        cmake = CMAKE.read_text(encoding="utf-8")
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn("add_library(iw3_sp_client_input_full_compile OBJECT", cmake)
+        self.assertIn("/client/cl_input.cpp", cmake)
+        self.assertIn("KISAK_SP=1 KISAK_OPENAL=1", cmake)
+        self.assertIn("IW3_ORIGINAL_CLIENT_INPUT_AARCH64_OBJECT_PASS", workflow)
+        self.assertIn("IW3_CLIENT_INPUT_RUNTIME_LINKED=false", workflow)
+        self.assertNotIn("target_link_libraries(iw3_sp_math PRIVATE iw3_sp_client_input_full_compile", cmake)
 
     def test_native_layout_guards_preserve_win32_and_lp64(self):
         bg = (ROOT / "third_party/KisakCOD/src/bgame/bg_local.h").read_text(encoding="utf-8")
