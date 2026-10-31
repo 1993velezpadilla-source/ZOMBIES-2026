@@ -8,6 +8,7 @@ on:
       - '.github/workflows/iw3-renderer-init-arm64.yml'
       - 'third_party/KisakCOD/src/gfx_d3d/r_init.cpp'
       - 'tests/test_iw3_android_renderer_static_tracking.py'
+      - 'tests/test_iw3_android_renderer_mode_text_bounds.py'
       - 'android/iw3-native/common_compat/**'
   pull_request:
     branches:
@@ -16,6 +17,7 @@ on:
       - '.github/workflows/iw3-renderer-init-arm64.yml'
       - 'third_party/KisakCOD/src/gfx_d3d/r_init.cpp'
       - 'tests/test_iw3_android_renderer_static_tracking.py'
+      - 'tests/test_iw3_android_renderer_mode_text_bounds.py'
       - 'android/iw3-native/common_compat/**'
 
 permissions:
@@ -34,7 +36,7 @@ jobs:
       - name: Run original renderer static tracking under ASan/UBSan
         run: |
           set -euo pipefail
-          python3 -m unittest discover -s tests -p 'test_iw3_android_renderer_static_tracking.py' -v
+          python3 -m unittest discover -s tests -p 'test_iw3_android_renderer_*.py' -v
           echo 'IW3_ORIGINAL_RENDERER_STATIC_TRACKING_LP64_PASS'
           echo 'IW3_RENDERER_FRAME_PROVEN=false'
           echo 'IW3_PLAYABLE_APK=false'
