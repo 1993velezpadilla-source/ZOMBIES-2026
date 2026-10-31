@@ -175,6 +175,66 @@ jobs:
           echo "IW3_GAMEPLAY_PROVEN=false"
           echo "IW3_PLAYABLE_APK=false"
 
+      - name: Link authentic Com_Init with original command, dvar and filesystem units (NOT GAME)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          root="$GITHUB_WORKSPACE/third_party/KisakCOD/src"
+          common="$RUNNER_TEMP/iw3-original-common-full-aarch64.o"
+          combined="$RUNNER_TEMP/iw3-original-common-cmd-files-dvar-aarch64.o"
+          cmd="$RUNNER_TEMP/iw3-original-cmd-full-aarch64.o"
+          fs="$RUNNER_TEMP/iw3-original-com-files-full-aarch64.o"
+          dvar="$RUNNER_TEMP/iw3-original-dvar-full-aarch64.o"
+          # Compile the complete upstream Com_Init/Com_Frame translation unit,
+          # using the same Android-only header overlay as the existing CMake
+          # compile gate. This is not a replacement bootstrap.
+          "$ndk/aarch64-linux-android26-clang++" \
+            -std=c++20 -DKISAK_SP=1 -DKISAK_OPENAL=1 \
+            -DIW3_ANDROID_DISABLE_SCRIPT_DEBUGGER=1 \
+            -DIW3_ANDROID_COMMON_HEADER_ONLY_OPENAL=1 \
+            -fms-extensions -UNDEBUG -O2 -fsigned-char \
+            -frounding-math -fno-fast-math \
+            -I "$GITHUB_WORKSPACE/android/iw3-native/common_compat" \
+            -I "$GITHUB_WORKSPACE/android/iw3-native" \
+            -I "$root" \
+            -I "$GITHUB_WORKSPACE/third_party/KisakCOD/deps" \
+            -I "$IW3_OPENAL_HEADERS" \
+            -c "$root/qcommon/common.cpp" -o "$common"
+          for object in "$common" "$cmd" "$fs" "$dvar"; do
+            test -s "$object"
+            "$ndk/llvm-readelf" -h "$object" | grep -F 'Machine:                           AArch64'
+          done
+          "$ndk/llvm-nm" -C -u "$common" > "$RUNNER_TEMP/iw3-original-common-before-undefined.txt"
+          # The original bootstrap genuinely references these services.
+          grep -F 'Cmd_Init()' "$RUNNER_TEMP/iw3-original-common-before-undefined.txt"
+          grep -F 'FS_InitFilesystem()' "$RUNNER_TEMP/iw3-original-common-before-undefined.txt"
+          "$ndk/ld.lld" -m aarch64linux -r "$common" "$cmd" "$fs" "$dvar" -o "$combined"
+          "$ndk/llvm-readelf" -h "$combined" > "$RUNNER_TEMP/iw3-original-bootstrap-graph-elf.txt"
+          grep -F 'AArch64' "$RUNNER_TEMP/iw3-original-bootstrap-graph-elf.txt"
+          "$ndk/llvm-nm" -C --defined-only "$combined" > "$RUNNER_TEMP/iw3-original-bootstrap-graph-defined.txt"
+          "$ndk/llvm-nm" -C -u "$combined" > "$RUNNER_TEMP/iw3-original-bootstrap-graph-undefined.txt"
+          for symbol in 'Com_Init(char*)' 'Com_Frame()' 'Cmd_Init()' 'Dvar_Init()' 'FS_FOpenFileRead(char const*, int*)'; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-original-bootstrap-graph-defined.txt"
+            if grep -F " U $symbol" "$RUNNER_TEMP/iw3-original-bootstrap-graph-undefined.txt"; then
+              echo "Original bootstrap provider still unresolved: $symbol" >&2
+              exit 1
+            fi
+          done
+          # FS_InitFilesystem is genuinely in qcommon/files.cpp, not the
+          # com_files.cpp provider. Its unresolved edge is the next integration
+          # task, NOT a fake success or permission to run Com_Init on Android.
+          grep -F 'FS_InitFilesystem()' "$RUNNER_TEMP/iw3-original-bootstrap-graph-undefined.txt"
+          test -s "$RUNNER_TEMP/iw3-original-bootstrap-graph-undefined.txt"
+          echo "IW3_ORIGINAL_COMMON_CMD_FILES_DVAR_RELOCATABLE_LINK_PASS"
+          echo "IW3_ORIGINAL_FS_INITFILESYSTEM_UNRESOLVED"
+          echo "IW3_COMMON_BOOTSTRAP_RUNTIME_LINKED=false"
+          echo "IW3_FS_STARTUP_RUNTIME_INVOKED=false"
+          echo "IW3_RENDERER_FRAME_PROVEN=false"
+          echo "IW3_REAL_MAP_LOADED=false"
+          echo "IW3_GAMEPLAY_PROVEN=false"
+          echo "IW3_PLAYABLE_APK=false"
+
       - name: Preserve command-system portability evidence (NOT APK)
         if: always()
         uses: actions/upload-artifact@v4
@@ -182,6 +242,12 @@ jobs:
           name: iw3-original-command-full-aarch64-NOT-APK
           path: |
             ${{ runner.temp }}/iw3-original-cmd-full-aarch64.o
+            ${{ runner.temp }}/iw3-original-common-full-aarch64.o
+            ${{ runner.temp }}/iw3-original-common-cmd-files-dvar-aarch64.o
+            ${{ runner.temp }}/iw3-original-common-before-undefined.txt
+            ${{ runner.temp }}/iw3-original-bootstrap-graph-elf.txt
+            ${{ runner.temp }}/iw3-original-bootstrap-graph-defined.txt
+            ${{ runner.temp }}/iw3-original-bootstrap-graph-undefined.txt
             ${{ runner.temp }}/iw3-cmd-full-elf.txt
             ${{ runner.temp }}/iw3-cmd-full-defined.txt
             ${{ runner.temp }}/iw3-cmd-full-undefined.txt
