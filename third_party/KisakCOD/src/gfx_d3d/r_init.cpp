@@ -13,7 +13,13 @@
 #include "r_staticmodelcache.h"
 #include "r_cmds.h"
 #include "rb_logfile.h"
+#if defined(__ANDROID__)
+// The original Bink/D3D9 cinematic structures are not used by this translation
+// unit; keep only declarations of the original external entry points.
+#include <gfx_d3d/r_cinematic.h>
+#else
 #include "r_cinematic.h"
+#endif
 #include "rb_drawprofile.h"
 #include "r_image.h"
 #include "r_water.h"
