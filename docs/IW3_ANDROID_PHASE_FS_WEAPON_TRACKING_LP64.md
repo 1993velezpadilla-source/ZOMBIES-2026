@@ -14,7 +14,8 @@ The test `test_original_weapon_static_tracking_uses_native_object_sizes` in `tes
 
 - Original code change: `3286ac12`.
 - Test commits: `67dcf105`, `22ae62c4` (corrects the fixture's C++ macro continuation after an initial CI compilation failure).
-- Dedicated workflow on `22ae62c4`: https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41209764119 (check final conclusion in Actions; do not infer success from queued status).
+- Dedicated workflow on `22ae62c4`: https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41209764119 **completed success** on 2026-10-31 at 14:21 UTC. Inspected job `124562092879`: both original-source LP64 sanitizer regressions passed (`Ran 2 tests in 0.845s`, `OK`). This is host execution, not Android gameplay.
+- Workflow marker update: `ae3b6436`, adds `IW3_ORIGINAL_WEAPON_STATIC_TRACKING_LP64_PASS` after both tests pass.
 - Previous original code-only run: https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41209666781 succeeded, but predates the new regression test.
 
 ## Remaining blockers — no playable APK
