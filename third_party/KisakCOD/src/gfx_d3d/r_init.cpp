@@ -3070,6 +3070,10 @@ int __cdecl R_AddValidResolution(int width, int height, int resolutionCount, int
     }
     if (width < 640 || height < 480)
         return resolutionCount;
+    // The caller's original fixed-size table has 256 resolution pairs.
+    // Keep this helper safe even when it is called with a full table.
+    if (resolutionCount >= 256)
+        return resolutionCount;
     availableResolutions[resolutionCount][0] = width;
     availableResolutions[resolutionCount][1] = height;
     return resolutionCount + 1;
@@ -3091,6 +3095,11 @@ int __cdecl R_CompareDisplayModes(const void *lhs, const void *rhs)
 
 int __cdecl R_AddValidRefreshRate(int refreshRate, int rateCount, int *availableRefreshRates)
 {
+    iassert( (rateCount >= 0) );
+    // R_EnumDisplayModes provides 257 slots. Do not shift or append past
+    // the final slot if this helper receives an already-full table.
+    if (rateCount >= 257)
+        return rateCount;
     int rateIndex; // [esp+4h] [ebp-4h]
     int rateIndexa; // [esp+4h] [ebp-4h]
 
