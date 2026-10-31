@@ -3049,11 +3049,14 @@ void R_InitSystems()
     rg.registered = 1;
 }
 
-int __cdecl R_CompareRefreshRates(_DWORD *e0, _DWORD *e1)
+int __cdecl R_CompareRefreshRates(const void *lhs, const void *rhs)
 {
-    // A subtraction can wrap for valid 32-bit display-mode values, violating
-    // qsort's ordering contract on LP64 just as on Win32.
-    return (*e0 > *e1) - (*e0 < *e1);
+    // qsort calls through int (*)(const void *, const void *). Do not cast an
+    // incompatible typed function pointer: that is undefined behavior in C++.
+    const uint32_t rate0 = *static_cast<const uint32_t *>(lhs);
+    const uint32_t rate1 = *static_cast<const uint32_t *>(rhs);
+    // Subtraction can overflow for valid 32-bit refresh-rate values.
+    return (rate0 > rate1) - (rate0 < rate1);
 }
 
 int __cdecl R_AddValidResolution(int width, int height, int resolutionCount, int (*availableResolutions)[2])
@@ -3072,10 +3075,13 @@ int __cdecl R_AddValidResolution(int width, int height, int resolutionCount, int
     return resolutionCount + 1;
 }
 
-int __cdecl R_CompareDisplayModes(_DWORD *e0, _DWORD *e1)
+int __cdecl R_CompareDisplayModes(const void *lhs, const void *rhs)
 {
-    // Width, height, refresh: compare without narrowing/wrapping unsigned
-    // differences. Keep the original lexicographic mode ordering.
+    // D3DDISPLAYMODE is four consecutive 32-bit fields; compare Width,
+    // Height and RefreshRate in the original lexicographic order. The
+    // signature must exactly match qsort's callback ABI on ARM64 and Win32.
+    const uint32_t *e0 = static_cast<const uint32_t *>(lhs);
+    const uint32_t *e1 = static_cast<const uint32_t *>(rhs);
     for (int field = 0; field < 3; ++field)
     {
         if (e0[field] < e1[field])
@@ -3134,7 +3140,7 @@ void __cdecl R_EnumDisplayModes(uint32_t adapterIndex)
             ++dx.displayModeCount;
         }
     }
-    qsort(dx.displayModes, dx.displayModeCount, 0x10u, (int(__cdecl *)(const void *, const void *))R_CompareDisplayModes);
+    qsort(dx.displayModes, dx.displayModeCount, sizeof(dx.displayModes[0]), R_CompareDisplayModes);
     resolutionCount = 0;
     refreshRateCount = 0;
     for (modeIndex = 0; modeIndex < dx.displayModeCount; ++modeIndex)
@@ -3177,7 +3183,7 @@ void __cdecl R_EnumDisplayModes(uint32_t adapterIndex)
         defaultResolutionIndex,
         DVAR_ARCHIVE | DVAR_LATCH,
         "Direct X resolution mode");
-    qsort(availableRefreshRates, refreshRateCount, 4u, (int(__cdecl *)(const void *, const void *))R_CompareRefreshRates);
+    qsort(availableRefreshRates, refreshRateCount, sizeof(availableRefreshRates[0]), R_CompareRefreshRates);
     defaultRefreshRateIndex = 0;
     for (refreshRateIndex = 0; refreshRateIndex < refreshRateCount; ++refreshRateIndex)
     {
