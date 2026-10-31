@@ -1046,19 +1046,21 @@ bool __cdecl ParseConfigStringToStructCustomSize(
                     v15 = atof(src);
                     *(uint32_t *)&pStruct[v20->iOffset] = (int)(v15 * 1000.0);
                     break;
+                // Asset references occupy a native pointer slot, not a 32-bit int.
+                // memcpy preserves full LP64 addresses without strict-aliasing UB.
                 case CSPFT_FX:
 #ifdef KISAK_MP
                     if (!com_dedicated->current.integer)
 #endif
                     {
                         v9 = FX_Register(src);
-                        *(uint32_t *)&pStruct[v20->iOffset] = (uint32_t)v9;
+                        memcpy(&pStruct[v20->iOffset], &v9, sizeof(v9));
                     }
                     break;
                 case CSPFT_XMODEL:
                     I_strncpyz(dest, src, 0x2000);
                     v22 = R_RegisterModel(dest);
-                    *(uint32_t *)&pStruct[v20->iOffset] = (uint32_t)v22;
+                    memcpy(&pStruct[v20->iOffset], &v22, sizeof(v22));
                     if (!v22)
                         v18 = 1;
                     break;
@@ -1068,12 +1070,12 @@ bool __cdecl ParseConfigStringToStructCustomSize(
 #endif
                     {
                         v10 = Material_RegisterHandle(src, IMAGE_TRACK_MISC);
-                        *(uint32_t *)&pStruct[v20->iOffset] = (uint32_t)v10;
+                        memcpy(&pStruct[v20->iOffset], &v10, sizeof(v10));
                     }
                     break;
                 case CSPFT_SOUND:
                     SoundAlias = Com_FindSoundAlias(src);
-                    *(uint32_t *)&pStruct[v20->iOffset] = (uint32_t)SoundAlias;
+                    memcpy(&pStruct[v20->iOffset], &SoundAlias, sizeof(SoundAlias));
                     break;
                 default:
                     if (v20->iFieldType >= CSPFT_STRING)
