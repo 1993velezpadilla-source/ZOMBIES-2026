@@ -970,7 +970,9 @@ snd_alias_list_t **__cdecl BG_RegisterSurfaceTypeSounds(const char *surfaceSound
     if (surfaceTypeSoundListCount == 16)
         Com_Error(ERR_DROP, "Exceeded MAX_SURFACE_TYPE_SOUND_LISTS (%d)", 16);
 
-    result = (snd_alias_list_t **)Hunk_AllocLow(0x74u, "BG_RegisterSurfaceTypeSounds", 15);
+    // Each of the 29 surface entries stores a native pointer (8 bytes on ARM64).
+    // The original 0x74 allocation only held 29 pointers on 32-bit builds.
+    result = (snd_alias_list_t **)Hunk_AllocLow(sizeof(*result) * 29, "BG_RegisterSurfaceTypeSounds", 15);
     Com_sprintf(aliasName, 0x100u, "%s_default", surfaceSoundBase);
     defaultAliasList = Com_FindSoundAlias(aliasName);
     for (i = 0; i < 29; ++i)
@@ -1265,7 +1267,9 @@ WeaponDef *__cdecl BG_LoadWeaponDefInternal(const char *one, const char *two)
     WeaponDef *weapDef; // [esp+2870h] [ebp-4h]
 
     len = strlen("WEAPONFILE");
-    weapDef = (WeaponDef *)Hunk_AllocLow(0x878u, "BG_LoadWeaponDefInternal", 9);
+    // WeaponDef contains native pointers: the 32-bit 0x878 allocation is too small on ARM64.
+    // Field offsets still require a separate LP64 mapping before weapon loading is safe.
+    weapDef = (WeaponDef *)Hunk_AllocLow(sizeof(WeaponDef), "BG_LoadWeaponDefInternal", 9);
     InitWeaponDef(weapDef);
     Com_sprintf(dest, 0x40u, "weapons/%s/%s", one, two);
     v11 = FS_FOpenFileByMode(dest, &f, FS_READ);
