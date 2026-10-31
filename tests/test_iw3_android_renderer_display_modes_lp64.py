@@ -30,6 +30,7 @@ HARNESS = r"""
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <utility>
 #define __cdecl
 #define iassert(x) assert(x)
 using _DWORD = uint32_t;
@@ -76,6 +77,24 @@ const char *va(const char *, int, int) { return "No valid modes"; }
 /* ORIGINAL_RENDERER_FUNCTIONS */
 int main() {
     static_assert(sizeof(void *) == 8, "LP64 test required");
+    // qsort comparators must be antisymmetric even at the uint32_t extremes.
+    // Subtracting DWORDs used to wrap and invert the ordering.
+    uint32_t low = 1u, high = 0xffffffffu;
+    assert(R_CompareRefreshRates(&low, &high) < 0);
+    assert(R_CompareRefreshRates(&high, &low) > 0);
+    assert(R_CompareRefreshRates(&high, &high) == 0);
+    uint32_t lowWidth[3] = {1u, 480u, 60u};
+    uint32_t highWidth[3] = {0xffffffffu, 480u, 60u};
+    uint32_t lowHeight[3] = {640u, 1u, 60u};
+    uint32_t highHeight[3] = {640u, 0xffffffffu, 60u};
+    uint32_t lowRefresh[3] = {640u, 480u, 1u};
+    uint32_t highRefresh[3] = {640u, 480u, 0xffffffffu};
+    for (auto pair : {std::pair<uint32_t*, uint32_t*>{lowWidth, highWidth},
+                      {lowHeight, highHeight}, {lowRefresh, highRefresh}}) {
+        assert(R_CompareDisplayModes(pair.first, pair.second) < 0);
+        assert(R_CompareDisplayModes(pair.second, pair.first) > 0);
+        assert(R_CompareDisplayModes(pair.first, pair.first) == 0);
+    }
     D3D api;
     dx.d3d9 = &api;
     api.modes = {{1920,1080,144,21}, {800,600,60,21},
