@@ -7,6 +7,7 @@
 #include <game/g_local.h>
 #include "cl_ui.h"
 #include <qcommon/cmd.h>
+#include <qcommon/mem_track.h>
 #include <devgui/devgui.h>
 #include <win32/win_local.h>
 #include <server/sv_public.h>
@@ -122,10 +123,11 @@ const dvar_s *arcadeScore[19]{ 0 };
 
 void __cdecl TRACK_cl_main()
 {
-    track_static_alloc_internal(clientUIActives, 20, "clientUIActives", 9);
-    track_static_alloc_internal(clients, 633532, "clients", 9);
-    track_static_alloc_internal(clientConnections, 271392, "clientConnections", 9);
-    track_static_alloc_internal(&cls, 612, "cls", 9);
+    // Track native object sizes: the original literals assume a 32-bit ABI.
+    TRACK_STATIC_ARR(clientUIActives, 9);
+    TRACK_STATIC_ARR(clients, 9);
+    TRACK_STATIC_ARR(clientConnections, 9);
+    TRACK_STATIC_DAT(cls, 9);
 }
 
 int __cdecl CL_GetLocalClientActiveCount()
