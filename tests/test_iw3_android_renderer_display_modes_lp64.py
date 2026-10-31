@@ -39,6 +39,7 @@ using HRESULT = int;
 enum { D3DFMT_X8R8G8B8 = 21, DVAR_ARCHIVE = 1, DVAR_LATCH = 2, DVAR_AUTOEXEC = 4 };
 struct dvar_t {};
 struct Mode { uint32_t Width, Height, RefreshRate, Format; };
+using _D3DDISPLAYMODE = Mode; // exact 16-byte ABI of the original renderer mode type
 struct D3D {
     std::vector<Mode> modes;
     uint32_t GetAdapterModeCount(uint32_t, int) { return static_cast<uint32_t>(modes.size()); }
