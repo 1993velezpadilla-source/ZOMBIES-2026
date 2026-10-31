@@ -811,8 +811,8 @@ char __cdecl G_ParseWeaponAccurayGraphInternal(
         return 1;
 
     // A truncated path must never select a different accuracy asset.
-    const int pathLength = snprintf(string, ARRAYSIZE(string), "accuracy/%s/%s", dirName, graphName);
-    if (pathLength < 0 || pathLength >= ARRAYSIZE(string))
+    const int pathLength = snprintf(string, sizeof(string), "accuracy/%s/%s", dirName, graphName);
+    if (pathLength < 0 || pathLength >= (int)sizeof(string))
     {
         Com_PrintWarning(CON_CHANNEL_SERVER, "WARNING: ai weapon accuracy path is too long\n");
         return 0;
