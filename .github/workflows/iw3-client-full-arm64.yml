@@ -1,0 +1,92 @@
+name: IW3 original full SP client ARM64 compile audit (NOT GAME)
+
+on:
+  push:
+    branches:
+      - feature/iw3-native-android-arm64-20261025
+    paths:
+      - '.github/workflows/iw3-client-full-arm64.yml'
+      - 'third_party/KisakCOD/src/client/cl_main.cpp'
+      - 'third_party/KisakCOD/src/client/client.h'
+      - 'android/iw3-native/common_compat/**'
+  pull_request:
+    branches:
+      - feature/zombies-offline-sp-weapons-20261024
+    paths:
+      - '.github/workflows/iw3-client-full-arm64.yml'
+      - 'third_party/KisakCOD/src/client/cl_main.cpp'
+      - 'third_party/KisakCOD/src/client/client.h'
+      - 'android/iw3-native/common_compat/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: iw3-client-full-arm64-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  original-client-full-tu-arm64:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      NDK_VER: "27.2.12479018"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned NDK and original OpenAL compile headers
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdk="$RUNNER_TEMP/android-sdk"
+          mkdir -p "$sdk/cmdline-tools/latest"
+          curl -fLsS --retry 3 -o "$RUNNER_TEMP/commandline-tools.zip" \
+            'https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip'
+          unzip -qo "$RUNNER_TEMP/commandline-tools.zip" -d "$RUNNER_TEMP/commandline-tools"
+          mv "$RUNNER_TEMP/commandline-tools/cmdline-tools/"* "$sdk/cmdline-tools/latest/"
+          yes | "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" --licenses >/dev/null || true
+          "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" "ndk;${NDK_VER}"
+          echo "ANDROID_NDK_HOME=$sdk/ndk/${NDK_VER}" >> "$GITHUB_ENV"
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libopenal-dev
+          mkdir -p "$RUNNER_TEMP/iw3-openal-headers"
+          cp -a /usr/include/AL "$RUNNER_TEMP/iw3-openal-headers/"
+      - name: Compile complete authentic cl_main.cpp for AArch64 (no fake renderer)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          root="$GITHUB_WORKSPACE/third_party/KisakCOD/src"
+          out="$RUNNER_TEMP/iw3-original-client-full-aarch64.o"
+          "$ndk/aarch64-linux-android26-clang++" \
+            -std=c++20 -DKISAK_SP=1 -DKISAK_OPENAL=1 \
+            -DIW3_ANDROID_DISABLE_SCRIPT_DEBUGGER=1 \
+            -DIW3_ANDROID_COMMON_HEADER_ONLY_OPENAL=1 \
+            -fms-extensions -UNDEBUG -O2 -fsigned-char -frounding-math -fno-fast-math \
+            -I "$GITHUB_WORKSPACE/android/iw3-native/common_compat" \
+            -I "$GITHUB_WORKSPACE/android/iw3-native" \
+            -I "$root" \
+            -I "$GITHUB_WORKSPACE/third_party/KisakCOD/deps" \
+            -I "$RUNNER_TEMP/iw3-openal-headers" \
+            -c "$root/client/cl_main.cpp" -o "$out"
+          "$ndk/llvm-readelf" -h "$out" | tee "$RUNNER_TEMP/iw3-client-full-elf.txt"
+          grep -F 'Machine:                           AArch64' "$RUNNER_TEMP/iw3-client-full-elf.txt"
+          "$ndk/llvm-nm" -C --defined-only "$out" > "$RUNNER_TEMP/iw3-client-full-defined.txt"
+          "$ndk/llvm-nm" -C -u "$out" > "$RUNNER_TEMP/iw3-client-full-undefined.txt"
+          grep -F 'CL_InitRenderer()' "$RUNNER_TEMP/iw3-client-full-defined.txt"
+          grep -F 'CL_Init(int)' "$RUNNER_TEMP/iw3-client-full-defined.txt"
+          grep -F 'R_BeginRegistration(' "$RUNNER_TEMP/iw3-client-full-undefined.txt"
+          echo 'IW3_ORIGINAL_CLIENT_FULL_TU_AARCH64_PASS'
+          echo 'IW3_CL_INITRENDERER_RUNTIME_LINKED=false'
+          echo 'IW3_RENDERER_FRAME_PROVEN=false'
+          echo 'IW3_REAL_MAP_LOADED=false'
+          echo 'IW3_GAMEPLAY_PROVEN=false'
+          echo 'IW3_PLAYABLE_APK=false'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: iw3-original-client-full-aarch64-audit
+          path: |
+            ${{ runner.temp }}/iw3-original-client-full-aarch64.o
+            ${{ runner.temp }}/iw3-client-full-*.txt
+          if-no-files-found: ignore
+          retention-days: 7
