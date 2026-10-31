@@ -7,7 +7,7 @@ Date: 2026-10-31. Branch: `feature/iw3-native-android-arm64-20261025`. PR #4.
 Updated `third_party/KisakCOD/src/gfx_d3d/r_init.cpp`, without a renderer replacement:
 
 - `R_CompareRefreshRates` and `R_CompareDisplayModes` now take `(const void *, const void *)`, matching the callback type required by C/C++ `qsort`. The previous calls cast incompatible typed comparator function pointers; calling through that cast has undefined behavior, independently of the CPU architecture.
-- Preserve the existing unsigned comparison ordering (including extreme `uint32_t` values), with explicit typed reads inside the comparators.
+- Preserve the existing unsigned comparison ordering (including extreme `uint32_t` values). Display-mode comparison reads actual `_D3DDISPLAYMODE` members (`Width`, `Height`, `RefreshRate`) rather than treating the struct as an array of integers (avoids C++ object-layout/type-punning undefined behavior).
 - Replace the hard-coded qsort strides (4 and 16 bytes) with `sizeof` of the corresponding actual array elements.
 
 ## Regression
@@ -23,3 +23,7 @@ The latest **prior** complete AArch64 `r_init.cpp` probe reported `IW3_ORIGINAL_
 Verified host CI on commit `4d810899b7316806fa6748de5def0165527fb6f1`: [renderer workflow run 41247266560](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41247266560), job `renderer-tracking-host` (job ID `124673231490`) **success**, `Ran 8 tests in 5.260s`, `OK`. The new display-mode callback ABI regression ran under ASan/UBSan and passed. The separate full `r_init.cpp` AArch64 compile-probe job was still running when this note was updated; a successful host job does not imply an Android renderer build. No original IW3 renderer frame, real map load, touchscreen gameplay or actors/weapons in an ARM64 APK have been demonstrated.
 
 `IW3_PLAYABLE_APK=false`. Do not merge PR #4 to main; do not advertise the JNI diagnostic as a playable game.
+
+## Follow-up on original object layout
+
+Further commits `7abd5e23bcd92f5426c8eeceea2bf3a89ca0a8f7` and `b481d4f8ec93d911c0d2ae7930bb1d8f00ca5818` remove struct-member type-punning and make the host harness define the genuine 16-byte `_D3DDISPLAYMODE` layout. The earlier 8/8 CI pass was for the preceding commit, not proof of these follow-up changes. Re-check the new head's renderer workflow before claiming they passed.
