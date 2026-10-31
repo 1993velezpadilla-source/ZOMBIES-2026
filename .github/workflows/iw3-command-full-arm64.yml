@@ -15,6 +15,7 @@ on:
       - 'android/iw3-native/CMakeLists.txt'
       - 'tests/test_iw3_android_cmd_tokenizer.py'
       - 'tests/test_iw3_android_cmd_dispatch_runtime.py'
+      - 'tests/test_iw3_android_cmd_bootstrap_graph.py'
       - 'tests/fixtures/iw3_cmd_dispatch_runtime.cpp'
       - 'tools/iw3_android/prepare_real_engine_cmd_tokenizer.py'
   pull_request:
@@ -31,6 +32,7 @@ on:
       - 'android/iw3-native/CMakeLists.txt'
       - 'tests/test_iw3_android_cmd_tokenizer.py'
       - 'tests/test_iw3_android_cmd_dispatch_runtime.py'
+      - 'tests/test_iw3_android_cmd_bootstrap_graph.py'
       - 'tests/fixtures/iw3_cmd_dispatch_runtime.cpp'
       - 'tools/iw3_android/prepare_real_engine_cmd_tokenizer.py'
 
