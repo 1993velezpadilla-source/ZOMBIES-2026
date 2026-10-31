@@ -724,6 +724,14 @@ char __cdecl G_ParseAIWeaponAccurayGraphFile(
     Com_BeginParseSession(fileName);
     tokenb = Com_Parse(&buffer);
     v4 = atoi(tokenb->token);
+    // The caller provides exactly sixteen knot slots. A zero count also
+    // makes the final-knot lookup invalid, so reject both cases early.
+    if (v4 <= 0 || v4 > 16)
+    {
+        Com_EndParseSession();
+        Com_PrintError(CON_CHANNEL_SERVER, "ERROR: \"%s\" Invalid ai weapon accuracy knot count %i\n", fileName, v4);
+        return 0;
+    }
     *knotCount = v4;
     knotCountIndex = 0;
     while (1)
@@ -733,24 +741,26 @@ char __cdecl G_ParseAIWeaponAccurayGraphFile(
             break;
         if (token->token[0] == 125)
             break;
-        v5 = atof(token->token);
-        (*knots)[2 * knotCountIndex] = v5;
-        tokena = Com_Parse(&buffer);
-        if (!tokena->token[0] || tokena->token[0] == 125)
-            break;
-        v6 = atof(tokena->token);
-        (*knots)[2 * knotCountIndex++ + 1] = v6;
+        // Check BEFORE indexing: a seventeenth pair must never reach knots[16].
         if (knotCountIndex >= 16)
         {
             Com_PrintWarning(CON_CHANNEL_SERVER, "WARNING: \"%s\" has too many graph knots\n", fileName);
             Com_EndParseSession();
             return 0;
         }
+        v5 = atof(token->token);
+        knots[knotCountIndex][0] = v5;
+        tokena = Com_Parse(&buffer);
+        if (!tokena->token[0] || tokena->token[0] == 125)
+            break;
+        v6 = atof(tokena->token);
+        knots[knotCountIndex][1] = v6;
+        ++knotCountIndex;
     }
     Com_EndParseSession();
     if (knotCountIndex == *knotCount)
     {
-        if ((*knots)[2 * knotCountIndex - 2] == 1.0)
+        if (knotCountIndex > 0 && knots[knotCountIndex - 1][0] == 1.0)
         {
             return 1;
         }
