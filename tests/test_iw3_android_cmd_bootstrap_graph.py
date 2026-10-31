@@ -32,9 +32,10 @@ class BootstrapGraphAuditTest(unittest.TestCase):
             self.assertIn(symbol, self.step)
         self.assertIn("IW3_ORIGINAL_COMMON_CMD_FILES_DVAR_RELOCATABLE_LINK_PASS", self.step)
 
-    def test_keeps_missing_fs_bootstrap_explicit_and_never_claims_game(self):
+    def test_resolves_original_fs_bootstrap_provider_without_claiming_game(self):
         self.assertIn("FS_InitFilesystem()", self.step)
-        self.assertIn("IW3_ORIGINAL_FS_INITFILESYSTEM_UNRESOLVED", self.step)
+        self.assertIn("FS_Startup(char*)", self.step)
+        self.assertIn("IW3_ORIGINAL_FS_INITFILESYSTEM_PROVIDER_RESOLVED", self.step)
         self.assertIn("IW3_COMMON_BOOTSTRAP_RUNTIME_LINKED=false", self.step)
         self.assertIn("IW3_PLAYABLE_APK=false", self.step)
         self.assertNotIn("IW3_PLAYABLE_APK=true", self.step)
