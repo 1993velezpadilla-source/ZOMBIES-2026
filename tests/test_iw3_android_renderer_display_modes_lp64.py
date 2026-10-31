@@ -114,6 +114,16 @@ int main() {
     assert(unsortedModes[1].Width == 800u);
     assert(unsortedModes[2].RefreshRate == 60u);
     assert(unsortedModes[3].RefreshRate == 144u);
+    // These are the exact fixed capacities supplied by the original renderer.
+    // Previously, a full helper call appended past the end of either table.
+    int fullResolutions[256][2]{};
+    assert(R_AddValidResolution(1920, 1080, 255, fullResolutions) == 256);
+    assert(fullResolutions[255][0] == 1920 && fullResolutions[255][1] == 1080);
+    assert(R_AddValidResolution(2560, 1440, 256, fullResolutions) == 256);
+    int fullRefreshRates[257]{};
+    assert(R_AddValidRefreshRate(120, 256, fullRefreshRates) == 257);
+    assert(fullRefreshRates[256] == 120);
+    assert(R_AddValidRefreshRate(240, 257, fullRefreshRates) == 257);
     D3D api;
     dx.d3d9 = &api;
     api.modes = {{1920,1080,144,21}, {800,600,60,21},
