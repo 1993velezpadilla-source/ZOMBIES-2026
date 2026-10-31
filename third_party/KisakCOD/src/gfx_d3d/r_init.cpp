@@ -3159,7 +3159,13 @@ void __cdecl R_EnumDisplayModes(uint32_t adapterIndex)
     for (resolutionIndex = 0; resolutionIndex < resolutionCount; ++resolutionIndex)
     {
         dx.resolutionNameTable[resolutionIndex] = modeText;
-        v2 = snprintf(modeText, ARRAYSIZE(dx.modeText), "%ix%i", availableResolutions[resolutionIndex][0], availableResolutions[resolutionIndex][1]);
+        const size_t modeTextRemaining = sizeof(dx.modeText) - static_cast<size_t>(modeText - dx.modeText);
+        v2 = snprintf(modeText, modeTextRemaining, "%ix%i", availableResolutions[resolutionIndex][0], availableResolutions[resolutionIndex][1]);
+        if (v2 < 0 || static_cast<size_t>(v2) >= modeTextRemaining)
+        {
+            R_FatalInitError("Display resolution name buffer exhausted");
+            return;
+        }
         modeText += v2 + 1;
         if (availableResolutions[defaultResolutionIndex][0] < 640 || availableResolutions[defaultResolutionIndex][1] < 480)
             defaultResolutionIndex = resolutionIndex;
@@ -3176,7 +3182,13 @@ void __cdecl R_EnumDisplayModes(uint32_t adapterIndex)
     for (refreshRateIndex = 0; refreshRateIndex < refreshRateCount; ++refreshRateIndex)
     {
         dx.refreshRateNameTable[refreshRateIndex] = modeText;
-        v3 = snprintf(modeText, ARRAYSIZE(dx.modeText) - (v2 + 1), "%i Hz", availableRefreshRates[refreshRateIndex]); // TODO: Validate this is what is correct
+        const size_t refreshTextRemaining = sizeof(dx.modeText) - static_cast<size_t>(modeText - dx.modeText);
+        v3 = snprintf(modeText, refreshTextRemaining, "%i Hz", availableRefreshRates[refreshRateIndex]);
+        if (v3 < 0 || static_cast<size_t>(v3) >= refreshTextRemaining)
+        {
+            R_FatalInitError("Display refresh rate name buffer exhausted");
+            return;
+        }
         modeText += v3 + 1;
         if (availableRefreshRates[defaultRefreshRateIndex] < 60)
             defaultRefreshRateIndex = refreshRateIndex;
