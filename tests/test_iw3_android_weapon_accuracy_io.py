@@ -21,7 +21,7 @@ class OriginalWeaponAccuracyFileIOTests(unittest.TestCase):
         original = function_source(SOURCE.read_text(encoding="utf-8"), SIGNATURE)
         self.assertIn("FS_Read((uint8_t *)buffer, len, f) != len", original)
         self.assertIn("FS_Read((uint8_t *)buffer, v6 - len, f) != v6 - len", original)
-        self.assertIn("pathLength >= ARRAYSIZE(string)", original)
+        self.assertIn("pathLength >= (int)sizeof(string)", original)
         fixture = r"""
 #include <algorithm>
 #include <cassert>
