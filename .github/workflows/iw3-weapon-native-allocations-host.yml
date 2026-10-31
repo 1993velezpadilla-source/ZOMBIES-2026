@@ -31,12 +31,13 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - name: Execute original surface sound allocation under ASan/UBSan (LP64)
+      - name: Execute original weapon allocations and tracking under ASan/UBSan (LP64)
         shell: bash
         run: |
           set -euo pipefail
           python3 -m unittest discover -s tests -p 'test_iw3_android_weapon_native_allocations.py' -v
           echo "IW3_ORIGINAL_SURFACE_SOUND_LP64_ALLOC_PASS"
+          echo "IW3_ORIGINAL_WEAPON_STATIC_TRACKING_LP64_PASS"
           echo "IW3_WEAPONDEF_FIELD_OFFSETS_LP64_VALIDATED=false"
           echo "IW3_REAL_WEAPON_ASSET_LOADED=false"
           echo "IW3_REAL_MAP_LOADED=false"
