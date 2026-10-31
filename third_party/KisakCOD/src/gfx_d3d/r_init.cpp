@@ -3051,7 +3051,9 @@ void R_InitSystems()
 
 int __cdecl R_CompareRefreshRates(_DWORD *e0, _DWORD *e1)
 {
-    return *e0 - *e1;
+    // A subtraction can wrap for valid 32-bit display-mode values, violating
+    // qsort's ordering contract on LP64 just as on Win32.
+    return (*e0 > *e1) - (*e0 < *e1);
 }
 
 int __cdecl R_AddValidResolution(int width, int height, int resolutionCount, int (*availableResolutions)[2])
@@ -3072,16 +3074,16 @@ int __cdecl R_AddValidResolution(int width, int height, int resolutionCount, int
 
 int __cdecl R_CompareDisplayModes(_DWORD *e0, _DWORD *e1)
 {
-    int delta; // [esp+0h] [ebp-Ch]
-
-    delta = *e0 - *e1;
-    if (*e0 == *e1)
+    // Width, height, refresh: compare without narrowing/wrapping unsigned
+    // differences. Keep the original lexicographic mode ordering.
+    for (int field = 0; field < 3; ++field)
     {
-        delta = e0[1] - e1[1];
-        if (!delta)
-            return e0[2] - e1[2];
+        if (e0[field] < e1[field])
+            return -1;
+        if (e0[field] > e1[field])
+            return 1;
     }
-    return delta;
+    return 0;
 }
 
 int __cdecl R_AddValidRefreshRate(int refreshRate, int rateCount, int *availableRefreshRates)
