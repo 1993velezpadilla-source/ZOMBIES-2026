@@ -58,7 +58,7 @@ def inspect(source: Path) -> dict:
     sp = read(SP)
     cmake = read(SP_CMAKE)
     winmain = read(WINMAIN)
-    fields = set(re.findall(r'\{\s*"([^"]+)"\s*,\s*\d+\s*,', weapon))
+    fields = set(re.findall(\n        r'\{\s*"([^"]+)"\s*,\s*(?:\d+|offsetof\(WeaponDef,\s*\w+(?:\[\d+\])?\))\s*,',\n        weapon,\n    ))
     checks = {
         "single_player_target": (
             'project(KisakCOD-sp)' in cmake
