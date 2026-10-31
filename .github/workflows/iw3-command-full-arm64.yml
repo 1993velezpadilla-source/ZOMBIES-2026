@@ -9,6 +9,7 @@ on:
       - 'third_party/KisakCOD/src/qcommon/cmd.cpp'
       - 'third_party/KisakCOD/src/qcommon/cmd.h'
       - 'third_party/KisakCOD/src/qcommon/threads.h'
+      - 'third_party/KisakCOD/src/universal/q_shared.cpp'
       - 'third_party/KisakCOD/src/win32/win_local.h'
       - 'third_party/KisakCOD/src/script/scr_debugger.h'
       - 'third_party/KisakCOD/src/script/scr_yacc.h'
@@ -30,6 +31,7 @@ on:
       - 'third_party/KisakCOD/src/qcommon/cmd.cpp'
       - 'third_party/KisakCOD/src/qcommon/cmd.h'
       - 'third_party/KisakCOD/src/qcommon/threads.h'
+      - 'third_party/KisakCOD/src/universal/q_shared.cpp'
       - 'third_party/KisakCOD/src/win32/win_local.h'
       - 'third_party/KisakCOD/src/script/scr_debugger.h'
       - 'third_party/KisakCOD/src/script/scr_yacc.h'
@@ -302,12 +304,61 @@ jobs:
           echo "IW3_GAMEPLAY_PROVEN=false"
           echo "IW3_PLAYABLE_APK=false"
 
+      - name: Link complete original q_shared thread-data owner to Com_Init graph (NOT GAME)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          root="$GITHUB_WORKSPACE/third_party/KisakCOD/src"
+          original="$root/universal/q_shared.cpp"
+          object="$RUNNER_TEMP/iw3-original-q-shared-full-aarch64.o"
+          combined="$RUNNER_TEMP/iw3-original-bootstrap-thread-init-aarch64.o"
+          "$ndk/aarch64-linux-android26-clang++" \
+            -std=c++20 -DKISAK_SP=1 -DKISAK_OPENAL=1 -fms-extensions \
+            -UNDEBUG -O2 -fsigned-char -frounding-math -fno-fast-math \
+            -I "$GITHUB_WORKSPACE/android/iw3-native/common_compat" \
+            -I "$GITHUB_WORKSPACE/android/iw3-native" \
+            -I "$root" -I "$GITHUB_WORKSPACE/third_party/KisakCOD/deps" \
+            -I "$IW3_OPENAL_HEADERS" \
+            -c "$original" -o "$object"
+          "$ndk/llvm-readelf" -h "$object" | grep -F 'Machine:                           AArch64'
+          "$ndk/llvm-nm" -C --defined-only "$object" > "$RUNNER_TEMP/iw3-original-q-shared-defined.txt"
+          grep -F 'Com_InitThreadData(int)' "$RUNNER_TEMP/iw3-original-q-shared-defined.txt"
+          grep -F 'g_com_error' "$RUNNER_TEMP/iw3-original-q-shared-defined.txt"
+          grep -F 'va_info' "$RUNNER_TEMP/iw3-original-q-shared-defined.txt"
+          "$ndk/ld.lld" -m aarch64linux -r \
+            "$RUNNER_TEMP/iw3-original-bootstrap-thread-values-aarch64.o" \
+            "$object" -o "$combined"
+          "$ndk/llvm-nm" -C --defined-only "$combined" > "$RUNNER_TEMP/iw3-original-bootstrap-thread-init-defined.txt"
+          "$ndk/llvm-nm" -C -u "$combined" > "$RUNNER_TEMP/iw3-original-bootstrap-thread-init-undefined.txt"
+          for symbol in 'Com_InitThreadData(int)' 'Com_Init(char*)' 'Sys_GetValue(int)' 'Sys_SetValue(int, void*)'; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-original-bootstrap-thread-init-defined.txt"
+            if grep -F " U $symbol" "$RUNNER_TEMP/iw3-original-bootstrap-thread-init-undefined.txt"; then
+              echo "Authentic IW3 thread-init provider unresolved: $symbol" >&2
+              exit 1
+            fi
+          done
+          grep -F ' U CL_InitRenderer()' "$RUNNER_TEMP/iw3-original-bootstrap-thread-init-undefined.txt"
+          echo "IW3_ORIGINAL_COM_INITTHREADDATA_AARCH64_PROVIDER_RESOLVED"
+          echo "IW3_ORIGINAL_RENDERER_RUNTIME_PROVIDER_MISSING"
+          echo "IW3_COMMON_BOOTSTRAP_RUNTIME_LINKED=false"
+          echo "IW3_FS_STARTUP_RUNTIME_INVOKED=false"
+          echo "IW3_RENDERER_FRAME_PROVEN=false"
+          echo "IW3_REAL_MAP_LOADED=false"
+          echo "IW3_GAMEPLAY_PROVEN=false"
+          echo "IW3_PLAYABLE_APK=false"
+
       - name: Preserve command-system portability evidence (NOT APK)
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: iw3-original-command-full-aarch64-NOT-APK
           path: |
+            ${{ runner.temp }}/iw3-original-q-shared-full-aarch64.o
+            ${{ runner.temp }}/iw3-original-q-shared-defined.txt
+            ${{ runner.temp }}/iw3-original-bootstrap-thread-init-aarch64.o
+            ${{ runner.temp }}/iw3-original-bootstrap-thread-init-defined.txt
+            ${{ runner.temp }}/iw3-original-bootstrap-thread-init-undefined.txt
             ${{ runner.temp }}/iw3-original-cmd-full-aarch64.o
             ${{ runner.temp }}/iw3-original-common-full-aarch64.o
             ${{ runner.temp }}/iw3-android-thread-values-aarch64.o
