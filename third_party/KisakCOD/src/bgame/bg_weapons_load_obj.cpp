@@ -806,18 +806,37 @@ char __cdecl G_ParseWeaponAccurayGraphInternal(
     if (!*graphName)
         return 1;
 
-    snprintf(string, ARRAYSIZE(string), "accuracy/%s/%s", dirName, graphName);
+    // A truncated path must never select a different accuracy asset.
+    const int pathLength = snprintf(string, ARRAYSIZE(string), "accuracy/%s/%s", dirName, graphName);
+    if (pathLength < 0 || pathLength >= ARRAYSIZE(string))
+    {
+        Com_PrintWarning(CON_CHANNEL_SERVER, "WARNING: ai weapon accuracy path is too long\n");
+        return 0;
+    }
     v6 = FS_FOpenFileByMode(string, &f, FS_READ);
     if (v6 >= 0)
     {
-        FS_Read((uint8_t *)buffer, len, f);
+        // The file length and actual read count are separate contracts.
+        // Never parse a partial header or subtract from a shorter file.
+        if (v6 < len || FS_Read((uint8_t *)buffer, len, f) != len)
+        {
+            Com_PrintWarning(CON_CHANNEL_SERVER, "WARNING: \"%s\" has a truncated ai weapon accuracy header\n", string);
+            FS_FCloseFile(f);
+            return 0;
+        }
         buffer[len] = 0;
         if (!strncmp(buffer, last, len))
         {
             if (v6 - len < 0x2000)
             {
                 memset((uint8_t *)buffer, 0, 0x2000u);
-                FS_Read((uint8_t *)buffer, v6 - len, f);
+                // A short body read must not become a seemingly valid graph.
+                if (FS_Read((uint8_t *)buffer, v6 - len, f) != v6 - len)
+                {
+                    Com_PrintWarning(CON_CHANNEL_SERVER, "WARNING: \"%s\" has a truncated ai weapon accuracy body\n", string);
+                    FS_FCloseFile(f);
+                    return 0;
+                }
                 buffer[v6 - len] = 0;
                 FS_FCloseFile(f);
                 knotCounta = 0;
