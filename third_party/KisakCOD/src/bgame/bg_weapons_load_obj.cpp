@@ -599,15 +599,15 @@ char *__cdecl BG_GetPlayerAnimTypeName(int32_t index)
 
 void __cdecl TRACK_bg_weapons_load_obj()
 {
-    track_static_alloc_internal(szWeapOverlayReticleNames, 8, "szWeapOverlayReticleNames", 9);
-    track_static_alloc_internal(szWeapStanceNames, 12, "szWeapStanceNames", 9);
-    track_static_alloc_internal(weaponDefFields, 6024, "weaponDefFields", 9);
-    track_static_alloc_internal(&bg_defaultWeaponDefs, 2168, "bg_defaultWeaponDefs", 9);
-    track_static_alloc_internal(penetrateTypeNames, 16, "penetrateTypeNames", 9);
-    track_static_alloc_internal(szWeapTypeNames, 16, "szWeapTypeNames", 9);
-    track_static_alloc_internal(szWeapClassNames, 40, "szWeapClassNames", 9);
-    track_static_alloc_internal(g_playerAnimTypeNames, 256, "g_playerAnimTypeNames", 9);
-    track_static_alloc_internal(szWeapInventoryTypeNames, 16, "szWeapInventoryTypeNames", 9);
+    TRACK_STATIC_ARR(szWeapOverlayReticleNames, 9);
+    TRACK_STATIC_ARR(szWeapStanceNames, 9);
+    TRACK_STATIC_ARR(weaponDefFields, 9);
+    TRACK_STATIC_DAT(bg_defaultWeaponDefs, 9);
+    TRACK_STATIC_ARR(penetrateTypeNames, 9);
+    TRACK_STATIC_ARR(szWeapTypeNames, 9);
+    TRACK_STATIC_ARR(szWeapClassNames, 9);
+    TRACK_STATIC_ARR(g_playerAnimTypeNames, 9);
+    TRACK_STATIC_ARR(szWeapInventoryTypeNames, 9);
 }
 
 const char *__cdecl BG_GetWeaponTypeName(weapType_t type)
