@@ -62,7 +62,13 @@ class OriginalCommandTokenizerTests(unittest.TestCase):
         self.assertIn("libopenal-dev", command_workflow)
         self.assertIn('test -s "$RUNNER_TEMP/iw3-openal-headers/AL/efx.h"', command_workflow)
         self.assertIn('-I "$IW3_OPENAL_HEADERS"', command_workflow)
-        self.assertNotIn("IW3_ANDROID_COMMON_HEADER_ONLY_OPENAL", command_workflow)
+        # The standalone cmd.cpp build must consume real OpenAL headers.
+        # The separately compiled common.cpp bootstrap graph is allowed its
+        # existing Android header-only compatibility overlay.
+        command_compile_step = command_workflow.split(
+            "- name: Compile the complete original KisakCOD cmd.cpp for Android ARM64", 1
+        )[1].split("- name: Relocatable link of three complete original engine units", 1)[0]
+        self.assertNotIn("IW3_ANDROID_COMMON_HEADER_ONLY_OPENAL", command_compile_step)
         self.assertIn("IW3_CMD_INIT_INVOKED=false", command_workflow)
         self.assertIn("IW3_PLAYABLE_APK=false", command_workflow)
         self.assertNotIn(
