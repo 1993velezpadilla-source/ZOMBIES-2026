@@ -81,6 +81,43 @@ jobs:
           echo 'IW3_REAL_MAP_LOADED=false'
           echo 'IW3_GAMEPLAY_PROVEN=false'
           echo 'IW3_PLAYABLE_APK=false'
+      - name: Relocatable link of complete original client and Com_Init (NOT GAME)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          root="$GITHUB_WORKSPACE/third_party/KisakCOD/src"
+          common="$RUNNER_TEMP/iw3-original-common-client-aarch64.o"
+          client="$RUNNER_TEMP/iw3-original-client-full-aarch64.o"
+          linked="$RUNNER_TEMP/iw3-original-common-client-aarch64.o"
+          "$ndk/aarch64-linux-android26-clang++" \
+            -std=c++20 -DKISAK_SP=1 -DKISAK_OPENAL=1 \
+            -DIW3_ANDROID_DISABLE_SCRIPT_DEBUGGER=1 \
+            -DIW3_ANDROID_COMMON_HEADER_ONLY_OPENAL=1 \
+            -fms-extensions -UNDEBUG -O2 -fsigned-char -frounding-math -fno-fast-math \
+            -I "$GITHUB_WORKSPACE/android/iw3-native/common_compat" \
+            -I "$GITHUB_WORKSPACE/android/iw3-native" \
+            -I "$root" \
+            -I "$GITHUB_WORKSPACE/third_party/KisakCOD/deps" \
+            -I "$RUNNER_TEMP/iw3-openal-headers" \
+            -c "$root/qcommon/common.cpp" -o "$common"
+          "$ndk/llvm-nm" -C -u "$common" > "$RUNNER_TEMP/iw3-common-before-client-undefined.txt"
+          grep -F 'CL_InitRenderer()' "$RUNNER_TEMP/iw3-common-before-client-undefined.txt"
+          "$ndk/ld.lld" -m aarch64linux -r "$common" "$client" -o "$linked"
+          "$ndk/llvm-readelf" -h "$linked" | grep -F 'Machine:                           AArch64'
+          "$ndk/llvm-nm" -C --defined-only "$linked" > "$RUNNER_TEMP/iw3-common-client-defined.txt"
+          "$ndk/llvm-nm" -C -u "$linked" > "$RUNNER_TEMP/iw3-common-client-undefined.txt"
+          grep -F 'Com_Init(char*)' "$RUNNER_TEMP/iw3-common-client-defined.txt"
+          grep -F 'CL_InitRenderer()' "$RUNNER_TEMP/iw3-common-client-defined.txt"
+          if grep -F ' U CL_InitRenderer()' "$RUNNER_TEMP/iw3-common-client-undefined.txt"; then
+            echo 'Original client renderer entry point remains unresolved' >&2
+            exit 1
+          fi
+          grep -F 'R_BeginRegistration(vidConfig_t*)' "$RUNNER_TEMP/iw3-common-client-undefined.txt"
+          echo 'IW3_ORIGINAL_COM_INIT_CL_INITRENDERER_AARCH64_RELOCATABLE_PASS'
+          echo 'IW3_ORIGINAL_RENDERER_BACKEND_LINKED=false'
+          echo 'IW3_ORIGINAL_COM_INIT_EXECUTED=false'
+          echo 'IW3_PLAYABLE_APK=false'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -88,5 +125,8 @@ jobs:
           path: |
             ${{ runner.temp }}/iw3-original-client-full-aarch64.o
             ${{ runner.temp }}/iw3-client-full-*.txt
+            ${{ runner.temp }}/iw3-original-common-client-aarch64.o
+            ${{ runner.temp }}/iw3-common-client-*.txt
+            ${{ runner.temp }}/iw3-common-before-client-undefined.txt
           if-no-files-found: ignore
           retention-days: 7
