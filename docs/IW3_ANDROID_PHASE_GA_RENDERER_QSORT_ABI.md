@@ -20,6 +20,6 @@ Commits: `adc82cd93354ad55d588af789258eba99a3e6782` (engine) and `4d810899b73168
 
 The latest **prior** complete AArch64 `r_init.cpp` probe reported `IW3_ORIGINAL_RENDERER_R_INIT_AARCH64_COMPILED=false`: original Direct3D 9 interfaces, Win32 calls and x86 `__rdtsc` still block compilation. The renderer backend is **not** linked. This change addresses the qsort callback ABI only, not the D3D9-to-Android rendering backend.
 
-The new-commit CI is the authoritative source for regression results; do not count a queued or running job as passed. No original IW3 renderer frame, real map load, touchscreen gameplay or actors/weapons in an ARM64 APK have been demonstrated.
+Verified host CI on commit `4d810899b7316806fa6748de5def0165527fb6f1`: [renderer workflow run 41247266560](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41247266560), job `renderer-tracking-host` (job ID `124673231490`) **success**, `Ran 8 tests in 5.260s`, `OK`. The new display-mode callback ABI regression ran under ASan/UBSan and passed. The separate full `r_init.cpp` AArch64 compile-probe job was still running when this note was updated; a successful host job does not imply an Android renderer build. No original IW3 renderer frame, real map load, touchscreen gameplay or actors/weapons in an ARM64 APK have been demonstrated.
 
 `IW3_PLAYABLE_APK=false`. Do not merge PR #4 to main; do not advertise the JNI diagnostic as a playable game.
