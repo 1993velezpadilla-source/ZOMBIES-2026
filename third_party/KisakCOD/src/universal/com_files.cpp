@@ -2959,14 +2959,16 @@ void __cdecl FS_SV_Rename(char *from, char *to)
     char from_ospath[260]; // [esp+120h] [ebp-108h] BYREF
 
     FS_CheckFileSystemStarted();
-    FS_BuildOSPath((char *)fs_homepath->current.string, from, (char *)"", from_ospath);
-    FS_BuildOSPath((char *)fs_homepath->current.string, to, (char *)"", to_ospath);
-
-    from_ospath[strlen(from_ospath) - 1] = 0;
-    to_ospath[strlen(to_ospath) - 1] = 0;
+    // The original rename trimmed strlen(path)-1 without checking that
+    // FS_BuildOSPath had succeeded. An overlong Android data root leaves an
+    // empty path and would write to path[-1]. Reuse the guarded server-file
+    // builder for both operands and never invoke a rename with invalid paths.
+    if (!FS_SV_BuildOSPath(fs_homepath->current.string, from, from_ospath) ||
+        !FS_SV_BuildOSPath(fs_homepath->current.string, to, to_ospath))
+        return;
     if (fs_debug->current.integer)
         Com_Printf(CON_CHANNEL_FILES, "FS_SV_Rename: %s --> %s\n", from_ospath, to_ospath);
-#if defined(__ANDROID__)
+#if defined(__ANDROID__) || defined(IW3_FS_POSIX_PATHS_TEST)
     if (z2026_platform_rename_engine_path(from_ospath, to_ospath) != 0)
         Com_PrintWarning(CON_CHANNEL_FILES,
             "FS_SV_Rename: rooted rename failed: %s --> %s\n", from_ospath, to_ospath);
@@ -3195,11 +3197,21 @@ void __cdecl FS_Rename(char *from, char *fromDir, char *to, char *toDir)
     char from_ospath[260]; // [esp+100h] [ebp-108h] BYREF
 
     FS_CheckFileSystemStarted();
+    // A rejected/overlong path must not reach the Android rooted rename
+    // service. Keep empty game-dir arguments valid (FS_BuildOSPath uses
+    // fs_gamedir), but never accept empty filenames or an empty data root.
+    if (!from || !*from || !to || !*to ||
+        !fs_homepath->current.string || !*fs_homepath->current.string)
+        return;
     FS_BuildOSPath(fs_homepath->current.string, fromDir, from, from_ospath);
+    if (!*from_ospath)
+        return;
     FS_BuildOSPath(fs_homepath->current.string, toDir, to, to_ospath);
+    if (!*to_ospath)
+        return;
     if (fs_debug->current.integer)
         Com_Printf(CON_CHANNEL_FILES, "FS_Rename: %s --> %s\n", from_ospath, to_ospath);
-#if defined(__ANDROID__)
+#if defined(__ANDROID__) || defined(IW3_FS_POSIX_PATHS_TEST)
     if (z2026_platform_rename_engine_path(from_ospath, to_ospath) != 0)
         Com_PrintWarning(CON_CHANNEL_FILES,
             "FS_Rename: rooted rename failed: %s --> %s\n", from_ospath, to_ospath);
