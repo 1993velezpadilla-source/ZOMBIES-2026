@@ -374,7 +374,7 @@ void __cdecl FS_ServerSetReferencedFFs(char *FFSums, char *FFNames)
     fs_numServerReferencedFFs = FS_ServerSetReferencedFiles(
         FFSums,
         FFNames,
-        1024,
+        static_cast<int>(sizeof(fs_serverReferencedFFCheckSums) / sizeof(fs_serverReferencedFFCheckSums[0])),
         fs_serverReferencedFFCheckSums,
         fs_serverReferencedFFNames);
 }
@@ -448,8 +448,10 @@ void __cdecl FS_PureServerSetLoadedIwds(char *iwdSums, char *iwdNames)
     if (v7)
     {
         Com_DPrintf(CON_CHANNEL_FILES, "Connected to a pure server.\n");
-        Com_Memcpy(fs_serverIwds, src, 4 * fs_numServerIwds);
-        Com_Memcpy(fs_serverIwdNames, s0, 4 * fs_numServerIwds);
+        // Checksums are 32-bit, but IWD names are pointers (64-bit on Android ARM64).
+        // A decompiled Win32 byte count copied only half of the name pointers.
+        Com_Memcpy(fs_serverIwds, src, sizeof(fs_serverIwds[0]) * fs_numServerIwds);
+        Com_Memcpy(fs_serverIwdNames, s0, sizeof(fs_serverIwdNames[0]) * fs_numServerIwds);
         fs_fakeChkSum = 0;
     }
 }
