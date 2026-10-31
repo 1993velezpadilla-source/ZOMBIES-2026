@@ -41,6 +41,7 @@ class OriginalClientPointerWidthTests(unittest.TestCase):
 #include <cstring>
 #include <vector>
 #define __cdecl
+#define __int16 short
 #define iassert(x) assert(x)
 #define MAX_CONFIGSTRINGS 2442
 constexpr int SND_STOP_ALL = 7;
