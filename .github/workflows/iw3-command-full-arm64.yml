@@ -20,6 +20,7 @@ on:
       - 'tests/test_iw3_android_cmd_thread_values.py'
       - 'tests/test_iw3_android_cmd_qshared_formatter.py'
       - 'tests/test_iw3_android_cmd_main_shared.py'
+      - 'tests/test_iw3_android_cmd_info_lp64.py'
       - 'android/iw3-native/iw3_android_thread_values.cpp'
       - 'android/iw3-native/iw3_android_main_thread_shared.cpp'
       - 'android/iw3-native/iw3_android_thread_values.h'
@@ -45,6 +46,7 @@ on:
       - 'tests/test_iw3_android_cmd_thread_values.py'
       - 'tests/test_iw3_android_cmd_qshared_formatter.py'
       - 'tests/test_iw3_android_cmd_main_shared.py'
+      - 'tests/test_iw3_android_cmd_info_lp64.py'
       - 'android/iw3-native/iw3_android_thread_values.cpp'
       - 'android/iw3-native/iw3_android_main_thread_shared.cpp'
       - 'android/iw3-native/iw3_android_thread_values.h'
@@ -73,6 +75,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 -m unittest discover -s tests -p 'test_iw3_android_cmd_*.py' -v
+          echo 'IW3_ORIGINAL_INFO_STRING_LP64_HOST_PASS'
           python3 tools/iw3_android/prepare_real_engine_cmd_tokenizer.py \
             --engine third_party/KisakCOD \
             --output "$RUNNER_TEMP/iw3_cmd_tokenizer.cpp" \

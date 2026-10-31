@@ -783,24 +783,24 @@ void __cdecl Info_RemoveKey_Big(char *s, const char *key)
 
 bool __cdecl Info_Validate(const char *s)
 {
-    int v1; // eax
-    int v3; // eax
+    const char *v1;
+    const char *v3;
 
-    v1 = (int)strchr(s, 0x22u);
+    v1 = strchr(s, 0x22u);
 
     if (v1)
         return 0;
 
-    v3 = (int)strchr(s, 0x3Bu);
+    v3 = strchr(s, 0x3Bu);
 
     return v3 == 0;
 }
 
 void __cdecl Info_SetValueForKey(char *s, const char *key, const char *value)
 {
-    int v3; // eax
-    int v4; // eax
-    int v5; // eax
+    const char *v3;
+    const char *v4;
+    const char *v5;
     int j; // [esp+54h] [ebp-818h]
     char c; // [esp+5Bh] [ebp-811h]
     char cleanValue[1028]; // [esp+5Ch] [ebp-810h] BYREF
@@ -828,21 +828,21 @@ void __cdecl Info_SetValueForKey(char *s, const char *key, const char *value)
         if (j >= 1024)
             MyAssertHandler(".\\universal\\q_shared.cpp", 1275, 0, "%s", "j < MAX_INFO_STRING");
         cleanValue[j] = 0;
-        v3 = (int)strchr(key, 0x5Cu);
+        v3 = strchr(key, 0x5Cu);
         if (v3)
         {
             Com_Printf(CON_CHANNEL_SYSTEM, "Can't use keys with a \\ key: %s value: %s", key, value);
         }
         else
         {
-            v4 = (int)strchr(key, 0x3Bu);
+            v4 = strchr(key, 0x3Bu);
             if (v4)
             {
                 Com_Printf(CON_CHANNEL_SYSTEM, "Can't use keys with a semicolon. key: %s value: %s", key, value);
             }
             else
             {
-                v5 = (int)strchr(key, 0x22u);
+                v5 = strchr(key, 0x22u);
                 if (v5)
                 {
                     Com_Printf(CON_CHANNEL_SYSTEM, "Can't use keys with a \". key: %s value: %s", key, value);
