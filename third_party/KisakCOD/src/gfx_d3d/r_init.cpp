@@ -3077,19 +3077,16 @@ int __cdecl R_AddValidResolution(int width, int height, int resolutionCount, int
 
 int __cdecl R_CompareDisplayModes(const void *lhs, const void *rhs)
 {
-    // D3DDISPLAYMODE is four consecutive 32-bit fields; compare Width,
-    // Height and RefreshRate in the original lexicographic order. The
-    // signature must exactly match qsort's callback ABI on ARM64 and Win32.
-    const uint32_t *e0 = static_cast<const uint32_t *>(lhs);
-    const uint32_t *e1 = static_cast<const uint32_t *>(rhs);
-    for (int field = 0; field < 3; ++field)
-    {
-        if (e0[field] < e1[field])
-            return -1;
-        if (e0[field] > e1[field])
-            return 1;
-    }
-    return 0;
+    // Compare actual display-mode members, not a uint32_t array cast:
+    // pointer arithmetic across struct members would violate C++ object rules.
+    // Keep the original Width, Height, RefreshRate lexicographic order.
+    const _D3DDISPLAYMODE *e0 = static_cast<const _D3DDISPLAYMODE *>(lhs);
+    const _D3DDISPLAYMODE *e1 = static_cast<const _D3DDISPLAYMODE *>(rhs);
+    if (e0->Width != e1->Width)
+        return (e0->Width > e1->Width) - (e0->Width < e1->Width);
+    if (e0->Height != e1->Height)
+        return (e0->Height > e1->Height) - (e0->Height < e1->Height);
+    return (e0->RefreshRate > e1->RefreshRate) - (e0->RefreshRate < e1->RefreshRate);
 }
 
 int __cdecl R_AddValidRefreshRate(int refreshRate, int rateCount, int *availableRefreshRates)
