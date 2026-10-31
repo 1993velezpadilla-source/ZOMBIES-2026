@@ -14,9 +14,9 @@ from tools.iw3_android.prepare_g_runframe_prereqs import function_source
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "third_party/KisakCOD/src/gfx_d3d/r_init.cpp"
 SIGNATURES = (
-    "int __cdecl R_CompareRefreshRates(_DWORD *e0, _DWORD *e1)",
+    "int __cdecl R_CompareRefreshRates(const void *lhs, const void *rhs)",
     "int __cdecl R_AddValidResolution(int width, int height, int resolutionCount, int (*availableResolutions)[2])",
-    "int __cdecl R_CompareDisplayModes(_DWORD *e0, _DWORD *e1)",
+    "int __cdecl R_CompareDisplayModes(const void *lhs, const void *rhs)",
     "int __cdecl R_AddValidRefreshRate(int refreshRate, int rateCount, int *availableRefreshRates)",
     "void __cdecl R_EnumDisplayModes(uint32_t adapterIndex)",
 )
@@ -31,6 +31,7 @@ HARNESS = r"""
 #include <string>
 #include <vector>
 #include <utility>
+#include <type_traits>
 #define __cdecl
 #define iassert(x) assert(x)
 using _DWORD = uint32_t;
@@ -77,6 +78,11 @@ const char *va(const char *, int, int) { return "No valid modes"; }
 /* ORIGINAL_RENDERER_FUNCTIONS */
 int main() {
     static_assert(sizeof(void *) == 8, "LP64 test required");
+    static_assert(sizeof(Mode) == 4 * sizeof(uint32_t), "D3D display mode ABI");
+    static_assert(std::is_same_v<decltype(&R_CompareRefreshRates),
+                  int (*)(const void *, const void *)>, "refresh qsort ABI");
+    static_assert(std::is_same_v<decltype(&R_CompareDisplayModes),
+                  int (*)(const void *, const void *)>, "display qsort ABI");
     // qsort comparators must be antisymmetric even at the uint32_t extremes.
     // Subtracting DWORDs used to wrap and invert the ordering.
     uint32_t low = 1u, high = 0xffffffffu;
@@ -95,6 +101,18 @@ int main() {
         assert(R_CompareDisplayModes(pair.second, pair.first) > 0);
         assert(R_CompareDisplayModes(pair.first, pair.first) == 0);
     }
+    // Exercise real qsort invocation ABI, not just direct comparator calls.
+    uint32_t unsortedRates[] = {0xffffffffu, 60u, 0u, 144u, 1u};
+    qsort(unsortedRates, 5, sizeof(unsortedRates[0]), R_CompareRefreshRates);
+    assert((std::vector<uint32_t>(unsortedRates, unsortedRates + 5) ==
+            std::vector<uint32_t>{0u, 1u, 60u, 144u, 0xffffffffu}));
+    Mode unsortedModes[] = {{1920, 1080, 144, 21}, {640, 480, 60, 21},
+                            {1920, 1080, 60, 21}, {800, 600, 75, 21}};
+    qsort(unsortedModes, 4, sizeof(unsortedModes[0]), R_CompareDisplayModes);
+    assert(unsortedModes[0].Width == 640u);
+    assert(unsortedModes[1].Width == 800u);
+    assert(unsortedModes[2].RefreshRate == 60u);
+    assert(unsortedModes[3].RefreshRate == 144u);
     D3D api;
     dx.d3d9 = &api;
     api.modes = {{1920,1080,144,21}, {800,600,60,21},
@@ -130,6 +148,9 @@ class OriginalRendererDisplayModesLP64(unittest.TestCase):
         self.assertIn("dx.displayModes[modeIndex].RefreshRate", functions)
         self.assertNotIn("resolutionNameTable[4 *", functions)
         self.assertNotIn("(int)dx.resolutionNameTable", functions)
+        self.assertIn("sizeof(dx.displayModes[0]), R_CompareDisplayModes", source)
+        self.assertIn("sizeof(availableRefreshRates[0]), R_CompareRefreshRates", source)
+        self.assertNotIn("(int(__cdecl *)(const void *, const void *))R_Compare", source)
         cpp_source = HARNESS.replace("/* ORIGINAL_RENDERER_FUNCTIONS */", functions)
         with tempfile.TemporaryDirectory() as temp:
             cpp = Path(temp) / "renderer_modes.cpp"
