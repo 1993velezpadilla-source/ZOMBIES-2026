@@ -178,11 +178,11 @@ int main() {
     static_assert(sizeof(void*) == 8, "LP64 fixture required");
     TRACK_bg_weapons_load_obj();
     assert(records.size() == 9);
-#define CHECK(i, obj) do { \\
-    assert(records[i].ptr == static_cast<void*>(&(obj))); \\
-    assert(records[i].size == static_cast<int>(sizeof(obj))); \\
-    assert(records[i].type == 9); \\
-    assert(std::strcmp(records[i].name, #obj) == 0); \\
+#define CHECK(i, obj) do { \
+    assert(records[i].ptr == static_cast<void*>(&(obj))); \
+    assert(records[i].size == static_cast<int>(sizeof(obj))); \
+    assert(records[i].type == 9); \
+    assert(std::strcmp(records[i].name, #obj) == 0); \
 } while (0)
     CHECK(0, szWeapOverlayReticleNames);
     CHECK(1, szWeapStanceNames);
