@@ -216,20 +216,20 @@ jobs:
           grep -F 'AArch64' "$RUNNER_TEMP/iw3-original-bootstrap-graph-elf.txt"
           "$ndk/llvm-nm" -C --defined-only "$combined" > "$RUNNER_TEMP/iw3-original-bootstrap-graph-defined.txt"
           "$ndk/llvm-nm" -C -u "$combined" > "$RUNNER_TEMP/iw3-original-bootstrap-graph-undefined.txt"
-          for symbol in 'Com_Init(char*)' 'Com_Frame()' 'Cmd_Init()' 'Dvar_Init()' 'FS_FOpenFileRead(char const*, int*)'; do
+          for symbol in 'Com_Init(char*)' 'Com_Frame()' 'Cmd_Init()' 'Dvar_Init()' 'FS_InitFilesystem()' 'FS_Startup(char*)' 'FS_FOpenFileRead(char const*, int*)'; do
             grep -F "$symbol" "$RUNNER_TEMP/iw3-original-bootstrap-graph-defined.txt"
             if grep -F " U $symbol" "$RUNNER_TEMP/iw3-original-bootstrap-graph-undefined.txt"; then
               echo "Original bootstrap provider still unresolved: $symbol" >&2
               exit 1
             fi
           done
-          # FS_InitFilesystem is genuinely in qcommon/files.cpp, not the
-          # com_files.cpp provider. Its unresolved edge is the next integration
-          # task, NOT a fake success or permission to run Com_Init on Android.
-          grep -F 'FS_InitFilesystem()' "$RUNNER_TEMP/iw3-original-bootstrap-graph-undefined.txt"
+          # The authentic FS_InitFilesystem/FS_Startup definitions live in
+          # universal/com_files.cpp and must resolve the Com_Init dependency.
+          # Other platform, renderer, database and game services remain absent;
+          # relocatable linkage alone never runs the engine.
           test -s "$RUNNER_TEMP/iw3-original-bootstrap-graph-undefined.txt"
           echo "IW3_ORIGINAL_COMMON_CMD_FILES_DVAR_RELOCATABLE_LINK_PASS"
-          echo "IW3_ORIGINAL_FS_INITFILESYSTEM_UNRESOLVED"
+          echo "IW3_ORIGINAL_FS_INITFILESYSTEM_PROVIDER_RESOLVED"
           echo "IW3_COMMON_BOOTSTRAP_RUNTIME_LINKED=false"
           echo "IW3_FS_STARTUP_RUNTIME_INVOKED=false"
           echo "IW3_RENDERER_FRAME_PROVEN=false"
