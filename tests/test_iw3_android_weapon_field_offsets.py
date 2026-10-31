@@ -47,8 +47,9 @@ def native_layout():
             if count is None:
                 count = int(raw_count) if raw_count else 1
             pointer = "*" in dtype
-            kind = "void*" if pointer else (
-                "uint16_t" if dtype == "uint16_t" else
+            kind = ("const char*" if dtype.replace(" ", "") == "constchar*" else
+                    "void*" if pointer else
+                    "uint16_t" if dtype == "uint16_t" else
                 "float" if dtype == "float" else "uint32_t"
             )
         size32 = 4 if pointer else (2 if kind == "uint16_t" else 4)
