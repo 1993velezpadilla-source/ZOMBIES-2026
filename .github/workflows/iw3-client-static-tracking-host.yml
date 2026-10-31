@@ -9,6 +9,7 @@ on:
       - 'third_party/KisakCOD/src/client/cl_main.cpp'
       - 'third_party/KisakCOD/src/qcommon/mem_track.h'
       - 'tests/test_iw3_android_client_static_tracking.py'
+      - 'tests/test_iw3_android_client_pointer_width.py'
       - 'tools/iw3_android/prepare_g_runframe_prereqs.py'
   pull_request:
     branches:
@@ -18,6 +19,7 @@ on:
       - 'third_party/KisakCOD/src/client/cl_main.cpp'
       - 'third_party/KisakCOD/src/qcommon/mem_track.h'
       - 'tests/test_iw3_android_client_static_tracking.py'
+      - 'tests/test_iw3_android_client_pointer_width.py'
       - 'tools/iw3_android/prepare_g_runframe_prereqs.py'
 
 permissions:
@@ -37,7 +39,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 -m unittest discover -s tests -p 'test_iw3_android_client_static_tracking.py' -v
+          python3 -m unittest discover -s tests -p 'test_iw3_android_client_*.py' -v
+          echo "IW3_ORIGINAL_CLIENT_POINTER_WIDTH_LP64_PASS"
           echo "IW3_ORIGINAL_CLIENT_STATIC_TRACKING_LP64_PASS"
           echo "IW3_CL_INITRENDERER_RUNTIME_LINKED=false"
           echo "IW3_RENDERER_FRAME_PROVEN=false"
