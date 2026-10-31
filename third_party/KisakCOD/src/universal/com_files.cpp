@@ -1250,7 +1250,8 @@ int __cdecl FS_ReadFile(const char *qpath, void **buffer)
         }
         // A truncated IWD entry must not be handed to the map/config parser
         // as a successful read with an uninitialized tail.
-        if (FS_Read(buf, len, h) != static_cast<uint32_t>(len))
+        const uint32_t bytesRead = FS_Read(buf, len, h);
+        if (bytesRead != static_cast<uint32_t>(len))
         {
             FS_FreeMem((char *)buf);
             --fs_loadStack;
