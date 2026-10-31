@@ -34,6 +34,8 @@
 #include <universal/profile.h>
 
 #include <algorithm>
+#include <cstdint>
+#include <climits>
 
 #include <setjmp.h>
 #include <game/g_bsp.h>
@@ -642,16 +644,68 @@ void __cdecl TRACK_db_registry()
     track_static_alloc_internal(g_fileBuf, 0x80000, "g_fileBuf", 10);
 }
 
+// The original 32-bit index-address casts lose the upper half of ARM64
+// pointers. Keep geometry offsets in pointer-width arithmetic until the
+// engine's signed 32-bit buffer offset is known to be representable.
 void __cdecl DB_GetIndexBufferAndBase(uint8_t zoneHandle, void *indices, void **ib, int32_t *baseIndex)
 {
-    *ib = g_zones[zoneHandle].mem.indexBuffer;
-    *baseIndex = ((uint32_t)indices - (uint32_t)g_zones[zoneHandle].mem.blocks[8].data) >> 1;
+    if (!ib || !baseIndex)
+    {
+        Com_Error(ERR_DROP, "DB_GetIndexBufferAndBase: missing output pointer");
+        return;
+    }
+    *ib = nullptr;
+    *baseIndex = 0;
+    if (zoneHandle >= sizeof(g_zones) / sizeof(g_zones[0]) || !indices)
+    {
+        Com_Error(ERR_DROP, "DB_GetIndexBufferAndBase: invalid zone or index pointer");
+        return;
+    }
+
+    const XZoneMemory &mem = g_zones[zoneHandle].mem;
+    const uintptr_t start = reinterpret_cast<uintptr_t>(mem.blocks[8].data);
+    const uintptr_t address = reinterpret_cast<uintptr_t>(indices);
+    if (!start || address < start)
+    {
+        Com_Error(ERR_DROP, "DB_GetIndexBufferAndBase: index pointer precedes zone data");
+        return;
+    }
+    const uintptr_t bytes = address - start;
+    if ((bytes & 1u) != 0 || (bytes >> 1) > static_cast<uintptr_t>(INT32_MAX))
+    {
+        Com_Error(ERR_DROP, "DB_GetIndexBufferAndBase: unaligned or overflowing index offset");
+        return;
+    }
+    *ib = mem.indexBuffer;
+    *baseIndex = static_cast<int32_t>(bytes >> 1);
 }
 
 void __cdecl DB_GetVertexBufferAndOffset(uint8_t zoneHandle, _BYTE *verts, void **vb, int32_t *vertexOffset)
 {
-    *vertexOffset = verts - g_zones[zoneHandle].mem.blocks[7].data;
-    *vb = g_zones[zoneHandle].mem.vertexBuffer;
+    if (!vb || !vertexOffset)
+    {
+        Com_Error(ERR_DROP, "DB_GetVertexBufferAndOffset: missing output pointer");
+        return;
+    }
+    *vb = nullptr;
+    *vertexOffset = 0;
+    if (zoneHandle >= sizeof(g_zones) / sizeof(g_zones[0]) || !verts)
+    {
+        Com_Error(ERR_DROP, "DB_GetVertexBufferAndOffset: invalid zone or vertex pointer");
+        return;
+    }
+
+    const XZoneMemory &mem = g_zones[zoneHandle].mem;
+    const uintptr_t start = reinterpret_cast<uintptr_t>(mem.blocks[7].data);
+    const uintptr_t address = reinterpret_cast<uintptr_t>(verts);
+    if (!start || address < start ||
+        address - start > static_cast<uintptr_t>(INT32_MAX))
+    {
+        Com_Error(ERR_DROP, "DB_GetVertexBufferAndOffset: invalid vertex offset");
+        return;
+    }
+    *vb = mem.vertexBuffer;
+    *vertexOffset = static_cast<int32_t>(address - start);
 }
 
 void __cdecl DB_BuildOSPath_Mod(const char *zoneName, uint32_t size, char *filename)
