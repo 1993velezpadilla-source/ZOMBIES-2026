@@ -1,7 +1,8 @@
 """Execute genuine IW3 renderer display-mode enumeration on an LP64 host.
 
 Only D3D enumeration and dvar registration are test doubles. The renderer
-functions themselves are extracted unchanged from KisakCOD. NOT a game.
+functions themselves are extracted unchanged from KisakCOD. The genuine
+platform-neutral dvar builder is also exercised without D3D. NOT a game.
 """
 import os
 from pathlib import Path
@@ -18,6 +19,7 @@ SIGNATURES = (
     "int __cdecl R_AddValidResolution(int width, int height, int resolutionCount, int (*availableResolutions)[2])",
     "int __cdecl R_CompareDisplayModes(const void *lhs, const void *rhs)",
     "int __cdecl R_AddValidRefreshRate(int refreshRate, int rateCount, int *availableRefreshRates)",
+    "void __cdecl R_BuildDisplayModeDvars()",
     "void __cdecl R_EnumDisplayModes(uint32_t adapterIndex)",
 )
 
@@ -142,6 +144,22 @@ int main() {
     assert(resolutions.front() == "640x480");
     assert(resolutions.back() == "895x480");
     assert(refreshes.size() == 1 && refreshes[0] == "60 Hz");
+    // Platform-neutral path: real renderer dvar logic must consume a native
+    // provider's populated mode array without dereferencing Direct3D9.
+    dx.d3d9 = nullptr;
+    dx.displayModeCount = 3;
+    dx.displayModes[0] = {1600, 900, 120, 21};
+    dx.displayModes[1] = {800, 600, 60, 21};
+    dx.displayModes[2] = {1600, 900, 60, 21};
+    R_BuildDisplayModeDvars();
+    assert((resolutions == std::vector<std::string>{"800x600", "1600x900"}));
+    assert((refreshes == std::vector<std::string>{"60 Hz", "120 Hz"}));
+    dx.displayModeCount = 257;
+    bool overflowRejected = false;
+    try { R_BuildDisplayModeDvars(); }
+    catch (const std::runtime_error &) { overflowRejected = true; }
+    assert(overflowRejected);
+    dx.d3d9 = &api;
     api.modes.clear();
     bool rejected = false;
     try { R_EnumDisplayModes(0); }
