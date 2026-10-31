@@ -1058,7 +1058,14 @@ uint32_t __cdecl FS_Read(uint8_t *buffer, uint32_t len, int h)
     if (!h)
         return 0;
     if (fsh[h].zipFile)
-        return unzReadCurrentFile(fsh[h].handleFiles.file.z, buffer, len);
+    {
+        // unzip returns a signed error code. Do not reinterpret a negative
+        // result as a successful multi-gigabyte read on 64-bit Android.
+        const int zipRead = unzReadCurrentFile(fsh[h].handleFiles.file.z, buffer, len);
+        if (zipRead < 0 || static_cast<uint32_t>(zipRead) > len)
+            return UINT32_MAX;
+        return static_cast<uint32_t>(zipRead);
+    }
     f = FS_FileForHandle(h);
     buf = buffer;
     remaining = len;
@@ -1066,19 +1073,27 @@ uint32_t __cdecl FS_Read(uint8_t *buffer, uint32_t len, int h)
     while (remaining)
     {
         read = FS_FileRead(buf, remaining, f);
+        if (read < 0)
+        {
+            if (h >= 49 && h < 62)
+                return UINT32_MAX;
+            Com_Error(ERR_FATAL, "FS_Read: -1 bytes read");
+            return UINT32_MAX; // Com_Error can return in Android test/error paths.
+        }
         if (!read)
         {
             if (tries)
                 return len - remaining;
             tries = 1;
+            continue;
         }
-        if (read == -1)
+        // A broken platform adapter must not move the buffer beyond its end.
+        if (static_cast<uint32_t>(read) > remaining)
         {
-            if (h >= 49 && h < 62)
-                return -1;
-            Com_Error(ERR_FATAL, "FS_Read: -1 bytes read");
+            Com_Error(ERR_FATAL, "FS_Read: read exceeded requested bytes");
+            return UINT32_MAX;
         }
-        remaining -= read;
+        remaining -= static_cast<uint32_t>(read);
         buf += read;
     }
     return len;
@@ -1088,8 +1103,8 @@ uint32_t __cdecl FS_Write(const char *buffer, uint32_t len, int h)
 {
     int tries; // [esp+4h] [ebp-14h]
     uint32_t remaining; // [esp+8h] [ebp-10h]
-    int written; // [esp+10h] [ebp-8h]
-    FILE *f; // [esp+14h] [ebp-4h]
+    int written; // [esp+10h] [ebp-Ch]
+    FILE *f; // [esp+14h] [ebp-8h]
 
     FS_CheckFileSystemStarted();
     if (!h)
@@ -1100,15 +1115,18 @@ uint32_t __cdecl FS_Write(const char *buffer, uint32_t len, int h)
     while (remaining)
     {
         written = FS_FileWrite(buffer, remaining, f);
+        if (written < 0)
+            return 0;
         if (!written)
         {
             if (tries)
                 return 0;
             tries = 1;
+            continue;
         }
-        if (written == -1)
+        if (static_cast<uint32_t>(written) > remaining)
             return 0;
-        remaining -= written;
+        remaining -= static_cast<uint32_t>(written);
         buffer += written;
     }
     if (fsh[h].handleSync)
