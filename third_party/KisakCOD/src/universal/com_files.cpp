@@ -1217,31 +1217,51 @@ int __cdecl FS_ReadFile(const char *qpath, void **buffer)
 {
     uint8_t *buf; // [esp+0h] [ebp-Ch]
     int len; // [esp+4h] [ebp-8h]
-    int h; // [esp+8h] [ebp-4h] BYREF
+    int h = 0; // [esp+8h] [ebp-4h] BYREF
 
     FS_CheckFileSystemStarted();
+    if (buffer)
+        *buffer = 0;
     if (!qpath || !*qpath)
+    {
         Com_Error(ERR_FATAL, "FS_ReadFile with empty name");
-    len = FS_FOpenFileRead(qpath, &h);
-    if (h)
-    {
-        if (buffer)
-        {
-            ++fs_loadStack;
-            buf = (uint8_t *)FS_AllocMem(len + 1);
-            *buffer = buf;
-            FS_Read(buf, len, h);
-            buf[len] = 0;
-        }
-        FS_FCloseFile(h);
-        return len;
+        return -1; // Fail closed if a platform error handler returns.
     }
-    else
+    len = FS_FOpenFileRead(qpath, &h);
+    if (!h)
+        return -1;
+
+    // IWD/fastfile metadata can report a corrupt or unrepresentable length.
+    // Never pass a negative length or overflow len+1 in the Hunk allocator.
+    if (len < 0 || len == INT_MAX)
     {
-        if (buffer)
-            *buffer = 0;
+        FS_FCloseFile(h);
         return -1;
     }
+    if (buffer)
+    {
+        ++fs_loadStack;
+        buf = (uint8_t *)FS_AllocMem(len + 1);
+        if (!buf)
+        {
+            --fs_loadStack;
+            FS_FCloseFile(h);
+            return -1;
+        }
+        // A truncated IWD entry must not be handed to the map/config parser
+        // as a successful read with an uninitialized tail.
+        if (FS_Read(buf, len, h) != static_cast<uint32_t>(len))
+        {
+            FS_FreeMem((char *)buf);
+            --fs_loadStack;
+            FS_FCloseFile(h);
+            return -1;
+        }
+        buf[len] = 0;
+        *buffer = buf;
+    }
+    FS_FCloseFile(h);
+    return len;
 }
 
 uint32_t *__cdecl FS_AllocMem(int bytes)
