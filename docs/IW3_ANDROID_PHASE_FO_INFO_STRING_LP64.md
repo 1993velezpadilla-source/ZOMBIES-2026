@@ -18,7 +18,7 @@ The original `q_shared.cpp` full translation unit continues to be compiled as An
 
 ## Evidence and unproven gates
 
-CI for this commit: pending when first authored; inspect the GitHub Actions run and attach results to PR #4. Prior baseline run: https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41187285419 (success). No ARM64 engine execution, real map load, renderer frame, live touch gameplay or genuine playable APK is established by this pass.
+Verified on code commit `1ac6125c20950b788728e3f1db4b1b5115ebbe35`: [GitHub Actions 41191504749](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41191504749) completed successfully on 2026-10-31. Inspected job `124509057411`: **29/29 host Python tests passed**, including two new LP64 tests, and the original full `q_shared.cpp` compiled/linked as Android AArch64 ELF with `Com_InitThreadData` resolved. The five `strchr` pointer-to-int warnings disappeared; four warnings in the **separate** `ParseConfigStringToStructCustomSize` remain at FX/XModel/Material/Sound pointer stores. This CI is a portability/relocatable-link audit, **not** engine runtime execution. Prior baseline: https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41187285419 (success). No ARM64 engine execution, real map load, renderer frame, live touch gameplay or genuine playable APK is established by this pass.
 
 `IW3_COMMON_BOOTSTRAP_RUNTIME_LINKED=false`, `IW3_FS_STARTUP_RUNTIME_INVOKED=false`, `IW3_RENDERER_FRAME_PROVEN=false`, `IW3_REAL_MAP_LOADED=false`, `IW3_GAMEPLAY_PROVEN=false`, `IW3_PLAYABLE_APK=false`.
 
