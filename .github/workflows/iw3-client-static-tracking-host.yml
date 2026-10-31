@@ -1,0 +1,46 @@
+name: IW3 original SP client static tracking LP64 sanitizer (NOT GAME)
+
+on:
+  push:
+    branches:
+      - feature/iw3-native-android-arm64-20261025
+    paths:
+      - '.github/workflows/iw3-client-static-tracking-host.yml'
+      - 'third_party/KisakCOD/src/client/cl_main.cpp'
+      - 'third_party/KisakCOD/src/qcommon/mem_track.h'
+      - 'tests/test_iw3_android_client_static_tracking.py'
+      - 'tools/iw3_android/prepare_g_runframe_prereqs.py'
+  pull_request:
+    branches:
+      - feature/zombies-offline-sp-weapons-20261024
+    paths:
+      - '.github/workflows/iw3-client-static-tracking-host.yml'
+      - 'third_party/KisakCOD/src/client/cl_main.cpp'
+      - 'third_party/KisakCOD/src/qcommon/mem_track.h'
+      - 'tests/test_iw3_android_client_static_tracking.py'
+      - 'tools/iw3_android/prepare_g_runframe_prereqs.py'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: iw3-client-static-tracking-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  original-client-static-tracking:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Execute original client tracking under LP64 ASan/UBSan
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s tests -p 'test_iw3_android_client_static_tracking.py' -v
+          echo "IW3_ORIGINAL_CLIENT_STATIC_TRACKING_LP64_PASS"
+          echo "IW3_CL_INITRENDERER_RUNTIME_LINKED=false"
+          echo "IW3_RENDERER_FRAME_PROVEN=false"
+          echo "IW3_REAL_MAP_LOADED=false"
+          echo "IW3_GAMEPLAY_PROVEN=false"
+          echo "IW3_PLAYABLE_APK=false"
