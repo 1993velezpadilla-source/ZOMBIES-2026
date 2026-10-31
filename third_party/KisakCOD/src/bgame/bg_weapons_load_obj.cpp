@@ -1271,18 +1271,38 @@ WeaponDef *__cdecl BG_LoadWeaponDefInternal(const char *one, const char *two)
     // Field offsets still require a separate LP64 mapping before weapon loading is safe.
     weapDef = (WeaponDef *)Hunk_AllocLow(sizeof(WeaponDef), "BG_LoadWeaponDefInternal", 9);
     InitWeaponDef(weapDef);
-    Com_sprintf(dest, 0x40u, "weapons/%s/%s", one, two);
+    // Reject truncated asset paths instead of opening an unrelated weapon.
+    const int pathLength = snprintf(dest, sizeof(dest), "weapons/%s/%s", one, two);
+    if (pathLength < 0 || pathLength >= (int)sizeof(dest))
+    {
+        Com_PrintWarning(CON_CHANNEL_PLAYERWEAP, "WARNING: weapon path is too long\n");
+        return 0;
+    }
     v11 = FS_FOpenFileByMode(dest, &f, FS_READ);
     if (v11 >= 0)
     {
-        FS_Read((uint8_t *)buffer, len, f);
+        // FS_FOpenFileByMode reports a length, not a guarantee that reads succeed.
+        // A short header must not be compared against uninitialized stack data.
+        if (v11 < len || FS_Read((uint8_t *)buffer, len, f) != len)
+        {
+            Com_PrintWarning(CON_CHANNEL_PLAYERWEAP, "WARNING: \"%s\" has a truncated weapon header\n", dest);
+            FS_FCloseFile(f);
+            return 0;
+        }
         buffer[len] = 0;
         if (!strncmp(buffer, "WEAPONFILE", len))
         {
             if ((uint32_t)(v11 - len) < 0x2800)
             {
                 memset((uint8_t *)buffer, 0, 0x2800u);
-                FS_Read((uint8_t *)buffer, v11 - len, f);
+                // A partial body is not a valid weapon config, even if its prefix
+                // happens to pass Info_Validate. Close the handle on every exit.
+                if (FS_Read((uint8_t *)buffer, v11 - len, f) != v11 - len)
+                {
+                    Com_PrintWarning(CON_CHANNEL_PLAYERWEAP, "WARNING: \"%s\" has a truncated weapon body\n", dest);
+                    FS_FCloseFile(f);
+                    return 0;
+                }
                 buffer[v11 - len] = 0;
                 FS_FCloseFile(f);
                 if (Info_Validate(buffer))
