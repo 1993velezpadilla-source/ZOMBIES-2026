@@ -228,6 +228,13 @@ jobs:
           # Other platform, renderer, database and game services remain absent;
           # relocatable linkage alone never runs the engine.
           test -s "$RUNNER_TEMP/iw3-original-bootstrap-graph-undefined.txt"
+          # A real Android runtime still needs the original thread-local
+          # setjmp context and client renderer providers; do not stub these
+          # just to force a shared-library link.
+          grep -F 'Sys_GetValue(int)' "$RUNNER_TEMP/iw3-original-bootstrap-graph-undefined.txt"
+          grep -F 'CL_InitRenderer()' "$RUNNER_TEMP/iw3-original-bootstrap-graph-undefined.txt"
+          echo "IW3_ORIGINAL_SYS_GETVALUE_RUNTIME_PROVIDER_MISSING"
+          echo "IW3_ORIGINAL_CL_INITRENDERER_RUNTIME_PROVIDER_MISSING"
           echo "IW3_ORIGINAL_COMMON_CMD_FILES_DVAR_RELOCATABLE_LINK_PASS"
           echo "IW3_ORIGINAL_FS_INITFILESYSTEM_PROVIDER_RESOLVED"
           echo "IW3_COMMON_BOOTSTRAP_RUNTIME_LINKED=false"
