@@ -350,9 +350,9 @@ bool __cdecl R_IsUsingAdaptiveGpuSync()
 
 void __cdecl TRACK_r_init()
 {
-    track_static_alloc_internal(&rgp, 8576, "rgp", 18);
-    track_static_alloc_internal(&rg, 33552, "rg", 18);
-    track_static_alloc_internal(&vidConfig, 48, "vidConfig", 18);
+    track_static_alloc_internal(&rgp, sizeof(rgp), "rgp", 18);
+    track_static_alloc_internal(&rg, sizeof(rg), "rg", 18);
+    track_static_alloc_internal(&vidConfig, sizeof(vidConfig), "vidConfig", 18);
     track_static_alloc_internal(&dx, sizeof(dx), "dx", 18);   // 11488 game / 11552 radiant (windows[5]) — use sizeof so the widened array stays self-consistent
 }
 
