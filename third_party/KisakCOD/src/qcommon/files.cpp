@@ -61,70 +61,69 @@ char *__cdecl FS_GetMapBaseName(char *mapname)
 
 BOOL __cdecl FS_serverPak(const char *pak)
 {
-    char v2; // [esp+3h] [ebp-55h]
-    char *v3; // [esp+8h] [ebp-50h]
-    char szFile[68]; // [esp+10h] [ebp-48h] BYREF
+    char szFile[68];
 
-    v3 = szFile;
-    do
-    {
-        v2 = *pak;
-        *v3++ = *pak++;
-    } while (v2);
+    // Server-provided IWD names are not guaranteed to fit the original
+    // decompiled 68-byte stack buffer. Reject an overlong name rather than
+    // overwriting adjacent stack data during the pure-server comparison.
+    if (!pak)
+        return 0;
+    size_t length = 0;
+    while (length < sizeof(szFile) && pak[length])
+        ++length;
+    if (length == sizeof(szFile))
+        return 0;
+    memcpy(szFile, pak, length + 1);
     I_strlwr(szFile);
     return strstr(szFile, "_svr_") != 0;
 }
 
 int __cdecl FS_iwIwd(char *iwd, char *base)
 {
-    const char *v2; // eax
-    const char *v4; // eax
-    char v5; // [esp+3h] [ebp-71h]
-    char *v6; // [esp+8h] [ebp-6Ch]
-    const char *v7; // [esp+Ch] [ebp-68h]
-    char v8; // [esp+13h] [ebp-61h]
-    char *v9; // [esp+18h] [ebp-5Ch]
-    char *v10; // [esp+1Ch] [ebp-58h]
-    char *str2; // [esp+20h] [ebp-54h]
-    char szFile[68]; // [esp+24h] [ebp-50h] BYREF
-    const char *pszLoc; // [esp+6Ch] [ebp-8h]
-    int i; // [esp+70h] [ebp-4h]
+    if (!iwd || !base)
+        return 0;
 
-    for (i = 0; i < 25; ++i)
+    // Keep the original standard main/iw_00..24 comparisons intact.
+    for (int i = 0; i < 25; ++i)
     {
-        v2 = va("%s/iw_%02d", base, i);
-        if (!FS_FilenameCompare(iwd, v2))
+        const char *standardName = va("%s/iw_%02d", base, i);
+        if (!FS_FilenameCompare(iwd, standardName))
             return 1;
     }
-    pszLoc = strstr(iwd, "localized_");
-    if (pszLoc)
+
+    const char *localized = strstr(iwd, "localized_");
+    if (!localized)
+        return 0;
+
+    char szFile[68];
+    size_t length = 0;
+    while (length < sizeof(szFile) && iwd[length])
+        ++length;
+    if (length == sizeof(szFile))
+        return 0;
+
+    // A localized path must fit in the original stack buffer, including
+    // the terminating NUL. Check before copying or writing the prefix end.
+    const size_t prefixLength = static_cast<size_t>(localized - iwd) + sizeof("localized_") - 1;
+    if (prefixLength > length || prefixLength >= sizeof(szFile))
+        return 0;
+    memcpy(szFile, iwd, length + 1);
+    szFile[prefixLength] = '\0';
+    const char *localizedPrefix = va("%s/localized_", base);
+    if (FS_FilenameCompare(szFile, localizedPrefix))
+        return 0;
+
+    const char *suffix = localized + sizeof("localized_") - 1;
+    const size_t suffixLength = strlen(suffix);
+    if (suffixLength >= sizeof(szFile))
+        return 0;
+    memcpy(szFile, suffix, suffixLength + 1);
+    I_strlwr(szFile);
+    for (int i = 0; i < 25; ++i)
     {
-        v10 = iwd;
-        v9 = szFile;
-        do
-        {
-            v8 = *v10;
-            *v9++ = *v10++;
-        } while (v8);
-        szFile[pszLoc - iwd + 10] = 0;
-        v4 = va("%s/localized_", base);
-        if (!FS_FilenameCompare(szFile, v4))
-        {
-            v7 = pszLoc + 10;
-            v6 = szFile;
-            do
-            {
-                v5 = *v7;
-                *v6++ = *v7++;
-            } while (v5);
-            I_strlwr(szFile);
-            for (i = 0; i < 25; ++i)
-            {
-                str2 = va("_iw%02d", i);
-                if (strstr(szFile, str2))
-                    return 1;
-            }
-        }
+        const char *pattern = va("_iw%02d", i);
+        if (strstr(szFile, pattern))
+            return 1;
     }
     return 0;
 }
