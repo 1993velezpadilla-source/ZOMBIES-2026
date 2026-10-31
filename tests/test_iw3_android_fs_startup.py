@@ -122,6 +122,36 @@ class OriginalFilesystemStartupTests(unittest.TestCase):
         self.assertIn("FS_Startup(main_game);", native_test)
         self.assertIn("assert(entry->dir->path[0] != '\\0');", native_test)
         self.assertIn("IW3_ORIGINAL_FS_STARTUP_EMPTY_HOMEPATH_PASS", native_test)
+    def test_original_server_and_game_rename_fail_closed_on_bad_android_paths(self):
+        source = (ENGINE / SOURCE).read_text(encoding="utf-8")
+        server = function_source(source, "void __cdecl FS_SV_Rename(char *from, char *to)")
+        game = function_source(
+            source, "void __cdecl FS_Rename(char *from, char *fromDir, char *to, char *toDir)"
+        )
+        self.assertIn("FS_SV_BuildOSPath(fs_homepath->current.string, from, from_ospath)", server)
+        self.assertIn("FS_SV_BuildOSPath(fs_homepath->current.string, to, to_ospath)", server)
+        self.assertNotIn("from_ospath[strlen(from_ospath) - 1]", server)
+        self.assertNotIn("to_ospath[strlen(to_ospath) - 1]", server)
+        self.assertIn("if (!*from_ospath)", game)
+        self.assertIn("if (!*to_ospath)", game)
+        self.assertIn("if (!from || !*from || !to || !*to ||", game)
+        self.assertIn("z2026_platform_rename_engine_path", server)
+        self.assertIn("z2026_platform_rename_engine_path", game)
+        self.assertIn("IW3_FS_POSIX_PATHS_TEST", server)
+        self.assertIn("IW3_FS_POSIX_PATHS_TEST", game)
+        native = (ROOT / "android/iw3-native/fs_localized_path_native_test.cpp").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("FS_SV_Rename(long_name.data(), new_server);", native)
+        self.assertIn("FS_Rename(old_server, main_dir, long_name.data(), main_dir);", native)
+        self.assertIn("IW3_ORIGINAL_FS_RENAME_PATH_GUARD_PASS", native)
+        with TemporaryDirectory() as temp:
+            staged = Path(temp) / "iw3_fs_startup.cpp"
+            prepare(ENGINE, staged)
+            rendered = staged.read_text(encoding="utf-8")
+            self.assertIn(server, rendered)
+            self.assertIn(game, rendered)
+
     def test_original_game_directory_setup_uses_native_allocation_size(self):
         source = (ENGINE / SOURCE).read_text(encoding="utf-8")
         add_searchpath = function_source(
