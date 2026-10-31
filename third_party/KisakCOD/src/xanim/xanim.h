@@ -35,7 +35,11 @@ union XAnimIndices // sizeof=0x4
     uint16_t *_2;
     void *data;
 };
+#if defined(__ANDROID__)
+static_assert(sizeof(XAnimIndices) == 8);
+#else
 static_assert(sizeof(XAnimIndices) == 4);
+#endif
 struct XAnimNotifyInfo // sizeof=0x8
 {
     uint16_t name;
@@ -179,7 +183,11 @@ struct XAnimParts // sizeof=0x58
     XAnimNotifyInfo *notify;
     XAnimDeltaPart *deltaPart;
 };
+#if defined(__ANDROID__)
+static_assert(sizeof(XAnimParts) == 136);
+#else
 static_assert(sizeof(XAnimParts) == 88);
+#endif
 
 struct XModelNameMap // sizeof=0x4
 {                                       // ...
@@ -290,118 +298,7 @@ struct XAnimNotify_s // sizeof=0xC
     float timeFrac;
 };
 
-struct cStaticModelWritable // sizeof=0x2
-{                                       // ...
-    uint16_t nextModelInWorldSector;
-};
-struct cStaticModel_s // sizeof=0x50
-{
-    cStaticModelWritable writable;
-    // padding byte
-    // padding byte
-    XModel* xmodel;
-    float origin[3];
-    float invScaledAxis[3][3];
-    float absmin[3];
-    float absmax[3];
-};
-struct dmaterial_t // sizeof=0x48
-{
-    char material[64];
-    int surfaceFlags;
-    int contentFlags;
-};
-struct cNode_t // sizeof=0x8
-{
-    cplane_s* plane;
-    __int16 children[2];
-};
-
-struct cLeafBrushNodeLeaf_t // sizeof=0x4
-{                                       // ...
-    uint16_t* brushes;
-};
-struct cLeafBrushNodeChildren_t // sizeof=0xC
-{                                       // ...
-    float dist;
-    float range;
-    uint16_t childOffset[2];
-};
-union cLeafBrushNodeData_t // sizeof=0xC
-{                                       // ...
-    cLeafBrushNodeLeaf_t leaf;
-    cLeafBrushNodeChildren_t children;
-};
-struct cLeafBrushNode_s // sizeof=0x14
-{
-    unsigned __int8 axis;
-    // padding byte
-    __int16 leafBrushCount;
-    int contents;
-    cLeafBrushNodeData_t data;
-};
-struct CollisionBorder // sizeof=0x1C
-{
-    float distEq[3];
-    float zBase;
-    float zSlope;
-    float start;
-    float length;
-};
-struct CollisionPartition // sizeof=0xC
-{
-    unsigned __int8 triCount;
-    unsigned __int8 borderCount;
-    // padding byte
-    // padding byte
-    int firstTri;
-    CollisionBorder* borders;
-};
-union CollisionAabbTreeIndex // sizeof=0x4
-{                                       // ...
-    int firstChildIndex;
-    int partitionIndex;
-};
-struct CollisionAabbTree // sizeof=0x20
-{
-    float origin[3];
-    float halfSize[3];
-    uint16_t materialIndex;
-    uint16_t childCount;
-    CollisionAabbTreeIndex u;
-};
-
-struct cbrushside_t // sizeof=0xC
-{                                       // ...
-    cplane_s* plane;                    // ...
-    uint32_t materialNum;           // ...
-    __int16 firstAdjacentSideOffset;
-    unsigned __int8 edgeCount;
-    // padding byte
-};
-
-struct __declspec(align(16)) cbrush_t // sizeof=0x50
-{                                       // ...
-    float mins[3];
-    int contents;
-    float maxs[3];
-    uint32_t numsides;
-    cbrushside_t* sides;
-    __int16 axialMaterialNum[2][3];
-    unsigned __int8* baseAdjacentSide;
-    __int16 firstAdjacentSideOffsets[2][3];
-    unsigned __int8 edgeCount[2][3];
-    // padding byte
-    // padding byte
-    // padding byte
-    // padding byte
-    // padding byte
-    // padding byte
-    // padding byte
-    // padding byte
-    // padding byte
-    // padding byte
-};
+#include <qcommon/cm_collision_types.h>
 
 struct MapEnts // sizeof=0xC
 {                                       // ...
@@ -826,7 +723,11 @@ struct WeaponDef // sizeof=0x878
     float adsDofStart;
     float adsDofEnd;
 };
+#if defined(__ANDROID__)
+static_assert(sizeof(WeaponDef) == 2832);
+#else
 static_assert(sizeof(WeaponDef) == 2168);
+#endif
 
 struct SndDriverGlobals // sizeof=0x4
 {                                       // ...
@@ -839,7 +740,11 @@ struct RawFile // sizeof=0xC
     int len;
     const char* buffer;
 };
+#if defined(__ANDROID__)
+static_assert(sizeof(RawFile) == 24);
+#else
 static_assert(sizeof(RawFile) == 12);
+#endif
 
 struct PhysPreset // sizeof=0x2C
 {                                       // ...
@@ -999,7 +904,11 @@ struct XAsset // sizeof=0x8
     XAssetType type;                    // ...
     XAssetHeader header;                // ...
 };
+#if defined(__ANDROID__)
+static_assert(sizeof(XAsset) == 16);
+#else
 static_assert(sizeof(XAsset) == 8);
+#endif
 
 union XAssetSize // sizeof=0x878
 {                                       // ...
@@ -1110,7 +1019,11 @@ struct ScriptStringList // sizeof=0x8
     int count;
     const char **strings;
 };
+#if defined(__ANDROID__)
+static_assert(sizeof(ScriptStringList) == 16);
+#else
 static_assert(sizeof(ScriptStringList) == 8);
+#endif
 
 struct XAssetList // sizeof=0x10
 {                                       // ...
@@ -1118,7 +1031,11 @@ struct XAssetList // sizeof=0x10
     int assetCount;
     XAsset *assets;
 };
+#if defined(__ANDROID__)
+static_assert(sizeof(XAssetList) == 32);
+#else
 static_assert(sizeof(XAssetList) == 16);
+#endif
 
 struct XFile // sizeof=0x2C
 {                                       // ...
@@ -1163,14 +1080,22 @@ struct XRigidVertList // sizeof=0xC
     uint16_t triCount;          // ...
     XSurfaceCollisionTree *collisionTree;
 };
+#if defined(__ANDROID__)
+static_assert(sizeof(XRigidVertList) == 16);
+#else
 static_assert(sizeof(XRigidVertList) == 12);
+#endif
 
 struct XSurfaceVertexInfo // sizeof=0xC
 {                                       // ...
     __int16 vertCount[4];
     uint16_t *vertsBlend;
 };
+#if defined(__ANDROID__)
+static_assert(sizeof(XSurfaceVertexInfo) == 16);
+#else
 static_assert(sizeof(XSurfaceVertexInfo) == 12);
+#endif
 
 struct XSurface // sizeof=0x38
 {
@@ -1189,7 +1114,11 @@ struct XSurface // sizeof=0x38
     XRigidVertList *vertList;
     int partBits[4];
 };
+#if defined(__ANDROID__)
+static_assert(sizeof(XSurface) == 80);
+#else
 static_assert(sizeof(XSurface) == 56);
+#endif
 
 struct DObj_s;
 

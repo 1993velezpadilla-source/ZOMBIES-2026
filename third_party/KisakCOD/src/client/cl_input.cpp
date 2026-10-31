@@ -8,12 +8,19 @@
 #include <qcommon/cmd.h>
 #include <cgame/cg_main.h>
 #include <game/g_local.h>
+#include <server/sv_public.h>
 #include <aim_assist/aim_assist.h>
 #include <win32/win_local.h>
 #include <qcommon/msg.h>
 #include <devgui/devgui.h>
 #include <ui/ui.h>
 #include <gfx_d3d/r_dvars.h>
+
+#if defined(__ANDROID__)
+// Implemented by the Android platform boundary; consumes touch state into the
+// authentic usercmd_s and client viewangles before CL_FinishMove packs angles.
+extern "C" void z2026_platform_apply_touch_to_usercmd(usercmd_s *cmd, float *viewangles);
+#endif
 
 const dvar_t *cl_stanceHoldTime;
 const dvar_t *cl_analog_attack_threshold;
@@ -1604,6 +1611,9 @@ void __cdecl CL_CreateCmd(usercmd_s *result)
         CL_CmdButtons(result);
         CL_KeyMove(result);
         CL_MouseMove(result);
+#if defined(__ANDROID__)
+        z2026_platform_apply_touch_to_usercmd(result, clients[0].viewangles);
+#endif
         // KISAKTODO
         //if (GPad_IsActive(CL_ControllerIndexFromClientNum(0)))
         //    CL_GamepadMove(result);
@@ -1622,9 +1632,7 @@ void __cdecl CL_CreateCmd(usercmd_s *result)
 
 void CL_CreateNewCommands()
 {
-    usercmd_s *v0; // r3
-    _BYTE v1[56]; // [sp+50h] [-80h] BYREF
-    usercmd_s v2; // [sp+90h] [-40h] BYREF
+    usercmd_s command; // native-width command object
 
     if (clientUIActives[0].connectionState != CA_ACTIVE)
         MyAssertHandler(
@@ -1637,13 +1645,12 @@ void CL_CreateNewCommands()
     if ((unsigned int)(com_frameTime - old_com_frameTime) > 0xC8)
         frame_msec = 200;
     old_com_frameTime = com_frameTime;
-    CL_CreateCmd(&v2);
-    memcpy(v1, &v2, sizeof(v1));
+    CL_CreateCmd(&command);
     Sys_EnterCriticalSection(CRITSECT_CLIENT_CMD);
-    memcpy(&clients[0].cmds[++clients[0].cmdNumber & 0x3F], v1, sizeof(clients[0].cmds[++clients[0].cmdNumber & 0x3F]));
+    const unsigned int nextCommand = (++clients[0].cmdNumber) & 0x3F;
+    memcpy(&clients[0].cmds[nextCommand], &command, sizeof(command));
     Sys_LeaveCriticalSection(CRITSECT_CLIENT_CMD);
 }
-
 void __cdecl CL_WritePacket()
 {
     int reliableAcknowledge; // r11

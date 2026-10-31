@@ -11,7 +11,7 @@ struct debugger_sval_s // sizeof=0x4
 {
     debugger_sval_s *next;
 };
-static_assert(sizeof(debugger_sval_s) == 0x4);
+static_assert(sizeof(debugger_sval_s) == (sizeof(void *) == 8 ? 0x8 : 0x4));
 
 struct scr_localVar_t // sizeof=0x8
 {                                       // ...
@@ -67,7 +67,7 @@ union sval_u // sizeof=0x4
     const char *debugString;
     scr_block_s *block;
 };
-static_assert(sizeof(sval_u) == 0x4);
+static_assert(sizeof(sval_u) == (sizeof(void *) == 8 ? 0x8 : 0x4));
 
 struct ScriptExpression_t // sizeof=0xC
 {                                       // ...
@@ -75,7 +75,7 @@ struct ScriptExpression_t // sizeof=0xC
     int breakonExpr;                    // ...
     debugger_sval_s *exprHead;          // ...
 };
-static_assert(sizeof(ScriptExpression_t) == 0xC);
+static_assert(sizeof(ScriptExpression_t) == (sizeof(void *) == 8 ? 0x18 : 0xC));
 
 struct Scr_SelectedLineInfo // sizeof=0xC
 {                                       // ...
@@ -98,7 +98,7 @@ struct Scr_Breakpoint // sizeof=0x1C
     Scr_Breakpoint *next;               // ...
     Scr_Breakpoint **prev;
 };
-static_assert(sizeof(Scr_Breakpoint) == 0x1C);
+static_assert(sizeof(Scr_Breakpoint) == (sizeof(void *) == 8 ? 0x30 : 0x1C));
 
 struct Scr_WatchElement_s // sizeof=0x64
 {
@@ -137,28 +137,28 @@ struct Scr_WatchElement_s // sizeof=0x64
     Scr_WatchElement_s *childHead;
     Scr_WatchElement_s *next;
 };
-static_assert(sizeof(Scr_WatchElement_s) == 0x64);
+static_assert(sizeof(Scr_WatchElement_s) == (sizeof(void *) == 8 ? 0xA0 : 0x64));
 
 struct Scr_OpcodeList_s // sizeof=0x8
 {
     char *codePos;
     Scr_OpcodeList_s *next;
 };
-static_assert(sizeof(Scr_OpcodeList_s) == 0x8);
+static_assert(sizeof(Scr_OpcodeList_s) == (sizeof(void *) == 8 ? 0x10 : 0x8));
 
 struct Scr_WatchElementNode_s // sizeof=0x8
 {
     Scr_WatchElement_s *element;
     Scr_WatchElementNode_s *next;
 };
-static_assert(sizeof(Scr_WatchElementNode_s) == 0x8);
+static_assert(sizeof(Scr_WatchElementNode_s) == (sizeof(void *) == 8 ? 0x10 : 0x8));
 
 struct Scr_WatchElementDoubleNode_t // sizeof=0x8
 {
     Scr_WatchElementNode_s *list;
     Scr_WatchElementNode_s *removedList;
 };
-static_assert(sizeof(Scr_WatchElementDoubleNode_t) == 0x8);
+static_assert(sizeof(Scr_WatchElementDoubleNode_t) == (sizeof(void *) == 8 ? 0x10 : 0x8));
 
 struct scrDebuggerGlob_t // sizeof=0x2B8
 {                                       // ...
@@ -220,7 +220,7 @@ struct scrDebuggerGlob_t // sizeof=0x2B8
     int breakpointCount;                // ...
     int gainFocusTime;                  // ...
 };
-static_assert(sizeof(scrDebuggerGlob_t) == 0x2B8);
+static_assert(sizeof(scrDebuggerGlob_t) == (sizeof(void *) == 8 ? 0x368 : 0x2B8));
 
 void __cdecl TRACK_scr_debugger();
 void __cdecl Scr_KeyEvent(int key);

@@ -8,7 +8,8 @@
 #include <sound/snd_public.h>
 
 int fs_numServerReferencedIwds;
-char basename[64];
+// Avoid the POSIX basename() identifier exported by Android/Linux libc.
+char fs_mapBaseName[64];
 const char *fs_serverReferencedIwdNames[1024];
 int fs_serverReferencedIwds[1024];
 
@@ -17,93 +18,112 @@ extern int fs_fakeChkSum;
 
 char *__cdecl FS_GetMapBaseName(char *mapname)
 {
-    uint32_t v2; // [esp+0h] [ebp-18h]
-    int c; // [esp+10h] [ebp-8h]
-    signed int len; // [esp+14h] [ebp-4h]
-
+    // A map path can originate from external game data. The original
+    // decompilation indexed mapname[length - 3] even for short strings and
+    // copied an unbounded map basename into this 64-byte static buffer.
     iassert( mapname );
+    if (!mapname)
+    {
+        fs_mapBaseName[0] = 0;
+        return fs_mapBaseName;
+    }
     if (!I_strnicmp(mapname, "maps/mp/", 8))
         mapname += 8;
-    v2 = strlen(mapname);
-    len = v2;
-    if (!I_stricmp(&mapname[v2 - 3], "bsp"))
-        len = v2 - 7;
-    memcpy((uint8_t *)basename, (uint8_t *)mapname, len);
-    basename[len] = 0;
-    for (c = 0; c < len; ++c)
+
+    const size_t mapLength = strlen(mapname);
+    size_t baseLength = mapLength;
+    if (mapLength >= 3 && !I_stricmp(mapname + mapLength - 3, "bsp"))
     {
-        if (basename[c] == 37)
-            basename[c] = 95;
+        // The IW3 .d3dbsp suffix is seven bytes. A shorter BSP-like name
+        // cannot be stripped safely and must not underflow the length.
+        if (mapLength < 7)
+        {
+            fs_mapBaseName[0] = 0;
+            return fs_mapBaseName;
+        }
+        baseLength = mapLength - 7;
     }
-    return basename;
+    if (baseLength >= sizeof(fs_mapBaseName))
+    {
+        // Do not silently truncate a map identifier to a different name.
+        fs_mapBaseName[0] = 0;
+        return fs_mapBaseName;
+    }
+    memcpy(fs_mapBaseName, mapname, baseLength);
+    fs_mapBaseName[baseLength] = 0;
+    for (size_t i = 0; i < baseLength; ++i)
+    {
+        if (fs_mapBaseName[i] == '%')
+            fs_mapBaseName[i] = '_';
+    }
+    return fs_mapBaseName;
 }
 
 BOOL __cdecl FS_serverPak(const char *pak)
 {
-    char v2; // [esp+3h] [ebp-55h]
-    char *v3; // [esp+8h] [ebp-50h]
-    char szFile[68]; // [esp+10h] [ebp-48h] BYREF
+    char szFile[68];
 
-    v3 = szFile;
-    do
-    {
-        v2 = *pak;
-        *v3++ = *pak++;
-    } while (v2);
+    // Server-provided IWD names are not guaranteed to fit the original
+    // decompiled 68-byte stack buffer. Reject an overlong name rather than
+    // overwriting adjacent stack data during the pure-server comparison.
+    if (!pak)
+        return 0;
+    size_t length = 0;
+    while (length < sizeof(szFile) && pak[length])
+        ++length;
+    if (length == sizeof(szFile))
+        return 0;
+    memcpy(szFile, pak, length + 1);
     I_strlwr(szFile);
     return strstr(szFile, "_svr_") != 0;
 }
 
 int __cdecl FS_iwIwd(char *iwd, char *base)
 {
-    const char *v2; // eax
-    const char *v4; // eax
-    char v5; // [esp+3h] [ebp-71h]
-    char *v6; // [esp+8h] [ebp-6Ch]
-    const char *v7; // [esp+Ch] [ebp-68h]
-    char v8; // [esp+13h] [ebp-61h]
-    char *v9; // [esp+18h] [ebp-5Ch]
-    char *v10; // [esp+1Ch] [ebp-58h]
-    char *str2; // [esp+20h] [ebp-54h]
-    char szFile[68]; // [esp+24h] [ebp-50h] BYREF
-    const char *pszLoc; // [esp+6Ch] [ebp-8h]
-    int i; // [esp+70h] [ebp-4h]
+    if (!iwd || !base)
+        return 0;
 
-    for (i = 0; i < 25; ++i)
+    // Keep the original standard main/iw_00..24 comparisons intact.
+    for (int i = 0; i < 25; ++i)
     {
-        v2 = va("%s/iw_%02d", base, i);
-        if (!FS_FilenameCompare(iwd, v2))
+        const char *standardName = va("%s/iw_%02d", base, i);
+        if (!FS_FilenameCompare(iwd, standardName))
             return 1;
     }
-    pszLoc = strstr(iwd, "localized_");
-    if (pszLoc)
+
+    const char *localized = strstr(iwd, "localized_");
+    if (!localized)
+        return 0;
+
+    char szFile[68];
+    size_t length = 0;
+    while (length < sizeof(szFile) && iwd[length])
+        ++length;
+    if (length == sizeof(szFile))
+        return 0;
+
+    // A localized path must fit in the original stack buffer, including
+    // the terminating NUL. Check before copying or writing the prefix end.
+    const size_t prefixLength = static_cast<size_t>(localized - iwd) + sizeof("localized_") - 1;
+    if (prefixLength > length || prefixLength >= sizeof(szFile))
+        return 0;
+    memcpy(szFile, iwd, length + 1);
+    szFile[prefixLength] = '\0';
+    const char *localizedPrefix = va("%s/localized_", base);
+    if (FS_FilenameCompare(szFile, localizedPrefix))
+        return 0;
+
+    const char *suffix = localized + sizeof("localized_") - 1;
+    const size_t suffixLength = strlen(suffix);
+    if (suffixLength >= sizeof(szFile))
+        return 0;
+    memcpy(szFile, suffix, suffixLength + 1);
+    I_strlwr(szFile);
+    for (int i = 0; i < 25; ++i)
     {
-        v10 = iwd;
-        v9 = szFile;
-        do
-        {
-            v8 = *v10;
-            *v9++ = *v10++;
-        } while (v8);
-        szFile[pszLoc - iwd + 10] = 0;
-        v4 = va("%s/localized_", base);
-        if (!FS_FilenameCompare(szFile, v4))
-        {
-            v7 = pszLoc + 10;
-            v6 = szFile;
-            do
-            {
-                v5 = *v7;
-                *v6++ = *v7++;
-            } while (v5);
-            I_strlwr(szFile);
-            for (i = 0; i < 25; ++i)
-            {
-                str2 = va("_iw%02d", i);
-                if (strstr(szFile, str2))
-                    return 1;
-            }
-        }
+        const char *pattern = va("_iw%02d", i);
+        if (strstr(szFile, pattern))
+            return 1;
     }
     return 0;
 }
@@ -113,7 +133,7 @@ int __cdecl FS_CompareIwds(char *needediwds, int len, int dlstring)
     char *v4; // eax
     const char *v5; // [esp+8h] [ebp-20h]
     const char *string; // [esp+Ch] [ebp-1Ch]
-    uint32_t v7; // [esp+Ch] [ebp-1Ch]
+    const char *v7; // end of fs_gameDirVar string
     int haveiwd; // [esp+1Ch] [ebp-Ch]
     searchpath_s *j; // [esp+20h] [ebp-8h]
     int i; // [esp+24h] [ebp-4h]
@@ -123,7 +143,7 @@ int __cdecl FS_CompareIwds(char *needediwds, int len, int dlstring)
     *needediwds = 0;
     string = fs_gameDirVar->current.string;
     v5 = string + 1;
-    v7 = (uint32_t)&string[strlen(string) + 1];
+    v7 = &string[strlen(string) + 1];
     for (i = 0; i < fs_numServerReferencedIwds; ++i)
     {
         haveiwd = 0;
@@ -140,7 +160,7 @@ int __cdecl FS_CompareIwds(char *needediwds, int len, int dlstring)
             if (!haveiwd && fs_serverReferencedIwdNames[i] && *fs_serverReferencedIwdNames[i])
             {
                 if ((const char *)v7 == v5
-                    || I_strnicmp(fs_serverReferencedIwdNames[i], fs_gameDirVar->current.string, v7 - (_DWORD)v5)
+                    || I_strnicmp(fs_serverReferencedIwdNames[i], fs_gameDirVar->current.string, static_cast<int>(v7 - v5))
                     || FS_iwIwd((char *)fs_serverReferencedIwdNames[i], (char*)"main"))
                 {
                     I_strncpyz(needediwds, (char *)fs_serverReferencedIwdNames[i], len);
@@ -182,7 +202,7 @@ int __cdecl FS_CompareFFs(char *neededFFs, int len, int dlstring)
     int v4; // eax
     const char *v5; // [esp+18h] [ebp-28h]
     const char *string; // [esp+1Ch] [ebp-24h]
-    uint32_t v7; // [esp+1Ch] [ebp-24h]
+    const char *v7; // end of fs_gameDirVar string
     char *ffName; // [esp+2Ch] [ebp-14h]
     const char *ffNamea; // [esp+2Ch] [ebp-14h]
     int fileSize; // [esp+30h] [ebp-10h]
@@ -193,7 +213,7 @@ int __cdecl FS_CompareFFs(char *neededFFs, int len, int dlstring)
     *neededFFs = 0;
     string = fs_gameDirVar->current.string;
     v5 = string + 1;
-    v7 = (uint32_t)&string[strlen(string) + 1];
+    v7 = &string[strlen(string) + 1];
     for (i = 0; i < fs_numServerReferencedFFs; ++i)
     {
         if (I_strncmp(fs_serverReferencedFFNames[i], "mods", 4)
@@ -212,7 +232,7 @@ int __cdecl FS_CompareFFs(char *neededFFs, int len, int dlstring)
         if (v4 != fs_serverReferencedFFCheckSums[i] && fs_serverReferencedFFNames[i] && *fs_serverReferencedFFNames[i])
         {
             if ((const char *)v7 == v5
-                || I_strnicmp(fs_serverReferencedFFNames[i], fs_gameDirVar->current.string, v7 - (_DWORD)v5))
+                || I_strnicmp(fs_serverReferencedFFNames[i], fs_gameDirVar->current.string, static_cast<int>(v7 - v5)))
             {
                 I_strncpyz(neededFFs, (char *)fs_serverReferencedFFNames[i], len);
                 I_strncat(neededFFs, len, ".ff");
@@ -353,7 +373,7 @@ void __cdecl FS_ServerSetReferencedFFs(char *FFSums, char *FFNames)
     fs_numServerReferencedFFs = FS_ServerSetReferencedFiles(
         FFSums,
         FFNames,
-        1024,
+        static_cast<int>(sizeof(fs_serverReferencedFFCheckSums) / sizeof(fs_serverReferencedFFCheckSums[0])),
         fs_serverReferencedFFCheckSums,
         fs_serverReferencedFFNames);
 }
@@ -427,8 +447,10 @@ void __cdecl FS_PureServerSetLoadedIwds(char *iwdSums, char *iwdNames)
     if (v7)
     {
         Com_DPrintf(CON_CHANNEL_FILES, "Connected to a pure server.\n");
-        Com_Memcpy(fs_serverIwds, src, 4 * fs_numServerIwds);
-        Com_Memcpy(fs_serverIwdNames, s0, 4 * fs_numServerIwds);
+        // Checksums are 32-bit, but IWD names are pointers (64-bit on Android ARM64).
+        // A decompiled Win32 byte count copied only half of the name pointers.
+        Com_Memcpy(fs_serverIwds, src, sizeof(fs_serverIwds[0]) * fs_numServerIwds);
+        Com_Memcpy(fs_serverIwdNames, s0, sizeof(fs_serverIwdNames[0]) * fs_numServerIwds);
         fs_fakeChkSum = 0;
     }
 }

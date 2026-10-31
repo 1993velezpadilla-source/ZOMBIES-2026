@@ -69,15 +69,16 @@ void __cdecl TRACK_g_combat()
 
 void __cdecl G_HitLocStrcpy(unsigned __int8 *pMember, const char *pszKeyValue)
 {
-    int v2; // r10
-    int v3; // r11
-
-    v2 = pMember - (unsigned __int8 *)pszKeyValue;
+    // The reconstructed Win32 function narrowed a pointer difference to
+    // int32_t before indexing into the source address. That silently
+    // truncates addresses on 64-bit Android. Keep the same forward,
+    // NUL-terminated byte copy without subtracting unrelated pointers.
+    unsigned char value;
     do
     {
-        v3 = *(unsigned __int8 *)pszKeyValue;
-        ((char*)pszKeyValue++)[v2] = v3;
-    } while (v3);
+        value = static_cast<unsigned char>(*pszKeyValue++);
+        *pMember++ = value;
+    } while (value);
 }
 
 void __cdecl G_ParseHitLocDmgTable()

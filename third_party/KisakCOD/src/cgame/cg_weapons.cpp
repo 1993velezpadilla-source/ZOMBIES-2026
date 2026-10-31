@@ -3463,7 +3463,7 @@ void __cdecl CG_RandomEffectAxis(const float *forward, float *left, float *up)
     dot = Vec3Dot(point, forward);
     scale = -dot;
     Vec3Mad(point, scale, forward, point);
-    degrees = random() * 360.0;
+    degrees = Com_Random() * 360.0;
     RotatePointAroundVector(left, forward, point, degrees);
     Vec3Normalize(left);
     Vec3Cross(forward, left, up);

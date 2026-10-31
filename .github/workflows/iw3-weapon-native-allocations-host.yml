@@ -1,0 +1,46 @@
+name: IW3 original weapon native allocations LP64 sanitizer (NOT GAME)
+
+on:
+  push:
+    branches:
+      - feature/iw3-native-android-arm64-20261025
+    paths:
+      - '.github/workflows/iw3-weapon-native-allocations-host.yml'
+      - 'third_party/KisakCOD/src/bgame/bg_weapons_load_obj.cpp'
+      - 'tests/test_iw3_android_weapon_native_allocations.py'
+      - 'tools/iw3_android/prepare_g_runframe_prereqs.py'
+  pull_request:
+    branches:
+      - feature/zombies-offline-sp-weapons-20261024
+    paths:
+      - '.github/workflows/iw3-weapon-native-allocations-host.yml'
+      - 'third_party/KisakCOD/src/bgame/bg_weapons_load_obj.cpp'
+      - 'tests/test_iw3_android_weapon_native_allocations.py'
+      - 'tools/iw3_android/prepare_g_runframe_prereqs.py'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: iw3-weapon-native-allocations-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  original-weapon-native-allocations:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Execute original weapon allocations and tracking under ASan/UBSan (LP64)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s tests -p 'test_iw3_android_weapon_native_allocations.py' -v
+          echo "IW3_ORIGINAL_SURFACE_SOUND_LP64_ALLOC_PASS"
+          echo "IW3_ORIGINAL_WEAPON_STATIC_TRACKING_LP64_PASS"
+          echo "IW3_WEAPONDEF_FIELD_OFFSETS_LP64_VALIDATED=false"
+          echo "IW3_REAL_WEAPON_ASSET_LOADED=false"
+          echo "IW3_REAL_MAP_LOADED=false"
+          echo "IW3_RENDERER_FRAME_PROVEN=false"
+          echo "IW3_GAMEPLAY_PROVEN=false"
+          echo "IW3_PLAYABLE_APK=false"

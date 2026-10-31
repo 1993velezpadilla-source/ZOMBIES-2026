@@ -5,14 +5,19 @@ on:
   pull_request:
     paths:
       - '.github/workflows/iw3-offline-sp-weapons.yml'
+      - 'third_party/KisakCOD/src/**'
+      - 'tests/test_iw3_android_header_portability.py'
       - 'tools/zombies_offline/**'
       - 'tests/test_zombies_offline_sp.py'
       - 'tests/test_zombies_weapon_schema.py'
   push:
     branches:
       - 'feature/zombies-offline-sp-weapons-20261024'
+      - 'feature/iw3-native-android-arm64-20261025'
     paths:
       - '.github/workflows/iw3-offline-sp-weapons.yml'
+      - 'third_party/KisakCOD/src/**'
+      - 'tests/test_iw3_android_header_portability.py'
       - 'tools/zombies_offline/**'
       - 'tests/test_zombies_offline_sp.py'
       - 'tests/test_zombies_weapon_schema.py'

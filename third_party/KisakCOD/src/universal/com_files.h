@@ -26,13 +26,13 @@ struct directory_t // sizeof=0x200
     char path[256];
     char gamedir[256];
 };
-struct fileInIwd_s // sizeof=0xC
+struct fileInIwd_s // Win32 sizeof=0xC; native 64-bit layout is asserted in com_files_handle_table.cpp
 {
     uint32_t pos;
     char* name;
     fileInIwd_s* next;
 };
-struct iwd_t // sizeof=0x324
+struct iwd_t // Win32 sizeof=0x324; native 64-bit layout is asserted in com_files_handle_table.cpp
 {
     char iwdFilename[256];
     char iwdBasename[256];
@@ -50,7 +50,7 @@ struct iwd_t // sizeof=0x324
     fileInIwd_s** hashTable;
     fileInIwd_s* buildBuffer;
 };
-struct searchpath_s // sizeof=0x1C
+struct searchpath_s // Win32 sizeof=0x1C; native 64-bit layout is asserted in com_files_handle_table.cpp
 {
     searchpath_s *next;
     iwd_t *iwd;
@@ -61,17 +61,17 @@ struct searchpath_s // sizeof=0x1C
     int language;
 };
 
-union qfile_gus // sizeof=0x4
+union qfile_gus // Win32 sizeof=0x4
 {                                       // ...
     FILE *o;
     unsigned char *z;
 };
-struct qfile_us // sizeof=0x8
+struct qfile_us // Win32 sizeof=0x8
 {                                       // ...
     qfile_gus file;
     int iwdIsClone;
 };
-struct fileHandleData_t // sizeof=0x11C
+struct fileHandleData_t // Win32 sizeof=0x11C; native 64-bit layout is asserted in com_files_handle_table.cpp
 {
     qfile_us handleFiles;
     int handleSync;
@@ -81,6 +81,10 @@ struct fileHandleData_t // sizeof=0x11C
     int streamed;
     char name[256];
 };
+
+// Shared engine-owned file-handle table used by this translation unit and
+// portable engine-source slices that compile the original file lifecycle.
+extern fileHandleData_t fsh[65];
 
 bool __cdecl FS_Initialized();
 
@@ -181,6 +185,7 @@ void __cdecl FS_Rename(char *from, char *fromDir, char *to, char *toDir);
 
 extern const dvar_t *fs_remotePCDirectory;
 extern const dvar_t *fs_remotePCName;
+extern int fs_fakeChkSum;
 extern const dvar_t *fs_homepath;
 extern const dvar_s *fs_debug;
 extern const dvar_s *fs_restrict;
@@ -201,7 +206,11 @@ extern int marker_com_files;
 extern void *g_writeLogCompleteEvent;
 extern int fs_loadStack;
 extern const char *fs_serverIwdNames[1024];
+extern char lastValidBase[256];
+extern char lastValidGame[256];
 
+extern int fs_iwdFileCount;
 extern int fs_checksumFeed;
+extern int bLanguagesListed;
 
 extern char fs_gamedir[256];

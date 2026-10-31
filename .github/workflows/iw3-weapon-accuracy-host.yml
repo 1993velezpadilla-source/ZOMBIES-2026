@@ -1,0 +1,51 @@
+name: IW3 original weapon accuracy graph host sanitizers (NOT GAME)
+
+on:
+  push:
+    branches:
+      - feature/iw3-native-android-arm64-20261025
+    paths:
+      - '.github/workflows/iw3-weapon-accuracy-host.yml'
+      - 'third_party/KisakCOD/src/bgame/bg_weapons_load_obj.cpp'
+      - 'tests/test_iw3_android_weapon_accuracy_graph.py'
+      - 'tests/test_iw3_android_weapon_accuracy_io.py'
+      - 'tests/test_iw3_android_weapon_file_io.py'
+      - 'tools/iw3_android/prepare_g_runframe_prereqs.py'
+  pull_request:
+    branches:
+      - feature/zombies-offline-sp-weapons-20261024
+    paths:
+      - '.github/workflows/iw3-weapon-accuracy-host.yml'
+      - 'third_party/KisakCOD/src/bgame/bg_weapons_load_obj.cpp'
+      - 'tests/test_iw3_android_weapon_accuracy_graph.py'
+      - 'tests/test_iw3_android_weapon_accuracy_io.py'
+      - 'tests/test_iw3_android_weapon_file_io.py'
+      - 'tools/iw3_android/prepare_g_runframe_prereqs.py'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: iw3-weapon-accuracy-host-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  authentic-weapon-accuracy-parser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run verbatim original weapon accuracy parser under ASan and UBSan
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s tests -p 'test_iw3_android_weapon_accuracy*.py' -v
+          python3 -m unittest discover -s tests -p 'test_iw3_android_weapon_file_io.py' -v
+          echo "IW3_ORIGINAL_WEAPON_ACCURACY_GRAPH_BOUNDS_PASS"
+          echo "IW3_ORIGINAL_WEAPON_ACCURACY_FILE_IO_PASS"
+          echo "IW3_ORIGINAL_WEAPON_FILE_IO_PASS"
+          echo "IW3_REAL_WEAPON_ASSET_LOADED=false"
+          echo "IW3_REAL_MAP_LOADED=false"
+          echo "IW3_RENDERER_FRAME_PROVEN=false"
+          echo "IW3_GAMEPLAY_PROVEN=false"
+          echo "IW3_PLAYABLE_APK=false"

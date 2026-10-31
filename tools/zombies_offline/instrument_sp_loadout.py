@@ -15,13 +15,14 @@ import argparse
 import json
 from pathlib import Path
 
-MAIN = Path("src/game/g_main.cpp")
+MAIN = Path("src/game/g_runframe.cpp")
 
 # Original engine symbols: G_GivePlayerWeapon() and G_SelectWeaponIndex()
 # come from src/game/g_weapon.cpp, InitializeAmmo() from
 # src/game/g_client_script_cmd.cpp. All are in the SP target.
 DECLARES = """
 // Z2026 test-only offline source clone; declarations of original SP APIs.
+#include <xanim/xanim.h> // actual WeaponDef fields used by this test bootstrap
 extern int __cdecl G_GivePlayerWeapon(playerState_s *pPS, int index, uint8_t model);
 extern void __cdecl G_SelectWeaponIndex(int clientNum, int weaponIndex);
 """
@@ -98,7 +99,7 @@ def apply(source_copy: Path) -> dict:
         raise ValueError("Unexpected duplicate frame counter")
     if "G_GivePlayerWeapon(" in text or "TEST_LOADOUT_BOOTSTRAP" in text:
         raise ValueError("Existing instrument/test conflict")
-    header = text.index("void __cdecl G_InitGame(")
+    header = text.index("int __cdecl G_RunFrame(")
     text = text[:header] + DECLARES + "\n" + text[header:]
     text = text.replace(ANCHOR, ANCHOR + "\n" + CODE, 1)
     path.write_text(text, encoding="utf-8")

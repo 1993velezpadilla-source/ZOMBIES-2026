@@ -1,0 +1,235 @@
+name: IW3 ORIGINAL native Android JNI integration (DIAGNOSTIC NOT GAME)
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/iw3-original-android-jni.yml'
+      - 'android/iw3-native/**'
+      - 'tools/iw3_android/**'
+      - 'tests/test_iw3_android_*.py'
+      - 'third_party/KisakCOD/src/**'
+  push:
+    branches:
+      - feature/iw3-native-android-arm64-20261025
+    paths:
+      - .github/workflows/iw3-original-android-jni.yml
+      - android/iw3-native/**
+      - tools/iw3_android/**
+      - third_party/KisakCOD/src/**
+      - tests/test_iw3_android_*.py
+
+permissions:
+  contents: read
+
+concurrency:
+  group: z2026-iw3-real-jni-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  original-iw3-cpp-in-android-activity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      NDK_VER: "27.2.12479018"
+      APP_DIR: "android/iw3-native/android_app"
+    steps:
+      - name: Checkout actual original KisakCOD C++ project
+        uses: actions/checkout@v4
+
+      - name: Java 17 for Android JNI integration
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Run FastFile header preflight JVM regression (not a game-load test)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test_out="$RUNNER_TEMP/iw3-fastfile-header-test"
+          mkdir -p "$test_out"
+          javac -d "$test_out" \
+            android/iw3-native/android_app/app/src/main/java/org/z2026/iw3nativeprobe/FastFileHeader.java \
+            tests/java/org/z2026/iw3nativeprobe/FastFileHeaderTest.java
+          c++ -std=c++20 -Wall -Wextra -Werror -I third_party/KisakCOD/src/database android/iw3-native/db_fastfile_header_native_test.cpp -o "$test_out/db_fastfile_header_native_test"
+          "$test_out/db_fastfile_header_native_test"
+          java -cp "$test_out" org.z2026.iw3nativeprobe.FastFileHeaderTest
+
+      - name: Pin Android SDK and NDK directly
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdk="$RUNNER_TEMP/iw3-android-sdk"
+          mkdir -p "$sdk/cmdline-tools/latest"
+          curl -fLsS --retry 3 -o "$RUNNER_TEMP/android-cli.zip" \
+            'https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip'
+          unzip -qo "$RUNNER_TEMP/android-cli.zip" -d "$RUNNER_TEMP/iw3-cli"
+          mv "$RUNNER_TEMP/iw3-cli/cmdline-tools/"* "$sdk/cmdline-tools/latest/"
+          yes | "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" --licenses >/dev/null || true
+          "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" \
+            "platform-tools" "platforms;android-35" "build-tools;35.0.1" \
+            "ndk;${NDK_VER}" "cmake;3.22.1"
+          test -f "$sdk/ndk/${NDK_VER}/build/cmake/android.toolchain.cmake"
+          test -x "$sdk/build-tools/35.0.1/apksigner"
+          echo "ANDROID_HOME=$sdk" >>"$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$sdk" >>"$GITHUB_ENV"
+          echo "$sdk/platform-tools" >>"$GITHUB_PATH"
+
+      - name: Cross-compile authentic FastFile header parser for Android ARM64
+        shell: bash
+        run: |
+          set -euo pipefail
+          clangpp="$ANDROID_HOME/ndk/${NDK_VER}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android35-clang++"
+          readelf="$ANDROID_HOME/ndk/${NDK_VER}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
+          test -x "$clangpp"
+          "$clangpp" -std=c++20 -Wall -Wextra -Werror -I third_party/KisakCOD/src/database -c android/iw3-native/db_fastfile_header_native_test.cpp -o "$RUNNER_TEMP/db_fastfile_header_aarch64.o"
+          "$readelf" -h "$RUNNER_TEMP/db_fastfile_header_aarch64.o" | grep -q "AArch64"
+          echo "IW3_FASTFILE_HEADER_AARCH64_OBJECT_PASS"
+      - name: Validate original source and generate unchanged IW3 C++ with portable includes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s tests -p 'test_iw3_android_*.py' -v
+          folder="$GITHUB_WORKSPACE/$APP_DIR/build/generated/iw3-source"
+          mkdir -p "$folder"
+          python3 tools/iw3_android/prepare_real_engine_math.py \
+            --engine third_party/KisakCOD \
+            --output "$folder/com_math_anglevectors.cpp" \
+            --surface-output "$folder/surfaceflags.cpp" \
+            --constant-output "$folder/com_constantconfigstrings.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-source-provenance.json"
+          python3 tools/iw3_android/prepare_g_runframe_prereqs.py \
+            --engine third_party/KisakCOD \
+            --output "$folder/iw3_frame_memcpy.cpp" \
+            --entity-loop-output "$folder/iw3_g_runframe_entity_loop.inc" \
+            --report "$RUNNER_TEMP/iw3-original-g-runframe-audit.json"
+          python3 tools/iw3_android/prepare_real_engine_pool.py \
+            --engine third_party/KisakCOD \
+            --output "$folder/pool_allocator.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-pool-allocator.json"
+          python3 tools/iw3_android/prepare_real_engine_hitloc.py \
+            --engine third_party/KisakCOD \
+            --output "$folder/iw3_g_combat_hitloc.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-sp-hitloc.json"
+          python3 tools/iw3_android/prepare_real_engine_iwd_names.py \
+            --engine third_party/KisakCOD \
+            --output "$folder/iw3_iwd_names.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-iwd-names.json"
+          python3 tools/iw3_android/prepare_real_engine_unzip.py \
+            --engine third_party/KisakCOD \
+            --output "$folder/unzip.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-unzip-abi.json"
+          python3 tools/iw3_android/prepare_real_engine_iwd_mount.py \
+            --engine third_party/KisakCOD \
+            --output "$folder/fs_load_zip.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-iwd-mount.json"
+          python3 tools/iw3_android/prepare_real_engine_iwd_services.py \
+            --engine third_party/KisakCOD \
+            --output "$folder/iw3_iwd_services.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-iwd-services.json"
+          python3 tools/iw3_android/prepare_real_engine_iwd_searchpath.py \
+            --engine third_party/KisakCOD \
+            --output "$folder/iw3_iwd_searchpath.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-iwd-searchpath.json"
+          python3 tools/iw3_android/prepare_real_engine_iwd_directory.py \
+            --engine third_party/KisakCOD \
+            --output "$folder/iw3_iwd_directory.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-iwd-directory.json"
+          python3 tools/iw3_android/prepare_real_engine_iwd_lookup.py \
+            --engine third_party/KisakCOD \
+            --output "$folder/iw3_iwd_lookup.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-iwd-lookup.json"
+          python3 tools/iw3_android/prepare_real_engine_iwd_read.py \
+            --engine third_party/KisakCOD \
+            --output "$folder/iw3_iwd_read_lifecycle.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-iwd-read-lifecycle.json"
+          python3 tools/iw3_android/prepare_real_engine_fs_read.py \
+            --engine third_party/KisakCOD \
+            --output "$folder/iw3_fs_read.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-fs-read.json"
+          python3 tools/iw3_android/prepare_real_engine_fs_startup.py \
+            --engine third_party/KisakCOD \
+            --output "$folder/iw3_fs_startup.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-fs-startup.json"
+          echo "IW3_ORIGINAL_FILE_READ_LIFECYCLE_STAGED_NOT_LINKED"
+          echo "IW3_ORIGINAL_FS_READ_ABI_AUDIT_SOURCE_STAGED"
+          echo 'IW3_REAL_SOURCE_DIAGNOSTIC_INCLUDES_ONLY'
+
+      - name: Compile JNI Activity with real KisakCOD source for Android ARM64
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$APP_DIR"
+          gradle --no-daemon --stacktrace :app:assembleDebug \
+            2>&1 | tee "$RUNNER_TEMP/iw3-gradle-build.log"
+          test -s "app/build/outputs/apk/debug/app-debug.apk"
+          echo "ORIGINAL_IW3_ANDROID_JNI_DIAGNOSTIC_APK_BUILT"
+
+      - name: Validate ARM64 native engine module JNI, package and signature
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk="$APP_DIR/app/build/outputs/apk/debug/app-debug.apk"
+          sdk="$ANDROID_SDK_ROOT"
+          aapt="$sdk/build-tools/35.0.1/aapt"
+          "$aapt" dump badging "$apk" >"$RUNNER_TEMP/iw3-package.txt"
+          grep -F "package: name='org.z2026.iw3nativeprobe'" "$RUNNER_TEMP/iw3-package.txt"
+          grep 'arm64-v8a' "$RUNNER_TEMP/iw3-package.txt"
+          unzip -tq "$apk" | tail -n 2
+          unzip -Z1 "$apk" | grep -Fx 'lib/arm64-v8a/libiw3_sp_math.so'
+          unzip -p "$apk" lib/arm64-v8a/libiw3_sp_math.so >"$RUNNER_TEMP/libiw3_sp_math.so"
+          readelf="$sdk/ndk/${NDK_VER}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
+          "$readelf" -h "$RUNNER_TEMP/libiw3_sp_math.so" \
+            >"$RUNNER_TEMP/iw3-jni-elf.txt"
+          grep 'AArch64' "$RUNNER_TEMP/iw3-jni-elf.txt"
+          grep 'ELF64' "$RUNNER_TEMP/iw3-jni-elf.txt"
+          "$readelf" -W --dyn-syms "$RUNNER_TEMP/libiw3_sp_math.so" \
+            >"$RUNNER_TEMP/iw3-jni-symbols.txt"
+          for symbol in \
+            Java_org_z2026_iw3nativeprobe_EngineBridge_nativeReport \
+            Java_org_z2026_iw3nativeprobe_EngineBridge_nativeSetDataRoot \
+            Java_org_z2026_iw3nativeprobe_EngineBridge_nativeValidateImportedIwds \
+            Java_org_z2026_iw3nativeprobe_EngineBridge_nativeTouch \
+            Java_org_z2026_iw3nativeprobe_EngineBridge_nativeLifecycle \
+            z2026_iw3_configstring_num z2026_iw3_angle_vectors \
+            z2026_iw3_frame_memcpy_smoke \
+            z2026_iw3_real_pool_smoke \
+            z2026_iw3_hitloc_copy_smoke \
+            z2026_iw3_iwd_names_smoke \
+            z2026_iw3_unzip_smoke \
+            z2026_iw3_validate_imported_iwds \
+            z2026_iw3_iwd_index_fixture_smoke; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-jni-symbols.txt" || exit 1
+          done
+          "$sdk/build-tools/35.0.1/apksigner" verify --verbose "$apk"
+          sha256sum "$apk" | tee "$RUNNER_TEMP/iw3-diagnostic-apk-sha256.txt"
+          echo "IW3_ORIGINAL_NATIVE_ARM64_JNI_LINK_GREEN"
+
+      - name: Upload diagnostic app, ELF, provenance (NOT a playable IW3 APK)
+        uses: actions/upload-artifact@v4
+        with:
+          name: IW3-original-code-JNI-Android-integration-NOT-A-GAME
+          path: |
+            ${{ github.workspace }}/android/iw3-native/android_app/app/build/outputs/apk/debug/app-debug.apk
+            ${{ runner.temp }}/iw3-original-source-provenance.json
+            ${{ runner.temp }}/iw3-original-g-runframe-audit.json
+            ${{ runner.temp }}/iw3-original-pool-allocator.json
+            ${{ runner.temp }}/iw3-original-sp-hitloc.json
+            ${{ runner.temp }}/iw3-original-iwd-names.json
+            ${{ runner.temp }}/iw3-original-unzip-abi.json
+            ${{ runner.temp }}/iw3-original-iwd-mount.json
+            ${{ runner.temp }}/iw3-original-iwd-services.json
+            ${{ runner.temp }}/iw3-original-iwd-read-lifecycle.json
+            ${{ runner.temp }}/iw3-original-fs-read.json
+            ${{ runner.temp }}/iw3-original-fs-startup.json
+            ${{ runner.temp }}/iw3-jni-elf.txt
+            ${{ runner.temp }}/iw3-jni-symbols.txt
+            ${{ runner.temp }}/iw3-diagnostic-apk-sha256.txt
+          if-no-files-found: error
+          retention-days: 14

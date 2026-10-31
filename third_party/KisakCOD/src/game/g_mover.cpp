@@ -15,7 +15,7 @@
 #include "sentient.h"
 #endif
 
-struct pushed_t // sizeof=0x2C
+struct pushed_t // 44 bytes on 32-bit; 48 bytes on 64-bit
 {                                       // ...
     gentity_s *ent;
     float origin[3];
@@ -31,7 +31,7 @@ pushed_t *pushed_p;
 
 void __cdecl TRACK_g_mover()
 {
-    track_static_alloc_internal(pushed, 45056, "pushed", 9);
+    track_static_alloc_internal(pushed, sizeof(pushed), "pushed", 9);
     track_static_alloc_internal(hintStrings, 20, "hintStrings", 9);
 }
 

@@ -70,7 +70,7 @@ struct pathlocal_t_tag
     int maxNodes;
     int nodeCount;
 };
-struct __declspec(align(128)) pathlocal_t
+struct alignas(128) pathlocal_t
 {
     PathLinkInfo pathLinkInfoArray[2048];
     int pathLinkInfoArrayInited;
@@ -191,26 +191,28 @@ struct pathbasenode_t // sizeof=0x10
 };
 static_assert(sizeof(pathbasenode_t) == 16);
 
-struct pathnode_tree_nodes_t // sizeof=0x8
+struct pathnode_tree_nodes_t // Win32 sizeof=0x8; LP64 sizeof=0x10
 {                                       // ...
     int nodeCount;
     uint16_t *nodes;
 };
-static_assert(sizeof(pathnode_tree_nodes_t) == 8);
+static_assert(sizeof(pathnode_tree_nodes_t) == (sizeof(void *) == 8 ? 16 : 8));
 
 struct pathnode_tree_t;
-union pathnode_tree_info_t // sizeof=0x8
+union pathnode_tree_info_t // Win32 sizeof=0x8; LP64 sizeof=0x10
 {
     pathnode_tree_t *child[2];
     pathnode_tree_nodes_t s;
 };
+static_assert(sizeof(pathnode_tree_info_t) == 2 * sizeof(void *));
 
-struct pathnode_tree_t // sizeof=0x10
+struct pathnode_tree_t // Win32 sizeof=0x10; LP64 sizeof=0x18
 {
     int axis;
     float dist;
     pathnode_tree_info_t u;
 };
+static_assert(sizeof(pathnode_tree_t) == (sizeof(void *) == 8 ? 24 : 16));
 struct PathData // sizeof=0x28
 {                                       // ...
     PathData()
@@ -232,8 +234,15 @@ struct PathData // sizeof=0x28
 
 #ifdef KISAK_SP
 
+// The portable ARM64 audit of the original sentient/path-node services needs
+// pathnode runtime types and path service declarations, not the SP actor or
+// D3D client object graphs. Keep normal engine includes unchanged by default.
+#ifndef IW3_ANDROID_PORTABLE_PATHNODE_SERVICES
 #include "actor_badplace.h"
 #include <client/client.h>
+#else
+struct badplace_arc_t;
+#endif
 
 struct actor_s;
 

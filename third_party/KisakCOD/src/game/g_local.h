@@ -5,6 +5,7 @@
 #endif
 
 #include <qcommon/qcommon.h>
+#include <server/server_frame.h>
 #include <bgame/bg_local.h>
 #include <script/scr_variable.h>
 #include "game_public.h"

@@ -7,9 +7,13 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "third_party/KisakCOD/src/bgame/bg_weapons_load_obj.cpp"
 
 class WeaponSchemaTests(unittest.TestCase):
-    def test_exact_unmodified_engine_schema(self):
+    def test_exact_abi_aware_engine_schema(self):
         report = parse_weapon_schema(SOURCE.read_text(encoding="utf-8"))
         self.assertEqual(report["field_count"], 502)
+        self.assertFalse(report["offsets_are_native_android_offsets"])
+        self.assertEqual(report["fields"][0]["offset_bytes"], 4)
+        self.assertEqual(report["fields"][0]["native_offset_expression"],
+                         "offsetof(WeaponDef, szDisplayName)")
         self.assertEqual(report["unique_names"], 501)
         self.assertEqual(report["duplicate_names_in_upstream_source"], ["guidedMissileType"])
         names = {r["name"] for r in report["fields"]}
@@ -25,7 +29,7 @@ class WeaponSchemaTests(unittest.TestCase):
             parse_weapon_schema("void main() {}")
         text = SOURCE.read_text(encoding="utf-8")
         with self.assertRaisesRegex(ValueError, "Incomplete weapon schema"):
-            parse_weapon_schema(text.replace('"displayName", 4, CSPFT_STRING',
+            parse_weapon_schema(text.replace('"displayName", offsetof(WeaponDef, szDisplayName), CSPFT_STRING',
                                              '"noDisplay", invalid, CSPFT_STRING', 1))
 
 

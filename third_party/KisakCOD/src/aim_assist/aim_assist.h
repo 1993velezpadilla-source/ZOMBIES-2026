@@ -1,5 +1,17 @@
 #pragma once
+#if defined(__ANDROID__)
+// CL_MouseMove needs only the aim-assist input ABI, not cg_local's Win32/D3D
+// renderer layouts. Keep those unrelated 32-bit structures out of the Android
+// client-input compile while preserving the original aim input/output fields.
+#include <universal/q_shared.h>
+#include <universal/com_math.h>
+struct centity_s;
+struct playerState_s;
+struct dvar_s;
+struct cg_s;
+#else
 #include <cgame/cg_local.h>
+#endif
 #include <qcommon/graph.h>
 #include <cstdint>
 
@@ -108,7 +120,7 @@ struct AimInput // sizeof=0x30
     int32_t localClientNum;                 // ...
     const struct playerState_s *ps;            // ...
 };
-static_assert(sizeof(AimInput) == 0x30);
+static_assert(sizeof(AimInput) == (sizeof(void *) == 8 ? 0x38 : 0x30));
 
 struct AimOutput // sizeof=0x10
 {                                       // ...

@@ -3,10 +3,13 @@
 #include <cstddef>
 
 #include <zlib/zlib.h>
+#include <qcommon/fast_critical_section.h>
 
 #include <xanim/xanim.h>
 #include <xanim/xmodel.h>
+#if !defined(__ANDROID__)
 #include <win32/win_local.h>
+#endif
 #
 
 extern bool g_anyFastFileLoaded;
@@ -175,10 +178,12 @@ uint32_t __cdecl DB_AuthLoad_Inflate(z_stream_s *stream, int32_t flush);
 void __cdecl DB_LoadedExternalData(int32_t size);
 double __cdecl DB_GetLoadedFraction();
 void __cdecl DB_LoadXFileData(uint8_t *pos, uint32_t size);
+#if !defined(__ANDROID__)
 void __stdcall DB_FileReadCompletion(
     uint32_t dwErrorCode,
     uint32_t dwNumberOfBytesTransfered,
     _OVERLAPPED *lpOverlapped);
+#endif
 void __cdecl DB_LoadXFileInternal();
 void __cdecl DB_ResetZoneSize(int32_t trackLoadProgress);
 void __cdecl DB_LoadXFile(

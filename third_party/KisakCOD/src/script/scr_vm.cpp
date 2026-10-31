@@ -36,27 +36,60 @@
 
 #include <setjmp.h>
 
+#if defined(__aarch64__)
+// ARM64 has an architectural virtual counter rather than x86 RDTSC. This
+// counter is used only by the optional script profiler, not game simulation.
+static inline uint64_t IW3_ScriptProfileCounter()
+{
+    uint64_t counter;
+    asm volatile("isb\n\tmrs %0, cntvct_el0" : "=r"(counter));
+    return counter;
+}
+#else
+static inline uint64_t IW3_ScriptProfileCounter()
+{
+    return __rdtsc();
+}
+#endif
+
+#if defined(__ANDROID__)
+// Platform provider is supplied by the eventual Android system layer; this
+// declaration keeps the original fatal path explicit in compile-only audits.
+void __cdecl Sys_Error(const char *error, ...);
+#endif
+
 
 void Log(char const *format, ...)
 {
     char buffer[4096] = { 0 };
-    static bool bFirst = true;
-    FILE* logFile = NULL;
-
-    if (bFirst) {
-        logFile = fopen("F:\\swaglord.txt", "w"); // create new log
-        fprintf(logFile, "--Start of log--\n");
-        bFirst = false;
-    }
-    else {
-        logFile = fopen("F:\\swaglord.txt", "a"); // append to log
-    }
-    setbuf(logFile, NULL); // Turn off buffered I/O, decreases performance but if crash occurs, no unflushed buffer.
     va_list args;
     va_start(args, format);
-    vsnprintf(buffer, 4096, format, args);
-    fprintf(logFile, buffer);
+    vsnprintf(buffer, sizeof(buffer), format, args);
     va_end(args);
+
+    static bool bFirst = true;
+    FILE* logFile = nullptr;
+    if (bFirst)
+    {
+        logFile = fopen("F:\\swaglord.txt", "w");
+        bFirst = false;
+        if (logFile)
+            fputs("--Start of log--\n", logFile);
+    }
+    else
+    {
+        logFile = fopen("F:\\swaglord.txt", "a");
+    }
+
+    // This legacy diagnostic helper must remain safe when its Windows-only
+    // destination is unavailable on Android.
+    if (!logFile)
+    {
+        fputs(buffer, stderr);
+        return;
+    }
+    setbuf(logFile, nullptr);
+    fputs(buffer, logFile);
     fclose(logFile);
 }
 
@@ -183,8 +216,13 @@ int __cdecl Scr_GetFunctionHandle(const char* filename, const char* name)
             "pos.type == VAR_CODE::pos || pos.type == VAR_DEVELOPER_CODE::pos");
     if (!Scr_IsInOpcodeMemory(v3.u.codePosValue))
         return 0;
-    result = v3.u.intValue - (uint32_t)scrVarPub.programBuffer;
-    if ((const char*)v3.u.intValue == scrVarPub.programBuffer)
+    // Function handles are offsets into the active script program buffer.
+    // Subtract native pointers before narrowing to the legacy int handle.
+    const auto codeOffset = v3.u.codePosValue - scrVarPub.programBuffer;
+    if (codeOffset < 0 || codeOffset > 0x7fffffff)
+        return 0;
+    result = static_cast<int>(codeOffset);
+    if (v3.u.codePosValue == scrVarPub.programBuffer)
         MyAssertHandler(".\\script\\scr_main.cpp", 106, 0, "%s", "result");
     return result;
 }
@@ -201,10 +239,12 @@ void __cdecl Scr_ShutdownGameStrings()
 
 void __cdecl TRACK_scr_vm()
 {
-    track_static_alloc_internal(&scrVmGlob, 8232, "scrVmGlob", 7);
-    track_static_alloc_internal(&scrVmPub, 17192, "scrVmPub", 7);
-    track_static_alloc_internal(g_script_error, 2112, "g_script_error", 7);
-    track_static_alloc_internal(&scrVmDebugPub, 147984, "scrVmDebugPub", 0);
+    // These are live runtime globals. Use the active ABI's sizes instead of
+    // the original Win32 byte counts so LP64 tracking covers the full objects.
+    track_static_alloc_internal(&scrVmGlob, sizeof(scrVmGlob), "scrVmGlob", 7);
+    track_static_alloc_internal(&scrVmPub, sizeof(scrVmPub), "scrVmPub", 7);
+    track_static_alloc_internal(g_script_error, sizeof(g_script_error), "g_script_error", 7);
+    track_static_alloc_internal(&scrVmDebugPub, sizeof(scrVmDebugPub), "scrVmDebugPub", 0);
 }
 
 void __cdecl Scr_ClearErrorMessage()
@@ -2629,9 +2669,9 @@ CallBuiltIn:
             }
             scrVmPub.top = fs.top;
             builtInTime = scrVmDebugPub.builtInTime;
-            time = __rdtsc();
+            time = IW3_ScriptProfileCounter();
             ((void (*)(void))scrCompilePub.func_table[builtinIndex])();
-            timeSpent = __rdtsc() - time;
+            timeSpent = IW3_ScriptProfileCounter() - time;
             scrVmDebugPub.builtInTime = timeSpent + builtInTime;
             scrVmDebugPub.func_table[builtinIndex].prof += timeSpent;
             ++scrVmDebugPub.func_table[builtinIndex].usage;
@@ -2677,9 +2717,9 @@ CallBuiltinMethod:
                     scrVmPub.top = fs.top - 1;
                 }
                 builtInTime = scrVmDebugPub.builtInTime;
-                time = __rdtsc();
+                time = IW3_ScriptProfileCounter();
                 ((void (*)(scr_entref_t))scrCompilePub.func_table[builtinIndex])(entref);
-                timeSpent = __rdtsc() - time;
+                timeSpent = IW3_ScriptProfileCounter() - time;
                 scrVmDebugPub.builtInTime = timeSpent + builtInTime;
                 scrVmDebugPub.func_table[builtinIndex].prof += timeSpent;
                 ++scrVmDebugPub.func_table[builtinIndex].usage;
@@ -3537,10 +3577,10 @@ uint32_t __cdecl VM_Execute(uint32_t localId, const char *pos, uint32_t paramcou
         if (scrVarPub.bScriptProfile)
         {
             scrVmDebugPub.builtInTime = 0;
-            time = __rdtsc();
+            time = IW3_ScriptProfileCounter();
             localIda = VM_ExecuteInternal();
             if (!scrVmPub.function_count)
-                Scr_AddProfileTime(pos, __rdtsc() - time, scrVmDebugPub.builtInTime);
+                Scr_AddProfileTime(pos, IW3_ScriptProfileCounter() - time, scrVmDebugPub.builtInTime);
         }
         else
         {
@@ -4661,14 +4701,14 @@ void __cdecl VM_Resume(uint32_t timeId)
         if (scrVarPub.bScriptProfile)
         {
             scrVmDebugPub.builtInTime = 0;
-            time = __rdtsc();
+            time = IW3_ScriptProfileCounter();
             pos = fs.pos;
             //v2 = VM_Execute_0();
             //v2 = VM_ExecuteInternal(stack.pos, stack.localId, stack.localVarCount, stack.top, stack.startTop);
             v2 = VM_ExecuteInternal();
             RemoveRefToObject(v2);
             RemoveRefToValue(scrVmPub.stack[1].type, scrVmPub.stack[1].u);
-            Scr_AddProfileTime(pos, __rdtsc() - time, scrVmDebugPub.builtInTime);
+            Scr_AddProfileTime(pos, IW3_ScriptProfileCounter() - time, scrVmDebugPub.builtInTime);
         }
         else
         {

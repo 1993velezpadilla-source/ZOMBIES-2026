@@ -1,0 +1,88 @@
+#pragma once
+// Android/POSIX platform boundary for a future native KisakCOD SP runtime.
+// NOT an alternate game engine. No renderer, artificial gameplay, or assets.
+#include <cstddef>
+#include <cstdint>
+
+#if defined(__GNUC__)
+#define IW3_ANDROID_EXPORT __attribute__((visibility("default")))
+#else
+#define IW3_ANDROID_EXPORT
+#endif
+
+extern "C" {
+// Clock: monotonic elapsed nanoseconds, unaffected by wall time changes.
+IW3_ANDROID_EXPORT std::uint64_t z2026_platform_monotonic_ns();
+
+// Sandbox reads only: all paths relative to an opened app-owned directory.
+// A 0 return is success. The service retains its own root descriptor.
+IW3_ANDROID_EXPORT int z2026_platform_set_data_root(const char *absolute_dir);
+// Copy the configured app-private filesDir path into caller-owned storage.
+// Returns the path length, or -1 when unconfigured/too small.
+IW3_ANDROID_EXPORT int z2026_platform_copy_data_root(
+    char *destination, std::size_t capacity);
+// Calls the narrow Sys_Cwd/Sys_DefaultCDPath adapter used by original FS_RegisterDvars.
+IW3_ANDROID_EXPORT int z2026_iw3_fs_startup_path_smoke();
+IW3_ANDROID_EXPORT int z2026_platform_read_file(
+    const char *relative_path, void *destination, std::size_t capacity);
+
+// Rooted native file primitives for the original ZIP/IWD reader. The returned
+// descriptor is owned by the caller; it is opened beneath the retained root,
+// rejecting absolute paths, dot components and symlink traversal.
+IW3_ANDROID_EXPORT int z2026_platform_open_read_fd(const char *relative_path);
+ 
+// Original FS_BuildOSPath callers may supply an absolute path. This variant
+// accepts it only when it is beneath the canonical app-data root.
+IW3_ANDROID_EXPORT int z2026_platform_open_engine_path_fd(const char *path);
+
+// Enumerate regular *.iwd files directly inside a rooted directory. The
+// output is NUL-separated basenames (no partial writes); empty directory means
+// the root itself. Returns byte count, or -1 on error/capacity overflow.
+IW3_ANDROID_EXPORT int z2026_platform_list_iwd_files(
+    const char *directory, char *output, std::size_t output_capacity,
+    std::size_t *entry_count);
+// Enumerate immediate, non-hidden entries below the retained app-data root.
+// directories_only=0 returns regular files; directories_only=1 returns directories.
+// Symlinks and special files are skipped. Output is NUL-separated and all-or-nothing.
+// Returns bytes written, or -1 on invalid path, read error, or capacity overflow.
+IW3_ANDROID_EXPORT int z2026_platform_list_directory_entries(
+    const char *directory, int directories_only, char *output,
+    std::size_t output_capacity, std::size_t *entry_count);
+// Match original Sys_DirectoryHasContents semantics within the retained root.
+// Returns 1 when contents exist, 0 when empty, and -1 on invalid/unreadable paths.
+IW3_ANDROID_EXPORT int z2026_platform_directory_has_contents(const char *directory);
+IW3_ANDROID_EXPORT int z2026_platform_write_file(
+    const char *relative_path, const void *source, std::size_t length);
+IW3_ANDROID_EXPORT int z2026_platform_unlink_file(const char *relative_path);
+// Root-confined mutations for original com_files.cpp engine paths.
+// Paths are normalized beneath the retained app-private data root.
+IW3_ANDROID_EXPORT int z2026_platform_remove_engine_path(const char *engine_path);
+IW3_ANDROID_EXPORT int z2026_platform_rename_engine_path(
+    const char *from_engine_path, const char *to_engine_path);
+IW3_ANDROID_EXPORT int z2026_platform_mkdir(const char *relative_path);
+IW3_ANDROID_EXPORT int z2026_platform_rmdir(const char *relative_path);
+
+// Android MotionEvent pointer IDs (0..31) map onto ten simultaneous native
+// touch slots; pointer IDs are never used directly as array indices.
+// Android touch state plus a native adapter to original usercmd_s layout.
+// CL_CreateCmd/game-frame consumption remains pending.
+IW3_ANDROID_EXPORT int z2026_platform_touch_event(
+    int pointer_id, float normalized_x, float normalized_y, int down);
+IW3_ANDROID_EXPORT int z2026_platform_touch_snapshot(
+    int pointer_id, float *normalized_x, float *normalized_y);
+IW3_ANDROID_EXPORT void z2026_platform_touch_reset();
+
+// fields[10] = serverTime, buttons, packed pitch/yaw/roll angles, then
+// forward/right/up/pitch/yaw movement. Uses authentic qcommon/msg.h usercmd_s.
+// Diagnostic snapshot only; the original client source also has an Android-only
+// apply hook, but cl_input.cpp is not yet part of the Android shared-library target.
+IW3_ANDROID_EXPORT int z2026_platform_usercmd_snapshot(
+    int server_time, int *fields, std::size_t field_count);
+
+// Merge current Android touch state into a real original usercmd_s before
+// CL_FinishMove encodes viewangles. The original CL_CreateCmd source is wired
+// to call this only on Android; that client TU still needs Android build integration.
+struct usercmd_s;
+IW3_ANDROID_EXPORT void z2026_platform_apply_touch_to_usercmd(
+    struct usercmd_s *command, float *viewangles);
+}

@@ -13,7 +13,13 @@
 #include "r_staticmodelcache.h"
 #include "r_cmds.h"
 #include "rb_logfile.h"
+#if defined(__ANDROID__)
+// The original Bink/D3D9 cinematic structures are not used by this translation
+// unit; keep only declarations of the original external entry points.
+#include <gfx_d3d/r_cinematic.h>
+#else
 #include "r_cinematic.h"
+#endif
 #include "rb_drawprofile.h"
 #include "r_image.h"
 #include "r_water.h"
@@ -350,9 +356,9 @@ bool __cdecl R_IsUsingAdaptiveGpuSync()
 
 void __cdecl TRACK_r_init()
 {
-    track_static_alloc_internal(&rgp, 8576, "rgp", 18);
-    track_static_alloc_internal(&rg, 33552, "rg", 18);
-    track_static_alloc_internal(&vidConfig, 48, "vidConfig", 18);
+    track_static_alloc_internal(&rgp, sizeof(rgp), "rgp", 18);
+    track_static_alloc_internal(&rg, sizeof(rg), "rg", 18);
+    track_static_alloc_internal(&vidConfig, sizeof(vidConfig), "vidConfig", 18);
     track_static_alloc_internal(&dx, sizeof(dx), "dx", 18);   // 11488 game / 11552 radiant (windows[5]) — use sizeof so the widened array stays self-consistent
 }
 
@@ -3045,37 +3051,39 @@ void R_InitSystems()
 
 int __cdecl R_CompareRefreshRates(_DWORD *e0, _DWORD *e1)
 {
-    return *e0 - *e1;
+    // A subtraction can wrap for valid 32-bit display-mode values, violating
+    // qsort's ordering contract on LP64 just as on Win32.
+    return (*e0 > *e1) - (*e0 < *e1);
 }
 
 int __cdecl R_AddValidResolution(int width, int height, int resolutionCount, int (*availableResolutions)[2])
 {
     iassert( (resolutionCount >= 0) );
     if (resolutionCount > 0
-        && (*availableResolutions)[2 * resolutionCount - 2] == width
-        && (*availableResolutions)[2 * resolutionCount - 1] == height)
+        && availableResolutions[resolutionCount - 1][0] == width
+        && availableResolutions[resolutionCount - 1][1] == height)
     {
         return resolutionCount;
     }
     if (width < 640 || height < 480)
         return resolutionCount;
-    (*availableResolutions)[2 * resolutionCount] = width;
-    (*availableResolutions)[2 * resolutionCount + 1] = height;
+    availableResolutions[resolutionCount][0] = width;
+    availableResolutions[resolutionCount][1] = height;
     return resolutionCount + 1;
 }
 
 int __cdecl R_CompareDisplayModes(_DWORD *e0, _DWORD *e1)
 {
-    int delta; // [esp+0h] [ebp-Ch]
-
-    delta = *e0 - *e1;
-    if (*e0 == *e1)
+    // Width, height, refresh: compare without narrowing/wrapping unsigned
+    // differences. Keep the original lexicographic mode ordering.
+    for (int field = 0; field < 3; ++field)
     {
-        delta = e0[1] - e1[1];
-        if (!delta)
-            return e0[2] - e1[2];
+        if (e0[field] < e1[field])
+            return -1;
+        if (e0[field] > e1[field])
+            return 1;
     }
-    return delta;
+    return 0;
 }
 
 int __cdecl R_AddValidRefreshRate(int refreshRate, int rateCount, int *availableRefreshRates)
@@ -3123,8 +3131,6 @@ void __cdecl R_EnumDisplayModes(uint32_t adapterIndex)
             &dx.displayModes[dx.displayModeCount]);
         if (hr >= 0)
         {
-            if (!dx.resolutionNameTable[4 * dx.displayModeCount - 1022])
-                dx.resolutionNameTable[4 * dx.displayModeCount - 1022] = (const char *)60;
             ++dx.displayModeCount;
         }
     }
@@ -3135,11 +3141,11 @@ void __cdecl R_EnumDisplayModes(uint32_t adapterIndex)
     {
         resolutionCount = R_AddValidResolution(
             dx.displayModes[modeIndex].Width,
-            (int)dx.resolutionNameTable[4 * modeIndex - 1023],
+            static_cast<int>(dx.displayModes[modeIndex].Height),
             resolutionCount,
             availableResolutions);
         refreshRateCount = R_AddValidRefreshRate(
-            (int)dx.resolutionNameTable[4 * modeIndex - 1022],
+            static_cast<int>(dx.displayModes[modeIndex].RefreshRate),
             refreshRateCount,
             availableRefreshRates);
     }
@@ -3153,7 +3159,13 @@ void __cdecl R_EnumDisplayModes(uint32_t adapterIndex)
     for (resolutionIndex = 0; resolutionIndex < resolutionCount; ++resolutionIndex)
     {
         dx.resolutionNameTable[resolutionIndex] = modeText;
-        v2 = snprintf(modeText, ARRAYSIZE(dx.modeText), "%ix%i", availableResolutions[resolutionIndex][0], availableResolutions[resolutionIndex][1]);
+        const size_t modeTextRemaining = sizeof(dx.modeText) - static_cast<size_t>(modeText - dx.modeText);
+        v2 = snprintf(modeText, modeTextRemaining, "%ix%i", availableResolutions[resolutionIndex][0], availableResolutions[resolutionIndex][1]);
+        if (v2 < 0 || static_cast<size_t>(v2) >= modeTextRemaining)
+        {
+            R_FatalInitError("Display resolution name buffer exhausted");
+            return;
+        }
         modeText += v2 + 1;
         if (availableResolutions[defaultResolutionIndex][0] < 640 || availableResolutions[defaultResolutionIndex][1] < 480)
             defaultResolutionIndex = resolutionIndex;
@@ -3170,7 +3182,13 @@ void __cdecl R_EnumDisplayModes(uint32_t adapterIndex)
     for (refreshRateIndex = 0; refreshRateIndex < refreshRateCount; ++refreshRateIndex)
     {
         dx.refreshRateNameTable[refreshRateIndex] = modeText;
-        v3 = snprintf(modeText, ARRAYSIZE(dx.modeText) - (v2 + 1), "%i Hz", availableRefreshRates[refreshRateIndex]); // TODO: Validate this is what is correct
+        const size_t refreshTextRemaining = sizeof(dx.modeText) - static_cast<size_t>(modeText - dx.modeText);
+        v3 = snprintf(modeText, refreshTextRemaining, "%i Hz", availableRefreshRates[refreshRateIndex]);
+        if (v3 < 0 || static_cast<size_t>(v3) >= refreshTextRemaining)
+        {
+            R_FatalInitError("Display refresh rate name buffer exhausted");
+            return;
+        }
         modeText += v3 + 1;
         if (availableRefreshRates[defaultRefreshRateIndex] < 60)
             defaultRefreshRateIndex = refreshRateIndex;

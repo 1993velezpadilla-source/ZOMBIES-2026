@@ -76,7 +76,19 @@ DObjAnimMat *R_UpdateSceneEntBounds(
     GfxSceneEntity *localSceneEnt; // [esp+33Ch] [ebp-18h]
     uint32_t state; // [esp+340h] [ebp-14h]
 
-    if (InterlockedCompareExchange((volatile LONG *)&sceneEnt->cull, 1, 0))
+#if defined(__ANDROID__)
+    // InterlockedCompareExchange is a full-barrier 32-bit claim on Windows.
+    // cull.state is the first 32-bit field of the same original cull block;
+    // use a sequentially-consistent native atomic on Android, not a stub.
+    uint32_t expectedCullState = 0;
+    const bool cullWasAlreadyClaimed =
+        !__atomic_compare_exchange_n(&sceneEnt->cull.state, &expectedCullState, 1u,
+                                     false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
+#else
+    const bool cullWasAlreadyClaimed =
+        InterlockedCompareExchange((volatile LONG *)&sceneEnt->cull, 1, 0) != 0;
+#endif
+    if (cullWasAlreadyClaimed)
     {
         *pLocalSceneEnt = 0;
         if (waitForCullState)

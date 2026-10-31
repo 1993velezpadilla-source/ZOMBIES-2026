@@ -11,7 +11,9 @@
 #pragma warning( pop )
 #endif
 
-#ifndef _XBOX
+#if !defined(_XBOX) && !defined(__ANDROID__)
+// These SDK headers describe Win32 input/network APIs; Android uses the
+// native input boundary and POSIX networking instead.
 #define DIRECTINPUT_VERSION 0x0800  //[ 0x0300 | 0x0500 | 0x0700 | 0x0800 ]
 #include <dinput.h>
 //#include <dsound.h>
@@ -19,6 +21,7 @@
 #include <wsipx.h>
 #endif
 #include <qcommon/qcommon.h>
+#include <qcommon/fast_critical_section.h>
 #ifdef KISAK_MP
 #include <qcommon/net_chan_mp.h>
 #elif KISAK_SP
@@ -100,7 +103,12 @@ void	IN_Init (void);
 void	IN_Shutdown (void);
 void	IN_JoystickCommands (void);
 
+#if defined(__ANDROID__)
+// BOOL is a Win32 SDK type; Android uses its ABI-equivalent int.
+void __cdecl IN_ShowSystemCursor(int show);
+#else
 void __cdecl IN_ShowSystemCursor(BOOL show);
+#endif
 
 // KISAKTODO void	IN_Move (usercmd_s *cmd); // usercmd_t -> usercmd_s
 // add additional non keyboard / non mouse movement on top of the keyboard move cmd
@@ -113,7 +121,7 @@ void	IN_Frame (void);
 bool IN_IsTalkKeyHeld();
 
 // window procedure
-#ifndef _XBOX
+#if !defined(_XBOX) && !defined(__ANDROID__)
 LRESULT WINAPI MainWndProc (
     HWND    hWnd,
     UINT    uMsg,
@@ -124,7 +132,7 @@ LRESULT WINAPI MainWndProc (
 void Conbuf_AppendText( const char *msg );
 void Conbuf_AppendTextInMainThread(const char* msg);
 
-#ifndef _XBOX
+#if !defined(_XBOX) && !defined(__ANDROID__)
 // LWSS: Accurate to cod4
 typedef struct
 {
@@ -140,7 +148,7 @@ typedef struct
 	OSVERSIONINFO	osversion;
 
 	// when we get a windows message, we store the time off so keyboard processing
-	// can know the exact time of an event
+		// can know the exact time of an event
 	unsigned		sysMsgTime;
 } WinVars_t;
 
@@ -177,7 +185,9 @@ extern std::mutex s_criticalSections[];
 #endif
 
 extern int client_state; // LWSS ADD. This looks similar to signonstate
+#if !defined(__ANDROID__)
 extern HWND g_splashWnd;
+#endif
 
 #if defined(KISAK_RADIANT)
 // Radiant tools build: use SP-compatible critical section layout
@@ -305,17 +315,9 @@ struct sysEvent_t // sizeof=0x18
 	void *evPtr;                        // ...
 };
 
-struct FastCriticalSection
-{
-	volatile uint32_t readCount;
-	volatile uint32_t writeCount;
-};
-
 void Sys_InitializeCriticalSections();
 void Sys_EnterCriticalSection(int critSect);
 void Sys_LeaveCriticalSection(int critSect);
-void Sys_LockWrite(FastCriticalSection* critSect);
-void Sys_UnlockWrite(FastCriticalSection* critSect);
 
 int Sys_InterlockedIncrement(uint *addend);
 int Sys_InterlockedDecrement(uint *addend);
@@ -343,7 +345,11 @@ void __cdecl Sys_Listen_f();
 #endif
 
 void __cdecl Sys_Mkdir(const char *path);
+#if defined(__ANDROID__)
+int __cdecl Sys_RemoveDirTree(const char *path);
+#else
 BOOL __cdecl Sys_RemoveDirTree(const char *path);
+#endif
 int __cdecl Sys_CountFileList(char **list);
 char **__cdecl Sys_ListFiles(
 	const char *directory,

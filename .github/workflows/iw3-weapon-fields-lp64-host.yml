@@ -1,0 +1,49 @@
+name: IW3 original 502 weapon field offsets and asset pointers LP64 (NOT GAME)
+
+on:
+  push:
+    branches:
+      - feature/iw3-native-android-arm64-20261025
+    paths:
+      - '.github/workflows/iw3-weapon-fields-lp64-host.yml'
+      - 'third_party/KisakCOD/src/bgame/bg_weapons_load_obj.cpp'
+      - 'third_party/KisakCOD/src/universal/q_shared.cpp'
+      - 'third_party/KisakCOD/src/xanim/xanim.h'
+      - 'tests/test_iw3_android_weapon_field_offsets.py'
+      - 'tests/fixtures/iw3_weapon_fields_legacy_offsets.tsv'
+  pull_request:
+    branches:
+      - feature/zombies-offline-sp-weapons-20261024
+    paths:
+      - '.github/workflows/iw3-weapon-fields-lp64-host.yml'
+      - 'third_party/KisakCOD/src/bgame/bg_weapons_load_obj.cpp'
+      - 'third_party/KisakCOD/src/universal/q_shared.cpp'
+      - 'third_party/KisakCOD/src/xanim/xanim.h'
+      - 'tests/test_iw3_android_weapon_field_offsets.py'
+      - 'tests/fixtures/iw3_weapon_fields_legacy_offsets.tsv'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: iw3-weapon-fields-lp64-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  authentic-weapon-fields-lp64:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Execute original 502-field and asset pointer regressions under ASan/UBSan
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s tests -p 'test_iw3_android_weapon_field_offsets.py' -v
+          echo 'IW3_ORIGINAL_502_WEAPON_FIELDS_LP64_HOST_PASS'
+          echo 'IW3_ORIGINAL_ASSET_POINTERS_LP64_HOST_PASS'
+          echo 'IW3_WEAPON_CONFIG_REAL_ASSET_LOADED=false'
+          echo 'IW3_REAL_MAP_LOADED=false'
+          echo 'IW3_RENDERER_FRAME_PROVEN=false'
+          echo 'IW3_GAMEPLAY_PROVEN=false'
+          echo 'IW3_PLAYABLE_APK=false'

@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cstdint>
+#include "snd_stopsounds.h"
+
 #include <qcommon/qcommon.h>
 #ifndef KISAK_OPENAL
 #include <msslib/mss.h>
@@ -16,15 +19,16 @@
 typedef char CHAR;
 typedef short SHORT;
 typedef int BOOL;
-typedef long LONG;
+typedef std::int32_t LONG;
 typedef CHAR *LPSTR, *PSTR;
-typedef unsigned long ULONG_PTR, *PULONG_PTR;
+typedef std::uintptr_t ULONG_PTR, *PULONG_PTR;
 typedef ULONG_PTR DWORD_PTR, *PDWORD_PTR;
-typedef unsigned long DWORD;
-typedef unsigned short WORD;
-typedef unsigned int UINT;
+typedef std::uint32_t DWORD;
+typedef std::uint16_t WORD;
+typedef std::uint32_t UINT;
 typedef void *LPVOID;
 typedef struct HWND__ *HWND;
+typedef int BOOL;
 typedef struct HINSTANCE__ *HINSTANCE;
 typedef HINSTANCE HMODULE;
 typedef struct HWAVE__ *HWAVE;
@@ -37,6 +41,11 @@ typedef struct wavehdr_tag *LPWAVEHDR;
 typedef struct HMIDIOUT__ *HMIDIOUT;
 typedef HMIDIOUT *LPHMIDIOUT;
 typedef DWORD FOURCC;
+#if defined(__ANDROID__)
+static_assert(sizeof(DWORD) == 4, "Win32 DWORD remains 32-bit on Android LP64");
+static_assert(sizeof(LONG) == 4, "Win32 LONG remains 32-bit on Android LP64");
+static_assert(sizeof(ULONG_PTR) == sizeof(void *), "ULONG_PTR remains pointer-sized");
+#endif
 
 #ifndef WAVE_MAPPER
 #define WAVE_MAPPER ((UINT)-1)
@@ -51,6 +60,14 @@ typedef DWORD FOURCC;
 #endif
 #endif
 #endif
+
+#if defined(__ANDROID__)
+// The original sound API retains opaque Win32 parameter types for desktop
+// callers. Android does not create or dereference these handles.
+typedef struct HWND__ *HWND;
+typedef int BOOL;
+#endif
+
 #include <gfx_d3d/fxprimitives.h>
 #include <universal/memfile.h>
 
@@ -115,16 +132,7 @@ enum snd_overlay_type_t : __int32
     SND_OVERLAY_STREAM = 0x2,
     SND_OVERLAY_2D = 0x3,
 };
-enum snd_stopsounds_arg_t : __int32
-{                                       // ...
-    SND_STOP_ALL = 0x0,
-    SND_KEEP_REVERB = 0x1,
-    SND_KEEP_MUSIC = 0x2,
-    SND_KEEP_AMBIENT = 0x4,
-    SND_KEEP_MUSIC_AND_AMBIENT = 0x6,
-    SND_STOP_STREAMED = 0x8,
-    SND_KEEP_CHANNEL_VOLUMES = 0x10,
-};
+
 enum snd_alias_system_t : __int32
 {                                       // ...
     SASYS_UI = 0x0,
@@ -182,7 +190,11 @@ struct LoadedSound // sizeof=0x2C
     const char *name;
     MssSoundCOD4 sound;
 };
+#if defined(__ANDROID__)
+static_assert(sizeof(LoadedSound) == 64);
+#else
 static_assert(sizeof(LoadedSound) == 44);
+#endif
 
 struct StreamFileNameRaw // sizeof=0x8
 {                                       // ...
@@ -221,7 +233,11 @@ struct SndCurve // sizeof=0x48
     int knotCount;                      // ...
     float knots[8][2];                  // ...
 };
+#if defined(__ANDROID__)
+static_assert(sizeof(SndCurve) == 80);
+#else
 static_assert(sizeof(SndCurve) == 72);
+#endif
 
 struct MSSSpeakerLevels // sizeof=0x10
 {                                       // ...
@@ -274,7 +290,11 @@ struct snd_alias_t // sizeof=0x5C
     float envelopPercentage;
     SpeakerMap *speakerMap;
 };
+#if defined(__ANDROID__)
+static_assert(sizeof(snd_alias_t) == 128);
+#else
 static_assert(sizeof(snd_alias_t) == 92);
+#endif
 
 struct snd_alias_list_t // sizeof=0xC
 {                                       // ...
@@ -282,7 +302,11 @@ struct snd_alias_list_t // sizeof=0xC
     snd_alias_t *head;                  // ...
     int count;                          // ...
 };
+#if defined(__ANDROID__)
+static_assert(sizeof(snd_alias_list_t) == 24);
+#else
 static_assert(sizeof(snd_alias_list_t) == 12);
+#endif
 
 struct snd_entchannel_info_t // sizeof=0x50
 {                                       // ...

@@ -1,6 +1,10 @@
 #pragma once
 
+#if defined(__ANDROID__)
+#include "r_d3d9_opaque.h"
+#else
 #include <d3d9.h>
+#endif
 
 #include <universal/com_math.h>
 #include <qcommon/com_pack.h>
@@ -243,7 +247,7 @@ struct GfxImage // sizeof=0x24
     bool delayLoadPixels;
     const char* name;
 };
-static_assert(sizeof(GfxImage) == 36);
+static_assert(sizeof(GfxImage) == (sizeof(void *) == 8 ? 48u : 36u));
 
 struct GfxCodeMatrices // sizeof=0x800
 {                                       // ...
@@ -395,7 +399,7 @@ struct GfxWorldDpvsStatic // sizeof=0x68
     uint32_t* surfaceCastsSunShadow; // ...
     volatile int usageCount;
 };
-static_assert(sizeof(GfxWorldDpvsStatic) == 0x68);
+static_assert(sizeof(GfxWorldDpvsStatic) == (sizeof(void *) == 8 ? 168u : 0x68u));
 
 using EntVisData = byte *[3];
 
@@ -672,7 +676,7 @@ struct GfxPixelShaderLoadDef // sizeof=0x8
     uint16_t programSize;
     uint16_t loadForRenderer;
 };
-static_assert(sizeof(GfxPixelShaderLoadDef) == 8);
+static_assert(sizeof(GfxPixelShaderLoadDef) == (sizeof(void *) == 8 ? 16u : 8u));
 
 struct GfxDepthOfField // sizeof=0x20
 {                                       // ...

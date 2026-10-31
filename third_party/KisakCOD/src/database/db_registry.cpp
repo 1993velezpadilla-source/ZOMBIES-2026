@@ -1,5 +1,9 @@
 #include <universal/q_shared.h>
 #include "database.h"
+#if defined(__ANDROID__)
+#include "db_fastfile_posix_open.h"
+#include "db_registry_android_compat.h"
+#endif
 
 #include <qcommon/files.h>
 #include <qcommon/mem_track.h>
@@ -9,7 +13,13 @@
 #include <qcommon/threads.h>
 #include <qcommon/com_bsp.h>
 #include <gfx_d3d/r_init.h>
+#if defined(__ANDROID__)
+#include <qcommon/qcommon.h>
+#include <qcommon/fast_critical_section.h>
+#include <qcommon/net_chan.h>
+#else
 #include <win32/win_local.h>
+#endif
 #include <gfx_d3d/rb_uploadshaders.h>
 #include <gfx_d3d/r_image.h>
 #include <universal/com_files.h>
@@ -24,6 +34,8 @@
 #include <universal/profile.h>
 
 #include <algorithm>
+#include <cstdint>
+#include <climits>
 
 #include <setjmp.h>
 #include <game/g_bsp.h>
@@ -479,7 +491,7 @@ char *__cdecl DB_ReferencedFFNameList()
                 I_strncat(g_zoneNameList, 2080, " ");
             if (g_zones[i].modZone)
             {
-                I_strncat(g_zoneNameList, 2080, (const char*)fs_gameDirVar->current.integer);
+                I_strncat(g_zoneNameList, 2080, fs_gameDirVar->current.string);
                 I_strncat(g_zoneNameList, 2080, "/");
             }
             I_strncat(g_zoneNameList, 2080, g_zones[i].name);
@@ -632,16 +644,68 @@ void __cdecl TRACK_db_registry()
     track_static_alloc_internal(g_fileBuf, 0x80000, "g_fileBuf", 10);
 }
 
+// The original 32-bit index-address casts lose the upper half of ARM64
+// pointers. Keep geometry offsets in pointer-width arithmetic until the
+// engine's signed 32-bit buffer offset is known to be representable.
 void __cdecl DB_GetIndexBufferAndBase(uint8_t zoneHandle, void *indices, void **ib, int32_t *baseIndex)
 {
-    *ib = g_zones[zoneHandle].mem.indexBuffer;
-    *baseIndex = ((uint32_t)indices - (uint32_t)g_zones[zoneHandle].mem.blocks[8].data) >> 1;
+    if (!ib || !baseIndex)
+    {
+        Com_Error(ERR_DROP, "DB_GetIndexBufferAndBase: missing output pointer");
+        return;
+    }
+    *ib = nullptr;
+    *baseIndex = 0;
+    if (zoneHandle >= sizeof(g_zones) / sizeof(g_zones[0]) || !indices)
+    {
+        Com_Error(ERR_DROP, "DB_GetIndexBufferAndBase: invalid zone or index pointer");
+        return;
+    }
+
+    const XZoneMemory &mem = g_zones[zoneHandle].mem;
+    const uintptr_t start = reinterpret_cast<uintptr_t>(mem.blocks[8].data);
+    const uintptr_t address = reinterpret_cast<uintptr_t>(indices);
+    if (!start || address < start)
+    {
+        Com_Error(ERR_DROP, "DB_GetIndexBufferAndBase: index pointer precedes zone data");
+        return;
+    }
+    const uintptr_t bytes = address - start;
+    if ((bytes & 1u) != 0 || (bytes >> 1) > static_cast<uintptr_t>(INT32_MAX))
+    {
+        Com_Error(ERR_DROP, "DB_GetIndexBufferAndBase: unaligned or overflowing index offset");
+        return;
+    }
+    *ib = mem.indexBuffer;
+    *baseIndex = static_cast<int32_t>(bytes >> 1);
 }
 
 void __cdecl DB_GetVertexBufferAndOffset(uint8_t zoneHandle, _BYTE *verts, void **vb, int32_t *vertexOffset)
 {
-    *vertexOffset = verts - g_zones[zoneHandle].mem.blocks[7].data;
-    *vb = g_zones[zoneHandle].mem.vertexBuffer;
+    if (!vb || !vertexOffset)
+    {
+        Com_Error(ERR_DROP, "DB_GetVertexBufferAndOffset: missing output pointer");
+        return;
+    }
+    *vb = nullptr;
+    *vertexOffset = 0;
+    if (zoneHandle >= sizeof(g_zones) / sizeof(g_zones[0]) || !verts)
+    {
+        Com_Error(ERR_DROP, "DB_GetVertexBufferAndOffset: invalid zone or vertex pointer");
+        return;
+    }
+
+    const XZoneMemory &mem = g_zones[zoneHandle].mem;
+    const uintptr_t start = reinterpret_cast<uintptr_t>(mem.blocks[7].data);
+    const uintptr_t address = reinterpret_cast<uintptr_t>(verts);
+    if (!start || address < start ||
+        address - start > static_cast<uintptr_t>(INT32_MAX))
+    {
+        Com_Error(ERR_DROP, "DB_GetVertexBufferAndOffset: invalid vertex offset");
+        return;
+    }
+    *vb = mem.vertexBuffer;
+    *vertexOffset = static_cast<int32_t>(address - start);
 }
 
 void __cdecl DB_BuildOSPath_Mod(const char *zoneName, uint32_t size, char *filename)
@@ -649,7 +713,7 @@ void __cdecl DB_BuildOSPath_Mod(const char *zoneName, uint32_t size, char *filen
     char *v3; // eax
     const char *string; // [esp-8h] [ebp-8h]
 
-    if (!*(_BYTE *)fs_gameDirVar->current.integer)
+    if (!fs_gameDirVar->current.string || !fs_gameDirVar->current.string[0])
         MyAssertHandler(".\\database\\db_registry.cpp", 3204, 0, "%s", "IsUsingMods()");
     string = fs_gameDirVar->current.string;
     v3 = Sys_DefaultInstallPath();
@@ -661,14 +725,26 @@ bool __cdecl DB_ModFileExists()
     char filename[256]; // [esp+0h] [ebp-108h] BYREF
     void *zoneFile; // [esp+104h] [ebp-4h]
 
-    if (!*(_BYTE *)fs_gameDirVar->current.integer)
+    if (!fs_gameDirVar->current.string || !fs_gameDirVar->current.string[0])
         return 0;
     DB_BuildOSPath_Mod("mod", 0x100u, filename);
+#if defined(__ANDROID__)
+    uint32_t fileSize = 0;
+    int openError = 0;
+    zoneFile = DBFastFilePosixOpenEnginePath(filename, &fileSize, &openError);
+    if (zoneFile == (void *)-1)
+        return 0;
+    const int fd = DBFastFilePosixFdFromOpaque(zoneFile);
+    if (fd < 0)
+        return 0;
+    return close(fd) == 0;
+#else
     zoneFile = CreateFileA(filename, 0x80000000, 1u, 0, 3u, 0x60000000u, 0);
     if (zoneFile == (void *)-1)
         return 0;
     CloseHandle(zoneFile);
     return 1;
+#endif
 }
 
 void __cdecl DB_EndRecoverLostDevice()
@@ -960,22 +1036,35 @@ void __cdecl Mark_MenuAsset(menuDef_t *menu)
     DB_GetXAsset(ASSET_TYPE_MENU, (XAssetHeader)menu);
 }
 
+// The decompiled xmodelPieces indexing and 4-byte item strides only work
+// for Win32 layouts. Resolve real menu and item fields by their declared types
+// on both Windows and Android ARM64.
 void __cdecl DB_DynamicCloneMenu(XAssetHeader from, XAssetHeader to, int32_t swag)
 {
-    windowDef_t *toWindow; // [esp+14h] [ebp-18h]
-    int32_t toIndex; // [esp+18h] [ebp-14h]
-    int32_t fromIndex; // [esp+1Ch] [ebp-10h]
-    windowDef_t *fromWindow; // [esp+24h] [ebp-8h]
+    (void)swag;
+    menuDef_t *const fromMenu = from.menu;
+    menuDef_t *const toMenu = to.menu;
+    if (!fromMenu || !toMenu ||
+        fromMenu->itemCount < 0 || toMenu->itemCount < 0 ||
+        (fromMenu->itemCount && !fromMenu->items) ||
+        (toMenu->itemCount && !toMenu->items))
+        return;
 
-    to.xmodelPieces[6].pieces = from.xmodelPieces[6].pieces;
-    for (toIndex = 0; toIndex < (int)to.xmodelPieces[13].pieces; ++toIndex)
+    toMenu->window.staticFlags = fromMenu->window.staticFlags;
+    for (int32_t toIndex = 0; toIndex < toMenu->itemCount; ++toIndex)
     {
-        toWindow = *(windowDef_t **)(to.xmodelPieces[23].numpieces + 4 * toIndex);
+        itemDef_s *const toItem = toMenu->items[toIndex];
+        if (!toItem)
+            continue;
+        windowDef_t *const toWindow = &toItem->window;
         if (toWindow->name)
         {
-            for (fromIndex = 0; fromIndex < (int)from.xmodelPieces[13].pieces; ++fromIndex)
+            for (int32_t fromIndex = 0; fromIndex < fromMenu->itemCount; ++fromIndex)
             {
-                fromWindow = *(windowDef_t **)(from.xmodelPieces[23].numpieces + 4 * fromIndex);
+                itemDef_s *const fromItem = fromMenu->items[fromIndex];
+                if (!fromItem)
+                    continue;
+                const windowDef_t *const fromWindow = &fromItem->window;
                 if (fromWindow->name && !strcmp(fromWindow->name, toWindow->name))
                 {
                     toWindow->dynamicFlags[0] = fromWindow->dynamicFlags[0];
@@ -1447,6 +1536,66 @@ bool __cdecl DB_CompareReorderEntries(const DBReorderAssetEntry& e0, const DBReo
 
 void DB_EndReorderZone()
 {
+#if defined(__ANDROID__)
+    if (!s_dbReorder.entryCount)
+        return;
+    s_dbReorder.alreadyFinished = 1;
+    char csvName[256];
+    char bakName[256];
+    char line[512];
+    Com_sprintf(csvName, sizeof(csvName), "zone_source/%s.csv", s_dbReorder.zoneName);
+    Com_sprintf(bakName, sizeof(bakName), "%s.bak", csvName);
+    if (z2026_platform_mkdir("zone_source") != 0)
+        return;
+    (void)z2026_platform_unlink_file(bakName);
+    char *previousCsv = nullptr;
+    uint32_t previousSize = 0;
+    if (DB_ReadAndroidZoneSourceCsv(csvName, &previousCsv, &previousSize))
+    {
+        const int backupResult = z2026_platform_write_file(bakName, previousCsv, previousSize);
+        std::free(previousCsv);
+        if (backupResult < 0 || static_cast<uint32_t>(backupResult) != previousSize)
+            return;
+        (void)z2026_platform_unlink_file(csvName);
+    }
+    bool wroteBlank = false;
+    DB_SetReorderIncludeSequence();
+    std::sort(s_dbReorder.entries, s_dbReorder.entries + s_dbReorder.entryCount, DB_CompareReorderEntries);
+    std::string output;
+    output.reserve(static_cast<std::size_t>(s_dbReorder.entryCount) * 48u);
+    for (uint32_t entryIter = 0; entryIter < s_dbReorder.entryCount; ++entryIter)
+    {
+        DBReorderAssetEntry *entry = &s_dbReorder.entries[entryIter];
+        if (!wroteBlank && entry->sequence == -1)
+        {
+            switch (entry->type)
+            {
+            case ASSET_TYPE_SOUND:
+            case ASSET_TYPE_CLIPMAP:
+            case ASSET_TYPE_CLIPMAP_PVS:
+            case ASSET_TYPE_LOCALIZE_ENTRY:
+            case ASSET_TYPE_STRING:
+                break;
+            default:
+                wroteBlank = true;
+                output.append("\r\n", 2);
+                break;
+            }
+        }
+        const int bytes = entry->type == ASSET_TYPE_WEAPON
+            ? Com_sprintf(line, sizeof(line), "%s,%s%s\r\n", entry->typeString, "mp/", entry->assetName)
+            : (entry->type == ASSET_TYPE_SOUND
+                ? Com_sprintf(line, sizeof(line), "%s,%s,%s,%s\r\n", entry->typeString, entry->assetName, s_dbReorder.zoneName, "all_mp")
+                : Com_sprintf(line, sizeof(line), "%s,%s\r\n", entry->typeString, entry->assetName));
+        if (bytes < 0 || static_cast<std::size_t>(bytes) >= sizeof(line))
+            return;
+        output.append(line, static_cast<std::size_t>(bytes));
+    }
+    const int written = z2026_platform_write_file(csvName, output.data(), output.size());
+    if (written < 0 || static_cast<std::size_t>(written) != output.size())
+        (void)z2026_platform_unlink_file(csvName);
+#else
+
     DBReorderAssetEntry *entry; // [esp+180h] [ebp-41Ch]
     bool wroteBlank; // [esp+187h] [ebp-415h]
     DWORD bytesa; // [esp+188h] [ebp-414h]
@@ -1519,8 +1668,8 @@ void DB_EndReorderZone()
             CloseHandle(file);
         }
     }
+#endif
 }
-
 char __cdecl DB_RegisterAllReorderAssetsOfType(int32_t type, XAssetEntry *assetEntry)
 {
     DBReorderAssetEntry *entry; // [esp+0h] [ebp-8h]
@@ -1730,7 +1879,7 @@ XAssetHeader __cdecl DB_FindXAssetDefaultHeaderInternal(XAssetType type)
     return assetEntry->entry.asset.header;
 }
 
-BOOL __cdecl IsConfigFile(const char *name)
+bool __cdecl IsConfigFile(const char *name)
 {
     iassert(name);
     return (strstr(name, ".cfg") != NULL);
@@ -2524,29 +2673,24 @@ void __cdecl DB_AddReorderAsset(const char *typeString, const char *assetName)
 
 void __cdecl DB_BeginReorderZone(const char *zoneName)
 {
-    char v1; // [esp+3h] [ebp-259h]
-    char *v2; // [esp+8h] [ebp-254h]
-    const char *v3; // [esp+Ch] [ebp-250h]
-    char *from; // [esp+10h] [ebp-24Ch]
-    DBReorderAssetEntry *entry; // [esp+14h] [ebp-248h]
-    char assetType[32]; // [esp+18h] [ebp-244h] BYREF
-    uint32_t size; // [esp+38h] [ebp-224h]
-    void *file; // [esp+3Ch] [ebp-220h]
-    int32_t success; // [esp+40h] [ebp-21Ch]
-    char assetName[256]; // [esp+44h] [ebp-218h] BYREF
-    char csvName[256]; // [esp+144h] [ebp-118h] BYREF
-    const char *parse; // [esp+248h] [ebp-14h] BYREF
-    char *csv; // [esp+24Ch] [ebp-10h]
-    char *to; // [esp+250h] [ebp-Ch]
-    DWORD read; // [esp+254h] [ebp-8h] BYREF
-    DWORD entryIter; // [esp+258h] [ebp-4h]
-
-    for (entryIter = 0; entryIter < s_dbReorder.entryCount; ++entryIter)
+#if defined(__ANDROID__)
+    char v1;
+    const char *v3 = zoneName;
+    char *v2 = s_dbReorder.zoneName;
+    DBReorderAssetEntry *entry;
+    char assetType[32];
+    char assetName[256];
+    char csvName[256];
+    const char *parse;
+    char *csv = nullptr;
+    char *to;
+    uint32_t size = 0;
+    for (uint32_t entryIter = 0; entryIter < s_dbReorder.entryCount; ++entryIter)
     {
         entry = &s_dbReorder.entries[entryIter];
-        free((void *)entry->assetName);
+        std::free((void *)entry->assetName);
         if (entry->type == ASSET_TYPE_STRING)
-            free((void *)entry->typeString);
+            std::free((void *)entry->typeString);
     }
     s_dbReorder.entryCount = 0;
     s_dbReorder.sequence = 2;
@@ -2555,56 +2699,114 @@ void __cdecl DB_BeginReorderZone(const char *zoneName)
     s_dbReorder.loadedSound = 0;
     s_dbReorder.loadedLocalization = 0;
     s_dbReorder.lastEntry = 0;
-    v3 = zoneName;
-    v2 = s_dbReorder.zoneName;
-    do
-    {
-        v1 = *v3;
-        *v2++ = *v3++;
-    } while (v1);
+    do { v1 = *v3; *v2++ = *v3++; } while (v1);
     Sys_LockWrite(&s_dbReorder.critSect);
-    Com_sprintf(csvName, 0x100u, "..\\share\\zone_source\\%s.csv", zoneName);
-    file = CreateFileA(csvName, 0x80000000, 0, 0, 3u, 0, 0);
-    if (file == (void *)-1)
+    Com_sprintf(csvName, sizeof(csvName), "zone_source/%s.csv", zoneName);
+    if (!DB_ReadAndroidZoneSourceCsv(csvName, &csv, &size))
     {
         Sys_UnlockWrite(&s_dbReorder.critSect);
+        return;
     }
-    else
+    to = csv;
+    for (char *from = csv; *from; ++from)
     {
-        size = GetFileSize(file, 0);
-        csv = (char *)malloc(size + 1);
-        success = ReadFile(file, csv, size, &read, 0);
-        CloseHandle(file);
-        if (success && read == size)
+        if (*from != 13)
+            *to++ = *from;
+    }
+    *to = 0;
+    for (parse = csv; DB_NextZoneCsvToken(&parse, assetType, sizeof(assetType), 1); ++parse)
+    {
+        if (DB_NextZoneCsvToken(&parse, assetName, sizeof(assetName), 0) && assetType[0] && assetName[0])
+            DB_AddReorderAsset(assetType, assetName);
+        while (*parse && *parse != 10)
+            ++parse;
+        if (!*parse)
+            break;
+    }
+    std::free(csv);
+    Sys_UnlockWrite(&s_dbReorder.critSect);
+#else
+    char v1; // [esp+3h] [ebp-259h]
+        char *v2; // [esp+8h] [ebp-254h]
+        const char *v3; // [esp+Ch] [ebp-250h]
+        char *from; // [esp+10h] [ebp-24Ch]
+        DBReorderAssetEntry *entry; // [esp+14h] [ebp-248h]
+        char assetType[32]; // [esp+18h] [ebp-244h] BYREF
+        uint32_t size; // [esp+38h] [ebp-224h]
+        void *file; // [esp+3Ch] [ebp-220h]
+        int32_t success; // [esp+40h] [ebp-21Ch]
+        char assetName[256]; // [esp+44h] [ebp-218h] BYREF
+        char csvName[256]; // [esp+144h] [ebp-118h] BYREF
+        const char *parse; // [esp+248h] [ebp-14h] BYREF
+        char *csv; // [esp+24Ch] [ebp-10h]
+        char *to; // [esp+250h] [ebp-Ch]
+        DWORD read; // [esp+254h] [ebp-8h] BYREF
+        DWORD entryIter; // [esp+258h] [ebp-4h]
+    
+        for (entryIter = 0; entryIter < s_dbReorder.entryCount; ++entryIter)
         {
-            csv[size] = 0;
-            to = csv;
-            for (from = csv; *from; ++from)
-            {
-                if (*from != 13)
-                    *to++ = *from;
-            }
-            *to = 0;
-            for (parse = csv; DB_NextZoneCsvToken(&parse, assetType, 0x20u, 1); ++parse)
-            {
-                if (DB_NextZoneCsvToken(&parse, assetName, 0x100u, 0) && assetType[0] && assetName[0])
-                    DB_AddReorderAsset(assetType, assetName);
-                while (*parse && *parse != 10)
-                    ++parse;
-                if (!*parse)
-                    break;
-            }
-            free(csv);
+            entry = &s_dbReorder.entries[entryIter];
+            free((void *)entry->assetName);
+            if (entry->type == ASSET_TYPE_STRING)
+                free((void *)entry->typeString);
+        }
+        s_dbReorder.entryCount = 0;
+        s_dbReorder.sequence = 2;
+        s_dbReorder.sequenceForIncludes = 3;
+        s_dbReorder.alreadyFinished = 0;
+        s_dbReorder.loadedSound = 0;
+        s_dbReorder.loadedLocalization = 0;
+        s_dbReorder.lastEntry = 0;
+        v3 = zoneName;
+        v2 = s_dbReorder.zoneName;
+        do
+        {
+            v1 = *v3;
+            *v2++ = *v3++;
+        } while (v1);
+        Sys_LockWrite(&s_dbReorder.critSect);
+        Com_sprintf(csvName, 0x100u, "..\\share\\zone_source\\%s.csv", zoneName);
+        file = CreateFileA(csvName, 0x80000000, 0, 0, 3u, 0, 0);
+        if (file == (void *)-1)
+        {
             Sys_UnlockWrite(&s_dbReorder.critSect);
         }
         else
         {
-            free(csv);
-            Sys_UnlockWrite(&s_dbReorder.critSect);
+            size = GetFileSize(file, 0);
+            csv = (char *)malloc(size + 1);
+            success = ReadFile(file, csv, size, &read, 0);
+            CloseHandle(file);
+            if (success && read == size)
+            {
+                csv[size] = 0;
+                to = csv;
+                for (from = csv; *from; ++from)
+                {
+                    if (*from != 13)
+                        *to++ = *from;
+                }
+                *to = 0;
+                for (parse = csv; DB_NextZoneCsvToken(&parse, assetType, 0x20u, 1); ++parse)
+                {
+                    if (DB_NextZoneCsvToken(&parse, assetName, 0x100u, 0) && assetType[0] && assetName[0])
+                        DB_AddReorderAsset(assetType, assetName);
+                    while (*parse && *parse != 10)
+                        ++parse;
+                    if (!*parse)
+                        break;
+                }
+                free(csv);
+                Sys_UnlockWrite(&s_dbReorder.critSect);
+            }
+            else
+            {
+                free(csv);
+                Sys_UnlockWrite(&s_dbReorder.critSect);
+            }
         }
-    }
+#endif
 }
-
 char __cdecl DB_ShouldLoadFromModDir(const char *zoneName)
 {
     const char *strPos; // [esp+0h] [ebp-8h]
@@ -2651,14 +2853,49 @@ int32_t __cdecl DB_TryLoadXFileInternal(char *zoneName, int32_t zoneFlags)
     bool modZone; // [esp+113h] [ebp-9h]
     uint32_t i; // [esp+114h] [ebp-8h]
     void *zoneFile; // [esp+118h] [ebp-4h]
+#if defined(__ANDROID__)
+    uint32_t zoneFileSize = 0;
+    int zoneOpenError = 0;
+#endif
 
     Com_Printf(CON_CHANNEL_DONT_FILTER, "Trying to load file %s with flags %x\n", zoneName, zoneFlags);
 
     modZone = 0;
     iassert(!g_zoneInfoCount);
+#if defined(__ANDROID__)
+    // Android has no Win32 update drive. Open the original DB_BuildOSPath
+    // result beneath the retained filesDir root and pass its descriptor through
+    // the same opaque DB_LoadXFile contract consumed by DB_ReadData/DB_CancelLoadXFile.
     if (I_stricmp(zoneName, "mp_patch"))
     {
-        if (*(_BYTE *)fs_gameDirVar->current.integer && DB_ShouldLoadFromModDir(zoneName))
+        if (fs_gameDirVar->current.string && fs_gameDirVar->current.string[0] &&
+            DB_ShouldLoadFromModDir(zoneName))
+        {
+            DB_BuildOSPath_Mod(zoneName, 256, filename);
+            zoneFile = DBFastFilePosixOpenEnginePath(filename, &zoneFileSize, &zoneOpenError);
+            modZone = zoneFile != (void *)-1;
+        }
+        else
+        {
+            zoneFile = (void *)-1;
+        }
+        if (zoneFile == (void *)-1)
+        {
+            DB_BuildOSPath(zoneName, 256, filename);
+            zoneFile = DBFastFilePosixOpenEnginePath(filename, &zoneFileSize, &zoneOpenError);
+        }
+    }
+    else
+    {
+        // The desktop-only update:\\ lookup is unavailable on Android; use
+        // the installed app-private FastFile path for mp_patch as well.
+        DB_BuildOSPath(zoneName, 256, filename);
+        zoneFile = DBFastFilePosixOpenEnginePath(filename, &zoneFileSize, &zoneOpenError);
+    }
+#else
+    if (I_stricmp(zoneName, "mp_patch"))
+    {
+        if (fs_gameDirVar->current.string && fs_gameDirVar->current.string[0] && DB_ShouldLoadFromModDir(zoneName))
         {
             DB_BuildOSPath_Mod(zoneName, 256, filename);
             zoneFile = CreateFileA(filename, 0x80000000, 1u, 0, 3u, 0x60000000u, 0);
@@ -2689,6 +2926,7 @@ int32_t __cdecl DB_TryLoadXFileInternal(char *zoneName, int32_t zoneFlags)
             }
         }
     }
+#endif
     if (zoneFile == (void *)-1)
     {
         v3 = strstr(filename, "_load");
@@ -2735,7 +2973,11 @@ int32_t __cdecl DB_TryLoadXFileInternal(char *zoneName, int32_t zoneFlags)
             MyAssertHandler(".\\database\\db_registry.cpp", 3674, 0, "%s", "!zone->name[0]");
         I_strncpyz(zone->name, zoneName, 64);
         zone->flags = zoneFlags;
+#if defined(__ANDROID__)
+        zone->fileSize = zoneFileSize;
+#else
         zone->fileSize = GetFileSize(zoneFile, 0);
+#endif
         zone->modZone = modZone;
         if (g_loadingZone)
             MyAssertHandler(".\\database\\db_registry.cpp", 3683, 0, "%s", "!g_loadingZone");
@@ -3218,19 +3460,25 @@ void __cdecl DB_Cleanup()
 int32_t __cdecl DB_FileSize(const char *zoneName, int32_t isMod)
 {
     char filename[260]; // [esp+0h] [ebp-110h] BYREF
-    int32_t size; // [esp+108h] [ebp-8h]
-    void *zoneFile; // [esp+10Ch] [ebp-4h]
 
     if (isMod)
         DB_BuildOSPath_Mod(zoneName, 0x100u, filename);
     else
         DB_BuildOSPath(zoneName, 0x100u, filename);
+#if defined(__ANDROID__)
+    // Use the same filesDir-confined open/stat/close path as the actual
+    // FastFile loader; never pass an Android path to Win32 HANDLE APIs.
+    return DBFastFilePosixFileSizeEnginePath(filename);
+#else
+    int32_t size; // [esp+108h] [ebp-8h]
+    void *zoneFile; // [esp+10Ch] [ebp-4h]
     zoneFile = CreateFileA(filename, 0x80000000, 1u, 0, 3u, 0x60000000u, 0);
     if (zoneFile == (void *)-1)
         return 0;
     size = GetFileSize(zoneFile, 0);
     CloseHandle(zoneFile);
     return size;
+#endif
 }
 
 void __cdecl Load_GetCurrentZoneHandle(uint8_t *handle)

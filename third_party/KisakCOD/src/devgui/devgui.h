@@ -38,6 +38,8 @@ struct DevGuiInput // sizeof=0x70
 };
 static_assert(sizeof(DevGuiInput) == 0x70);
 
+// DevGui menu structures are process-local runtime state, not serialized assets.
+// Their native pointers widen on LP64, while the Win32 build keeps original sizes.
 union DevMenuChild // sizeof=0x4
 {                                       // ...
     const char *command;
@@ -45,7 +47,7 @@ union DevMenuChild // sizeof=0x4
     DevGraph *graph;
     uint16_t menu;
 };
-static_assert(sizeof(DevMenuChild) == 0x4);
+static_assert(sizeof(DevMenuChild) == (sizeof(void *) == 8 ? 8u : 0x4u));
 
 struct DevMenuItem // sizeof=0x28
 {                                       // ...
@@ -58,7 +60,7 @@ struct DevMenuItem // sizeof=0x28
     uint16_t parent;            // ...
     DevMenuChild child;                 // ...
 };
-static_assert(sizeof(DevMenuItem) == 0x28);
+static_assert(sizeof(DevMenuItem) == (sizeof(void *) == 8 ? 0x30u : 0x28u));
 
 struct devguiGlob_t // sizeof=0x5E10
 {                                       // ...
@@ -83,7 +85,7 @@ struct devguiGlob_t // sizeof=0x5E10
     int32_t right;                          // ...
     int32_t sliderWidth;                    // ...
 };
-static_assert(sizeof(devguiGlob_t) == 0x5E10);
+static_assert(sizeof(devguiGlob_t) == (sizeof(void *) == 8 ? 0x70E0u : 0x5E10u));
 
 // devgui
 void __cdecl TRACK_devgui();
