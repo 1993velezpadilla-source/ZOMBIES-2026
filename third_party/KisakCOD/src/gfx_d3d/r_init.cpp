@@ -3114,37 +3114,28 @@ int __cdecl R_AddValidRefreshRate(int refreshRate, int rateCount, int *available
     return rateCount + 1;
 }
 
-void __cdecl R_EnumDisplayModes(uint32_t adapterIndex)
+// The original IW3 mode sorting, dvar registration and text formatting do not
+// require Direct3D. Keep them separate from the D3D9 adapter enumeration so a
+// future Android native-window provider can supply REAL OS modes here without
+// a fake IDirect3D9 implementation. No Android provider is linked yet.
+void __cdecl R_BuildDisplayModeDvars()
 {
-    const char *v1; // eax
-    int v2; // eax
-    int v3; // eax
-    int refreshRateCount; // [esp+0h] [ebp-C30h]
-    int resolutionCount; // [esp+4h] [ebp-C2Ch]
-    int availableResolutions[256][2]; // [esp+8h] [ebp-C28h] BYREF
-    HRESULT hr; // [esp+80Ch] [ebp-424h]
-    uint32_t modeCountReported; // [esp+810h] [ebp-420h]
-    uint32_t modeIndex; // [esp+814h] [ebp-41Ch]
-    int resolutionIndex; // [esp+818h] [ebp-418h]
-    int defaultRefreshRateIndex; // [esp+81Ch] [ebp-414h]
-    int availableRefreshRates[257]; // [esp+820h] [ebp-410h] BYREF
-    char *modeText; // [esp+C24h] [ebp-Ch]
-    int refreshRateIndex; // [esp+C28h] [ebp-8h]
-    int defaultResolutionIndex; // [esp+C2Ch] [ebp-4h]
+    const char *v1;
+    int v2, v3;
+    int refreshRateCount, resolutionCount;
+    int availableResolutions[256][2];
+    uint32_t modeIndex;
+    int resolutionIndex, defaultRefreshRateIndex;
+    int availableRefreshRates[257];
+    char *modeText;
+    int refreshRateIndex, defaultResolutionIndex;
 
-    modeCountReported = dx.d3d9->GetAdapterModeCount(adapterIndex, D3DFMT_X8R8G8B8);
-    dx.displayModeCount = 0;
-    for (modeIndex = 0; modeIndex < modeCountReported && dx.displayModeCount < 0x100; ++modeIndex)
+    // dx.displayModes has 256 slots. The platform provider must not make the
+    // genuine renderer sort or iterate beyond this fixed engine-owned array.
+    if (dx.displayModeCount > 256u)
     {
-        hr = dx.d3d9->EnumAdapterModes(
-            adapterIndex,
-            D3DFMT_X8R8G8B8,
-            modeIndex,
-            &dx.displayModes[dx.displayModeCount]);
-        if (hr >= 0)
-        {
-            ++dx.displayModeCount;
-        }
+        R_FatalInitError("Display mode count exceeds renderer capacity");
+        return;
     }
     qsort(dx.displayModes, dx.displayModeCount, sizeof(dx.displayModes[0]), R_CompareDisplayModes);
     resolutionCount = 0;
@@ -3214,6 +3205,29 @@ void __cdecl R_EnumDisplayModes(uint32_t adapterIndex)
         "Refresh rate");
 
     r_noborder = Dvar_RegisterBool("r_noborder", false, DVAR_ARCHIVE, "Do not use a border in windowed mode");
+}
+
+void __cdecl R_EnumDisplayModes(uint32_t adapterIndex)
+{
+    HRESULT hr;
+    uint32_t modeCountReported;
+    uint32_t modeIndex;
+
+    modeCountReported = dx.d3d9->GetAdapterModeCount(adapterIndex, D3DFMT_X8R8G8B8);
+    dx.displayModeCount = 0;
+    for (modeIndex = 0; modeIndex < modeCountReported && dx.displayModeCount < 0x100; ++modeIndex)
+    {
+        hr = dx.d3d9->EnumAdapterModes(
+            adapterIndex,
+            D3DFMT_X8R8G8B8,
+            modeIndex,
+            &dx.displayModes[dx.displayModeCount]);
+        if (hr >= 0)
+        {
+            ++dx.displayModeCount;
+        }
+    }
+    R_BuildDisplayModeDvars();
 }
 
 char __cdecl R_PreCreateWindow()
