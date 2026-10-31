@@ -132,10 +132,913 @@ static void __cdecl DB_InitSingleton(void *pool, int32_t size);
 static void __cdecl DB_RemoveClipMap(XAssetHeader ass);
 static void __cdecl DB_RemoveComWorld(XAssetHeader ass);
 static void __cdecl DB_RemoveGfxWorld(XAssetHeader ass);
-static // The original decompiler expressed menu fields through XModelPieces[ ] and
-// 4-byte pointer strides. Those offsets only work on Win32: on Android ARM64
-// XModelPieces is 24 bytes and menu item pointers are 8 bytes. Use the real
-// UI declarations so asset loading never interprets unrelated memory as items.
+static void __cdecl DB_DynamicCloneMenu(XAssetHeader from, XAssetHeader to, int32_t swag = 0);
+static void __cdecl DB_RemoveWindowFocus(windowDef_t *window);
+static XAssetHeader __cdecl DB_AllocMaterial(void *arg);
+static void __cdecl DB_FreeMaterial(void *pool, XAssetHeader header);
+static void __cdecl DB_Sleep(uint32_t msec);
+static void __cdecl DB_LogMissingAsset(XAssetType type, const char *name);
+static void __cdecl DB_RegisteredReorderAsset(int32_t type, const char *assetName, XAssetEntry *assetEntry);
+static XAssetEntryPoolEntry *__cdecl DB_FindXAssetEntry(XAssetType type, const char *name);
+static uint32_t __cdecl DB_HashForName(const char *name, XAssetType type);
+static XAssetEntry *__cdecl DB_CreateDefaultEntry(XAssetType type, char *name);
+static XAssetEntryPoolEntry *__cdecl DB_AllocXAssetEntry(XAssetType type, uint8_t zoneIndex);
+static XAssetHeader __cdecl DB_AllocXAssetHeader(XAssetType type);
+static void __cdecl DB_PrintAssetName(XAssetHeader header, int32_t *data);
+static void __cdecl DB_CloneXAssetInternal(const XAsset *from, XAsset *to);
+static XAssetHeader __cdecl DB_FindXAssetDefaultHeaderInternal(XAssetType type);
+static void __cdecl PrintWaitedError(XAssetType type, const char *name, int32_t waitedMsec);
+static bool __cdecl DB_GetInitializing();
+static XAssetHeader __cdecl DB_AddXAsset(XAssetType type, XAssetHeader header);
+static XAssetEntryPoolEntry *__cdecl DB_LinkXAssetEntry(XAssetEntryPoolEntry *newEntry, int32_t allowOverride);
+static void __cdecl DB_FreeXAssetEntry(XAssetEntryPoolEntry *assetEntry);
+static void __cdecl DB_FreeXAssetHeader(XAssetType type, XAssetHeader header);
+static void __cdecl DB_CloneXAssetEntry(const XAssetEntry *from, XAssetEntry *to);
+static void __cdecl DB_DynamicCloneXAsset(XAssetHeader from, XAssetHeader to, XAssetType type, int32_t fromDefault);
+static void __cdecl DB_DelayedCloneXAsset(XAssetEntry *newEntry);
+static bool __cdecl DB_OverrideAsset(uint32_t newZoneIndex, uint32_t existingZoneIndex);
+static void __cdecl DB_GetXAsset(XAssetType type, XAssetHeader header);
+static void DB_PostLoadXZone();
+static void DB_Init();
+static void __cdecl DB_InitPoolHeader(XAssetType type);
+static void __cdecl DB_LoadXZone(XZoneInfo *zoneInfo, uint32_t zoneCount);
+static void __cdecl DB_LoadZone_f();
+static void __cdecl  DB_Thread(uint32_t threadContext);
+static void DB_TryLoadXFile();
+static int32_t __cdecl DB_TryLoadXFileInternal(char *zoneName, int32_t zoneFlags);
+static void __cdecl DB_BuildOSPath(const char *zoneName, uint32_t size, char *filename);
+static int32_t __cdecl DB_GetZoneAllocType(int32_t zoneFlags);
+static void __cdecl DB_UnloadXZone(uint32_t zoneIndex, bool createDefault);
+static void __cdecl DB_RemoveXAsset(XAsset *asset);
+static void __cdecl DB_UnloadXZoneMemory(XZone *zone);
+static void DB_FreeDefaultEntries();
+static void __cdecl DB_UnloadXAssetsMemoryForZone(int32_t zoneFreeFlags, int32_t zoneFreeBit);
+static void __cdecl DB_UnloadXAssetsMemory(XZone *zone, int32_t sortedIndex);
+static void __cdecl DB_ReplaceXAsset(XAssetType type, const char *original, const char *replacement);
+static void __cdecl DB_CloneXAsset(const XAsset *from, XAsset *to);
+static void DB_SyncExternalAssets();
+static void DB_ArchiveAssets();
+static void DB_FreeUnusedResources();
+static void DB_ExternalInitAssets();
+static void DB_UnarchiveAssets();
+static int32_t __cdecl DB_GetAllXAssetOfType_LoadObj(XAssetType type, XAssetHeader* assets, int32_t maxCount);
+static void __cdecl DB_EnumXAssets_LoadObj(XAssetType type, void(* func)(void*, void*), void* inData);
+
+static XAssetHeader __cdecl node1_(void *pool)
+{
+    return (XAssetHeader)pool;
+}
+
+static XAssetHeader __cdecl DB_AllocXAsset_StringTable_(void *arg)
+{
+    XAssetHeader *pool = (XAssetHeader*)arg;
+    XAssetHeader header; // [esp+4h] [ebp-8h]
+
+    if (pool->xmodelPieces)
+    {
+        header.xmodelPieces = pool->xmodelPieces;
+        pool->xmodelPieces = (XModelPieces *)pool->xmodelPieces->name;
+    }
+    else
+    {
+        header.xmodelPieces = 0;
+    }
+    return header;
+}
+
+
+XAssetHeader(__cdecl *DB_AllocXAssetHeaderHandler[ASSET_TYPE_COUNT])(void *) =
+{
+  &DB_AllocXAsset_StringTable_,
+  &DB_AllocXAsset_StringTable_,
+  &DB_AllocXAsset_StringTable_,
+  &DB_AllocXAsset_StringTable_,
+  &DB_AllocMaterial,
+  &DB_AllocXAsset_StringTable_,
+  &DB_AllocXAsset_StringTable_,
+  &DB_AllocXAsset_StringTable_,
+  &DB_AllocXAsset_StringTable_,
+  &DB_AllocXAsset_StringTable_,
+  &node1_,
+  &node1_,
+  &node1_,
+  &node1_,
+  &node1_,
+  &DB_AllocXAsset_StringTable_,
+  &node1_,
+  &DB_AllocXAsset_StringTable_,
+  NULL,
+  &DB_AllocXAsset_StringTable_,
+  &DB_AllocXAsset_StringTable_,
+  &DB_AllocXAsset_StringTable_,
+  &DB_AllocXAsset_StringTable_,
+  &DB_AllocXAsset_StringTable_,
+  NULL,
+  &DB_AllocXAsset_StringTable_,
+  &DB_AllocXAsset_StringTable_,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  &DB_AllocXAsset_StringTable_,
+  &DB_AllocXAsset_StringTable_
+}; // idb
+
+void __cdecl DB_FreeXAssetHeader_StringTable_(void *arg, XAssetHeader header)
+{
+    XAssetPoolEntry<StringTable> **pool = (XAssetPoolEntry<StringTable> **)arg;
+    XAssetPoolEntry<StringTable> *oldFreeHead; // [esp+8h] [ebp-4h]
+
+    oldFreeHead = *pool;
+    *pool = (XAssetPoolEntry<StringTable> *)header.xmodelPieces;
+    header.xmodelPieces->name = (const char *)oldFreeHead;
+}
+
+void NULLSUB(void *crap, XAssetHeader head)
+{
+}
+
+void(__cdecl *DB_FreeXAssetHeaderHandler[ASSET_TYPE_COUNT])(void *, XAssetHeader) =
+{
+  DB_FreeXAssetHeader_StringTable_,
+  DB_FreeXAssetHeader_StringTable_,
+  DB_FreeXAssetHeader_StringTable_,
+  DB_FreeXAssetHeader_StringTable_,
+  DB_FreeMaterial,
+  DB_FreeXAssetHeader_StringTable_,
+  DB_FreeXAssetHeader_StringTable_,
+  DB_FreeXAssetHeader_StringTable_,
+  DB_FreeXAssetHeader_StringTable_,
+  DB_FreeXAssetHeader_StringTable_,
+  NULLSUB,
+  NULLSUB,
+  NULLSUB,
+  NULLSUB,
+  NULLSUB,
+  DB_FreeXAssetHeader_StringTable_,
+  NULLSUB,
+  DB_FreeXAssetHeader_StringTable_,
+  NULL,
+  DB_FreeXAssetHeader_StringTable_,
+  DB_FreeXAssetHeader_StringTable_,
+  DB_FreeXAssetHeader_StringTable_,
+  DB_FreeXAssetHeader_StringTable_,
+  DB_FreeXAssetHeader_StringTable_,
+  NULL,
+  DB_FreeXAssetHeader_StringTable_,
+  DB_FreeXAssetHeader_StringTable_,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  DB_FreeXAssetHeader_StringTable_,
+  DB_FreeXAssetHeader_StringTable_
+}; // idb
+
+const char *g_defaultAssetName[ASSET_TYPE_COUNT] =
+{
+  "",
+  "default",
+  "void",
+  "void",
+  "$default",
+  "default",
+  "$white",
+  "null",
+  "default",
+  "null.wav",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "light_dynamic",
+  "",
+  "fonts/consolefont",
+  "ui/default.menu",
+  "default_menu",
+  "CGAME_UNKNOWN",
+#ifdef KISAK_MP
+  "defaultweapon_mp",
+#elif KISAK_SP
+  "defaultweapon",
+#endif
+  "",
+  "misc/missing_fx",
+  "default",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "mp/defaultStringTable.csv"
+}; // idb
+
+const char *g_assetNames[ASSET_TYPE_COUNT] = // SP/MP same
+{
+  "xmodelpieces",
+  "physpreset",
+  "xanim",
+  "xmodel",
+  "material",
+  "techset",
+  "image",
+  "sound",
+  "sndcurve",
+  "loaded_sound",
+  "col_map_sp",
+  "col_map_mp",
+  "com_map",
+  "game_map_sp",
+  "game_map_mp",
+  "map_ents",
+  "gfx_map",
+  "lightdef",
+  "ui_map",
+  "font",
+  "menufile",
+  "menu",
+  "localize",
+  "weapon",
+  "snddriverglobals",
+  "fx",
+  "impactfx",
+  "aitype",
+  "mptype",
+  "character",
+  "xmodelalias",
+  "rawfile",
+  "stringtable"
+};
+
+struct XZoneInfoInternal // sizeof=0x44
+{                                       // ...
+    char name[64];
+    int32_t flags;                          // ...
+};
+
+struct $CDDDFFEA12416D380697EB22F7449911 // sizeof=0x8011C
+{                                       // ...
+    FastCriticalSection critSect;
+    char zoneName[256];                 // ...
+    bool alreadyFinished;               // ...
+    bool loadedSound;                   // ...
+    bool loadedLocalization;            // ...
+    // padding byte
+    DBReorderAssetEntry *lastEntry;     // ...
+    uint32_t sequence;              // ...
+    uint32_t sequenceForIncludes;   // ...
+    uint32_t entryCount;            // ...
+    DBReorderAssetEntry entries[32768]; // ...
+};
+
+$CDDDFFEA12416D380697EB22F7449911 s_dbReorder;
+int32_t g_missingAssetFile;
+//int32_t marker_db_registry   828e570c     db_registry.obj
+//uint32_t volatile g_mainThreadBlocked  829f278c     db_registry.obj
+
+uint32_t volatile g_mainThreadBlocked;
+XAssetEntryPoolEntry *g_freeAssetEntryHead;
+
+uint16_t db_hashTable[32768];
+XAssetEntry *g_copyInfo[0x800];
+uint32_t g_copyInfoCount;
+XZone g_zones[ASSET_TYPE_COUNT]{ 0 };
+uint8_t g_zoneHandles[32];
+char g_zoneNameList[2080];
+XAssetPool<XModelPieces, POOLSIZE_XMODELPIECES> g_XModelPiecesPool;
+XAssetPool<PhysPreset, POOLSIZE_PHYSPRESET> g_PhysPresetPool;
+XAssetPool<XAnimParts, POOLSIZE_XANIMPARTS> g_XAnimPartsPool;
+XAssetPool<XModel, POOLSIZE_XMODEL> g_XModelPool;
+XAssetPool<Material, POOLSIZE_MATERIAL> g_MaterialPool;
+XAssetPool<MaterialTechniqueSet, POOLSIZE_TECHNIQUE_SET> g_MaterialTechniqueSetPool;
+XAssetPool<GfxImage, POOLSIZE_IMAGE> g_GfxImagePool;
+XAssetPool<snd_alias_list_t, POOLSIZE_SOUND> g_SoundPool;
+XAssetPool<SndCurve, POOLSIZE_SOUND_CURVE> g_SndCurvePool;
+XAssetPool<LoadedSound, POOLSIZE_LOADED_SOUND> g_LoadedSoundPool;
+XAssetPool<MapEnts, POOLSIZE_MAP_ENTS> g_MapEntsPool;
+XAssetPool<GfxLightDef, POOLSIZE_LIGHT_DEF> g_GfxLightDefPool;
+XAssetPool<Font_s, POOLSIZE_FONT> g_FontPool;
+XAssetPool<MenuList, POOLSIZE_MENULIST> g_MenuListPool;
+XAssetPool<menuDef_t, POOLSIZE_MENU> g_MenuPool;
+XAssetPool<LocalizeEntry, POOLSIZE_LOCALIZE_ENTRY> g_LocalizeEntryPool;
+XAssetPool<WeaponDef, POOLSIZE_WEAPON> g_WeaponDefPool;
+XAssetPool<FxEffectDef, POOLSIZE_FX> g_FxEffectDefPool;
+XAssetPool<FxImpactTable, POOLSIZE_IMPACT_FX> g_FxImpactTablePool;
+XAssetPool<RawFile, POOLSIZE_RAWFILE> g_RawFilePool;
+XAssetPool<StringTable, POOLSIZE_STRINGTABLE> g_StringTablePool;
+
+XAssetEntryPoolEntry g_assetEntryPool[32768];
+uint8_t g_fileBuf[524288];
+
+fileData_s *com_fileDataHashTable[1024];
+
+FastCriticalSection db_hashCritSect;
+
+bool g_zoneInited;
+int32_t g_zoneCount;
+
+bool g_isRecoveringLostDevice;
+bool g_mayRecoverLostAssets;
+volatile bool g_loadingZone;
+volatile uint32_t g_zoneInfoCount;
+bool g_initializing;
+
+char g_debugZoneName[64];
+uint32_t g_zoneAllocType;
+uint32_t g_zoneIndex;
+uint32_t _S1;
+const dvar_t *zone_reorder;
+volatile uint32_t g_loadingAssets;
+XZoneInfoInternal g_zoneInfo[8];
+
+char *__cdecl DB_ReferencedFFChecksums()
+{
+    int32_t v0; // kr00_4
+    int32_t i; // [esp+10h] [ebp-20h]
+    char zoneSizeStr[16]; // [esp+1Ch] [ebp-14h] BYREF
+
+    v0 = strlen("localized_");
+    g_zoneNameList[0] = 0;
+    for (i = 0; i < 32; ++i)
+    {
+        if (g_zones[i].name[0] && I_strncmp(g_zones[i].name, "localized_", v0))
+        {
+            if (g_zoneNameList[0])
+                I_strncat(g_zoneNameList, 2080, " ");
+            //itoa(g_zones[i].fileSize, zoneSizeStr, 0xAu);
+            _itoa(g_zones[i].fileSize, zoneSizeStr, 0xAu);
+            I_strncat(g_zoneNameList, 2080, zoneSizeStr);
+        }
+    }
+    return g_zoneNameList;
+}
+
+char *__cdecl DB_ReferencedFFNameList()
+{
+    int32_t v0; // kr00_4
+    int32_t i; // [esp+10h] [ebp-Ch]
+
+    v0 = strlen("localized_");
+    g_zoneNameList[0] = 0;
+    for (i = 0; i < 32; ++i)
+    {
+        if (g_zones[i].name[0] && I_strncmp(g_zones[i].name, "localized_", v0))
+        {
+            if (g_zoneNameList[0])
+                I_strncat(g_zoneNameList, 2080, " ");
+            if (g_zones[i].modZone)
+            {
+                I_strncat(g_zoneNameList, 2080, fs_gameDirVar->current.string);
+                I_strncat(g_zoneNameList, 2080, "/");
+            }
+            I_strncat(g_zoneNameList, 2080, g_zones[i].name);
+        }
+    }
+    return g_zoneNameList;
+}
+
+void __cdecl Hunk_OverrideDataForFile(int32_t type, const char *name, void *data)
+{
+    fileData_s *searchFileData; // [esp+4h] [ebp-4h]
+
+    if (!Sys_IsMainThread())
+        MyAssertHandler(".\\universal\\com_memory.cpp", 1539, 0, "%s", "Sys_IsMainThread()");
+    for (searchFileData = com_fileDataHashTable[FS_HashFileName(name, 1024)];
+        searchFileData;
+        searchFileData = searchFileData->next)
+    {
+        if (searchFileData->type == type && !I_stricmp(searchFileData->name, name))
+        {
+            searchFileData->data = data;
+            return;
+        }
+    }
+    if (!alwaysfails)
+        MyAssertHandler(".\\universal\\com_memory.cpp", 1554, 0, "Hunk_OverrideDataForFile: could not find data");
+}
+
+template <typename T>
+void __cdecl DB_InitPool(void *arg, int32_t size)
+{
+    //XAssetPool<RawFile, POOLSIZE_RAWFILE> *pool = (XAssetPool<RawFile, POOLSIZE_RAWFILE>*)arg;
+    T *pool = (T *)arg;
+    pool->freeHead = &pool->entries[0];
+    for (int32_t i = 0; i < size - 1; i++)
+    {
+        pool->entries[i].next = &pool->entries[i + 1];
+    }
+    pool->entries[size - 1].next = NULL;
+}
+
+void(__cdecl *DB_InitPoolHeaderHandler[ASSET_TYPE_COUNT])(void *, int) =
+{
+  DB_InitPool<XAssetPool<XModelPieces, POOLSIZE_XMODELPIECES>>,
+  DB_InitPool<XAssetPool<PhysPreset, POOLSIZE_PHYSPRESET>>,
+  DB_InitPool<XAssetPool<XAnimParts, POOLSIZE_XANIMPARTS>>,
+  DB_InitPool<XAssetPool<XModel, POOLSIZE_XMODEL>>,
+  DB_InitPool<XAssetPool<Material, POOLSIZE_MATERIAL>>,
+  DB_InitPool<XAssetPool<MaterialTechniqueSet, POOLSIZE_TECHNIQUE_SET>>,
+  DB_InitPool<XAssetPool<GfxImage, POOLSIZE_IMAGE>>,
+  DB_InitPool<XAssetPool<snd_alias_list_t, POOLSIZE_SOUND>>,
+  DB_InitPool<XAssetPool<SndCurve, POOLSIZE_SOUND_CURVE>>,
+  DB_InitPool<XAssetPool<LoadedSound, POOLSIZE_LOADED_SOUND>>,
+  &DB_InitSingleton,
+  &DB_InitSingleton,
+  &DB_InitSingleton,
+  &DB_InitSingleton,
+  &DB_InitSingleton,
+  DB_InitPool<XAssetPool<MapEnts, POOLSIZE_MAP_ENTS>>,
+  &DB_InitSingleton,
+  DB_InitPool<XAssetPool<GfxLightDef, POOLSIZE_LIGHT_DEF>>,
+  NULL,
+  DB_InitPool<XAssetPool<Font_s, POOLSIZE_FONT>>,
+  DB_InitPool<XAssetPool<MenuList, POOLSIZE_MENULIST>>,
+  DB_InitPool<XAssetPool<menuDef_t, POOLSIZE_MENU>>,
+  DB_InitPool<XAssetPool<LocalizeEntry, POOLSIZE_LOCALIZE_ENTRY>>,
+  DB_InitPool<XAssetPool<WeaponDef, POOLSIZE_WEAPON>>,
+  DB_InitPool<XAssetPool<SndDriverGlobals, POOLSIZE_SNDDRIVER_GLOBALS>>,
+  DB_InitPool<XAssetPool<FxEffectDef, POOLSIZE_FX>>,
+  DB_InitPool<XAssetPool<FxImpactTable, POOLSIZE_IMPACT_FX>>,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  DB_InitPool<XAssetPool<RawFile, POOLSIZE_RAWFILE>>,
+  DB_InitPool<XAssetPool<StringTable, POOLSIZE_STRINGTABLE>>,
+}; // idb
+
+void *DB_XAssetPool[ASSET_TYPE_COUNT] =
+{
+  &g_XModelPiecesPool,
+  &g_PhysPresetPool,
+  &g_XAnimPartsPool,
+  &g_XModelPool,
+  &g_MaterialPool,
+  &g_MaterialTechniqueSetPool,
+  &g_GfxImagePool,
+  &g_SoundPool,
+  &g_SndCurvePool,
+  &g_LoadedSoundPool,
+  &cm,
+  &cm,
+  &comWorld,
+#ifdef KISAK_MP
+  NULL,         // GAMEWORLD_SP
+  &gameWorldMp, // GAMEWORLD_MP
+#elif KISAK_SP
+  &gameWorldSp, // GAMEWORLD_SP
+  NULL,         // GAMEWORLD_MP
+#endif
+  &g_MapEntsPool,
+  &s_world,
+  &g_GfxLightDefPool,
+  NULL,
+  &g_FontPool,
+  &g_MenuListPool,
+  &g_MenuPool,
+  &g_LocalizeEntryPool,
+  &g_WeaponDefPool,
+  NULL, // &g_SndDriverGlobalsPool (Set in SP?)
+  &g_FxEffectDefPool,
+  &g_FxImpactTablePool,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  &g_RawFilePool,
+  &g_StringTablePool
+}; // idb
+
+void __cdecl TRACK_db_registry()
+{
+    track_static_alloc_internal(db_hashTable, 0x10000, "db_hashTable", 10);
+    track_static_alloc_internal(g_copyInfo, 0x2000, "g_copyInfo", 10);
+    track_static_alloc_internal(g_zones, 5544, "g_zones", 10);
+    track_static_alloc_internal(g_zoneHandles, 32, "g_zoneHandles", 10);
+    track_static_alloc_internal(g_zoneNameList, 2080, "g_zoneNameList", 10);
+    track_static_alloc_internal(&g_XModelPiecesPool, 772, "g_XModelPiecesPool", 10);
+    track_static_alloc_internal(&g_PhysPresetPool, 2820, "g_PhysPresetPool", 10);
+    track_static_alloc_internal(&g_XAnimPartsPool, 360452, "g_XAnimPartsPool", 10);
+    track_static_alloc_internal(&g_XModelPool, 220004, "g_XModelPool", 10);
+    track_static_alloc_internal(&g_MaterialPool, 163848, "g_MaterialPool", 10);
+    track_static_alloc_internal(&g_MaterialTechniqueSetPool, 151556, "g_MaterialTechniqueSetPool", 10);
+    track_static_alloc_internal(&g_GfxImagePool, 86404, "g_GfxImagePool", 10);
+    track_static_alloc_internal(&g_SoundPool, 192004, "g_SoundPool", 10);
+    track_static_alloc_internal(&g_SndCurvePool, 4612, "g_SndCurvePool", 10);
+    track_static_alloc_internal(&g_LoadedSoundPool, 52804, "g_LoadedSoundPool", 10);
+    track_static_alloc_internal(&g_MapEntsPool, 28, "g_MapEntsPool", 10);
+    track_static_alloc_internal(&g_GfxLightDefPool, 516, "g_GfxLightDefPool", 10);
+    track_static_alloc_internal(&g_FontPool, 388, "g_FontPool", 10);
+    track_static_alloc_internal(&g_MenuListPool, 1540, "g_MenuListPool", 10);
+    track_static_alloc_internal(&g_MenuPool, 181764, "g_MenuPool", 10);
+    track_static_alloc_internal(&g_LocalizeEntryPool, 49156, "g_LocalizeEntryPool", 10);
+    track_static_alloc_internal(&g_WeaponDefPool, 277508, "g_WeaponDefPool", 10);
+    track_static_alloc_internal(&g_FxEffectDefPool, 12804, "g_FxEffectDefPool", 10);
+    track_static_alloc_internal(&g_FxImpactTablePool, 36, "g_FxImpactTablePool", 10);
+    track_static_alloc_internal(&g_RawFilePool, 12292, "g_RawFilePool", 10);
+    track_static_alloc_internal(&g_StringTablePool, 804, "g_StringTablePool", 10);
+    track_static_alloc_internal(g_assetEntryPool, 0x80000, "g_assetEntryPool", 10);
+    track_static_alloc_internal(g_fileBuf, 0x80000, "g_fileBuf", 10);
+}
+
+// The original 32-bit index-address casts lose the upper half of ARM64
+// pointers. Keep geometry offsets in pointer-width arithmetic until the
+// engine's signed 32-bit buffer offset is known to be representable.
+void __cdecl DB_GetIndexBufferAndBase(uint8_t zoneHandle, void *indices, void **ib, int32_t *baseIndex)
+{
+    if (!ib || !baseIndex)
+    {
+        Com_Error(ERR_DROP, "DB_GetIndexBufferAndBase: missing output pointer");
+        return;
+    }
+    *ib = nullptr;
+    *baseIndex = 0;
+    if (zoneHandle >= sizeof(g_zones) / sizeof(g_zones[0]) || !indices)
+    {
+        Com_Error(ERR_DROP, "DB_GetIndexBufferAndBase: invalid zone or index pointer");
+        return;
+    }
+
+    const XZoneMemory &mem = g_zones[zoneHandle].mem;
+    const uintptr_t start = reinterpret_cast<uintptr_t>(mem.blocks[8].data);
+    const uintptr_t address = reinterpret_cast<uintptr_t>(indices);
+    if (!start || address < start)
+    {
+        Com_Error(ERR_DROP, "DB_GetIndexBufferAndBase: index pointer precedes zone data");
+        return;
+    }
+    const uintptr_t bytes = address - start;
+    if ((bytes & 1u) != 0 || (bytes >> 1) > static_cast<uintptr_t>(INT32_MAX))
+    {
+        Com_Error(ERR_DROP, "DB_GetIndexBufferAndBase: unaligned or overflowing index offset");
+        return;
+    }
+    *ib = mem.indexBuffer;
+    *baseIndex = static_cast<int32_t>(bytes >> 1);
+}
+
+void __cdecl DB_GetVertexBufferAndOffset(uint8_t zoneHandle, _BYTE *verts, void **vb, int32_t *vertexOffset)
+{
+    if (!vb || !vertexOffset)
+    {
+        Com_Error(ERR_DROP, "DB_GetVertexBufferAndOffset: missing output pointer");
+        return;
+    }
+    *vb = nullptr;
+    *vertexOffset = 0;
+    if (zoneHandle >= sizeof(g_zones) / sizeof(g_zones[0]) || !verts)
+    {
+        Com_Error(ERR_DROP, "DB_GetVertexBufferAndOffset: invalid zone or vertex pointer");
+        return;
+    }
+
+    const XZoneMemory &mem = g_zones[zoneHandle].mem;
+    const uintptr_t start = reinterpret_cast<uintptr_t>(mem.blocks[7].data);
+    const uintptr_t address = reinterpret_cast<uintptr_t>(verts);
+    if (!start || address < start ||
+        address - start > static_cast<uintptr_t>(INT32_MAX))
+    {
+        Com_Error(ERR_DROP, "DB_GetVertexBufferAndOffset: invalid vertex offset");
+        return;
+    }
+    *vb = mem.vertexBuffer;
+    *vertexOffset = static_cast<int32_t>(address - start);
+}
+
+void __cdecl DB_BuildOSPath_Mod(const char *zoneName, uint32_t size, char *filename)
+{
+    char *v3; // eax
+    const char *string; // [esp-8h] [ebp-8h]
+
+    if (!fs_gameDirVar->current.string || !fs_gameDirVar->current.string[0])
+        MyAssertHandler(".\\database\\db_registry.cpp", 3204, 0, "%s", "IsUsingMods()");
+    string = fs_gameDirVar->current.string;
+    v3 = Sys_DefaultInstallPath();
+    Com_sprintf(filename, size, "%s\\%s\\%s.ff", v3, string, zoneName);
+}
+
+bool __cdecl DB_ModFileExists()
+{
+    char filename[256]; // [esp+0h] [ebp-108h] BYREF
+    void *zoneFile; // [esp+104h] [ebp-4h]
+
+    if (!fs_gameDirVar->current.string || !fs_gameDirVar->current.string[0])
+        return 0;
+    DB_BuildOSPath_Mod("mod", 0x100u, filename);
+#if defined(__ANDROID__)
+    uint32_t fileSize = 0;
+    int openError = 0;
+    zoneFile = DBFastFilePosixOpenEnginePath(filename, &fileSize, &openError);
+    if (zoneFile == (void *)-1)
+        return 0;
+    const int fd = DBFastFilePosixFdFromOpaque(zoneFile);
+    if (fd < 0)
+        return 0;
+    return close(fd) == 0;
+#else
+    zoneFile = CreateFileA(filename, 0x80000000, 1u, 0, 3u, 0x60000000u, 0);
+    if (zoneFile == (void *)-1)
+        return 0;
+    CloseHandle(zoneFile);
+    return 1;
+#endif
+}
+
+void __cdecl DB_EndRecoverLostDevice()
+{
+    int32_t zoneIter; // [esp+4h] [ebp-4h]
+
+    InterlockedIncrement(&db_hashCritSect.readCount);
+    while (db_hashCritSect.writeCount)
+        NET_Sleep(0);
+    for (zoneIter = 0; zoneIter < g_zoneCount; ++zoneIter)
+        DB_RecoverGeometryBuffers(&g_zones[g_zoneHandles[zoneIter]].mem);
+    if (db_hashCritSect.readCount <= 0)
+        MyAssertHandler(
+            "c:\\trees\\cod3\\src\\gfx_d3d\\../qcommon/threads_interlock.h",
+            76,
+            0,
+            "%s",
+            "critSect->readCount > 0");
+    InterlockedDecrement(&db_hashCritSect.readCount);
+    if (!Sys_IsMainThread())
+        MyAssertHandler(".\\database\\db_registry.cpp", 2929, 0, "%s", "Sys_IsMainThread()");
+    if (!g_isRecoveringLostDevice)
+        MyAssertHandler(".\\database\\db_registry.cpp", 2930, 0, "%s", "g_isRecoveringLostDevice");
+    if (!g_mayRecoverLostAssets)
+        MyAssertHandler(".\\database\\db_registry.cpp", 2931, 0, "%s", "g_mayRecoverLostAssets");
+    g_mayRecoverLostAssets = !g_loadingZone;
+    g_isRecoveringLostDevice = 0;
+}
+
+void __cdecl DB_BeginRecoverLostDevice()
+{
+    int32_t zoneIter; // [esp+4h] [ebp-4h]
+
+    if (!Sys_IsMainThread())
+        MyAssertHandler(".\\database\\db_registry.cpp", 2896, 0, "%s", "Sys_IsMainThread()");
+    if (g_isRecoveringLostDevice)
+        MyAssertHandler(".\\database\\db_registry.cpp", 2897, 0, "%s", "!g_isRecoveringLostDevice");
+    g_isRecoveringLostDevice = 1;
+    while (!g_mayRecoverLostAssets)
+        NET_Sleep(0);
+    InterlockedIncrement(&db_hashCritSect.readCount);
+    while (db_hashCritSect.writeCount)
+        NET_Sleep(0);
+    for (zoneIter = 0; zoneIter < g_zoneCount; ++zoneIter)
+        DB_ReleaseGeometryBuffers(&g_zones[g_zoneHandles[zoneIter]].mem);
+    if (db_hashCritSect.readCount <= 0)
+        MyAssertHandler(
+            "c:\\trees\\cod3\\src\\gfx_d3d\\../qcommon/threads_interlock.h",
+            76,
+            0,
+            "%s",
+            "critSect->readCount > 0");
+    InterlockedDecrement(&db_hashCritSect.readCount);
+}
+
+void __cdecl DB_InitSingleton(void *pool, int32_t size)
+{
+    if (size != 1)
+        MyAssertHandler(".\\database\\db_registry.cpp", 528, 0, "%s\n\t(size) = %i", "(size == 1)", size);
+}
+
+void __cdecl Load_PhysPresetAsset(XAssetHeader *physPreset)
+{
+    physPreset->xmodelPieces = DB_AddXAsset(ASSET_TYPE_PHYSPRESET, (XAssetHeader)physPreset->xmodelPieces).xmodelPieces;
+}
+
+void __cdecl Mark_PhysPresetAsset(PhysPreset *physPreset)
+{
+    DB_GetXAsset(ASSET_TYPE_PHYSPRESET, (XAssetHeader)physPreset);
+}
+
+void __cdecl Load_XAnimPartsAsset(XAssetHeader *parts)
+{
+    parts->xmodelPieces = DB_AddXAsset(ASSET_TYPE_XANIMPARTS, (XAssetHeader)parts->xmodelPieces).xmodelPieces;
+}
+
+void __cdecl Mark_XAnimPartsAsset(XAnimParts *parts)
+{
+    DB_GetXAsset(ASSET_TYPE_XANIMPARTS, (XAssetHeader)parts);
+}
+
+void __cdecl Load_XModelAsset(XAssetHeader *model)
+{
+    model->xmodelPieces = DB_AddXAsset(ASSET_TYPE_XMODEL, (XAssetHeader)model->xmodelPieces).xmodelPieces;
+}
+
+void __cdecl Mark_XModelAsset(XModel *model)
+{
+    DB_GetXAsset(ASSET_TYPE_XMODEL, (XAssetHeader)model);
+}
+
+void __cdecl Load_MaterialAsset(XAssetHeader *material)
+{
+    material->xmodelPieces = DB_AddXAsset(ASSET_TYPE_MATERIAL, (XAssetHeader)material->xmodelPieces).xmodelPieces;
+}
+
+void __cdecl Mark_MaterialAsset(Material *material)
+{
+    DB_GetXAsset(ASSET_TYPE_MATERIAL, (XAssetHeader)material);
+}
+
+void __cdecl Load_MaterialTechniqueSetAsset(XAssetHeader *techniqueSet)
+{
+    techniqueSet->xmodelPieces = DB_AddXAsset(ASSET_TYPE_TECHNIQUE_SET, (XAssetHeader)techniqueSet->xmodelPieces).xmodelPieces;
+    Material_OriginalRemapTechniqueSet(techniqueSet->techniqueSet);
+    Material_UploadShaders(techniqueSet->techniqueSet);
+}
+
+void __cdecl Mark_MaterialTechniqueSetAsset(MaterialTechniqueSet *techniqueSet)
+{
+    DB_GetXAsset(ASSET_TYPE_TECHNIQUE_SET, (XAssetHeader)techniqueSet);
+}
+
+void __cdecl Load_GfxImageAsset(XAssetHeader *image)
+{
+    image->xmodelPieces = DB_AddXAsset(ASSET_TYPE_IMAGE, (XAssetHeader)image->xmodelPieces).xmodelPieces;
+}
+
+void __cdecl Mark_GfxImageAsset(GfxImage *image)
+{
+    DB_GetXAsset(ASSET_TYPE_IMAGE, (XAssetHeader)image);
+}
+
+void __cdecl Load_snd_alias_list_Asset(XAssetHeader *sound)
+{
+    sound->xmodelPieces = DB_AddXAsset(ASSET_TYPE_SOUND, (XAssetHeader)sound->xmodelPieces).xmodelPieces;
+}
+
+void __cdecl Mark_snd_alias_list_Asset(snd_alias_list_t *sound)
+{
+    DB_GetXAsset(ASSET_TYPE_SOUND, (XAssetHeader)sound);
+}
+
+void __cdecl Load_SndCurveAsset(XAssetHeader *sndCurve)
+{
+    sndCurve->xmodelPieces = DB_AddXAsset(ASSET_TYPE_SOUND_CURVE, (XAssetHeader)sndCurve->xmodelPieces).xmodelPieces;
+}
+
+void __cdecl Mark_SndCurveAsset(SndCurve *sndCurve)
+{
+    DB_GetXAsset(ASSET_TYPE_SOUND_CURVE, (XAssetHeader)sndCurve);
+}
+
+void __cdecl Load_LoadedSoundAsset(XAssetHeader *loadSnd)
+{
+    loadSnd->xmodelPieces = DB_AddXAsset(ASSET_TYPE_LOADED_SOUND, (XAssetHeader)loadSnd->xmodelPieces).xmodelPieces;
+}
+
+void __cdecl Mark_LoadedSoundAsset(LoadedSound *loadSnd)
+{
+    DB_GetXAsset(ASSET_TYPE_LOADED_SOUND, (XAssetHeader)loadSnd);
+}
+
+void __cdecl Load_ClipMapAsset(XAssetHeader *clipMap)
+{
+#ifdef KISAK_MP
+    clipMap->clipMap = DB_AddXAsset(ASSET_TYPE_CLIPMAP_PVS, (XAssetHeader)clipMap->clipMap).clipMap;
+#elif KISAK_SP
+    clipMap->clipMap = DB_AddXAsset(ASSET_TYPE_CLIPMAP, (XAssetHeader)clipMap->clipMap).clipMap;
+#endif
+}
+
+void __cdecl Mark_ClipMapAsset(clipMap_t *clipMap)
+{
+#ifdef KISAK_MP
+    DB_GetXAsset(ASSET_TYPE_CLIPMAP_PVS, (XAssetHeader)clipMap);
+#elif KISAK_SP
+    DB_GetXAsset(ASSET_TYPE_CLIPMAP, (XAssetHeader)clipMap);
+#endif
+}
+
+void __cdecl DB_RemoveLoadedSound(XAssetHeader header)
+{
+    //Z_Free((char *)header.xmodelPieces[3].numpieces, 15);
+    Z_Free(header.loadSnd->sound.data, 15);
+}
+
+void __cdecl DB_RemoveClipMap(XAssetHeader ass)
+{
+    CM_Unload();
+}
+
+void __cdecl Load_ComWorldAsset(XAssetHeader *comWorld)
+{
+    comWorld->xmodelPieces = DB_AddXAsset(ASSET_TYPE_COMWORLD, (XAssetHeader)comWorld->xmodelPieces).xmodelPieces;
+}
+
+void __cdecl Mark_ComWorldAsset(ComWorld *comWorld)
+{
+    DB_GetXAsset(ASSET_TYPE_COMWORLD, (XAssetHeader)comWorld);
+}
+
+void __cdecl DB_RemoveComWorld(XAssetHeader ass)
+{
+    Com_UnloadWorld();
+}
+
+void __cdecl Load_GameWorldSpAsset(XAssetHeader *gameWorldSp)
+{
+    gameWorldSp->xmodelPieces = DB_AddXAsset(ASSET_TYPE_GAMEWORLD_SP, (XAssetHeader)gameWorldSp->xmodelPieces).xmodelPieces;
+}
+
+void __cdecl Mark_GameWorldSpAsset(GameWorldSp *gameWorldSp)
+{
+    DB_GetXAsset(ASSET_TYPE_GAMEWORLD_SP, (XAssetHeader)gameWorldSp);
+}
+
+void __cdecl Load_GameWorldMpAsset(XAssetHeader *gameWorldMp)
+{
+    gameWorldMp->xmodelPieces = DB_AddXAsset(ASSET_TYPE_GAMEWORLD_MP, (XAssetHeader)gameWorldMp->xmodelPieces).xmodelPieces;
+}
+
+void __cdecl Mark_GameWorldMpAsset(GameWorldMp *gameWorldMp)
+{
+    DB_GetXAsset(ASSET_TYPE_GAMEWORLD_MP, (XAssetHeader)gameWorldMp);
+}
+
+void __cdecl Load_MapEntsAsset(XAssetHeader *mapEnts)
+{
+    mapEnts->xmodelPieces = DB_AddXAsset(ASSET_TYPE_MAP_ENTS, (XAssetHeader)mapEnts->xmodelPieces).xmodelPieces;
+}
+
+void __cdecl Mark_MapEntsAsset(MapEnts *mapEnts)
+{
+    DB_GetXAsset(ASSET_TYPE_MAP_ENTS, (XAssetHeader)mapEnts);
+}
+
+void __cdecl Load_GfxWorldAsset(XAssetHeader *gfxWorld)
+{
+    gfxWorld->xmodelPieces = DB_AddXAsset(ASSET_TYPE_GFXWORLD, (XAssetHeader)gfxWorld->xmodelPieces).xmodelPieces;
+}
+
+void __cdecl Mark_GfxWorldAsset(GfxWorld *gfxWorld)
+{
+    DB_GetXAsset(ASSET_TYPE_GFXWORLD, (XAssetHeader)gfxWorld);
+}
+
+void __cdecl DB_RemoveGfxWorld(XAssetHeader ass)
+{
+    R_UnloadWorld();
+}
+
+void __cdecl Load_LightDefAsset(XAssetHeader *lightDef)
+{
+    lightDef->xmodelPieces = DB_AddXAsset(ASSET_TYPE_LIGHT_DEF, (XAssetHeader)lightDef->xmodelPieces).xmodelPieces;
+}
+
+void __cdecl Mark_LightDefAsset(GfxLightDef *lightDef)
+{
+    DB_GetXAsset(ASSET_TYPE_LIGHT_DEF, (XAssetHeader)lightDef);
+}
+
+void __cdecl Load_FontAsset(XAssetHeader *font)
+{
+    font->xmodelPieces = DB_AddXAsset(ASSET_TYPE_FONT, (XAssetHeader)font->xmodelPieces).xmodelPieces;
+}
+
+void __cdecl Mark_FontAsset(Font_s *font)
+{
+    DB_GetXAsset(ASSET_TYPE_FONT, (XAssetHeader)font);
+}
+
+void __cdecl Load_MenuListAsset(XAssetHeader *menuList)
+{
+    menuList->xmodelPieces = DB_AddXAsset(ASSET_TYPE_MENULIST, (XAssetHeader)menuList->xmodelPieces).xmodelPieces;
+}
+
+void __cdecl Mark_MenuListAsset(MenuList *menuList)
+{
+    DB_GetXAsset(ASSET_TYPE_MENULIST, (XAssetHeader)menuList);
+}
+
+void __cdecl Load_MenuAsset(XAssetHeader *menu)
+{
+    XAssetHeader header; // [esp+4h] [ebp-8h]
+    int32_t i; // [esp+8h] [ebp-4h]
+
+    header.menu = menu->menu;
+    menu->menu = DB_AddXAsset(ASSET_TYPE_MENU, *menu).menu;
+
+    for (i = 0; i < header.menu->itemCount; ++i)
+        header.menu->items[i]->parent = menu->menu;
+    //for (i = 0; i < (int)header.xmodelPieces[13].pieces; ++i)
+    //    *(XAssetHeader *)(*(uint32_t *)(header.xmodelPieces[23].numpieces + 4 * i) + 232) = (XAssetHeader)menu->xmodelPieces;
+}
+
+void __cdecl Mark_MenuAsset(menuDef_t *menu)
+{
+    DB_GetXAsset(ASSET_TYPE_MENU, (XAssetHeader)menu);
+}
+
+// The decompiled xmodelPieces indexing and 4-byte item strides only work
+// for Win32 layouts. Resolve real menu and item fields by their declared types
+// on both Windows and Android ARM64.
 void __cdecl DB_DynamicCloneMenu(XAssetHeader from, XAssetHeader to, int32_t swag)
 {
     (void)swag;
