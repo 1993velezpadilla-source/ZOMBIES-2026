@@ -14,6 +14,15 @@
 
 #include <setjmp.h>
 
+#if defined(__ANDROID__)
+// Bionic exports the bounded C99 formatter, not MSVC's _vsnprintf.
+// C99 returns the required length on truncation, which differs from MSVC's
+// -1 result; Com_sprintfPos below must account for that distinction.
+#ifndef _vsnprintf
+#define _vsnprintf vsnprintf
+#endif
+#endif
+
 //Line 53466:  0006 : 02bc009c       int marker_q_shared      8537009c     q_shared.obj
 //Line 53467 : 0006 : 02bc58d0       struct TraceThreadInfo *g_traceThreadInfo 853758d0     q_shared.obj
 //Line 14278 : 0001 : 0006fb0c       struct orientation_t const orIdentity 8207010c     q_shared.obj
@@ -539,7 +548,13 @@ int Com_sprintfPos(char *dest, int destSize, int *destPos, const char *fmt, ...)
     destModSize = destSize - *destPos;
     len = _vsnprintf(destMod, destModSize, fmt, va);
     destMod[destModSize - 1] = 0;
+#if defined(__ANDROID__)
+    // vsnprintf returns the *would-have-written* byte count on truncation.
+    // Treat every truncated result as full rather than advancing past dest.
+    if (len < 0 || static_cast<uint32_t>(len) >= destModSize)
+#else
     if (len == destModSize || len == -1)
+#endif
         *destPos = destSize - 1;
     else
         *destPos += len;
