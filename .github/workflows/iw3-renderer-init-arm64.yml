@@ -1,0 +1,111 @@
+name: IW3 authentic renderer LP64 tracking and AArch64 compile probe (NOT GAME)
+
+on:
+  push:
+    branches:
+      - feature/iw3-native-android-arm64-20261025
+    paths:
+      - '.github/workflows/iw3-renderer-init-arm64.yml'
+      - 'third_party/KisakCOD/src/gfx_d3d/r_init.cpp'
+      - 'tests/test_iw3_android_renderer_static_tracking.py'
+      - 'android/iw3-native/common_compat/**'
+  pull_request:
+    branches:
+      - feature/zombies-offline-sp-weapons-20261024
+    paths:
+      - '.github/workflows/iw3-renderer-init-arm64.yml'
+      - 'third_party/KisakCOD/src/gfx_d3d/r_init.cpp'
+      - 'tests/test_iw3_android_renderer_static_tracking.py'
+      - 'android/iw3-native/common_compat/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: iw3-renderer-init-arm64-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  renderer-tracking-host:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run original renderer static tracking under ASan/UBSan
+        run: |
+          set -euo pipefail
+          python3 -m unittest tests.test_iw3_android_renderer_static_tracking -v
+          echo 'IW3_ORIGINAL_RENDERER_STATIC_TRACKING_LP64_PASS'
+          echo 'IW3_RENDERER_FRAME_PROVEN=false'
+          echo 'IW3_PLAYABLE_APK=false'
+
+  original-renderer-compile-probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      NDK_VER: "27.2.12479018"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Android NDK and OpenAL headers
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdk="$RUNNER_TEMP/android-sdk"
+          mkdir -p "$sdk/cmdline-tools/latest"
+          curl -fLsS --retry 3 -o "$RUNNER_TEMP/commandline-tools.zip" \
+            'https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip'
+          unzip -qo "$RUNNER_TEMP/commandline-tools.zip" -d "$RUNNER_TEMP/commandline-tools"
+          mv "$RUNNER_TEMP/commandline-tools/cmdline-tools/"* "$sdk/cmdline-tools/latest/"
+          yes | "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" --licenses >/dev/null || true
+          "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" "ndk;${NDK_VER}"
+          echo "ANDROID_NDK_HOME=$sdk/ndk/${NDK_VER}" >> "$GITHUB_ENV"
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libopenal-dev
+          mkdir -p "$RUNNER_TEMP/iw3-openal-headers"
+          cp -a /usr/include/AL "$RUNNER_TEMP/iw3-openal-headers/"
+      - name: Probe authentic full r_init.cpp without graphics stubs
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          root="$GITHUB_WORKSPACE/third_party/KisakCOD/src"
+          report="$RUNNER_TEMP/iw3-renderer-compile-report.txt"
+          set +e
+          "$ndk/aarch64-linux-android26-clang++" \
+            -std=c++20 -DKISAK_SP=1 -DKISAK_OPENAL=1 \
+            -DIW3_ANDROID_DISABLE_SCRIPT_DEBUGGER=1 \
+            -DIW3_ANDROID_COMMON_HEADER_ONLY_OPENAL=1 \
+            -fms-extensions -UNDEBUG -O2 -fsigned-char -frounding-math -fno-fast-math \
+            -I "$GITHUB_WORKSPACE/android/iw3-native/common_compat" \
+            -I "$GITHUB_WORKSPACE/android/iw3-native" \
+            -I "$root" \
+            -I "$GITHUB_WORKSPACE/third_party/KisakCOD/deps" \
+            -I "$RUNNER_TEMP/iw3-openal-headers" \
+            -c "$root/gfx_d3d/r_init.cpp" \
+            -o "$RUNNER_TEMP/iw3-original-r-init-aarch64.o" >"$report" 2>&1
+          rc=$?
+          set -e
+          if [ "$rc" -eq 0 ]; then
+            "$ndk/llvm-readelf" -h "$RUNNER_TEMP/iw3-original-r-init-aarch64.o" | tee -a "$report"
+            "$ndk/llvm-nm" -C --defined-only "$RUNNER_TEMP/iw3-original-r-init-aarch64.o" | grep -F 'R_BeginRegistration(' | tee -a "$report"
+            echo 'IW3_ORIGINAL_RENDERER_R_INIT_AARCH64_COMPILED=true' | tee -a "$report"
+          else
+            echo "IW3_ORIGINAL_RENDERER_R_INIT_AARCH64_COMPILED=false (compiler_exit=$rc)" | tee -a "$report"
+            echo 'First 100 compiler diagnostic lines:'
+            sed -n '1,100p' "$report"
+          fi
+          echo 'IW3_RENDERER_BACKEND_LINKED=false' | tee -a "$report"
+          echo 'IW3_RENDERER_FRAME_PROVEN=false' | tee -a "$report"
+          echo 'IW3_REAL_MAP_LOADED=false' | tee -a "$report"
+          echo 'IW3_GAMEPLAY_PROVEN=false' | tee -a "$report"
+          echo 'IW3_PLAYABLE_APK=false' | tee -a "$report"
+          # This is an evidence-gathering probe, not a claim that compilation passed.
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: iw3-authentic-renderer-r-init-arm64-compile-probe
+          path: |
+            ${{ runner.temp }}/iw3-renderer-compile-report.txt
+            ${{ runner.temp }}/iw3-original-r-init-aarch64.o
+          if-no-files-found: ignore
+          retention-days: 7
