@@ -19,6 +19,7 @@ on:
       - 'tests/test_iw3_android_cmd_bootstrap_graph.py'
       - 'tests/test_iw3_android_cmd_thread_values.py'
       - 'android/iw3-native/iw3_android_thread_values.cpp'
+      - 'android/iw3-native/iw3_android_main_thread_shared.cpp'
       - 'android/iw3-native/iw3_android_thread_values.h'
       - 'android/iw3-native/tests/thread_values_native_test.cpp'
       - 'tests/fixtures/iw3_cmd_dispatch_runtime.cpp'
@@ -41,6 +42,7 @@ on:
       - 'tests/test_iw3_android_cmd_bootstrap_graph.py'
       - 'tests/test_iw3_android_cmd_thread_values.py'
       - 'android/iw3-native/iw3_android_thread_values.cpp'
+      - 'android/iw3-native/iw3_android_main_thread_shared.cpp'
       - 'android/iw3-native/iw3_android_thread_values.h'
       - 'android/iw3-native/tests/thread_values_native_test.cpp'
       - 'tests/fixtures/iw3_cmd_dispatch_runtime.cpp'
@@ -329,6 +331,30 @@ jobs:
           "$ndk/ld.lld" -m aarch64linux -r \
             "$RUNNER_TEMP/iw3-original-bootstrap-thread-values-aarch64.o" \
             "$object" -o "$combined"
+          # Android MAIN-thread boundary must call the original q_shared.cpp
+          # Com_InitThreadData; do not synthesize a fake jump buffer.
+          adapter="$RUNNER_TEMP/iw3-android-main-thread-shared-aarch64.o"
+          final="$RUNNER_TEMP/iw3-original-bootstrap-main-shared-aarch64.o"
+          "$ndk/aarch64-linux-android26-clang++" \
+            -std=c++20 -DKISAK_SP=1 -fms-extensions -UNDEBUG -O2 \
+            -I "$GITHUB_WORKSPACE/android/iw3-native" \
+            -I "$root" -I "$GITHUB_WORKSPACE/third_party/KisakCOD/deps" \
+            -c "$GITHUB_WORKSPACE/android/iw3-native/iw3_android_main_thread_shared.cpp" \
+            -o "$adapter"
+          "$ndk/llvm-nm" -C -u "$adapter" | grep -F 'Com_InitThreadData(int)'
+          "$ndk/ld.lld" -m aarch64linux -r "$combined" "$adapter" -o "$final"
+          "$ndk/llvm-nm" -C --defined-only "$final" \
+            > "$RUNNER_TEMP/iw3-original-bootstrap-main-shared-defined.txt"
+          "$ndk/llvm-nm" -C -u "$final" \
+            > "$RUNNER_TEMP/iw3-original-bootstrap-main-shared-undefined.txt"
+          grep -F 'IW3_AndroidBindMainThreadSharedData()' \
+            "$RUNNER_TEMP/iw3-original-bootstrap-main-shared-defined.txt"
+          if grep -F ' U Com_InitThreadData(int)' \
+            "$RUNNER_TEMP/iw3-original-bootstrap-main-shared-undefined.txt"; then
+            echo 'Original thread-data owner missing from Android MAIN binding' >&2
+            exit 1
+          fi
+          echo "IW3_ANDROID_MAIN_SHARED_DATA_ORIGINAL_OWNER_LINK_PASS"
           "$ndk/llvm-nm" -C --defined-only "$combined" > "$RUNNER_TEMP/iw3-original-bootstrap-thread-init-defined.txt"
           "$ndk/llvm-nm" -C -u "$combined" > "$RUNNER_TEMP/iw3-original-bootstrap-thread-init-undefined.txt"
           for symbol in 'Com_InitThreadData(int)' 'Com_Init(char*)' 'Sys_GetValue(int)' 'Sys_SetValue(int, void*)'; do
@@ -354,6 +380,10 @@ jobs:
         with:
           name: iw3-original-command-full-aarch64-NOT-APK
           path: |
+            ${{ runner.temp }}/iw3-android-main-thread-shared-aarch64.o
+            ${{ runner.temp }}/iw3-original-bootstrap-main-shared-aarch64.o
+            ${{ runner.temp }}/iw3-original-bootstrap-main-shared-defined.txt
+            ${{ runner.temp }}/iw3-original-bootstrap-main-shared-undefined.txt
             ${{ runner.temp }}/iw3-original-q-shared-full-aarch64.o
             ${{ runner.temp }}/iw3-original-q-shared-defined.txt
             ${{ runner.temp }}/iw3-original-bootstrap-thread-init-aarch64.o
