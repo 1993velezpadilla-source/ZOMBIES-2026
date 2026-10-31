@@ -18,6 +18,8 @@ static int g_fatal_errors = 0;
 static std::vector<std::string> g_probed_paths;
 static std::vector<std::string> g_mkdir_paths;
 static std::vector<std::string> g_iwd_game_folders;
+static std::vector<std::string> g_rename_from;
+static std::vector<std::string> g_rename_to;
 
 static bool g_force_empty_homepath = false;
 static int g_registered_dvars = 0;
@@ -42,6 +44,8 @@ int fs_iwdFileCount = 0;
 int fs_checksumFeed = 0;
 
 void __cdecl FS_Startup(char *gameName);
+void __cdecl FS_SV_Rename(char *from, char *to);
+void __cdecl FS_Rename(char *from, char *fromDir, char *to, char *toDir);
 bool __cdecl FS_SV_BuildOSPath(const char *base, const char *filename, char *ospath);
 
 static dvar_s *dvar_slot(const char *name) {
@@ -103,6 +107,13 @@ char *Sys_DefaultCDPath() {
 }
 
 void QDECL Com_Printf(int, const char *, ...) {}
+void __cdecl FS_CheckFileSystemStarted() { assert(fs_homepath); }
+extern "C" int z2026_platform_rename_engine_path(const char *from, const char *to) {
+    assert(from && *from && to && *to);
+    g_rename_from.emplace_back(from);
+    g_rename_to.emplace_back(to);
+    return 0;
+}
 void __cdecl Com_ReadCDKey() { ++g_cdkey_reads; }
 void FS_AddCommands() { ++g_add_commands_calls; }
 void FS_Path_f() { ++g_path_command_calls; }
@@ -341,6 +352,56 @@ int main() {
     assert(startup_paths == 14);
     assert(saw_main && saw_main_shared);
     std::puts("IW3_ORIGINAL_FS_STARTUP_EMPTY_HOMEPATH_PASS");
+
+    // Execute both original rename bodies against the rooted Android adapter
+    // spy. The real platform operation must never run for invalid or overlong
+    // paths, even if Com_Error unexpectedly returns in this host harness.
+    g_rename_from.clear();
+    g_rename_to.clear();
+    char old_server[] = "players/old.cfg";
+    char new_server[] = "players/new.cfg";
+    FS_SV_Rename(old_server, new_server);
+    assert(g_rename_from.empty()); // Explicit empty homepath fails closed.
+
+    dvar_s *mutable_homepath = const_cast<dvar_s *>(fs_homepath);
+    mutable_homepath->current.string = "/private/iw3";
+    FS_SV_Rename(old_server, new_server);
+    assert(g_rename_from.size() == 1);
+    assert(g_rename_from.back() == "/private/iw3/players/old.cfg");
+    assert(g_rename_to.back() == "/private/iw3/players/new.cfg");
+
+    char empty_filename[] = "";
+    FS_SV_Rename(empty_filename, new_server);
+    FS_SV_Rename(old_server, empty_filename);
+    assert(g_rename_from.size() == 1);
+
+    char main_dir[] = "main";
+    char renamed_file[] = "players/renamed.cfg";
+    FS_Rename(old_server, main_dir, renamed_file, main_dir);
+    assert(g_rename_from.size() == 2);
+    assert(g_rename_from.back() == "/private/iw3/main/players/old.cfg");
+    assert(g_rename_to.back() == "/private/iw3/main/players/renamed.cfg");
+    FS_Rename(empty_filename, main_dir, renamed_file, main_dir);
+    FS_Rename(old_server, main_dir, empty_filename, main_dir);
+    assert(g_rename_from.size() == 2);
+
+    std::string long_name(300, 'q');
+    g_fatal_errors = 0;
+    FS_SV_Rename(long_name.data(), new_server);
+    FS_SV_Rename(old_server, long_name.data());
+    FS_Rename(long_name.data(), main_dir, renamed_file, main_dir);
+    FS_Rename(old_server, main_dir, long_name.data(), main_dir);
+    assert(g_fatal_errors == 4);
+    assert(g_rename_from.size() == 2);
+
+    mutable_homepath->current.string = overlongRoot.c_str();
+    g_fatal_errors = 0;
+    FS_SV_Rename(old_server, new_server);
+    FS_Rename(old_server, main_dir, renamed_file, main_dir);
+    assert(g_fatal_errors == 2);
+    assert(g_rename_from.size() == 2);
+    mutable_homepath->current.string = "";
+    std::puts("IW3_ORIGINAL_FS_RENAME_PATH_GUARD_PASS");
 
     while (fs_searchpaths) {
         searchpath_s *next = fs_searchpaths->next;
