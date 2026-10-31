@@ -9,6 +9,7 @@ on:
       - 'third_party/KisakCOD/src/gfx_d3d/r_init.cpp'
       - 'tests/test_iw3_android_renderer_static_tracking.py'
       - 'tests/test_iw3_android_renderer_mode_text_bounds.py'
+      - 'tests/test_iw3_android_renderer_display_modes_lp64.py'
       - 'android/iw3-native/common_compat/**'
   pull_request:
     branches:
@@ -18,6 +19,7 @@ on:
       - 'third_party/KisakCOD/src/gfx_d3d/r_init.cpp'
       - 'tests/test_iw3_android_renderer_static_tracking.py'
       - 'tests/test_iw3_android_renderer_mode_text_bounds.py'
+      - 'tests/test_iw3_android_renderer_display_modes_lp64.py'
       - 'android/iw3-native/common_compat/**'
 
 permissions:
