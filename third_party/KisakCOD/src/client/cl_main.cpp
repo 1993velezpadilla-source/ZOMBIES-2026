@@ -8,6 +8,7 @@
 #include "cl_ui.h"
 #include <qcommon/cmd.h>
 #include <qcommon/mem_track.h>
+#include <stdint.h>
 #include <devgui/devgui.h>
 #include <win32/win_local.h>
 #include <server/sv_public.h>
@@ -644,7 +645,9 @@ void __cdecl CL_ResetSkeletonCache()
     //PIXSetMarker(0xFFFFFFFF, "CL_ResetSkeletonCache");
     if (!++clients[0].skelTimeStamp)
         clients[0].skelTimeStamp = 1;
-    clients[0].skelMemoryStart = (char *)((unsigned int)&clients[0].skelMemory[15] & 0xFFFFFFF0);
+    // Keep the full native address when aligning the skeleton arena on LP64.
+    clients[0].skelMemoryStart = reinterpret_cast<char *>(
+        reinterpret_cast<uintptr_t>(&clients[0].skelMemory[15]) & ~uintptr_t(15));
     clients[0].skelMemPos = 0;
 }
 
@@ -661,7 +664,7 @@ void __cdecl CL_ClearState()
         if (*configstrings)
             SL_RemoveRefToString(*configstrings);
         ++configstrings;
-    } while ((int)configstrings < (int)clients[0].mapname);
+    } while (configstrings != clients[0].configstrings + MAX_CONFIGSTRINGS);
     memset(clients, 0, sizeof(clients));
     Com_ClientDObjClearAllSkel();
     memset(clientConnections, 0, sizeof(clientConnections));
@@ -1877,7 +1880,7 @@ void __cdecl CL_Init(int localClientNum)
         Com_sprintf(v29, 32, "s%d", v21);
         *v22++ = Dvar_RegisterInt(v29, 0, 0, 0x7FFFFFFF, 0x4001u, "Used by script for keeping track of arcade scores");
         ++v21;
-    } while ((int)v22 < (int)&arcadeScore[19]);
+    } while (v22 != arcadeScore + 19);
 
     input_invertPitch = Dvar_RegisterBool("input_invertPitch", 0, 0x400u, "Invert gamepad pitch");
     input_viewSensitivity = Dvar_RegisterFloat("input_viewSensitivity", 1.0, 0.000099999997, 5.0, 0, 0);
