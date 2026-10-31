@@ -20,7 +20,7 @@ class OriginalRendererModeTextBoundsTests(unittest.TestCase):
     def test_original_mode_and_refresh_formatting_under_asan_ubsan(self):
         original = function_source(
             SOURCE.read_text(encoding="utf-8"),
-            "void __cdecl R_EnumDisplayModes(uint32_t adapterIndex)",
+            "void __cdecl R_BuildDisplayModeDvars()",
         )
         mode = re.search(
             r"const size_t modeTextRemaining = .*?modeText \+= v2 \+ 1;",
