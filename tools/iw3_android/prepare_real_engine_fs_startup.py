@@ -108,7 +108,7 @@ REQUIRED = (
     "void __cdecl FS_SV_Rename(char *from, char *to)",
     "void __cdecl FS_Rename(char *from, char *fromDir, char *to, char *toDir)",
     "if (!FS_SV_BuildOSPath(fs_homepath->current.string, from, from_ospath) ||",
-    "if (!FS_SV_BuildOSPath(fs_homepath->current.string, to, to_ospath))",
+    "!FS_SV_BuildOSPath(fs_homepath->current.string, to, to_ospath))",
     "if (!*from_ospath)",
     "if (!*to_ospath)",
     "if (length < 2 ||",
