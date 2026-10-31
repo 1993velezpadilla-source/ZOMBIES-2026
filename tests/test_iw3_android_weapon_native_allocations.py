@@ -129,5 +129,95 @@ int main() {
             self.assertIn("IW3_ORIGINAL_SURFACE_SOUND_LP64_ALLOC_PASS", run.stdout)
 
 
+
+    def test_original_weapon_static_tracking_uses_native_object_sizes(self):
+        source = SOURCE.read_text(encoding="utf-8")
+        header = (ROOT / "third_party/KisakCOD/src/qcommon/mem_track.h").read_text(encoding="utf-8")
+        original = function_source(source, "void __cdecl TRACK_bg_weapons_load_obj()")
+        self.assertIn("#define TRACK_STATIC_ARR(glob, type)", header)
+        self.assertIn("#define TRACK_STATIC_DAT(glob, type)", header)
+        arrays = [
+            "szWeapOverlayReticleNames", "szWeapStanceNames",
+            "weaponDefFields", "penetrateTypeNames", "szWeapTypeNames",
+            "szWeapClassNames", "g_playerAnimTypeNames",
+            "szWeapInventoryTypeNames",
+        ]
+        for name in arrays:
+            self.assertIn(f"TRACK_STATIC_ARR({name}, 9)", original)
+        self.assertIn("TRACK_STATIC_DAT(bg_defaultWeaponDefs, 9)", original)
+        for size in ("6024", "2168", "256"):
+            self.assertNotIn(size, original)
+
+        fixture = r"""
+#include <cassert>
+#include <cstddef>
+#include <cstdio>
+#include <cstring>
+#include <vector>
+#define __cdecl
+struct cspField_t { const char* name; int offset; int type; };
+struct WeaponDef { void* models[16]; const char* displayName; int damage; };
+const char* szWeapOverlayReticleNames[2]{};
+const char* szWeapStanceNames[3]{};
+cspField_t weaponDefFields[502]{};
+WeaponDef bg_defaultWeaponDefs{};
+const char* penetrateTypeNames[4]{};
+const char* szWeapTypeNames[4]{};
+const char* szWeapClassNames[10]{};
+char* g_playerAnimTypeNames[64]{};
+const char* szWeapInventoryTypeNames[4]{};
+struct Record { void* ptr; int size; const char* name; int type; };
+std::vector<Record> records;
+void track_static_alloc_internal(void* p, int size, const char* name, int type) {
+    records.push_back({p, size, name, type});
+}
+#define TRACK_STATIC_ARR(glob, type) track_static_alloc_internal(glob, sizeof(glob), #glob, type)
+#define TRACK_STATIC_DAT(glob, type) track_static_alloc_internal(&glob, sizeof(glob), #glob, type)
+/* ORIGINAL_FUNCTION */
+int main() {
+    static_assert(sizeof(void*) == 8, "LP64 fixture required");
+    TRACK_bg_weapons_load_obj();
+    assert(records.size() == 9);
+#define CHECK(i, obj) do { \\
+    assert(records[i].ptr == static_cast<void*>(&(obj))); \\
+    assert(records[i].size == static_cast<int>(sizeof(obj))); \\
+    assert(records[i].type == 9); \\
+    assert(std::strcmp(records[i].name, #obj) == 0); \\
+} while (0)
+    CHECK(0, szWeapOverlayReticleNames);
+    CHECK(1, szWeapStanceNames);
+    CHECK(2, weaponDefFields);
+    CHECK(3, bg_defaultWeaponDefs);
+    CHECK(4, penetrateTypeNames);
+    CHECK(5, szWeapTypeNames);
+    CHECK(6, szWeapClassNames);
+    CHECK(7, g_playerAnimTypeNames);
+    CHECK(8, szWeapInventoryTypeNames);
+    assert(sizeof(weaponDefFields) == 502 * sizeof(cspField_t));
+    assert(records[2].size > 6024);
+    assert(records[7].size == 64 * 8);
+    std::puts("IW3_ORIGINAL_WEAPON_STATIC_TRACKING_LP64_PASS");
+}
+"""
+        fixture = fixture.replace("/* ORIGINAL_FUNCTION */", original)
+        with tempfile.TemporaryDirectory() as tmp:
+            cpp = Path(tmp) / "original_weapon_tracking_lp64.cpp"
+            exe = Path(tmp) / "original_weapon_tracking_lp64"
+            cpp.write_text(fixture, encoding="utf-8")
+            build = subprocess.run(
+                [os.environ.get("CXX", "g++"), "-std=c++17", "-O1", "-g",
+                 "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
+                 str(cpp), "-o", str(exe)],
+                capture_output=True, text=True, timeout=90,
+            )
+            self.assertEqual(build.returncode, 0, build.stdout + build.stderr)
+            env = os.environ.copy()
+            env["ASAN_OPTIONS"] = "detect_leaks=1"
+            run = subprocess.run(
+                [str(exe)], capture_output=True, text=True, timeout=30, env=env,
+            )
+            self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+            self.assertIn("IW3_ORIGINAL_WEAPON_STATIC_TRACKING_LP64_PASS", run.stdout)
+
 if __name__ == "__main__":
     unittest.main()
