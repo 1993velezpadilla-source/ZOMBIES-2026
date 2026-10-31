@@ -16,6 +16,10 @@ on:
       - 'tests/test_iw3_android_cmd_tokenizer.py'
       - 'tests/test_iw3_android_cmd_dispatch_runtime.py'
       - 'tests/test_iw3_android_cmd_bootstrap_graph.py'
+      - 'tests/test_iw3_android_cmd_thread_values.py'
+      - 'android/iw3-native/iw3_android_thread_values.cpp'
+      - 'android/iw3-native/iw3_android_thread_values.h'
+      - 'android/iw3-native/tests/thread_values_native_test.cpp'
       - 'tests/fixtures/iw3_cmd_dispatch_runtime.cpp'
       - 'tools/iw3_android/prepare_real_engine_cmd_tokenizer.py'
   pull_request:
@@ -33,6 +37,10 @@ on:
       - 'tests/test_iw3_android_cmd_tokenizer.py'
       - 'tests/test_iw3_android_cmd_dispatch_runtime.py'
       - 'tests/test_iw3_android_cmd_bootstrap_graph.py'
+      - 'tests/test_iw3_android_cmd_thread_values.py'
+      - 'android/iw3-native/iw3_android_thread_values.cpp'
+      - 'android/iw3-native/iw3_android_thread_values.h'
+      - 'android/iw3-native/tests/thread_values_native_test.cpp'
       - 'tests/fixtures/iw3_cmd_dispatch_runtime.cpp'
       - 'tools/iw3_android/prepare_real_engine_cmd_tokenizer.py'
 
@@ -244,6 +252,56 @@ jobs:
           echo "IW3_GAMEPLAY_PROVEN=false"
           echo "IW3_PLAYABLE_APK=false"
 
+      - name: Exercise Android thread-value provider and link real bootstrap ABI (NOT GAME)
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$GITHUB_WORKSPACE/third_party/KisakCOD/src"
+          platform="$GITHUB_WORKSPACE/android/iw3-native"
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          # Execute the same platform provider on the host with real
+          # setjmp/longjmp, two distinct IW3 thread contexts and UBSan.
+          c++ -std=c++20 -DKISAK_SP=1 -UNDEBUG -O1 -Wall -Wextra -Werror \
+            -fsanitize=undefined -fno-omit-frame-pointer -pthread \
+            -I "$root" -I "$platform" \
+            "$platform/iw3_android_thread_values.cpp" \
+            "$platform/tests/thread_values_native_test.cpp" \
+            -o "$RUNNER_TEMP/iw3-android-thread-values-host-test"
+          "$RUNNER_TEMP/iw3-android-thread-values-host-test"
+          echo "IW3_ANDROID_THREAD_VALUES_HOST_SETJMP_TLS_PASS"
+          # This is a real AArch64 provider for original Sys_GetValue/SetValue,
+          # not a fake Com_Init and not a complete Android engine runtime.
+          provider="$RUNNER_TEMP/iw3-android-thread-values-aarch64.o"
+          combined="$RUNNER_TEMP/iw3-original-bootstrap-thread-values-aarch64.o"
+          "$ndk/aarch64-linux-android26-clang++" \
+            -std=c++20 -DKISAK_SP=1 -UNDEBUG -O2 -Wall -Wextra -Werror \
+            -I "$root" -I "$platform" \
+            -c "$platform/iw3_android_thread_values.cpp" -o "$provider"
+          "$ndk/llvm-readelf" -h "$provider" | grep -F 'Machine:                           AArch64'
+          "$ndk/ld.lld" -m aarch64linux -r \
+            "$RUNNER_TEMP/iw3-original-common-cmd-files-dvar-aarch64.o" \
+            "$provider" -o "$combined"
+          "$ndk/llvm-nm" -C --defined-only "$combined" \
+            > "$RUNNER_TEMP/iw3-original-bootstrap-thread-values-defined.txt"
+          "$ndk/llvm-nm" -C -u "$combined" \
+            > "$RUNNER_TEMP/iw3-original-bootstrap-thread-values-undefined.txt"
+          for symbol in 'Sys_GetValue(int)' 'Sys_SetValue(int, void*)' 'Com_Init(char*)'; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-original-bootstrap-thread-values-defined.txt"
+            if grep -F " U $symbol" "$RUNNER_TEMP/iw3-original-bootstrap-thread-values-undefined.txt"; then
+              echo "Authentic bootstrap dependency still unresolved: $symbol" >&2
+              exit 1
+            fi
+          done
+          grep -F ' U CL_InitRenderer()' "$RUNNER_TEMP/iw3-original-bootstrap-thread-values-undefined.txt"
+          echo "IW3_ORIGINAL_SYS_GETVALUE_AARCH64_PROVIDER_RESOLVED"
+          echo "IW3_ORIGINAL_RENDERER_RUNTIME_PROVIDER_MISSING"
+          echo "IW3_COMMON_BOOTSTRAP_RUNTIME_LINKED=false"
+          echo "IW3_FS_STARTUP_RUNTIME_INVOKED=false"
+          echo "IW3_RENDERER_FRAME_PROVEN=false"
+          echo "IW3_REAL_MAP_LOADED=false"
+          echo "IW3_GAMEPLAY_PROVEN=false"
+          echo "IW3_PLAYABLE_APK=false"
+
       - name: Preserve command-system portability evidence (NOT APK)
         if: always()
         uses: actions/upload-artifact@v4
@@ -252,6 +310,10 @@ jobs:
           path: |
             ${{ runner.temp }}/iw3-original-cmd-full-aarch64.o
             ${{ runner.temp }}/iw3-original-common-full-aarch64.o
+            ${{ runner.temp }}/iw3-android-thread-values-aarch64.o
+            ${{ runner.temp }}/iw3-original-bootstrap-thread-values-aarch64.o
+            ${{ runner.temp }}/iw3-original-bootstrap-thread-values-defined.txt
+            ${{ runner.temp }}/iw3-original-bootstrap-thread-values-undefined.txt
             ${{ runner.temp }}/iw3-original-common-cmd-files-dvar-aarch64.o
             ${{ runner.temp }}/iw3-original-common-before-undefined.txt
             ${{ runner.temp }}/iw3-original-bootstrap-graph-elf.txt
