@@ -7,6 +7,7 @@ on:
     paths:
       - '.github/workflows/iw3-renderer-init-arm64.yml'
       - 'third_party/KisakCOD/src/gfx_d3d/r_init.cpp'
+      - 'third_party/KisakCOD/src/gfx_d3d/r_utils.h'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_display.cpp'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_display.h'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_egl.cpp'
@@ -14,6 +15,7 @@ on:
       - 'tests/test_iw3_android_renderer_egl_lifecycle.py'
       - 'tests/test_iw3_android_renderer_native_window_modes.py'
       - 'tests/test_iw3_android_renderer_static_tracking.py'
+      - 'tests/test_iw3_android_renderer_com_release_portability.py'
       - 'tests/test_iw3_android_renderer_mode_text_bounds.py'
       - 'tests/test_iw3_android_renderer_display_modes_lp64.py'
       - 'android/iw3-native/common_compat/**'
@@ -23,6 +25,7 @@ on:
     paths:
       - '.github/workflows/iw3-renderer-init-arm64.yml'
       - 'third_party/KisakCOD/src/gfx_d3d/r_init.cpp'
+      - 'third_party/KisakCOD/src/gfx_d3d/r_utils.h'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_display.cpp'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_display.h'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_egl.cpp'
@@ -30,6 +33,7 @@ on:
       - 'tests/test_iw3_android_renderer_egl_lifecycle.py'
       - 'tests/test_iw3_android_renderer_native_window_modes.py'
       - 'tests/test_iw3_android_renderer_static_tracking.py'
+      - 'tests/test_iw3_android_renderer_com_release_portability.py'
       - 'tests/test_iw3_android_renderer_mode_text_bounds.py'
       - 'tests/test_iw3_android_renderer_display_modes_lp64.py'
       - 'android/iw3-native/common_compat/**'
