@@ -46,8 +46,8 @@ int builderCalls = 0;
 void R_BuildDisplayModeDvars() {
     ++builderCalls;
     assert(dx.displayModeCount == 1);
-    assert(dx.displayModes[0].Width >= 640);
-    assert(dx.displayModes[0].Height >= 480);
+    assert(dx.displayModes[0].Width >= 320);
+    assert(dx.displayModes[0].Height >= 320);
     assert(dx.displayModes[0].RefreshRate >= 1);
 }
 struct JNIEnv {
@@ -107,10 +107,21 @@ int main() {
     assert(R_AndroidPopulateDisplayMode(&env, surface, display));
     assert(dx.displayModes[0].RefreshRate == 144);
     assert(builderCalls == 2);
-    window.width = 320;
+    // Real portrait and landscape Android windows can be narrower than
+    // the original Windows-only 640x480 minimum.
+    window.width = 360; window.height = 800;
+    assert(R_AndroidPopulateDisplayMode(&env, surface, display));
+    assert(dx.displayModes[0].Width == 360 && dx.displayModes[0].Height == 800);
+    window.width = 800; window.height = 360;
+    assert(R_AndroidPopulateDisplayMode(&env, surface, display));
+    assert(dx.displayModes[0].Width == 800 && dx.displayModes[0].Height == 360);
+    assert(builderCalls == 4);
+    window.width = 319;
     assert(!R_AndroidPopulateDisplayMode(&env, surface, display));
-    assert(builderCalls == 2);
-    window.width = 1080;
+    window.width = 320; window.height = 319;
+    assert(!R_AndroidPopulateDisplayMode(&env, surface, display));
+    assert(builderCalls == 4);
+    window.width = 1080; window.height = 2400;
     env.hz = std::numeric_limits<float>::quiet_NaN();
     assert(!R_AndroidPopulateDisplayMode(&env, surface, display));
     env.hz = std::numeric_limits<float>::infinity();
@@ -119,7 +130,7 @@ int main() {
     assert(!R_AndroidPopulateDisplayMode(&env, surface, display));
     env.hz = 1001.0f;
     assert(!R_AndroidPopulateDisplayMode(&env, surface, display));
-    assert(builderCalls == 2);
+    assert(builderCalls == 4);
     env.hz = 60.0f;
     env.failClass = true;
     assert(!R_AndroidPopulateDisplayMode(&env, surface, display));
@@ -133,29 +144,29 @@ int main() {
     failSurface = true;
     assert(!R_AndroidPopulateDisplayMode(&env, surface, display));
     failSurface = false;
-    assert(builderCalls == 2);
+    assert(builderCalls == 4);
     // JNI read is a value-only snapshot: no renderer state or dvar mutation.
     IW3AndroidSurfaceMode staged{0, 0, 0};
     assert(R_AndroidReadSurfaceMode(&env, surface, display, &staged));
     assert(staged.width == 1080 && staged.height == 2400 && staged.refreshHz == 60);
-    assert(builderCalls == 2 && dx.displayModes[0].RefreshRate == 144);
+    assert(builderCalls == 4 && dx.displayModes[0].RefreshRate == 144);
     assert(R_AndroidApplySurfaceMode(staged));
-    assert(builderCalls == 3 && dx.displayModes[0].RefreshRate == 60);
-    const IW3AndroidSurfaceMode bad{639, 2400, 60};
+    assert(builderCalls == 5 && dx.displayModes[0].RefreshRate == 60);
+    const IW3AndroidSurfaceMode bad{319, 2400, 60};
     assert(!R_AndroidApplySurfaceMode(bad));
-    assert(builderCalls == 3 && dx.displayModes[0].Width == 1080);
+    assert(builderCalls == 5 && dx.displayModes[0].Width == 1080);
     const IW3AndroidSurfaceMode sentinel{777, 888, 999};
     staged = sentinel;
     assert(!R_AndroidReadSurfaceMode(&env, surface, display, nullptr));
     env.exception = true;
     assert(!R_AndroidReadSurfaceMode(&env, surface, display, &staged));
     env.exception = false;
-    window.height = 320;
+    window.height = 319;
     assert(!R_AndroidReadSurfaceMode(&env, surface, display, &staged));
     window.height = 2400;
     assert(staged.width == sentinel.width && staged.height == sentinel.height
            && staged.refreshHz == sentinel.refreshHz);
-    assert(builderCalls == 3);
+    assert(builderCalls == 5);
     std::puts("IW3_ORIGINAL_ANDROID_SURFACE_MODE_PROVIDER_LP64_PASS");
 }
 """
