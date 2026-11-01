@@ -5,6 +5,13 @@
 
 bool __cdecl RB_IsGpuFinished()
 {
+#if defined(__ANDROID__)
+    // The original D3D9 completion query cannot be interpreted as GLES3.
+    // Until a GLsync-backed command path is wired to the authentic renderer,
+    // fail explicitly rather than returning a fabricated completion result.
+    Com_Error(ERR_FATAL, "IW3 Android: original GPU fence query requires GLES3 GLsync integration");
+    return false;
+#else
     const char *v1; // eax
     int hr; // [esp+0h] [ebp-8h]
 
@@ -46,10 +53,19 @@ bool __cdecl RB_IsGpuFinished()
             --dx.flushGpuQueryCount;
         return hr != 1;
     }
+
+#endif
 }
 
 bool __cdecl RB_IsGpuFenceFinished()
 {
+#if defined(__ANDROID__)
+    // The original D3D9 completion query cannot be interpreted as GLES3.
+    // Until a GLsync-backed command path is wired to the authentic renderer,
+    // fail explicitly rather than returning a fabricated completion result.
+    Com_Error(ERR_FATAL, "IW3 Android: original GPU fence query requires GLES3 GLsync integration");
+    return false;
+#else
     if (dx.flushGpuQueryIssued)
     {
     	// KISAKGPUFENCE: Comment asserts out for now. Sometimes goes off when alt-tabbing.
@@ -75,4 +91,6 @@ bool __cdecl RB_IsGpuFenceFinished()
         //    MyAssertHandler(".\\r_setstate_d3d.cpp", 44, 0, "%s", "!dx.flushGpuQueryCount");
         return 1;
     }
+
+#endif
 }
