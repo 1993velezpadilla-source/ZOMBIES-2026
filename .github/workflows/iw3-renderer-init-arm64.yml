@@ -222,6 +222,50 @@ jobs:
           echo 'IW3_RENDERER_FRAME_PROVEN=false' | tee -a "$report"
           echo 'IW3_PLAYABLE_APK=false' | tee -a "$report"
           # A compile probe is evidence, never proof of rendering or gameplay.
+      - name: Relocatable link three original IW3 renderer units for AArch64 (NOT a GLES backend)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          report="$RUNNER_TEMP/iw3-original-renderer-three-tu-link-report.txt"
+          out="$RUNNER_TEMP/iw3-original-renderer-three-tu-aarch64.o"
+          inputs=(
+            "$RUNNER_TEMP/iw3-original-r-init-aarch64.o"
+            "$RUNNER_TEMP/iw3-original-rendercmds-aarch64.o"
+            "$RUNNER_TEMP/iw3-original-rb-backend-aarch64.o"
+          )
+          for input in "${inputs[@]}"; do
+            if [ ! -s "$input" ]; then
+              echo "IW3_ORIGINAL_RENDERER_THREE_TU_RELOCATABLE_LINK=false (missing $input)" | tee -a "$report"
+              echo 'IW3_RENDERER_BACKEND_LINKED=false' | tee -a "$report"
+              echo 'IW3_PLAYABLE_APK=false' | tee -a "$report"
+              exit 0
+            fi
+          done
+          # A relocatable link checks duplicate definitions and resolves
+          # inter-unit references; it intentionally allows unresolved engine
+          # services and must NEVER be reported as a runnable GLES renderer.
+          set +e
+          "$ndk/ld.lld" -r -o "$out" "${inputs[@]}" > "$report" 2>&1
+          rc=$?
+          set -e
+          if [ "$rc" -eq 0 ]; then
+            "$ndk/llvm-readelf" -h "$out" | grep -E 'Class:|Machine:' | tee -a "$report"
+            "$ndk/llvm-nm" -C --defined-only "$out" | grep -E 'R_BeginRegistration\\(|R_GetCommandBuffer\\(|RB_CallExecuteRenderCommands\\(' | tee -a "$report"
+            "$ndk/llvm-nm" -C -u "$out" > "$RUNNER_TEMP/iw3-original-renderer-three-tu-undefined.txt"
+            echo "IW3_ORIGINAL_RENDERER_THREE_TU_UNDEFINED_SYMBOL_COUNT=$(wc -l < "$RUNNER_TEMP/iw3-original-renderer-three-tu-undefined.txt")" | tee -a "$report"
+            echo 'IW3_ORIGINAL_RENDERER_THREE_TU_RELOCATABLE_LINK=true' | tee -a "$report"
+          else
+            echo "IW3_ORIGINAL_RENDERER_THREE_TU_RELOCATABLE_LINK=false (linker_exit=$rc)" | tee -a "$report"
+            sed -n '1,100p' "$report"
+          fi
+          echo 'IW3_RENDERER_BACKEND_LINKED=false' | tee -a "$report"
+          echo 'IW3_RENDERER_FRAME_PROVEN=false' | tee -a "$report"
+          echo 'IW3_REAL_MAP_LOADED=false' | tee -a "$report"
+          echo 'IW3_GAMEPLAY_PROVEN=false' | tee -a "$report"
+          echo 'IW3_PLAYABLE_APK=false' | tee -a "$report"
+          # Do not mask duplicate-definition or relocation failures.
+          exit "$rc"
       - name: Compile genuine Android Surface mode provider for AArch64 (required)
         shell: bash
         run: |
@@ -283,6 +327,9 @@ jobs:
             ${{ runner.temp }}/iw3-original-rb-backend-arm64-report.txt
             ${{ runner.temp }}/iw3-original-rb-backend-aarch64.o
             ${{ runner.temp }}/iw3-original-rb-backend-arm64-undefined.txt
+            ${{ runner.temp }}/iw3-original-renderer-three-tu-link-report.txt
+            ${{ runner.temp }}/iw3-original-renderer-three-tu-aarch64.o
+            ${{ runner.temp }}/iw3-original-renderer-three-tu-undefined.txt
             ${{ runner.temp }}/iw3-r-init-arm64-undefined-symbols.txt
             ${{ runner.temp }}/iw3-original-android-display-aarch64.o
             ${{ runner.temp }}/libiw3-android-egl-platform-arm64.so
