@@ -235,5 +235,49 @@ class OriginalRendererDisplayModesLP64(unittest.TestCase):
                     self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
                     self.assertIn("IW3_ORIGINAL_RENDERER_DISPLAY_MODES_LP64_PASS", run.stdout)
 
+
+    def test_android_precreate_window_fails_closed_without_gles_draw_backend(self):
+        """Compile and execute the ORIGINAL startup function on an LP64 host.
+
+        Native Surface mode support must never accidentally report a working
+        IW3 renderer while the genuine GLES draw-command backend is absent.
+        """
+        source = SOURCE.read_text(encoding="utf-8")
+        original = function_source(source, "char __cdecl R_PreCreateWindow()")
+        harness = r"""
+#include <cassert>
+#include <cstdarg>
+#include <cstdio>
+#include <cstring>
+#define __cdecl
+constexpr int CON_CHANNEL_GFX = 0;
+char captured[512]{};
+void Com_Printf(int, const char *fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(captured, sizeof(captured), fmt, args);
+    va_end(args);
+}
+/* ORIGINAL_PRECREATE */
+int main() {
+    static_assert(sizeof(void *) == 8, "LP64 host required");
+    assert(R_PreCreateWindow() == 0);
+    assert(strstr(captured, "authentic GLES renderer command backend not integrated"));
+}
+""".replace("/* ORIGINAL_PRECREATE */", original)
+        with tempfile.TemporaryDirectory() as temp:
+            cpp = Path(temp) / "iw3_precreate_android.cpp"
+            exe = Path(temp) / "iw3_precreate_android"
+            cpp.write_text(harness, encoding="utf-8")
+            build = subprocess.run(
+                [os.environ.get("CXX", "g++"), "-std=c++17", "-O1", "-g",
+                 "-D__ANDROID__", "-fsanitize=address,undefined",
+                 "-fno-omit-frame-pointer", str(cpp), "-o", str(exe)],
+                capture_output=True, text=True, timeout=90)
+            self.assertEqual(build.returncode, 0, build.stdout + build.stderr)
+            run = subprocess.run([str(exe)], capture_output=True, text=True,
+                                 timeout=30)
+            self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+
 if __name__ == "__main__":
     unittest.main()
