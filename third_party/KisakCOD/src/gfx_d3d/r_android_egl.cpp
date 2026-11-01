@@ -39,25 +39,40 @@ bool R_AndroidEglDestroy(IW3AndroidEglContext *state)
 {
     if (!state)
         return false;
-    // eglDestroyContext / eglTerminate must never run from an Android UI
-    // callback while the engine render thread owns the live EGL context.
+    // EGL resources and original IW3 GLsync belong to the render thread.
     if (state->ownerThreadValid && !R_AndroidEglIsOwnerThread(state))
         return false;
     if (!R_AndroidEglReleaseOriginalFence(state))
         return false;
+
     if (state->display != EGL_NO_DISPLAY)
     {
-        // Never unbind another context belonging to the caller or another
-        // render thread. EGL current state is thread-local.
+        // A failed unbind must NOT be followed by destroying a still-current
+        // context. Keep ownership and handles so the render thread can retry.
         if (state->context != EGL_NO_CONTEXT
-            && eglGetCurrentContext() == state->context)
-            eglMakeCurrent(state->display, EGL_NO_SURFACE, EGL_NO_SURFACE,
-                           EGL_NO_CONTEXT);
+            && eglGetCurrentContext() == state->context
+            && !eglMakeCurrent(state->display, EGL_NO_SURFACE, EGL_NO_SURFACE,
+                               EGL_NO_CONTEXT))
+            return false;
+
+        // Tear down one resource at a time. EGL drivers can reject any step;
+        // only clear handles after successful destruction, otherwise retry
+        // would double-destroy already freed resources or leak a Surface.
         if (state->context != EGL_NO_CONTEXT)
-            eglDestroyContext(state->display, state->context);
+        {
+            if (!eglDestroyContext(state->display, state->context))
+                return false;
+            state->context = EGL_NO_CONTEXT;
+        }
         if (state->surface != EGL_NO_SURFACE)
-            eglDestroySurface(state->display, state->surface);
-        eglTerminate(state->display);
+        {
+            if (!eglDestroySurface(state->display, state->surface))
+                return false;
+            state->surface = EGL_NO_SURFACE;
+        }
+        if (!eglTerminate(state->display))
+            return false;
+        state->display = EGL_NO_DISPLAY;
     }
     if (state->window)
         ANativeWindow_release(state->window);
