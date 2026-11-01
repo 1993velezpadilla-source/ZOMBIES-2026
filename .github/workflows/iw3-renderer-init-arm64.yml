@@ -12,6 +12,8 @@ on:
       - 'third_party/KisakCOD/src/gfx_d3d/rb_backend.h'
       - 'third_party/KisakCOD/src/gfx_d3d/rb_draw3d.h'
       - 'tests/test_iw3_android_renderer_backend_lp64.py'
+      - 'third_party/KisakCOD/src/gfx_d3d/r_setstate_d3d.cpp'
+      - 'tests/test_iw3_android_renderer_gpu_query_arm64.py'
       - 'third_party/KisakCOD/src/gfx_d3d/r_rendercmds.h'
       - 'third_party/KisakCOD/src/gfx_d3d/r_cinematic.h'
       - 'tests/test_iw3_android_renderer_command_lp64.py'
@@ -40,6 +42,8 @@ on:
       - 'third_party/KisakCOD/src/gfx_d3d/rb_backend.h'
       - 'third_party/KisakCOD/src/gfx_d3d/rb_draw3d.h'
       - 'tests/test_iw3_android_renderer_backend_lp64.py'
+      - 'third_party/KisakCOD/src/gfx_d3d/r_setstate_d3d.cpp'
+      - 'tests/test_iw3_android_renderer_gpu_query_arm64.py'
       - 'third_party/KisakCOD/src/gfx_d3d/r_rendercmds.h'
       - 'third_party/KisakCOD/src/gfx_d3d/r_cinematic.h'
       - 'tests/test_iw3_android_renderer_command_lp64.py'
@@ -222,6 +226,29 @@ jobs:
           echo 'IW3_RENDERER_FRAME_PROVEN=false' | tee -a "$report"
           echo 'IW3_PLAYABLE_APK=false' | tee -a "$report"
           # A compile probe is evidence, never proof of rendering or gameplay.
+      - name: Compile original IW3 D3D9 GPU-query translation unit for ARM64 (NOT GLES)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          root="$GITHUB_WORKSPACE/third_party/KisakCOD/src"
+          out="$RUNNER_TEMP/iw3-original-r-setstate-d3d-aarch64.o"
+          "$ndk/aarch64-linux-android26-clang++" \
+            -std=c++20 -DKISAK_SP=1 -DKISAK_OPENAL=1 \
+            -DIW3_ANDROID_DISABLE_SCRIPT_DEBUGGER=1 \
+            -DIW3_ANDROID_COMMON_HEADER_ONLY_OPENAL=1 \
+            -fms-extensions -UNDEBUG -O2 -fsigned-char -frounding-math -fno-fast-math \
+            -I "$GITHUB_WORKSPACE/android/iw3-native/common_compat" \
+            -I "$GITHUB_WORKSPACE/android/iw3-native" \
+            -I "$root" \
+            -I "$GITHUB_WORKSPACE/third_party/KisakCOD/deps" \
+            -I "$RUNNER_TEMP/iw3-openal-headers" \
+            -c "$root/gfx_d3d/r_setstate_d3d.cpp" -o "$out"
+          "$ndk/llvm-readelf" -h "$out" | grep -E 'Class:|Machine:'
+          "$ndk/llvm-nm" -C --defined-only "$out" | grep -F 'RB_IsGpuFenceFinished()'
+          echo 'IW3_ORIGINAL_GPU_QUERY_AARCH64_COMPILED=true'
+          echo 'IW3_GLES3_GPU_SYNC_WIRED=false'
+          echo 'IW3_PLAYABLE_APK=false'
       - name: Relocatable link three original IW3 renderer units for AArch64 (NOT a GLES backend)
         shell: bash
         run: |
@@ -266,6 +293,32 @@ jobs:
           echo 'IW3_PLAYABLE_APK=false' | tee -a "$report"
           # Do not mask duplicate-definition or relocation failures.
           exit "$rc"
+      - name: Relocatable link four original renderer translation units for AArch64 (NOT GAME)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          out="$RUNNER_TEMP/iw3-original-renderer-four-tu-aarch64.o"
+          inputs=(
+            "$RUNNER_TEMP/iw3-original-r-init-aarch64.o"
+            "$RUNNER_TEMP/iw3-original-rendercmds-aarch64.o"
+            "$RUNNER_TEMP/iw3-original-rb-backend-aarch64.o"
+            "$RUNNER_TEMP/iw3-original-r-setstate-d3d-aarch64.o"
+          )
+          for input in "${inputs[@]}"; do
+            test -s "$input" || { echo "Missing genuine IW3 object: $input"; exit 1; }
+          done
+          "$ndk/ld.lld" -r -o "$out" "${inputs[@]}"
+          "$ndk/llvm-readelf" -h "$out" | grep -E 'Class:|Machine:'
+          "$ndk/llvm-nm" -C --defined-only "$out" | grep -F 'RB_IsGpuFenceFinished()'
+          "$ndk/llvm-nm" -C -u "$out" > "$RUNNER_TEMP/iw3-original-renderer-four-tu-undefined.txt"
+          echo "IW3_ORIGINAL_RENDERER_FOUR_TU_UNDEFINED_SYMBOL_COUNT=$(wc -l < "$RUNNER_TEMP/iw3-original-renderer-four-tu-undefined.txt")"
+          echo 'IW3_ORIGINAL_RENDERER_FOUR_TU_RELOCATABLE_LINK=true'
+          echo 'IW3_RENDERER_BACKEND_LINKED=false'
+          echo 'IW3_RENDERER_FRAME_PROVEN=false'
+          echo 'IW3_REAL_MAP_LOADED=false'
+          echo 'IW3_GAMEPLAY_PROVEN=false'
+          echo 'IW3_PLAYABLE_APK=false'
       - name: Compile genuine Android Surface mode provider for AArch64 (required)
         shell: bash
         run: |
