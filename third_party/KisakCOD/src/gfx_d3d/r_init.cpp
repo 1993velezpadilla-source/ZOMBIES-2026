@@ -3862,6 +3862,14 @@ void __cdecl R_FinishAttachingToWindow(const GfxWindowParms *wndParms)
 
 char __cdecl R_InitHardware(const GfxWindowParms *wndParms)
 {
+#if defined(__ANDROID__)
+    // The original hardware initialization below owns D3D9 device, queries,
+    // render targets and draw commands. EGL context creation alone does not
+    // implement them. Reject startup until the real GLES backend is wired.
+    Com_Printf(CON_CHANNEL_GFX,
+        "IW3 Android: original renderer hardware requires GLES draw backend; D3D9 unavailable\n");
+    return 0;
+#else
     uint32_t workerIndex; // [esp+4h] [ebp-4h]
 
     if (!R_CreateDevice(wndParms))
@@ -3890,6 +3898,7 @@ char __cdecl R_InitHardware(const GfxWindowParms *wndParms)
             Sys_ResumeThread((ThreadContext_t)(workerIndex + 2));
     }
     return 1;
+#endif // __ANDROID__: no D3D9 hardware startup
 }
 
 void __cdecl R_StoreWindowSettings(const GfxWindowParms *wndParms)
@@ -3966,6 +3975,9 @@ void R_InitGamma()
     Dvar_SetModified((dvar_s*)r_gamma);
 }
 
+#if !defined(__ANDROID__)
+// Genuine desktop D3D9 resource, query and device creation. Android must
+// implement these semantics in GLES rather than instantiate opaque COM types.
 char __cdecl R_CreateForInitOrReset()
 {
     const char *v0; // eax
@@ -4213,8 +4225,16 @@ int __cdecl R_GetDeviceType()
     }
 }
 
+#endif // !__ANDROID__: D3D9 queries and device creation
+
 bool __cdecl R_SetCustomResolution(GfxWindowParms *wndParms)
 {
+#if defined(__ANDROID__)
+    // Android dimensions come from the actual Surface/Display handoff, not
+    // Win32 monitor enumeration or the desktop custom window mode.
+    (void)wndParms;
+    return false;
+#else
     int monitorHeight; // [esp+0h] [ebp-8h] BYREF
     int monitorWidth; // [esp+4h] [ebp-4h] BYREF
 
@@ -4222,6 +4242,7 @@ bool __cdecl R_SetCustomResolution(GfxWindowParms *wndParms)
         return 0;
     return !R_GetMonitorDimensions(&monitorWidth, &monitorHeight)
         || wndParms->displayWidth <= monitorWidth && wndParms->displayHeight <= monitorHeight;
+#endif
 }
 
 const char *__cdecl R_ClosestRefreshRateForMode(uint32_t width, uint32_t height, int refreshRate)
