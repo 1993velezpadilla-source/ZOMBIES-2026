@@ -52,5 +52,75 @@ class RendererD3DCapsBoundaryTests(unittest.TestCase):
         self.assertIn("authentic GLES renderer command backend not integrated", precreate)
         self.assertIn("return 0;", precreate)
 
+    def test_android_d3d9_query_device_boundary_and_real_hardware_fail_closed(self):
+        # Probe the original source, not a fabricated renderer implementation.
+        import tempfile
+        source = SOURCE.read_text(encoding="utf-8")
+        hardware = source[source.index("char __cdecl R_InitHardware("):
+                          source.index("void __cdecl R_StoreWindowSettings(")]
+        start = source.rfind("#if !defined(__ANDROID__)", 0,
+                             source.index("char __cdecl R_CreateForInitOrReset()"))
+        self.assertGreaterEqual(start, 0)
+        device = source[start:source.index("const char *__cdecl R_ClosestRefreshRateForMode(")]
+        for platform, flags in (("android", ["-D__ANDROID__"]), ("desktop", [])):
+            with self.subTest(platform=platform):
+                result = subprocess.run(
+                    [os.environ.get("CXX", "g++"), "-E", "-P", "-x", "c++", *flags, "-"],
+                    input=hardware + "\n" + device,
+                    capture_output=True, text=True, timeout=30)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                processed = result.stdout
+                self.assertIn("R_InitHardware(", processed)
+                self.assertIn("R_SetCustomResolution(", processed)
+                if platform == "android":
+                    self.assertNotIn("dx.device->CreateQuery(", processed)
+                    self.assertNotIn("_D3DPRESENT_PARAMETERS_ d3dpp", processed)
+                    self.assertNotIn("R_CreateDevice(wndParms)", processed)
+                    self.assertIn("original renderer hardware requires GLES draw backend", processed)
+                    self.assertIn("(void)wndParms;", processed)
+                else:
+                    self.assertIn("dx.device->CreateQuery(", processed)
+                    self.assertIn("_D3DPRESENT_PARAMETERS_ d3dpp", processed)
+                    self.assertIn("R_CreateDevice(wndParms)", processed)
+                    self.assertIn("R_GetMonitorDimensions(", processed)
+
+        # Execute the actual Android hardware-entry function with only its
+        # logging dependency supplied. It must reject startup, not claim a frame.
+        fixture = """
+#include <cassert>
+#include <cstdarg>
+#include <cstdio>
+#include <cstring>
+#define __cdecl
+struct GfxWindowParms {};
+constexpr int CON_CHANNEL_GFX = 0;
+int calls = 0;
+void Com_Printf(int, const char *format, ...) {
+    ++calls;
+    assert(std::strstr(format, "requires GLES draw backend"));
+}
+""" + hardware + """
+int main() {
+    GfxWindowParms params{};
+    assert(R_InitHardware(&params) == 0);
+    assert(calls == 1);
+}
+"""
+        with tempfile.TemporaryDirectory() as temp:
+            cpp = Path(temp) / "r_init_hardware_android.cpp"
+            exe = Path(temp) / "r_init_hardware_android"
+            cpp.write_text(fixture, encoding="utf-8")
+            compile_result = subprocess.run(
+                [os.environ.get("CXX", "g++"), "-std=c++17", "-D__ANDROID__",
+                 "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
+                 str(cpp), "-o", str(exe)],
+                capture_output=True, text=True, timeout=60)
+            self.assertEqual(compile_result.returncode, 0,
+                             compile_result.stdout + compile_result.stderr)
+            run = subprocess.run([str(exe)], capture_output=True, text=True,
+                                 timeout=30, env={**os.environ, "ASAN_OPTIONS": "detect_leaks=1"})
+            self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+
+
 if __name__ == "__main__":
     unittest.main()
