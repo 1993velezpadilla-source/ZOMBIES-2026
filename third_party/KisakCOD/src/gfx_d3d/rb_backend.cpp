@@ -26,7 +26,14 @@
 #include <qcommon/threads.h>
 #include "r_workercmds.h"
 #include "rb_tess.h"
+#if defined(__ANDROID__)
+// This original backend only calls the cinematic frame-update entry point.
+// Do not pull Bink/Direct3D9 implementation headers into the Android build.
+// This is a declaration, not a replacement video renderer.
+void __cdecl R_Cinematic_UpdateFrame();
+#else
 #include "r_cinematic.h"
+#endif
 #include "r_model_lighting.h"
 #include "r_draw_bsp.h"
 #include "r_dobj_skin.h"
