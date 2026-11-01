@@ -73,6 +73,7 @@ int ANativeWindow_setBuffersGeometry(ANativeWindow *, int, int, int);
 HARNESS = r"""
 #include <cassert>
 #include <cstdio>
+#include <initializer_list>
 #include "r_android_egl.cpp"
 static int acquired=0, released=0, destroyedContexts=0, destroyedSurfaces=0, terminated=0;
 static int failAt=0, swapCalls=0;
