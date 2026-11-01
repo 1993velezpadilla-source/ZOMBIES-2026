@@ -3043,6 +3043,13 @@ char __cdecl R_ReduceWindowSettings()
 
 void R_InitGraphicsApi()
 {
+#if defined(__ANDROID__)
+    // The original path below creates a Win32 window and D3D9 device.
+    // Do not continue into R_InitSystems or claim renderer registration
+    // until a native EGL/GLES implementation executes IW3 draw commands.
+    Sys_Error("IW3 Android: R_InitGraphicsApi requires authentic GLES renderer backend");
+    return;
+#else
     GfxWindowParms wndParms; // [esp+4h] [ebp-28h] BYREF
 
     iassert( (dx.device != NULL) == (dx.d3d9 != NULL) );
@@ -3062,6 +3069,7 @@ void R_InitGraphicsApi()
                 R_FatalInitError("Couldn't initialize renderer");
         }
     }
+#endif // !__ANDROID__: Win32 window and D3D9 renderer startup
 }
 
 void R_InitSystems()
