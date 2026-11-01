@@ -139,7 +139,7 @@ EGLSurface eglGetCurrentSurface(EGLint which) {
 }
 EGLBoolean eglSwapBuffers(EGLDisplay, EGLSurface) { ++swapCalls; return failAt==10 ? EGL_FALSE : EGL_TRUE; }
 EGLBoolean eglDestroyContext(EGLDisplay, EGLContext) { ++destroyedContexts; return EGL_TRUE; }
-EGLBoolean eglDestroySurface(EGLDisplay, EGLSurface) { ++destroyedSurfaces; return EGL_TRUE; }
+EGLBoolean eglDestroySurface(EGLDisplay, EGLSurface) { ++destroyedSurfaces; return failAt==19 ? EGL_FALSE : EGL_TRUE; }
 EGLBoolean eglTerminate(EGLDisplay) { ++terminated; return EGL_TRUE; }
 int main() {
     static_assert(sizeof(void*)==8, "LP64 required");
@@ -230,12 +230,19 @@ int main() {
     failAt=18;
     assert(!R_AndroidEglDetachWindow(&ctx)); // unbind failure is transactional
     assert(ctx.surface==replacementSurface && ctx.window==&newWindow);
+    failAt=19;
+    assert(!R_AndroidEglDetachWindow(&ctx)); // surface-destroy error restores binding
+    assert(ctx.surface==replacementSurface && ctx.window==&newWindow);
+    assert(currentContext==goodContext && currentSurface==replacementSurface);
     failAt=0;
     assert(R_AndroidEglDetachWindow(&ctx));
     assert(ctx.surface==EGL_NO_SURFACE && ctx.window==nullptr);
     assert(ctx.width==0 && ctx.height==0 && ctx.context==goodContext);
     assert(!R_AndroidEglPresent(&ctx) && !R_AndroidEglRefreshSize(&ctx));
     assert(!R_AndroidEglDetachWindow(&ctx)); // already detached
+    currentContext=goodContext; // refuse to steal a foreign EGL binding
+    assert(!R_AndroidEglReplaceWindow(&ctx, &newWindow));
+    currentContext=EGL_NO_CONTEXT;
     failAt=15;
     assert(!R_AndroidEglReplaceWindow(&ctx, &newWindow));
     assert(ctx.surface==EGL_NO_SURFACE && ctx.context==goodContext);
