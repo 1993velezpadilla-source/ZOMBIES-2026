@@ -7,6 +7,9 @@ on:
     paths:
       - '.github/workflows/iw3-renderer-init-arm64.yml'
       - 'third_party/KisakCOD/src/gfx_d3d/r_init.cpp'
+      - 'third_party/KisakCOD/src/gfx_d3d/r_rendercmds.cpp'
+      - 'third_party/KisakCOD/src/gfx_d3d/r_rendercmds.h'
+      - 'tests/test_iw3_android_renderer_command_lp64.py'
       - 'third_party/KisakCOD/src/gfx_d3d/r_utils.h'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_display.cpp'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_display.h'
@@ -26,6 +29,9 @@ on:
     paths:
       - '.github/workflows/iw3-renderer-init-arm64.yml'
       - 'third_party/KisakCOD/src/gfx_d3d/r_init.cpp'
+      - 'third_party/KisakCOD/src/gfx_d3d/r_rendercmds.cpp'
+      - 'third_party/KisakCOD/src/gfx_d3d/r_rendercmds.h'
+      - 'tests/test_iw3_android_renderer_command_lp64.py'
       - 'third_party/KisakCOD/src/gfx_d3d/r_utils.h'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_display.cpp'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_display.h'
@@ -130,6 +136,43 @@ jobs:
           echo 'IW3_GAMEPLAY_PROVEN=false' | tee -a "$report"
           echo 'IW3_PLAYABLE_APK=false' | tee -a "$report"
           # This is an evidence-gathering probe, not a claim that compilation passed.
+      - name: Probe authentic original r_rendercmds.cpp for ARM64 (NOT a linked renderer)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          root="$GITHUB_WORKSPACE/third_party/KisakCOD/src"
+          report="$RUNNER_TEMP/iw3-original-rendercmds-arm64-report.txt"
+          out="$RUNNER_TEMP/iw3-original-rendercmds-aarch64.o"
+          set +e
+          "$ndk/aarch64-linux-android26-clang++" \
+            -std=c++20 -DKISAK_SP=1 -DKISAK_OPENAL=1 \
+            -DIW3_ANDROID_DISABLE_SCRIPT_DEBUGGER=1 \
+            -DIW3_ANDROID_COMMON_HEADER_ONLY_OPENAL=1 \
+            -fms-extensions -UNDEBUG -O2 -fsigned-char -frounding-math -fno-fast-math \
+            -ferror-limit=25 \
+            -I "$GITHUB_WORKSPACE/android/iw3-native/common_compat" \
+            -I "$GITHUB_WORKSPACE/android/iw3-native" \
+            -I "$root" \
+            -I "$GITHUB_WORKSPACE/third_party/KisakCOD/deps" \
+            -I "$RUNNER_TEMP/iw3-openal-headers" \
+            -c "$root/gfx_d3d/r_rendercmds.cpp" -o "$out" >"$report" 2>&1
+          rc=$?
+          set -e
+          if [ "$rc" -eq 0 ]; then
+            "$ndk/llvm-readelf" -h "$out" | grep -E 'Class:|Machine:' | tee -a "$report"
+            "$ndk/llvm-nm" -C --defined-only "$out" | grep -F 'R_GetCommandBuffer(' | tee -a "$report"
+            "$ndk/llvm-nm" -C -u "$out" > "$RUNNER_TEMP/iw3-original-rendercmds-arm64-undefined.txt"
+            echo "IW3_ORIGINAL_RENDERCMDS_UNDEFINED_SYMBOL_COUNT=$(wc -l < "$RUNNER_TEMP/iw3-original-rendercmds-arm64-undefined.txt")" | tee -a "$report"
+            echo 'IW3_ORIGINAL_RENDERCMDS_AARCH64_COMPILED=true' | tee -a "$report"
+          else
+            echo "IW3_ORIGINAL_RENDERCMDS_AARCH64_COMPILED=false (compiler_exit=$rc)" | tee -a "$report"
+            sed -n '1,110p' "$report"
+          fi
+          echo 'IW3_RENDERER_BACKEND_LINKED=false' | tee -a "$report"
+          echo 'IW3_RENDERER_FRAME_PROVEN=false' | tee -a "$report"
+          echo 'IW3_PLAYABLE_APK=false' | tee -a "$report"
+          # Deliberately a diagnostic probe; do not equate a green job to a game.
       - name: Compile genuine Android Surface mode provider for AArch64 (required)
         shell: bash
         run: |
@@ -185,6 +228,9 @@ jobs:
           path: |
             ${{ runner.temp }}/iw3-renderer-compile-report.txt
             ${{ runner.temp }}/iw3-original-r-init-aarch64.o
+            ${{ runner.temp }}/iw3-original-rendercmds-arm64-report.txt
+            ${{ runner.temp }}/iw3-original-rendercmds-aarch64.o
+            ${{ runner.temp }}/iw3-original-rendercmds-arm64-undefined.txt
             ${{ runner.temp }}/iw3-r-init-arm64-undefined-symbols.txt
             ${{ runner.temp }}/iw3-original-android-display-aarch64.o
             ${{ runner.temp }}/libiw3-android-egl-platform-arm64.so
