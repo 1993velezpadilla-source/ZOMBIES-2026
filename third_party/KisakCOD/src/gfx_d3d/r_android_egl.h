@@ -19,6 +19,8 @@ struct IW3AndroidEglContext
     EGLint height = 0;
     pthread_t ownerThread{};
     bool ownerThreadValid = false;
+    // Original IW3 GLsync bridge is bound only while this EGL context is current.
+    bool gpuFenceBound = false;
 
     IW3AndroidEglContext() = default;
     IW3AndroidEglContext(const IW3AndroidEglContext &) = delete;
