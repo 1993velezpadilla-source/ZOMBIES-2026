@@ -43,6 +43,18 @@ class OriginalRendererCommandLP64Tests(unittest.TestCase):
         self.assertIn("R_Cinematic_UpdateFrame();", src)
         # No Bink implementation or synthetic replacement is introduced.
 
+    def test_android_dynamic_mesh_teardown_never_fakes_d3d_release(self):
+        src = SOURCE.read_text(encoding="utf-8")
+        original = function_source(src, "void __cdecl R_ShutdownDynamicMesh(GfxMeshData *mesh)")
+        self.assertIn("#if defined(__ANDROID__)", original)
+        self.assertIn(
+            "dynamic vertex buffer teardown requires real GLES resource ownership",
+            original,
+        )
+        self.assertIn("Com_Error(ERR_FATAL", original)
+        self.assertIn("#else", original)
+        self.assertIn("R_ReleaseAndSetNULL<IDirect3DDevice9>", original)
+
     def test_original_renderer_command_globals_track_native_sizes(self):
         src = SOURCE.read_text(encoding="utf-8")
         original = function_source(src, "void __cdecl TRACK_r_rendercmds()")
