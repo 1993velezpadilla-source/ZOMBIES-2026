@@ -22,7 +22,7 @@ This removes a concrete thread-ownership hazard from the eventual native rendere
 
 Baseline renderer CI: https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41257944237 (completed, audit success, **full original renderer compile failed**).
 
-New head and required CI: inspect the newest `IW3 authentic renderer LP64 tracking and AArch64 compile probe (NOT GAME)` workflow on this branch. A green host/NDK capture check proves only the actual source functions and AArch64 object compile, not on-device execution. Do not claim a passing new run before its completion.
+Verified at commit `fdf95b623b5957d5cb2190b87e2d23e8b06d377c`: https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41264838509 completed **success** on 2026-11-01 UTC. The host job ran **9/9 tests successfully** under the renderer sanitizer harness, including the unchanged genuine capture/apply/wrapper functions. The Android NDK job compiled the authentic Surface provider to an AArch64 object and verified all three exported symbols (`IW3_ORIGINAL_ANDROID_SURFACE_CAPTURE_AND_APPLY_AARCH64_COMPILED=true`). In that same run, the **full original `r_init.cpp` compile still failed** (`IW3_ORIGINAL_RENDERER_R_INIT_AARCH64_COMPILED=false`). A green audit wrapper and an AArch64 object are **not** a linked renderer, frame, or playable APK.
 
 ## Remaining gates
 
