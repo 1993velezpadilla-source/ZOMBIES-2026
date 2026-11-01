@@ -153,5 +153,53 @@ int main() {
                     self.assertIn("R_CheckLostDevice()", processed)
 
 
+    def test_android_graphics_api_never_enters_win32_device_loop(self):
+        source = SOURCE.read_text(encoding="utf-8")
+        api = source[source.index("void R_InitGraphicsApi()"):
+                     source.index("void R_InitSystems()")]
+        for platform, flags in (("android", ["-D__ANDROID__"]), ("desktop", [])):
+            with self.subTest(platform=platform):
+                result = subprocess.run(
+                    [os.environ.get("CXX", "g++"), "-E", "-P", "-x", "c++",
+                     *flags, "-"], input=api, capture_output=True,
+                    text=True, timeout=30)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                if platform == "android":
+                    self.assertIn("requires authentic GLES renderer backend", result.stdout)
+                    self.assertNotIn("R_CreateGameWindow(", result.stdout)
+                    self.assertNotIn("R_InitSystems();", result.stdout)
+                else:
+                    self.assertIn("R_CreateGameWindow(", result.stdout)
+                    self.assertIn("R_InitSystems();", result.stdout)
+
+        # Execute the genuine Android entry point, with only fatal logging
+        # provided by the fixture. No successful renderer registration.
+        import tempfile
+        fixture = """
+#include <cassert>
+#define __cdecl
+int errors = 0;
+void Sys_Error(const char *) { ++errors; }
+""" + api + """
+int main() {
+    R_InitGraphicsApi();
+    assert(errors == 1);
+}
+"""
+        with tempfile.TemporaryDirectory() as temp:
+            cpp = Path(temp) / "r_init_graphics_api_android.cpp"
+            exe = Path(temp) / "r_init_graphics_api_android"
+            cpp.write_text(fixture, encoding="utf-8")
+            build = subprocess.run(
+                [os.environ.get("CXX", "g++"), "-std=c++17", "-D__ANDROID__",
+                 "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
+                 str(cpp), "-o", str(exe)], capture_output=True,
+                text=True, timeout=60)
+            self.assertEqual(build.returncode, 0, build.stdout + build.stderr)
+            run = subprocess.run([str(exe)], capture_output=True, text=True,
+                                 timeout=30, env={**os.environ, "ASAN_OPTIONS": "detect_leaks=1"})
+            self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+
+
 if __name__ == "__main__":
     unittest.main()
