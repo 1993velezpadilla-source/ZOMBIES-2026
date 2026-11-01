@@ -3260,12 +3260,14 @@ void __cdecl R_EnumDisplayModes(uint32_t adapterIndex)
     // thread by R_AndroidApplySurfaceMode before enumerating modes. D3D9
     // adapter enumeration does not exist on Android.
     (void)adapterIndex;
-    if (dx.displayModeCount == 0 || dx.displayModeCount > 0x100)
+    // R_AndroidApplySurfaceMode already registered these dvars. Never
+    // register the same dvars twice during the Android startup handoff.
+    if (dx.displayModeCount == 0 || dx.displayModeCount > 0x100
+        || !r_mode || !r_displayRefresh)
     {
-        R_FatalInitError("Android renderer display mode missing or invalid");
+        R_FatalInitError("Android renderer Surface mode must be applied first");
         return;
     }
-    R_BuildDisplayModeDvars();
 #else
     HRESULT hr;
     uint32_t modeCountReported;
