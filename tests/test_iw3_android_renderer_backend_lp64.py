@@ -187,6 +187,23 @@ int main() {
         self._build_and_run(fixture.replace("/* ORIGINAL */", "\n".join(originals)),
                             "IW3_ORIGINAL_BACKEND_D3D9_BOUNDARY_PASS")
 
+    def test_original_command_consumer_keeps_dispatch_and_guards_d3d9_endscene(self):
+        original = function_source(
+            SOURCE.read_text(encoding="utf-8"),
+            "void __cdecl RB_CallExecuteRenderCommands()")
+        dispatch = original.index("RB_ExecuteRenderCommandsLoop(backEndData->cmds)")
+        boundary = original.index("#if defined(__ANDROID__)", dispatch)
+        fatal = original.index(
+            "IW3 Android RB_CallExecuteRenderCommands requires GLES scene end",
+            boundary)
+        windows = original.index("#else", fatal)
+        endscene = original.index("hr = dx.device->EndScene();", windows)
+        self.assertLess(dispatch, boundary)
+        self.assertLess(boundary, fatal)
+        self.assertLess(fatal, windows)
+        self.assertLess(windows, endscene)
+        self.assertIn("#endif", original[endscene:])
+
     def _build_and_run(self, source, expected):
         with tempfile.TemporaryDirectory() as tmp:
             cpp = Path(tmp) / "iw3_original_backend.cpp"
