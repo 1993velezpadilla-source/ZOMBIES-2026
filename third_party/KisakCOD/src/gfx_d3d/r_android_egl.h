@@ -38,6 +38,11 @@ bool R_AndroidEglRefreshSize(IW3AndroidEglContext *state);
 // Transactionally attach a newly created Android Surface on the owning render thread.
 // Keeps the original ES3 context; the previous surface remains usable on failure.
 // Does NOT connect the genuine IW3 draw-command backend or prove rendering.
+// Release the current Android Surface while retaining the ES3 context.
+// Used for Activity pause/surfaceDestroyed; requires owner thread and current
+// EGL context. ReplaceWindow can later attach a new Surface from this state.
+// No draw/present calls are valid between detach and reattach.
+bool R_AndroidEglDetachWindow(IW3AndroidEglContext *state);
 bool R_AndroidEglReplaceWindow(IW3AndroidEglContext *state, ANativeWindow *newWindow);
 bool R_AndroidEglPresent(const IW3AndroidEglContext *state);
 // Returns false on null state or a foreign thread (state left intact).
