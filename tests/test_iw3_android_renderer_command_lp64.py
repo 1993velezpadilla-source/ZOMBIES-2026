@@ -73,11 +73,11 @@ int main() {
     static_assert(sizeof(void*) == 8, "LP64 host required");
     TRACK_r_rendercmds();
     assert(records.size() == 5);
-#define CHECK(i, var, kind_value) do { \\
-    assert(records[i].addr == static_cast<const void*>(&(var))); \\
-    assert(records[i].size == sizeof(var)); \\
-    assert(records[i].kind == kind_value); \\
-    assert(std::strcmp(records[i].name, #var) == 0); \\
+#define CHECK(i, var, kind_value) do { \
+    assert(records[i].addr == static_cast<const void*>(&(var))); \
+    assert(records[i].size == sizeof(var)); \
+    assert(records[i].kind == kind_value); \
+    assert(std::strcmp(records[i].name, #var) == 0); \
 } while (0)
     CHECK(0, s_backEndData, 18);
     CHECK(1, g_viewInfo, 18);
