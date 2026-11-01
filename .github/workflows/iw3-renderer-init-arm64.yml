@@ -156,6 +156,7 @@ jobs:
           "$ndk/llvm-readelf" -h "$RUNNER_TEMP/libiw3-android-egl-platform-arm64.so" | grep -E 'Class:|Machine:'
           "$ndk/llvm-nm" -C --defined-only "$RUNNER_TEMP/libiw3-android-egl-platform-arm64.so" | grep -F 'R_AndroidEglCreate('
           "$ndk/llvm-nm" -C --defined-only "$RUNNER_TEMP/libiw3-android-egl-platform-arm64.so" | grep -F 'R_AndroidEglRefreshSize('
+          "$ndk/llvm-nm" -C --defined-only "$RUNNER_TEMP/libiw3-android-egl-platform-arm64.so" | grep -F 'R_AndroidEglDetachWindow('
           "$ndk/llvm-nm" -C --defined-only "$RUNNER_TEMP/libiw3-android-egl-platform-arm64.so" | grep -F 'R_AndroidEglReplaceWindow('
           "$ndk/llvm-nm" -C --defined-only "$RUNNER_TEMP/libiw3-android-egl-platform-arm64.so" | grep -F 'R_AndroidEglPresent('
           "$ndk/llvm-nm" -C --defined-only "$RUNNER_TEMP/libiw3-android-egl-platform-arm64.so" | grep -F 'R_AndroidEglDestroy('
