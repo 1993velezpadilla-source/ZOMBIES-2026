@@ -129,7 +129,10 @@ jobs:
             -c "$root/gfx_d3d/r_android_display.cpp" \
             -o "$RUNNER_TEMP/iw3-original-android-display-aarch64.o"
           "$ndk/llvm-readelf" -h "$RUNNER_TEMP/iw3-original-android-display-aarch64.o" | grep -E 'Class:|Machine:'
+          "$ndk/llvm-nm" -C --defined-only "$RUNNER_TEMP/iw3-original-android-display-aarch64.o" | grep -F 'R_AndroidReadSurfaceMode('
+          "$ndk/llvm-nm" -C --defined-only "$RUNNER_TEMP/iw3-original-android-display-aarch64.o" | grep -F 'R_AndroidApplySurfaceMode('
           "$ndk/llvm-nm" -C --defined-only "$RUNNER_TEMP/iw3-original-android-display-aarch64.o" | grep -F 'R_AndroidPopulateDisplayMode('
+          echo 'IW3_ORIGINAL_ANDROID_SURFACE_CAPTURE_AND_APPLY_AARCH64_COMPILED=true'
           echo 'IW3_ORIGINAL_ANDROID_SURFACE_MODE_PROVIDER_AARCH64_COMPILED=true'
           echo 'IW3_RENDERER_FRAME_PROVEN=false'
           echo 'IW3_PLAYABLE_APK=false'
