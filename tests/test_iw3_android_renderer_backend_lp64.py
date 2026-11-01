@@ -121,6 +121,72 @@ int main() {
         self._build_and_run(fixture.replace("/* ORIGINAL */", "\n".join(originals)),
                             "IW3_ORIGINAL_BACKEND_D3D9_FENCE_FAIL_CLOSED_PASS")
 
+    def test_original_d3d9_only_backend_paths_fail_closed_on_android(self):
+        # Execute the genuine IW3 functions, not a replacement renderer.
+        # Android must not accidentally dereference opaque D3D9 interfaces.
+        signatures = (
+            "void __cdecl R_Resolve(GfxCmdBufContext context, GfxImage *image)",
+            "void __cdecl RB_StretchRaw(int x, int y, int w, int h, int cols, int rows, const uint8_t *data)",
+            "void __cdecl RB_SetGammaRamp(const GfxGammaRamp *gammaTable)",
+            "void __cdecl RB_BeginFrame(const GfxBackEndData *data)",
+            "GfxIndexBufferState *RB_SwapBuffers()",
+            "int RB_AdaptiveGpuSyncFinal()",
+            "int __cdecl RB_BackendTimeout()",
+        )
+        src = SOURCE.read_text(encoding="utf-8")
+        originals = []
+        for signature in signatures:
+            original = function_source(src, signature)
+            self.assertIn("#if defined(__ANDROID__)", original, signature)
+            self.assertIn("Com_Error(ERR_FATAL", original, signature)
+            self.assertIn("#else", original, signature)
+            originals.append(original)
+        self.assertIn("StretchRect(", originals[0])
+        self.assertIn("CreateOffscreenPlainSurface(", originals[1])
+        self.assertIn("SetGammaRamp(", originals[2])
+        self.assertIn("BeginScene()", originals[3])
+        self.assertIn("swapChain->Present(", originals[4])
+        self.assertIn("__rdtsc()", originals[5])
+        self.assertIn("swapFence->GetData(", originals[6])
+        fixture = r"""
+#include <cassert>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <stdexcept>
+#define __cdecl
+#define __ANDROID__ 1
+enum { ERR_FATAL = 1 };
+struct GfxCmdBufContext { void* source; void* state; };
+struct GfxImage;
+struct GfxGammaRamp;
+struct GfxBackEndData;
+struct GfxIndexBufferState;
+void Com_Error(int kind, const char* message, ...) {
+    assert(kind == ERR_FATAL);
+    assert(message && *message);
+    throw std::runtime_error(message);
+}
+/* ORIGINAL */
+template <typename Func>
+void must_fail(Func f) {
+    try { f(); } catch (const std::runtime_error&) { return; }
+    std::abort();
+}
+int main() {
+    must_fail([] { R_Resolve({}, nullptr); });
+    must_fail([] { RB_StretchRaw(0, 0, 1, 1, 1, 1, nullptr); });
+    must_fail([] { RB_SetGammaRamp(nullptr); });
+    must_fail([] { RB_BeginFrame(nullptr); });
+    must_fail([] { (void)RB_SwapBuffers(); });
+    must_fail([] { (void)RB_AdaptiveGpuSyncFinal(); });
+    must_fail([] { (void)RB_BackendTimeout(); });
+    std::puts("IW3_ORIGINAL_BACKEND_D3D9_BOUNDARY_PASS");
+}
+"""
+        self._build_and_run(fixture.replace("/* ORIGINAL */", "\n".join(originals)),
+                            "IW3_ORIGINAL_BACKEND_D3D9_BOUNDARY_PASS")
+
     def _build_and_run(self, source, expected):
         with tempfile.TemporaryDirectory() as tmp:
             cpp = Path(tmp) / "iw3_original_backend.cpp"
