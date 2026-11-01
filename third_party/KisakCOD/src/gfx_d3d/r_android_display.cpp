@@ -48,9 +48,10 @@ bool R_AndroidReadSurfaceMode(JNIEnv *env, jobject surface, jobject display,
     if (javaFailed)
         return false;
 
-    // Preserve the original IW3 >=640x480 mode constraint. Do not publish
-    // partial or invalid data to the renderer on a failed JNI operation.
-    if (width < 640 || height < 480 || !std::isfinite(refreshHz)
+    // Android can provide narrow portrait surfaces. The original renderer's
+    // Android mode builder accepts >=320x320, unlike desktop's 640x480.
+    // Do not publish partial or invalid data after a failed JNI operation.
+    if (width < 320 || height < 320 || !std::isfinite(refreshHz)
         || refreshHz < 1.0f || refreshHz > 1000.0f)
         return false;
 
@@ -67,7 +68,7 @@ bool R_AndroidApplySurfaceMode(const IW3AndroidSurfaceMode &mode)
 {
     // Must be called by the renderer initialization thread, not by an
     // Activity callback racing the original dx/dvar renderer globals.
-    if (mode.width < 640 || mode.height < 480
+    if (mode.width < 320 || mode.height < 320
         || mode.refreshHz < 1 || mode.refreshHz > 1000)
         return false;
 
