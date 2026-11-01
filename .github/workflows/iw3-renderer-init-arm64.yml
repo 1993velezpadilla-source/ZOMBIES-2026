@@ -9,6 +9,9 @@ on:
       - 'third_party/KisakCOD/src/gfx_d3d/r_init.cpp'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_display.cpp'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_display.h'
+      - 'third_party/KisakCOD/src/gfx_d3d/r_android_egl.cpp'
+      - 'third_party/KisakCOD/src/gfx_d3d/r_android_egl.h'
+      - 'tests/test_iw3_android_renderer_egl_lifecycle.py'
       - 'tests/test_iw3_android_renderer_native_window_modes.py'
       - 'tests/test_iw3_android_renderer_static_tracking.py'
       - 'tests/test_iw3_android_renderer_mode_text_bounds.py'
@@ -22,6 +25,9 @@ on:
       - 'third_party/KisakCOD/src/gfx_d3d/r_init.cpp'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_display.cpp'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_display.h'
+      - 'third_party/KisakCOD/src/gfx_d3d/r_android_egl.cpp'
+      - 'third_party/KisakCOD/src/gfx_d3d/r_android_egl.h'
+      - 'tests/test_iw3_android_renderer_egl_lifecycle.py'
       - 'tests/test_iw3_android_renderer_native_window_modes.py'
       - 'tests/test_iw3_android_renderer_static_tracking.py'
       - 'tests/test_iw3_android_renderer_mode_text_bounds.py'
@@ -136,6 +142,25 @@ jobs:
           echo 'IW3_ORIGINAL_ANDROID_SURFACE_MODE_PROVIDER_AARCH64_COMPILED=true'
           echo 'IW3_RENDERER_FRAME_PROVEN=false'
           echo 'IW3_PLAYABLE_APK=false'
+      - name: Link real Android EGL3 platform context provider for ARM64 (NOT IW3 rendering)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          root="$GITHUB_WORKSPACE/third_party/KisakCOD/src"
+          "$ndk/aarch64-linux-android26-clang++" \
+            -std=c++20 -O2 -fPIC -shared -Wl,--no-undefined \
+            "$root/gfx_d3d/r_android_egl.cpp" \
+            -I "$root" -lEGL -landroid \
+            -o "$RUNNER_TEMP/libiw3-android-egl-platform-arm64.so"
+          "$ndk/llvm-readelf" -h "$RUNNER_TEMP/libiw3-android-egl-platform-arm64.so" | grep -E 'Class:|Machine:'
+          "$ndk/llvm-nm" -C --defined-only "$RUNNER_TEMP/libiw3-android-egl-platform-arm64.so" | grep -F 'R_AndroidEglCreate('
+          "$ndk/llvm-nm" -C --defined-only "$RUNNER_TEMP/libiw3-android-egl-platform-arm64.so" | grep -F 'R_AndroidEglPresent('
+          "$ndk/llvm-nm" -C --defined-only "$RUNNER_TEMP/libiw3-android-egl-platform-arm64.so" | grep -F 'R_AndroidEglDestroy('
+          echo 'IW3_ANDROID_EGL3_PLATFORM_PROVIDER_LINKED=true'
+          echo 'IW3_RENDERER_BACKEND_LINKED=false'
+          echo 'IW3_RENDERER_FRAME_PROVEN=false'
+          echo 'IW3_PLAYABLE_APK=false'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -144,5 +169,6 @@ jobs:
             ${{ runner.temp }}/iw3-renderer-compile-report.txt
             ${{ runner.temp }}/iw3-original-r-init-aarch64.o
             ${{ runner.temp }}/iw3-original-android-display-aarch64.o
+            ${{ runner.temp }}/libiw3-android-egl-platform-arm64.so
           if-no-files-found: ignore
           retention-days: 7
