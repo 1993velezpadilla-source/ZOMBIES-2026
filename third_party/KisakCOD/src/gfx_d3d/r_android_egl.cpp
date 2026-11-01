@@ -3,12 +3,36 @@
 // translation, R_Init integration, and real gameplay remain unimplemented.
 #if defined(__ANDROID__)
 #include "r_android_egl.h"
+#include "r_android_gpu_fence.h"
 #include <EGL/eglext.h>
 
 static bool R_AndroidEglIsOwnerThread(const IW3AndroidEglContext *state)
 {
     return state && state->ownerThreadValid
         && pthread_equal(state->ownerThread, pthread_self()) != 0;
+}
+
+// The original IW3 fence bridge owns GLsync objects. It must be released
+// BEFORE unbinding or destroying its EGL context, never from the UI thread.
+static bool R_AndroidEglBindOriginalFence(IW3AndroidEglContext *state)
+{
+    if (!state || state->gpuFenceBound
+        || !R_AndroidGpuFenceBindOriginal(state->display, state->context))
+        return false;
+    state->gpuFenceBound = true;
+    return true;
+}
+
+static bool R_AndroidEglReleaseOriginalFence(IW3AndroidEglContext *state)
+{
+    if (!state)
+        return false;
+    if (!state->gpuFenceBound)
+        return true; // partial Create and detached context have no bridge
+    if (!R_AndroidGpuFenceReleaseOriginal())
+        return false; // pending GLsync cannot be deleted from another context
+    state->gpuFenceBound = false;
+    return true;
 }
 
 bool R_AndroidEglDestroy(IW3AndroidEglContext *state)
@@ -18,6 +42,8 @@ bool R_AndroidEglDestroy(IW3AndroidEglContext *state)
     // eglDestroyContext / eglTerminate must never run from an Android UI
     // callback while the engine render thread owns the live EGL context.
     if (state->ownerThreadValid && !R_AndroidEglIsOwnerThread(state))
+        return false;
+    if (!R_AndroidEglReleaseOriginalFence(state))
         return false;
     if (state->display != EGL_NO_DISPLAY)
     {
@@ -44,6 +70,7 @@ bool R_AndroidEglDestroy(IW3AndroidEglContext *state)
     state->width = 0;
     state->height = 0;
     state->ownerThreadValid = false;
+    state->gpuFenceBound = false;
     state->ownerThread = pthread_t{};
     return true;
 }
@@ -134,6 +161,8 @@ bool R_AndroidEglCreate(IW3AndroidEglContext *state, ANativeWindow *window)
             goto fail;
         if (!R_AndroidEglRefreshSize(state))
             goto fail;
+        if (!R_AndroidEglBindOriginalFence(state))
+            goto fail; // never publish a usable EGL provider with unbound IW3 sync
         state->config = config;
         state->nativeVisualId = visualId;
     }
@@ -159,16 +188,22 @@ bool R_AndroidEglDetachWindow(IW3AndroidEglContext *state)
         || eglGetCurrentSurface(EGL_READ) != state->surface)
         return false;
 
-    // EGLSurface must not be current when destroyed. Keep state intact if
-    // unbinding fails; do not release the Android window prematurely.
+    // Delete any live GLsync while the original EGL context is still current.
+    // A failed unbind/surface destruction restores the original bridge only
+    // if EGL successfully restores the original current context.
+    if (!R_AndroidEglReleaseOriginalFence(state))
+        return false;
     if (!eglMakeCurrent(state->display, EGL_NO_SURFACE, EGL_NO_SURFACE,
                         EGL_NO_CONTEXT))
+    {
+        R_AndroidEglBindOriginalFence(state); // best-effort on driver failure
         return false;
+    }
     if (!eglDestroySurface(state->display, state->surface))
     {
-        // Best-effort restoration; Present still rejects a non-current surface.
-        eglMakeCurrent(state->display, state->surface, state->surface,
-                       state->context);
+        if (eglMakeCurrent(state->display, state->surface, state->surface,
+                           state->context))
+            R_AndroidEglBindOriginalFence(state);
         return false;
     }
     ANativeWindow_release(state->window);
@@ -191,7 +226,8 @@ bool R_AndroidEglReplaceWindow(IW3AndroidEglContext *state, ANativeWindow *newWi
         || state->display == EGL_NO_DISPLAY
         || state->context == EGL_NO_CONTEXT
         || !state->config || state->nativeVisualId <= 0
-        || (!detached && (state->surface == EGL_NO_SURFACE || !state->window
+        || (!detached && (!state->gpuFenceBound
+            || state->surface == EGL_NO_SURFACE || !state->window
             || eglGetCurrentDisplay() != state->display
             || eglGetCurrentContext() != state->context
             || eglGetCurrentSurface(EGL_DRAW) != state->surface
@@ -243,6 +279,15 @@ bool R_AndroidEglReplaceWindow(IW3AndroidEglContext *state, ANativeWindow *newWi
         ANativeWindow_release(newWindow);
         return false;
     }
+    if (detached && !R_AndroidEglBindOriginalFence(state))
+    {
+        // Never publish a resumed Surface with unbound original IW3 GLsync.
+        eglMakeCurrent(state->display, EGL_NO_SURFACE, EGL_NO_SURFACE,
+                       EGL_NO_CONTEXT);
+        eglDestroySurface(state->display, replacement);
+        ANativeWindow_release(newWindow);
+        return false;
+    }
     EGLSurface oldSurface = state->surface;
     ANativeWindow *oldWindow = state->window;
     state->surface = replacement;
@@ -259,7 +304,7 @@ bool R_AndroidEglReplaceWindow(IW3AndroidEglContext *state, ANativeWindow *newWi
 bool R_AndroidEglPresent(const IW3AndroidEglContext *state)
 {
     // A successful swap only proves an EGL surface, NOT an IW3 rendered frame.
-    if (!R_AndroidEglIsOwnerThread(state)
+    if (!state || !state->gpuFenceBound || !R_AndroidEglIsOwnerThread(state)
         || state->display == EGL_NO_DISPLAY
         || state->surface == EGL_NO_SURFACE
         || state->context == EGL_NO_CONTEXT
