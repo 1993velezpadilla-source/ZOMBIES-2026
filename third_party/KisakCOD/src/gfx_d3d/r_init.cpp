@@ -3068,7 +3068,13 @@ int __cdecl R_AddValidResolution(int width, int height, int resolutionCount, int
     {
         return resolutionCount;
     }
+    // Desktop IW3 uses a 640x480 minimum. Android native surfaces can be
+    // portrait/narrower than 640 pixels; rejecting them leaves r_mode empty.
+#if defined(__ANDROID__)
+    if (width < 320 || height < 320)
+#else
     if (width < 640 || height < 480)
+#endif
         return resolutionCount;
     // The caller's original fixed-size table has 256 resolution pairs.
     // Keep this helper safe even when it is called with a full table.
@@ -3155,8 +3161,15 @@ void __cdecl R_BuildDisplayModeDvars()
     modeText = dx.modeText;
     if (!resolutionCount)
     {
+        // Keep the desktop minimum while allowing genuine Android phone
+        // portrait and landscape framebuffer dimensions.
+#if defined(__ANDROID__)
+        v1 = va("No valid resolutions of %i x %i or above found", 320, 320);
+#else
         v1 = va("No valid resolutions of %i x %i or above found", 640, 480);
+#endif
         R_FatalInitError(v1);
+        return;
     }
     defaultResolutionIndex = 0;
     for (resolutionIndex = 0; resolutionIndex < resolutionCount; ++resolutionIndex)
@@ -3170,7 +3183,13 @@ void __cdecl R_BuildDisplayModeDvars()
             return;
         }
         modeText += v2 + 1;
+        // Preserve the original desktop default-mode selection. On Android,
+        // each accepted mode is valid even when the device is in portrait.
+#if defined(__ANDROID__)
+        if (availableResolutions[defaultResolutionIndex][0] < 320 || availableResolutions[defaultResolutionIndex][1] < 320)
+#else
         if (availableResolutions[defaultResolutionIndex][0] < 640 || availableResolutions[defaultResolutionIndex][1] < 480)
+#endif
             defaultResolutionIndex = resolutionIndex;
     }
     dx.resolutionNameTable[resolutionIndex] = 0;
