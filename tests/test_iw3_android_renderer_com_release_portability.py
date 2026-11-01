@@ -18,9 +18,9 @@ SOURCE = ROOT / "third_party/KisakCOD/src/gfx_d3d/r_init.cpp"
 class RendererComReleasePortabilityTests(unittest.TestCase):
     def test_release_helper_is_type_correct_and_compiles_with_opaque_d3d(self):
         header = HEADER.read_text(encoding="utf-8")
-        self.assertEqual(header.count("template <typename T>"), 1)
-        original_template = "template <typename T>" + header.split("template <typename T>", 1)[1]
-        self.assertIn("T *var,", original_template)
+        self.assertEqual(header.count("template <typename T, typename U = T>"), 1)
+        original_template = "template <typename T, typename U = T>" + header.split("template <typename T, typename U = T>", 1)[1]
+        self.assertIn("U *var,", original_template)
         self.assertNotIn("IDirect3DSurface9 *var,", original_template)
 
         fixture = r"""
@@ -44,17 +44,27 @@ struct FakeQuery {
     int calls = 0;
     unsigned Release() { ++calls; return --refs; }
 };
+struct FakeSurface {
+    int refs = 1;
+    int calls = 0;
+    unsigned Release() { ++calls; return --refs; }
+};
 /* ORIGINAL_RELEASE_TEMPLATE */
 int main() {
     FakeDevice device;
     FakeSwapChain swap;
     FakeQuery query;
+    FakeSurface legacySurface;
     R_ReleaseAndSetNULL<FakeDevice>(&device, "device", "test", 1);
     R_ReleaseAndSetNULL<FakeSwapChain>(&swap, "swap", "test", 2);
     R_ReleaseAndSetNULL<FakeQuery>(&query, "query", "test", 3);
     assert(device.refs == 0 && device.calls == 1);
     assert(swap.refs == 0 && swap.calls == 1);
     assert(query.refs == 0 && query.calls == 1);
+    // Original Windows decompilation passes a surface pointer while
+    // explicitly naming IDirect3DDevice9. Do not regress its build.
+    R_ReleaseAndSetNULL<FakeDevice>(&legacySurface, "legacy", "test", 4);
+    assert(legacySurface.refs == 0 && legacySurface.calls == 1);
 }
 """
         with tempfile.TemporaryDirectory() as tmp:
