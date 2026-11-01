@@ -33,14 +33,15 @@ class OriginalRendererCommandLP64Tests(unittest.TestCase):
             )
             self.assertIn(expression, src, command)
 
-    def test_cinematic_header_d3d9_types_are_android_opaque_only(self):
-        header = (
-            ROOT / "third_party/KisakCOD/src/gfx_d3d/r_cinematic.h"
-        ).read_text(encoding="utf-8")
-        self.assertIn('#if defined(__ANDROID__)\n#include "r_d3d9_opaque.h"', header)
-        self.assertIn('using LPDIRECT3DDEVICE9 = IDirect3DDevice9 *;', header)
-        self.assertIn('using LPDIRECT3DTEXTURE9 = IDirect3DTexture9 *;', header)
-        self.assertIn('#else\n#include <d3d9.h>\n#endif', header)
+    def test_android_render_commands_keep_original_cinematic_call_without_bink_headers(self):
+        src = SOURCE.read_text(encoding="utf-8")
+        android, desktop = src.split("#if defined(__ANDROID__)", 1)[1].split(
+            "#else", 1
+        )
+        self.assertIn("void __cdecl R_Cinematic_UpdateFrame();", android)
+        self.assertIn('#include "r_cinematic.h"', desktop)
+        self.assertIn("R_Cinematic_UpdateFrame();", src)
+        # No Bink implementation or synthetic replacement is introduced.
 
     def test_original_renderer_command_globals_track_native_sizes(self):
         src = SOURCE.read_text(encoding="utf-8")
