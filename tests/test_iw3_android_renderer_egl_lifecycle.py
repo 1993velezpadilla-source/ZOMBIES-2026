@@ -118,7 +118,8 @@ EGLContext eglCreateContext(EGLDisplay, EGLConfig, EGLContext, const EGLint *att
 }
 EGLBoolean eglMakeCurrent(EGLDisplay, EGLSurface draw, EGLSurface, EGLContext ctx) {
     if ((failAt==8 && ctx!=EGL_NO_CONTEXT)
-        || (failAt==17 && draw==replacementSurface)) return EGL_FALSE;
+        || (failAt==17 && draw==replacementSurface)
+        || (failAt==18 && ctx==EGL_NO_CONTEXT)) return EGL_FALSE;
     currentContext=ctx; currentSurface=draw;
     currentDisplay=(ctx==EGL_NO_CONTEXT ? EGL_NO_DISPLAY : goodDisplay);
     return EGL_TRUE;
@@ -222,6 +223,26 @@ int main() {
     assert(ctx.window==&newWindow && ctx.surface==replacementSurface);
     assert(ctx.width==720 && ctx.height==1280);
     assert(currentSurface==replacementSurface);
+    assert(R_AndroidEglPresent(&ctx));
+    // Android Surface may disappear before its replacement exists.
+    std::thread foreignDetach([&] { assert(!R_AndroidEglDetachWindow(&ctx)); });
+    foreignDetach.join();
+    failAt=18;
+    assert(!R_AndroidEglDetachWindow(&ctx)); // unbind failure is transactional
+    assert(ctx.surface==replacementSurface && ctx.window==&newWindow);
+    failAt=0;
+    assert(R_AndroidEglDetachWindow(&ctx));
+    assert(ctx.surface==EGL_NO_SURFACE && ctx.window==nullptr);
+    assert(ctx.width==0 && ctx.height==0 && ctx.context==goodContext);
+    assert(!R_AndroidEglPresent(&ctx) && !R_AndroidEglRefreshSize(&ctx));
+    assert(!R_AndroidEglDetachWindow(&ctx)); // already detached
+    failAt=15;
+    assert(!R_AndroidEglReplaceWindow(&ctx, &newWindow));
+    assert(ctx.surface==EGL_NO_SURFACE && ctx.context==goodContext);
+    failAt=0;
+    assert(R_AndroidEglReplaceWindow(&ctx, &window)); // resume on new Surface
+    assert(ctx.surface==goodSurface && ctx.window==&window);
+    assert(ctx.width==720 && ctx.height==1280);
     assert(R_AndroidEglPresent(&ctx));
     assert(R_AndroidEglDestroy(&ctx));
     assert(acquired==released);
