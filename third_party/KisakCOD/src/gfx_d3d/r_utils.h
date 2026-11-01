@@ -153,9 +153,13 @@ void __cdecl R_MatrixIdentity44(float (*out)[4]);
 double __cdecl R_GetBaseLodDist(const float *origin);
 double __cdecl R_GetAdjustedLodDist(float dist, XModelLodRampType lodRampType);
 
-template <typename T>
+// Legacy IW3 callers sometimes specify a D3DDevice9 template argument while
+// passing a different COM interface (often cast to IDirect3DSurface9).
+// Preserve those call sites until they can be converted to strongly typed calls;
+// Release is invoked on the actual pointer argument's interface, not T.
+template <typename T, typename U = T>
 inline void __cdecl R_ReleaseAndSetNULL(
-    T *var,
+    U *var,
     const char *fn,
     const char *filename,
     int line)
