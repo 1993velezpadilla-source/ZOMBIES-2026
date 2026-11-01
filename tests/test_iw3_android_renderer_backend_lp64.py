@@ -23,6 +23,17 @@ FENCE_SIGNATURES = (
 
 
 class OriginalBackendLP64Tests(unittest.TestCase):
+    def test_android_backend_headers_do_not_require_d3d9_or_bink(self):
+        source = SOURCE.read_text(encoding="utf-8")
+        self.assertIn("void __cdecl R_Cinematic_UpdateFrame();", source)
+        self.assertIn('#include "r_cinematic.h"', source)
+        self.assertIn("#if defined(__ANDROID__)", source)
+        for name in ("rb_draw3d.h", "rb_backend.h"):
+            header = (SOURCE.parent / name).read_text(encoding="utf-8")
+            self.assertIn("#if defined(__ANDROID__)", header)
+            self.assertIn('#include "r_d3d9_opaque.h"', header)
+            self.assertIn("#else\\n#include <d3d9.h>", header)
+
     def test_native_backend_static_tracking_with_sanitizers(self):
         src = SOURCE.read_text(encoding="utf-8")
         original = function_source(src, TRACK_SIGNATURE)
