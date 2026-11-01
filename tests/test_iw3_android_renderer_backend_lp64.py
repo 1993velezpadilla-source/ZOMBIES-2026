@@ -32,7 +32,7 @@ class OriginalBackendLP64Tests(unittest.TestCase):
             header = (SOURCE.parent / name).read_text(encoding="utf-8")
             self.assertIn("#if defined(__ANDROID__)", header)
             self.assertIn('#include "r_d3d9_opaque.h"', header)
-            self.assertIn("#else\\n#include <d3d9.h>", header)
+            self.assertIn("#else\n#include <d3d9.h>", header)
 
     def test_native_backend_static_tracking_with_sanitizers(self):
         src = SOURCE.read_text(encoding="utf-8")
