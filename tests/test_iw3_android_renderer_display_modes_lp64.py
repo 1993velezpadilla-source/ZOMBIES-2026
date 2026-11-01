@@ -159,11 +159,11 @@ int main() {
         dx.displayModes[i] = api.modes[i];
     // Match the genuine Android provider: apply registers the dvars first.
     R_BuildDisplayModeDvars();
-    const int registrationsBeforeEnum = enumRegistrations;
+    const int registrationsBeforeEnumFull = enumRegistrations;
 #endif
     R_EnumDisplayModes(0);
 #if defined(__ANDROID__)
-    assert(enumRegistrations == registrationsBeforeEnum); // no double registration
+    assert(enumRegistrations == registrationsBeforeEnumFull); // no double registration
 #endif
     assert(resolutions.size() == 256);
     assert(resolutions.front() == "640x480");
