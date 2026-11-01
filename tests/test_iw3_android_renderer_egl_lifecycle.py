@@ -43,6 +43,7 @@ using EGLNativeWindowType = ANativeWindow *;
 #define EGL_WIDTH 0x3057
 #define EGL_HEIGHT 0x3056
 #define EGL_DRAW 0x3059
+#define EGL_READ 0x305A
 #define EGL_NONE 0x3038
 EGLDisplay eglGetDisplay(void *);
 EGLBoolean eglInitialize(EGLDisplay, EGLint *, EGLint *);
@@ -84,10 +85,13 @@ static EGLContext currentContext=EGL_NO_CONTEXT;
 static EGLSurface currentSurface=EGL_NO_SURFACE;
 static EGLDisplay goodDisplay=reinterpret_cast<void *>(0x10);
 static EGLSurface goodSurface=reinterpret_cast<void *>(0x20);
+static EGLSurface replacementSurface=reinterpret_cast<void *>(0x21);
 static EGLContext goodContext=reinterpret_cast<void *>(0x30);
 void ANativeWindow_acquire(ANativeWindow *) { ++acquired; }
 void ANativeWindow_release(ANativeWindow *) { ++released; }
-int ANativeWindow_setBuffersGeometry(ANativeWindow *, int, int, int) { return failAt==5 ? -1 : 0; }
+int ANativeWindow_setBuffersGeometry(ANativeWindow *w, int, int, int) {
+    return failAt==5 || (failAt==14 && w->marker==456) ? -1 : 0;
+}
 EGLDisplay eglGetDisplay(void *) { return failAt==1 ? EGL_NO_DISPLAY : goodDisplay; }
 EGLBoolean eglInitialize(EGLDisplay, EGLint *, EGLint *) { return failAt!=2; }
 EGLBoolean eglBindAPI(EGLint api) { assert(api==EGL_OPENGL_ES_API); return failAt!=3; }
@@ -104,21 +108,24 @@ EGLBoolean eglChooseConfig(EGLDisplay, const EGLint *attrs, EGLConfig *config, E
 EGLBoolean eglGetConfigAttrib(EGLDisplay, EGLConfig, EGLint what, EGLint *out) {
     assert(what==EGL_NATIVE_VISUAL_ID); *out=1; return EGL_TRUE;
 }
-EGLSurface eglCreateWindowSurface(EGLDisplay, EGLConfig, EGLNativeWindowType, const EGLint *) {
-    return failAt==6 ? EGL_NO_SURFACE : goodSurface;
+EGLSurface eglCreateWindowSurface(EGLDisplay, EGLConfig, EGLNativeWindowType w, const EGLint *) {
+    if (failAt==6 || (failAt==15 && w->marker==456)) return EGL_NO_SURFACE;
+    return w->marker==456 ? replacementSurface : goodSurface;
 }
 EGLContext eglCreateContext(EGLDisplay, EGLConfig, EGLContext, const EGLint *attrs) {
     assert(attrs[0]==EGL_CONTEXT_CLIENT_VERSION && attrs[1]==3);
     return failAt==7 ? EGL_NO_CONTEXT : goodContext;
 }
 EGLBoolean eglMakeCurrent(EGLDisplay, EGLSurface draw, EGLSurface, EGLContext ctx) {
-    if (failAt==8 && ctx!=EGL_NO_CONTEXT) return EGL_FALSE;
+    if ((failAt==8 && ctx!=EGL_NO_CONTEXT)
+        || (failAt==17 && draw==replacementSurface)) return EGL_FALSE;
     currentContext=ctx; currentSurface=draw;
     currentDisplay=(ctx==EGL_NO_CONTEXT ? EGL_NO_DISPLAY : goodDisplay);
     return EGL_TRUE;
 }
-EGLBoolean eglQuerySurface(EGLDisplay, EGLSurface, EGLint what, EGLint *out) {
-    if ((failAt==11 && what==EGL_WIDTH) || (failAt==12 && what==EGL_HEIGHT))
+EGLBoolean eglQuerySurface(EGLDisplay, EGLSurface surf, EGLint what, EGLint *out) {
+    if ((failAt==16 && surf==replacementSurface)
+        || (failAt==11 && what==EGL_WIDTH) || (failAt==12 && what==EGL_HEIGHT))
         return EGL_FALSE;
     *out=what==EGL_WIDTH ? (failAt==13 ? 0 : surfaceWidth)
                            : (failAt==9 ? 0 : surfaceHeight);
@@ -126,7 +133,9 @@ EGLBoolean eglQuerySurface(EGLDisplay, EGLSurface, EGLint what, EGLint *out) {
 }
 EGLDisplay eglGetCurrentDisplay() { return currentDisplay; }
 EGLContext eglGetCurrentContext() { return currentContext; }
-EGLSurface eglGetCurrentSurface(EGLint which) { assert(which==EGL_DRAW); return currentSurface; }
+EGLSurface eglGetCurrentSurface(EGLint which) {
+    assert(which==EGL_DRAW || which==EGL_READ); return currentSurface;
+}
 EGLBoolean eglSwapBuffers(EGLDisplay, EGLSurface) { ++swapCalls; return failAt==10 ? EGL_FALSE : EGL_TRUE; }
 EGLBoolean eglDestroyContext(EGLDisplay, EGLContext) { ++destroyedContexts; return EGL_TRUE; }
 EGLBoolean eglDestroySurface(EGLDisplay, EGLSurface) { ++destroyedSurfaces; return EGL_TRUE; }
@@ -193,6 +202,27 @@ int main() {
         failAt=0;
     }
     assert(R_AndroidEglCreate(&ctx, &window));
+    ANativeWindow newWindow{456};
+    assert(!R_AndroidEglReplaceWindow(&ctx, nullptr));
+    assert(!R_AndroidEglReplaceWindow(&ctx, &window));
+    std::thread foreign([&] { assert(!R_AndroidEglReplaceWindow(&ctx, &newWindow)); });
+    foreign.join();
+    const int baselineAcquired=acquired, baselineReleased=released;
+    for (int failure : {14, 15, 16, 17}) {
+        failAt=failure;
+        assert(!R_AndroidEglReplaceWindow(&ctx, &newWindow));
+        assert(ctx.window==&window && ctx.surface==goodSurface);
+        assert(currentSurface==goodSurface && ctx.width==2400 && ctx.height==1080);
+        assert(acquired-released==1); // no leaked references on failed replacement
+        failAt=0;
+    }
+    assert(acquired==baselineAcquired+4 && released==baselineReleased+4);
+    surfaceWidth=720; surfaceHeight=1280;
+    assert(R_AndroidEglReplaceWindow(&ctx, &newWindow));
+    assert(ctx.window==&newWindow && ctx.surface==replacementSurface);
+    assert(ctx.width==720 && ctx.height==1280);
+    assert(currentSurface==replacementSurface);
+    assert(R_AndroidEglPresent(&ctx));
     assert(R_AndroidEglDestroy(&ctx));
     assert(acquired==released);
     std::puts("IW3_ANDROID_EGL_LIFECYCLE_HOST_SANITIZER_PASS_NOT_RENDERER");
