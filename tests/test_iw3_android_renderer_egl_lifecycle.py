@@ -117,6 +117,13 @@ EGLContext eglCreateContext(EGLDisplay, EGLConfig, EGLContext, const EGLint *att
     return failAt==7 ? EGL_NO_CONTEXT : goodContext;
 }
 EGLBoolean eglMakeCurrent(EGLDisplay, EGLSurface draw, EGLSurface, EGLContext ctx) {
+    if (failAt==20 && draw==replacementSurface) {
+        // Simulate a driver that drops the old binding on failed replacement.
+        currentContext=EGL_NO_CONTEXT;
+        currentSurface=EGL_NO_SURFACE;
+        currentDisplay=EGL_NO_DISPLAY;
+        return EGL_FALSE;
+    }
     if ((failAt==8 && ctx!=EGL_NO_CONTEXT)
         || (failAt==17 && draw==replacementSurface)
         || (failAt==18 && ctx==EGL_NO_CONTEXT)) return EGL_FALSE;
@@ -209,7 +216,7 @@ int main() {
     std::thread foreign([&] { assert(!R_AndroidEglReplaceWindow(&ctx, &newWindow)); });
     foreign.join();
     const int baselineAcquired=acquired, baselineReleased=released;
-    for (int failure : {14, 15, 16, 17}) {
+    for (int failure : {14, 15, 16, 17, 20}) {
         failAt=failure;
         assert(!R_AndroidEglReplaceWindow(&ctx, &newWindow));
         assert(ctx.window==&window && ctx.surface==goodSurface);
@@ -217,7 +224,7 @@ int main() {
         assert(acquired-released==1); // no leaked references on failed replacement
         failAt=0;
     }
-    assert(acquired==baselineAcquired+4 && released==baselineReleased+4);
+    assert(acquired==baselineAcquired+5 && released==baselineReleased+5);
     surfaceWidth=720; surfaceHeight=1280;
     assert(R_AndroidEglReplaceWindow(&ctx, &newWindow));
     assert(ctx.window==&newWindow && ctx.surface==replacementSurface);
