@@ -138,10 +138,16 @@ class OriginalDbRegistryCompileGateTests(unittest.TestCase):
         self.assertIn('#include "db_registry_android_compat.h"', registry)
     def test_renderer_backend_does_not_force_d3d9_sdk_on_android(self):
         source = (ROOT / "third_party/KisakCOD/src/gfx_d3d/rb_backend.h").read_text(encoding="utf-8")
-        guard = source.index("#if !defined(__ANDROID__)")
-        include = source.index("#include <d3d9.h>", guard)
+        # The original header now uses Android-first opaque declarations.
+        # Check the branch containing the SDK include, not a fixed guard spelling.
+        guard = source.index("#if defined(__ANDROID__)")
+        opaque = source.index('#include "r_d3d9_opaque.h"', guard)
+        windows = source.index("#else", opaque)
+        include = source.index("#include <d3d9.h>", windows)
         end = source.index("#endif", include)
-        self.assertLess(guard, include)
+        self.assertLess(guard, opaque)
+        self.assertLess(opaque, windows)
+        self.assertLess(windows, include)
         self.assertLess(include, end)
     def test_original_r_gfx_selects_opaque_android_d3d_declarations(self):
         source = (ROOT / "third_party/KisakCOD/src/gfx_d3d/r_gfx.h").read_text(encoding="utf-8")
