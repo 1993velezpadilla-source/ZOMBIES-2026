@@ -330,7 +330,14 @@ void __cdecl R_SyncGpu(int(__cdecl *WorkCallback)(unsigned __int64))
     {
         PROF_SCOPED("R_SyncGpu");
         useWorkCallback = WorkCallback != 0;
+        // Original GPU fences use x86 TSC units. A GLES fence/timeout
+        // implementation is required; nanosecond clocks are not equivalent.
+#if defined(__ANDROID__)
+        Sys_Error("IW3 Android: GPU sync requires native GLES fence support");
+        return;
+#else
         dx.gpuSyncStart = __rdtsc();
+#endif
         R_AcquireGpuFenceLock();
         while (!R_GpuFenceTimeout())
         {
@@ -2903,7 +2910,7 @@ void R_UnloadGraphicsAssets()
 
 void R_ShutdownDirect3D()
 {
-    IDirect3DSurface9 *var; // [esp+4h] [ebp-8h]
+    IDirect3D9 *var; // [esp+4h] [ebp-8h]
     IDirect3DDevice9 *varCopy; // [esp+8h] [ebp-4h]
 
     if (IsFastFileLoad())
@@ -2921,6 +2928,11 @@ void R_ShutdownDirect3D()
 #endif
         dx.windows[dx.windowCount].hwnd = 0;
     }
+    // Never release a D3D9 COM pointer from the Android EGL backend.
+#if defined(__ANDROID__)
+    if (dx.device || dx.d3d9)
+        Sys_Error("IW3 Android: unexpected Direct3D9 object at shutdown");
+#else
     if (dx.device)
     {
         do
@@ -2929,7 +2941,7 @@ void R_ShutdownDirect3D()
                 RB_LogPrint("dx.device->Release()\n");
             varCopy = dx.device;
             dx.device = 0;
-            R_ReleaseAndSetNULL<IDirect3DDevice9>((IDirect3DSurface9 *)varCopy, "dx.device", ".\\r_init.cpp", 2214);
+            R_ReleaseAndSetNULL<IDirect3DDevice9>(varCopy, "dx.device", ".\\r_init.cpp", 2214);
         } while (alwaysfails);
     }
     if (dx.d3d9)
@@ -2938,11 +2950,12 @@ void R_ShutdownDirect3D()
         {
             if (r_logFile && r_logFile->current.integer)
                 RB_LogPrint("dx.d3d9->Release()\n");
-            var = (IDirect3DSurface9 *)dx.d3d9;
+            var = dx.d3d9;
             dx.d3d9 = 0;
-            R_ReleaseAndSetNULL<IDirect3DDevice9>(var, "dx.d3d9", ".\\r_init.cpp", 2217);
+            R_ReleaseAndSetNULL<IDirect3D9>(var, "dx.d3d9", ".\\r_init.cpp", 2217);
         } while (alwaysfails);
     }
+#endif
 }
 
 void __cdecl R_UnloadWorld()
@@ -2977,6 +2990,8 @@ void R_Init()
     R_InitGraphicsApi();
     RB_RegisterBackendAssets();
     R_InitWater();
+    // D3D9 device-loss checks cannot run against an EGL/GLES context.
+#if !defined(__ANDROID__)
     if (!dx.deviceLost)
     {
         hr = dx.device->TestCooperativeLevel();
@@ -2990,6 +3005,7 @@ void R_Init()
             }
         }
     }
+#endif
     RB_ProfileInit();
 }
 
@@ -4333,9 +4349,15 @@ bool __cdecl R_CanRecoverLostDevice()
 
 void R_ReleaseForShutdownOrReset()
 {
-    IDirect3DSurface9 *pixelCountQuery; // [esp+0h] [ebp-18h]
-    IDirect3DSurface9 *v1; // [esp+4h] [ebp-14h]
-    IDirect3DSurface9 *var; // [esp+8h] [ebp-10h]
+#if defined(__ANDROID__)
+    // The D3D9 reset/release sequence is not an EGL resource lifecycle.
+    // Do not claim cleanup until a native renderer owns those resources.
+    Sys_Error("IW3 Android: D3D9 reset cleanup requires a GLES backend");
+    return;
+#else
+    IDirect3DQuery9 *pixelCountQuery; // [esp+0h] [ebp-18h]
+    IDirect3DQuery9 *v1; // [esp+4h] [ebp-14h]
+    IDirect3DQuery9 *var; // [esp+8h] [ebp-10h]
     IDirect3DSwapChain9 *varCopy; // [esp+Ch] [ebp-Ch]
     uint32_t fenceIter; // [esp+10h] [ebp-8h]
     int windowIndex; // [esp+14h] [ebp-4h]
@@ -4351,8 +4373,8 @@ void R_ReleaseForShutdownOrReset()
             }
             varCopy = dx.windows[windowIndex].swapChain;
             dx.windows[windowIndex].swapChain = 0;
-            R_ReleaseAndSetNULL<IDirect3DDevice9>(
-                (IDirect3DSurface9 *)varCopy,
+            R_ReleaseAndSetNULL<IDirect3DSwapChain9>(
+                varCopy,
                 "dx.windows[windowIndex].swapChain",
                 ".\\r_init.cpp",
                 1009);
@@ -4372,9 +4394,9 @@ void R_ReleaseForShutdownOrReset()
         {
             if (r_logFile && r_logFile->current.integer)
                 RB_LogPrint("dx.flushGpuQuery->Release()\n");
-            var = (IDirect3DSurface9 *)dx.flushGpuQuery;
+            var = dx.flushGpuQuery;
             dx.flushGpuQuery = 0;
-            R_ReleaseAndSetNULL<IDirect3DDevice9>(var, "dx.flushGpuQuery", ".\\r_init.cpp", 1026);
+            R_ReleaseAndSetNULL<IDirect3DQuery9>(var, "dx.flushGpuQuery", ".\\r_init.cpp", 1026);
         } while (alwaysfails);
     }
     for (fenceIter = 0; fenceIter < 8; ++fenceIter)
@@ -4385,9 +4407,9 @@ void R_ReleaseForShutdownOrReset()
             {
                 if (r_logFile && r_logFile->current.integer)
                     RB_LogPrint("dx.fencePool[fenceIter]->Release()\n");
-                v1 = (IDirect3DSurface9 *)dx.fencePool[fenceIter];
+                v1 = dx.fencePool[fenceIter];
                 dx.fencePool[fenceIter] = 0;
-                R_ReleaseAndSetNULL<IDirect3DDevice9>(v1, "dx.fencePool[fenceIter]", ".\\r_init.cpp", 1031);
+                R_ReleaseAndSetNULL<IDirect3DQuery9>(v1, "dx.fencePool[fenceIter]", ".\\r_init.cpp", 1031);
             } while (alwaysfails);
         }
     }
@@ -4398,9 +4420,9 @@ void R_ReleaseForShutdownOrReset()
         {
             if (r_logFile && r_logFile->current.integer)
                 RB_LogPrint("gfxAssets.pixelCountQuery->Release()\n");
-            pixelCountQuery = (IDirect3DSurface9 *)gfxAssets.pixelCountQuery;
+            pixelCountQuery = gfxAssets.pixelCountQuery;
             gfxAssets.pixelCountQuery = 0;
-            R_ReleaseAndSetNULL<IDirect3DDevice9>(pixelCountQuery, "gfxAssets.pixelCountQuery", ".\\r_init.cpp", 1039);
+            R_ReleaseAndSetNULL<IDirect3DQuery9>(pixelCountQuery, "gfxAssets.pixelCountQuery", ".\\r_init.cpp", 1039);
         } while (alwaysfails);
     }
 #ifdef KISAK_RADIANT
@@ -4412,6 +4434,7 @@ void R_ReleaseForShutdownOrReset()
     extern void Editor_VB_ReleaseForReset();
     Editor_VB_ReleaseForReset();
 #endif
+#endif // !__ANDROID__
 }
 
 void R_ResetDevice()
