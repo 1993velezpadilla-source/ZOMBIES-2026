@@ -177,9 +177,9 @@ EGLSurface eglGetCurrentSurface(EGLint which) {
     assert(which==EGL_DRAW || which==EGL_READ); return currentSurface;
 }
 EGLBoolean eglSwapBuffers(EGLDisplay, EGLSurface) { ++swapCalls; return failAt==10 ? EGL_FALSE : EGL_TRUE; }
-EGLBoolean eglDestroyContext(EGLDisplay, EGLContext) { ++destroyedContexts; return EGL_TRUE; }
-EGLBoolean eglDestroySurface(EGLDisplay, EGLSurface) { ++destroyedSurfaces; return failAt==19 ? EGL_FALSE : EGL_TRUE; }
-EGLBoolean eglTerminate(EGLDisplay) { ++terminated; return EGL_TRUE; }
+EGLBoolean eglDestroyContext(EGLDisplay, EGLContext) { ++destroyedContexts; return failAt==21 ? EGL_FALSE : EGL_TRUE; }
+EGLBoolean eglDestroySurface(EGLDisplay, EGLSurface) { ++destroyedSurfaces; return (failAt==19 || failAt==22) ? EGL_FALSE : EGL_TRUE; }
+EGLBoolean eglTerminate(EGLDisplay) { ++terminated; return failAt==23 ? EGL_FALSE : EGL_TRUE; }
 int main() {
     static_assert(sizeof(void*)==8, "LP64 required");
     ANativeWindow window{123};
@@ -306,6 +306,33 @@ int main() {
     assert(R_AndroidEglDestroy(&ctx));
     assert(fenceCreated==5 && fenceDeleted==5);
     assert(acquired==released);
+    // Android EGL drivers may fail unbind, context destruction, Surface
+    // destruction, or display termination. Never discard the live handles:
+    // the genuine IW3 render thread must be able to retry without a leak or
+    // a double-destroy. This is host-mocked lifecycle proof, NOT rendering.
+    for (int failure : {18, 21, 22, 23}) {
+        assert(R_AndroidEglCreate(&ctx, &window));
+        assert(R_AndroidGpuFenceOriginalInsert());
+        const int priorReleased=released;
+        failAt=failure;
+        assert(!R_AndroidEglDestroy(&ctx));
+        assert(ctx.ownerThreadValid && ctx.display==goodDisplay);
+        assert(ctx.window==&window && released==priorReleased);
+        assert(!ctx.gpuFenceBound); // GLsync was safely deleted first
+        if (failure==18 || failure==21)
+            assert(ctx.context==goodContext);
+        else
+            assert(ctx.context==EGL_NO_CONTEXT);
+        if (failure==18 || failure==21 || failure==22)
+            assert(ctx.surface==goodSurface);
+        else
+            assert(ctx.surface==EGL_NO_SURFACE);
+        failAt=0;
+        assert(R_AndroidEglDestroy(&ctx));
+        assert(ctx.display==EGL_NO_DISPLAY && ctx.window==nullptr);
+        assert(acquired==released);
+    }
+    assert(fenceCreated==fenceDeleted);
     std::puts("IW3_ANDROID_EGL_LIFECYCLE_HOST_SANITIZER_PASS_NOT_RENDERER");
 }
 """
