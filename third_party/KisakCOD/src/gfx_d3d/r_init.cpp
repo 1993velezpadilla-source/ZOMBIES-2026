@@ -3362,6 +3362,10 @@ void __cdecl R_RespondToMissingCaps(DxCapsResponse response, const char *msg, in
     }
 }
 
+// D3D9 capability bitfields and shader-model selection belong to Windows.
+// GLES3 capabilities must be queried from the actual Android GL context;
+// these COM routines cannot be compiled or reused as a GLES capability probe.
+#if !defined(__ANDROID__)
 int __cdecl R_CheckDxCaps(const _D3DCAPS9 *caps)
 {
     uint32_t integer; // [esp+0h] [ebp-10h]
@@ -3389,6 +3393,8 @@ int __cdecl R_CheckDxCaps(const _D3DCAPS9 *caps)
     return allowedPaths;
 }
 
+#endif // !__ANDROID__: D3D9 capability bitfield validation
+
 const char *__cdecl R_DescribeRenderer(int renderer)
 {
     if (renderer == 1)
@@ -3397,6 +3403,10 @@ const char *__cdecl R_DescribeRenderer(int renderer)
     return "Shader model 2.0";
 }
 
+// The entire desktop adapter/monitor/window initialization chain uses
+// D3D9 COM and Win32 handles. Do not create a fake Android adapter or claim
+// a renderer until original IW3 draw commands have a real GLES backend.
+#if !defined(__ANDROID__)
 void __cdecl R_PickRenderer(_D3DCAPS9 *caps)
 {
     const char *v1; // eax
@@ -3755,6 +3765,8 @@ char __cdecl R_CreateGameWindow(GfxWindowParms *wndParms)
     Sys_HideSplashWindow();
     return 1;
 }
+
+#endif // !__ANDROID__: D3D9 adapter, capabilities and Win32 window chain
 
 void R_LoadGraphicsAssets()
 {
