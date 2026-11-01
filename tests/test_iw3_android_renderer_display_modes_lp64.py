@@ -135,6 +135,8 @@ int main() {
     dx.displayModeCount = static_cast<uint32_t>(api.modes.size());
     for (size_t i = 0; i < api.modes.size(); ++i)
         dx.displayModes[i] = api.modes[i];
+    // Match the genuine Android provider: apply registers the dvars first.
+    R_BuildDisplayModeDvars();
 #endif
     R_EnumDisplayModes(0);
     assert((resolutions == std::vector<std::string>{
@@ -149,6 +151,8 @@ int main() {
     dx.displayModeCount = static_cast<uint32_t>(api.modes.size());
     for (size_t i = 0; i < api.modes.size(); ++i)
         dx.displayModes[i] = api.modes[i];
+    // Match the genuine Android provider: apply registers the dvars first.
+    R_BuildDisplayModeDvars();
 #endif
     R_EnumDisplayModes(0);
     assert(resolutions.size() == 256);
@@ -207,7 +211,8 @@ class OriginalRendererDisplayModesLP64(unittest.TestCase):
         functions = "\n".join(function_source(source, s) for s in SIGNATURES)
         self.assertIn("dx.displayModes[modeIndex].Height", functions)
         self.assertIn("adapter enumeration does not exist on Android.", functions)
-        self.assertIn("Android renderer display mode missing or invalid", functions)
+        self.assertIn("Android renderer Surface mode must be applied first", functions)
+        self.assertIn("!r_mode || !r_displayRefresh", functions)
         self.assertIn("authentic GLES renderer command backend not integrated.", source)
         self.assertIn("dx.displayModes[modeIndex].RefreshRate", functions)
         self.assertNotIn("resolutionNameTable[4 *", functions)
