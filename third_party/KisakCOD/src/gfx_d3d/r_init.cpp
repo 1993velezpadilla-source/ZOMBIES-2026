@@ -4392,12 +4392,18 @@ void __cdecl R_ComErrorCleanup()
     R_SyncRenderThread();
     if (dx.inScene)
     {
+#if defined(__ANDROID__)
+        // A D3D9 EndScene call is not an EGL/GLES command-buffer flush.
+        Sys_Error("IW3 Android: in-scene error cleanup requires native GLES backend");
+#else
         //((void(__thiscall *)(IDirect3DDevice9 *, IDirect3DDevice9 *))dx.device->EndScene)(dx.device, dx.device);
         dx.device->EndScene();
         dx.inScene = 0;
+#endif
     }
 }
 
+#if !defined(__ANDROID__)
 bool __cdecl R_CanRecoverLostDevice()
 {
     HRESULT hr; // [esp+0h] [ebp-4h]
@@ -4408,6 +4414,8 @@ bool __cdecl R_CanRecoverLostDevice()
     iassert( hr == D3DERR_DEVICELOST || hr == D3DERR_DEVICENOTRESET );
     return hr != -2005530520;
 }
+
+#endif // !__ANDROID__: D3D9 cooperative-level recovery
 
 void R_ReleaseForShutdownOrReset()
 {
@@ -4499,6 +4507,9 @@ void R_ReleaseForShutdownOrReset()
 #endif // !__ANDROID__
 }
 
+#if !defined(__ANDROID__)
+// The original D3D9 Reset/CooperativeLevel device-loss state machine does not
+// describe Android EGL context loss. A real GLES recovery path is still needed.
 void R_ResetDevice()
 {
     const char *v0; // eax
@@ -4618,6 +4629,8 @@ bool R_CheckLostDevice()
     
     return false;
 }
+
+#endif // !__ANDROID__: D3D9 reset and lost-device recovery
 
 void __cdecl R_MakeDedicated(const GfxConfiguration *config)
 {
