@@ -1,4 +1,5 @@
 #include <universal/q_shared.h>
+#include <stddef.h> // offsetof: native GfxCmdDrawText2D text payload on LP64
 #include "r_rendercmds.h"
 #include <qcommon/mem_track.h>
 #include <qcommon/threads.h>
@@ -850,6 +851,21 @@ void __cdecl R_AddCmdDrawTextWithCursor(
     AddBaseDrawTextCmd(text, maxChars, font, x, y, xScale, yScale, rotation, color, style, cursorPos, cursor);
 }
 
+// The original 84-byte expression assumed 32-bit pointers in GfxCmdDrawText2D.
+// On Android LP64, the text[] field moves after wider Font/Material pointers;
+// reserving the legacy size lets memcpy and the trailing NUL overrun the cmd.
+// Preserve the original 4-byte command alignment and 16-bit byteCount limit.
+static int R_DrawText2DCommandBytes(size_t textLength)
+{
+    if (textLength > 0xFFFFu)
+        return 0;
+    const size_t textOffset = offsetof(GfxCmdDrawText2D, text);
+    const size_t bytes = (textOffset + textLength + 4u) & ~size_t(3);
+    if (bytes > 0xFFFFu)
+        return 0;
+    return static_cast<int>(bytes);
+}
+
 GfxCmdDrawText2D *__cdecl AddBaseDrawTextCmd(
     const char *text,
     int maxChars,
@@ -872,7 +888,10 @@ GfxCmdDrawText2D *__cdecl AddBaseDrawTextCmd(
     if (!*text && cursorPos < 0)
         return 0;
     v13 = strlen(text);
-    cmd = (GfxCmdDrawText2D *)R_GetCommandBuffer(RC_DRAW_TEXT_2D, (v13 + 84) & 0xFFFFFFFC);
+    const int commandBytes = R_DrawText2DCommandBytes(v13);
+    if (!commandBytes)
+        return 0;
+    cmd = (GfxCmdDrawText2D *)R_GetCommandBuffer(RC_DRAW_TEXT_2D, commandBytes);
     if (!cmd)
         return 0;
     cmd->x = x;
@@ -1082,7 +1101,10 @@ GfxCmdDrawText2D *__cdecl AddBaseDrawConsoleTextCmd(
     iassert( textPool );
     if (!charCount)
         return 0;
-    cmd = (GfxCmdDrawText2D *)R_GetCommandBuffer(RC_DRAW_TEXT_2D, (charCount + 84) & 0xFFFFFFFC);
+    const int commandBytes = charCount > 0 ? R_DrawText2DCommandBytes(static_cast<size_t>(charCount)) : 0;
+    if (!commandBytes)
+        return 0;
+    cmd = (GfxCmdDrawText2D *)R_GetCommandBuffer(RC_DRAW_TEXT_2D, commandBytes);
     if (!cmd)
         return 0;
     cmd->x = x;
