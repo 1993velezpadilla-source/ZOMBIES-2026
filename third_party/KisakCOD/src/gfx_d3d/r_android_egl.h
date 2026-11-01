@@ -4,6 +4,7 @@
 // draw commands, load maps, or constitute a playable Android build.
 #if defined(__ANDROID__)
 #include <android/native_window.h>
+#include <pthread.h>
 #include <EGL/egl.h>
 
 struct IW3AndroidEglContext
@@ -14,14 +15,18 @@ struct IW3AndroidEglContext
     ANativeWindow *window = nullptr; // acquired reference owned by this object
     EGLint width = 0;
     EGLint height = 0;
+    pthread_t ownerThread{};
+    bool ownerThreadValid = false;
 
     IW3AndroidEglContext() = default;
     IW3AndroidEglContext(const IW3AndroidEglContext &) = delete;
     IW3AndroidEglContext &operator=(const IW3AndroidEglContext &) = delete;
 };
 
-// Call all three functions on the SAME engine render thread. The caller must
-// serialize Surface destruction/recreation and keep the Java Surface alive.
+// All operations are restricted to the thread that successfully began Create.
+// In particular, Destroy rejects a foreign thread WITHOUT releasing any state;
+// the Android lifecycle must dispatch cleanup to the owning render thread.
+// The caller must serialize Surface destruction/recreation and keep the Java Surface alive.
 // No JNI references are retained; window is acquired/released explicitly.
 bool R_AndroidEglCreate(IW3AndroidEglContext *state, ANativeWindow *window);
 // Refresh actual EGL surface dimensions after Android Surface resize/rotation.
@@ -29,5 +34,7 @@ bool R_AndroidEglCreate(IW3AndroidEglContext *state, ANativeWindow *window);
 // Failed queries preserve the last valid dimensions; no viewport is changed.
 bool R_AndroidEglRefreshSize(IW3AndroidEglContext *state);
 bool R_AndroidEglPresent(const IW3AndroidEglContext *state);
-void R_AndroidEglDestroy(IW3AndroidEglContext *state);
+// Returns false on null state or a foreign thread (state left intact).
+// Idempotent on the owning thread, including after failed partial Create.
+bool R_AndroidEglDestroy(IW3AndroidEglContext *state);
 #endif
