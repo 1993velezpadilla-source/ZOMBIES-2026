@@ -2945,7 +2945,14 @@ void __cdecl RB_CallExecuteRenderCommands()
             if (r_logFile && r_logFile->current.integer)
                 RB_LogPrint("dx.device->EndScene()\n");
             //hr = ((int(__thiscall *)(IDirect3DDevice9 *, IDirect3DDevice9 *))dx.device->EndScene)(dx.device, dx.device);
+#if defined(__ANDROID__)
+            // The original IW3 command consumer is retained; no D3D9 device
+            // exists on Android. EndScene needs an actual GLES frame boundary.
+            Com_Error(ERR_FATAL, "IW3 Android RB_CallExecuteRenderCommands requires GLES scene end");
+            hr = -1;
+#else
             hr = dx.device->EndScene();
+#endif
             if (hr < 0)
             {
                 do
