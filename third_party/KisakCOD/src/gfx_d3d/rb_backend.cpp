@@ -79,24 +79,34 @@ materialCommands_t tess;
 
 void __cdecl TRACK_rb_backend()
 {
-    track_static_alloc_internal(&backEnd, 640, "backEnd", 18);
-    track_static_alloc_internal(&tess, 2271584, "tess", 18);
-    track_static_alloc_internal(&gfxCmdBufInput, 1072, "gfxCmdBufInput", 18);
+    track_static_alloc_internal(&backEnd, sizeof(backEnd), "backEnd", 18);
+    track_static_alloc_internal(&tess, sizeof(tess), "tess", 18);
+    track_static_alloc_internal(&gfxCmdBufInput, sizeof(gfxCmdBufInput), "gfxCmdBufInput", 18);
 }
 
 bool __cdecl R_GpuFenceTimeout()
 {
+#if defined(__ANDROID__)
+    // IW3 still owns a D3D9 query here. Do not read x86 TSC or
+    // claim that GLES has finished work before real GLsync integration.
+    Com_Error(ERR_FATAL, "IW3 Android: GPU fence timeout requires real GLES synchronization");
+    return false;
+#else
     if (RB_IsGpuFenceFinished())
         return 1;
     dx.gpuSyncEnd = __rdtsc();
     return dx.gpuSyncEnd - dx.gpuSyncStart >= dx.gpuSyncDelay;
+#endif
 }
 
 void __cdecl R_FinishGpuFence()
 {
+#if defined(__ANDROID__)
+    Com_Error(ERR_FATAL, "IW3 Android: GPU fence wait requires real GLES synchronization");
+#else
     PROF_SCOPED("R_SyncGpu");
-
     while (!RB_IsGpuFenceFinished());
+#endif
 }
 
 void __cdecl R_AcquireGpuFenceLock()
@@ -111,6 +121,10 @@ void __cdecl R_ReleaseGpuFenceLock()
 
 void __cdecl R_InsertGpuFence()
 {
+#if defined(__ANDROID__)
+    // No synthetic completion: D3D9 Issue must become GLES glFenceSync.
+    Com_Error(ERR_FATAL, "IW3 Android: GPU fence insertion requires real GLES synchronization");
+#else
     const char *v0; // eax
     int hr; // [esp+0h] [ebp-4h]
 
@@ -136,15 +150,20 @@ void __cdecl R_InsertGpuFence()
     } while (alwaysfails);
     dx.flushGpuQueryIssued = 1;
     ++dx.flushGpuQueryCount;
+#endif
 }
 
 void RB_AbandonGpuFence()
 {
+#if defined(__ANDROID__)
+    Com_Error(ERR_FATAL, "IW3 Android: GPU fence abandon requires real GLES synchronization");
+#else
     iassert( dx.flushGpuQuery );
     iassert( dx.flushGpuQueryIssued );
     iassert( dx.flushGpuQueryCount == 1 );
     dx.flushGpuQueryIssued = 0;
     --dx.flushGpuQueryCount;
+#endif
 }
 
 void __cdecl RB_CopyBackendStats()
