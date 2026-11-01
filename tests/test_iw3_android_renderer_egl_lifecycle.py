@@ -1,6 +1,6 @@
-"""Host ASan/UBSan lifecycle test of the UNMODIFIED KisakCOD Android EGL provider.
+"""Host ASan/UBSan lifecycle test of KisakCOD Android EGL + original GPU fence bridge.
 
-EGL/ANativeWindow calls are mocked, so this is not device rendering or gameplay.
+EGL/GLES/ANativeWindow calls are mocked, so this is not device rendering or gameplay.
 The Android NDK workflow separately compiles the real provider for ARM64.
 """
 import os
@@ -63,6 +63,25 @@ EGLBoolean eglDestroySurface(EGLDisplay, EGLSurface);
 EGLBoolean eglTerminate(EGLDisplay);
 """
 
+GLES_HEADER = r"""
+#pragma once
+#include <cstdint>
+using GLenum = unsigned int;
+using GLbitfield = unsigned int;
+using GLuint64 = uint64_t;
+using GLsync = void*;
+#define GL_SYNC_GPU_COMMANDS_COMPLETE 0x9117
+#define GL_SYNC_FLUSH_COMMANDS_BIT 0x00000001
+#define GL_ALREADY_SIGNALED 0x911A
+#define GL_TIMEOUT_EXPIRED 0x911B
+#define GL_CONDITION_SATISFIED 0x911C
+#define GL_WAIT_FAILED 0x911D
+GLsync glFenceSync(GLenum, GLbitfield);
+void glFlush();
+GLenum glClientWaitSync(GLsync, GLbitfield, GLuint64);
+void glDeleteSync(GLsync);
+"""
+
 NATIVE_HEADER = r"""
 #pragma once
 struct ANativeWindow { int marker; };
@@ -76,9 +95,11 @@ HARNESS = r"""
 #include <cstdio>
 #include <initializer_list>
 #include <thread>
+#include "r_android_gpu_fence.cpp"
 #include "r_android_egl.cpp"
 static int acquired=0, released=0, destroyedContexts=0, destroyedSurfaces=0, terminated=0;
 static int failAt=0, swapCalls=0;
+static int fenceCreated=0, fenceDeleted=0;
 static EGLDisplay currentDisplay=EGL_NO_DISPLAY;
 static int surfaceWidth=1080, surfaceHeight=2400;
 static EGLContext currentContext=EGL_NO_CONTEXT;
@@ -87,6 +108,17 @@ static EGLDisplay goodDisplay=reinterpret_cast<void *>(0x10);
 static EGLSurface goodSurface=reinterpret_cast<void *>(0x20);
 static EGLSurface replacementSurface=reinterpret_cast<void *>(0x21);
 static EGLContext goodContext=reinterpret_cast<void *>(0x30);
+GLsync glFenceSync(GLenum condition, GLbitfield flags) {
+    assert(condition==GL_SYNC_GPU_COMMANDS_COMPLETE && flags==0);
+    ++fenceCreated; return reinterpret_cast<void*>(0x50);
+}
+void glFlush() {}
+GLenum glClientWaitSync(GLsync sync, GLbitfield, GLuint64) {
+    assert(sync==reinterpret_cast<void*>(0x50)); return GL_TIMEOUT_EXPIRED;
+}
+void glDeleteSync(GLsync sync) {
+    assert(sync==reinterpret_cast<void*>(0x50)); ++fenceDeleted;
+}
 void ANativeWindow_acquire(ANativeWindow *) { ++acquired; }
 void ANativeWindow_release(ANativeWindow *) { ++released; }
 int ANativeWindow_setBuffersGeometry(ANativeWindow *w, int, int, int) {
@@ -157,6 +189,9 @@ int main() {
     assert(!R_AndroidEglPresent(&ctx));
     assert(!R_AndroidEglRefreshSize(&ctx));
     assert(R_AndroidEglCreate(&ctx, &window));
+    assert(ctx.gpuFenceBound);
+    assert(R_AndroidGpuFenceOriginalInsert());
+    assert(fenceCreated==1);
     assert(ctx.width==1080 && ctx.height==2400);
     assert(acquired==1 && released==0);
     // A live Android Surface may change size without changing EGLSurface.
@@ -195,6 +230,7 @@ int main() {
            && destroyedSurfaces==0 && terminated==0);
     assert(ctx.ownerThreadValid && ctx.window==&window);
     assert(R_AndroidEglDestroy(&ctx));
+    assert(fenceDeleted==1 && !ctx.gpuFenceBound);
     assert(acquired==released && destroyedContexts==1 && destroyedSurfaces==1 && terminated==1);
     assert(ctx.window==nullptr && ctx.width==0 && ctx.context==EGL_NO_CONTEXT);
     assert(!ctx.ownerThreadValid);
@@ -210,6 +246,7 @@ int main() {
         failAt=0;
     }
     assert(R_AndroidEglCreate(&ctx, &window));
+    assert(ctx.gpuFenceBound);
     ANativeWindow newWindow{456};
     assert(!R_AndroidEglReplaceWindow(&ctx, nullptr));
     assert(!R_AndroidEglReplaceWindow(&ctx, &window));
@@ -234,15 +271,21 @@ int main() {
     // Android Surface may disappear before its replacement exists.
     std::thread foreignDetach([&] { assert(!R_AndroidEglDetachWindow(&ctx)); });
     foreignDetach.join();
+    assert(R_AndroidGpuFenceOriginalInsert());
     failAt=18;
-    assert(!R_AndroidEglDetachWindow(&ctx)); // unbind failure is transactional
+    assert(!R_AndroidEglDetachWindow(&ctx));
+    assert(ctx.gpuFenceBound && fenceDeleted==2); // unbind failure rebinds // unbind failure is transactional
     assert(ctx.surface==replacementSurface && ctx.window==&newWindow);
+    assert(R_AndroidGpuFenceOriginalInsert());
     failAt=19;
-    assert(!R_AndroidEglDetachWindow(&ctx)); // surface-destroy error restores binding
+    assert(!R_AndroidEglDetachWindow(&ctx));
+    assert(ctx.gpuFenceBound && fenceDeleted==3); // restore after destroy failure // surface-destroy error restores binding
     assert(ctx.surface==replacementSurface && ctx.window==&newWindow);
     assert(currentContext==goodContext && currentSurface==replacementSurface);
     failAt=0;
+    assert(R_AndroidGpuFenceOriginalInsert());
     assert(R_AndroidEglDetachWindow(&ctx));
+    assert(!ctx.gpuFenceBound && fenceDeleted==4);
     assert(ctx.surface==EGL_NO_SURFACE && ctx.window==nullptr);
     assert(ctx.width==0 && ctx.height==0 && ctx.context==goodContext);
     assert(!R_AndroidEglPresent(&ctx) && !R_AndroidEglRefreshSize(&ctx));
@@ -255,10 +298,13 @@ int main() {
     assert(ctx.surface==EGL_NO_SURFACE && ctx.context==goodContext);
     failAt=0;
     assert(R_AndroidEglReplaceWindow(&ctx, &window)); // resume on new Surface
+    assert(ctx.gpuFenceBound);
+    assert(R_AndroidGpuFenceOriginalInsert());
     assert(ctx.surface==goodSurface && ctx.window==&window);
     assert(ctx.width==720 && ctx.height==1280);
     assert(R_AndroidEglPresent(&ctx));
     assert(R_AndroidEglDestroy(&ctx));
+    assert(fenceCreated==5 && fenceDeleted==5);
     assert(acquired==released);
     std::puts("IW3_ANDROID_EGL_LIFECYCLE_HOST_SANITIZER_PASS_NOT_RENDERER");
 }
@@ -271,9 +317,11 @@ class AndroidEglLifecycle(unittest.TestCase):
             base = Path(tmp)
             (base / "EGL").mkdir()
             (base / "android").mkdir()
+            (base / "GLES3").mkdir()
             (base / "EGL/egl.h").write_text(EGL_HEADER)
             (base / "EGL/eglext.h").write_text("#define EGL_OPENGL_ES3_BIT_KHR 0x0040\n")
             (base / "android/native_window.h").write_text(NATIVE_HEADER)
+            (base / "GLES3/gl3.h").write_text(GLES_HEADER)
             test = base / "egl_lifecycle.cpp"
             test.write_text(HARNESS)
             binary = base / "egl_lifecycle"
