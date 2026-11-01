@@ -146,7 +146,15 @@ void __cdecl R_ShutdownDynamicMesh(GfxMeshData *mesh)
             }
             varCopy = mesh->vb.buffer;
             mesh->vb.buffer = 0;
+#if defined(__ANDROID__)
+            // This pointer is a D3D9 vertex-buffer resource, not a GLES VBO.
+            // Never silently discard it or invoke a nonexistent COM Release.
+            // Genuine GLES buffer ownership/destruction must be integrated
+            // before this renderer teardown path can execute on Android.
+            Com_Error(ERR_FATAL, "IW3 Android: dynamic vertex buffer teardown requires real GLES resource ownership");
+#else
             R_ReleaseAndSetNULL<IDirect3DDevice9>((IDirect3DSurface9 *)varCopy, "mesh->vb.buffer", ".\\r_rendercmds.cpp", 246);
+#endif
         } while (alwaysfails);
     }
 }
