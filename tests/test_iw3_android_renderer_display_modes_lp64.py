@@ -61,8 +61,10 @@ struct Dx {
 } dx;
 const dvar_t *r_mode = nullptr, *r_displayRefresh = nullptr, *r_noborder = nullptr;
 std::vector<std::string> resolutions, refreshes;
+int enumRegistrations = 0;
 const dvar_t *Dvar_RegisterEnum(const char *name, const char **values,
                                 int, int, const char *) {
+    ++enumRegistrations;
     auto &dst = std::strcmp(name, "r_mode") == 0 ? resolutions : refreshes;
     dst.clear();
     for (size_t i = 0; values[i]; ++i) {
@@ -137,8 +139,12 @@ int main() {
         dx.displayModes[i] = api.modes[i];
     // Match the genuine Android provider: apply registers the dvars first.
     R_BuildDisplayModeDvars();
+    const int registrationsBeforeEnum = enumRegistrations;
 #endif
     R_EnumDisplayModes(0);
+#if defined(__ANDROID__)
+    assert(enumRegistrations == registrationsBeforeEnum); // no double registration
+#endif
     assert((resolutions == std::vector<std::string>{
         "640x480", "800x600", "1280x720", "1920x1080"}));
     assert((refreshes == std::vector<std::string>{"60 Hz", "75 Hz", "144 Hz"}));
@@ -153,8 +159,12 @@ int main() {
         dx.displayModes[i] = api.modes[i];
     // Match the genuine Android provider: apply registers the dvars first.
     R_BuildDisplayModeDvars();
+    const int registrationsBeforeEnum = enumRegistrations;
 #endif
     R_EnumDisplayModes(0);
+#if defined(__ANDROID__)
+    assert(enumRegistrations == registrationsBeforeEnum); // no double registration
+#endif
     assert(resolutions.size() == 256);
     assert(resolutions.front() == "640x480");
     assert(resolutions.back() == "895x480");
