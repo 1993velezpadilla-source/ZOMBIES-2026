@@ -1,6 +1,15 @@
 #pragma once
 
+// Bink's legacy Windows texture declarations need only opaque COM pointer
+// types when compiling the original renderer command producer on Android.
+// This does NOT provide Bink video playback or a Direct3D/GLES bridge.
+#if defined(__ANDROID__)
+#include "r_d3d9_opaque.h"
+using LPDIRECT3DDEVICE9 = IDirect3DDevice9 *;
+using LPDIRECT3DTEXTURE9 = IDirect3DTexture9 *;
+#else
 #include <d3d9.h>
+#endif
 #include <binklib/bink.h>
 #include <binklib/binktextures.h>
 #include "r_material.h"
