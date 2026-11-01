@@ -5,10 +5,20 @@
 #include "r_android_egl.h"
 #include <EGL/eglext.h>
 
-void R_AndroidEglDestroy(IW3AndroidEglContext *state)
+static bool R_AndroidEglIsOwnerThread(const IW3AndroidEglContext *state)
+{
+    return state && state->ownerThreadValid
+        && pthread_equal(state->ownerThread, pthread_self()) != 0;
+}
+
+bool R_AndroidEglDestroy(IW3AndroidEglContext *state)
 {
     if (!state)
-        return;
+        return false;
+    // eglDestroyContext / eglTerminate must never run from an Android UI
+    // callback while the engine render thread owns the live EGL context.
+    if (state->ownerThreadValid && !R_AndroidEglIsOwnerThread(state))
+        return false;
     if (state->display != EGL_NO_DISPLAY)
     {
         // Never unbind another context belonging to the caller or another
@@ -31,6 +41,9 @@ void R_AndroidEglDestroy(IW3AndroidEglContext *state)
     state->window = nullptr;
     state->width = 0;
     state->height = 0;
+    state->ownerThreadValid = false;
+    state->ownerThread = pthread_t{};
+    return true;
 }
 
 bool R_AndroidEglRefreshSize(IW3AndroidEglContext *state)
@@ -38,7 +51,8 @@ bool R_AndroidEglRefreshSize(IW3AndroidEglContext *state)
     // Android can resize an existing EGL window surface without replacing
     // its EGLSurface. Query EGL (not cached ANativeWindow geometry) on the
     // engine render thread before updating the original IW3 viewport.
-    if (!state || state->display == EGL_NO_DISPLAY
+    if (!R_AndroidEglIsOwnerThread(state)
+        || state->display == EGL_NO_DISPLAY
         || state->surface == EGL_NO_SURFACE
         || state->context == EGL_NO_CONTEXT
         || eglGetCurrentDisplay() != state->display
@@ -64,9 +78,12 @@ bool R_AndroidEglCreate(IW3AndroidEglContext *state, ANativeWindow *window)
     if (!state || !window || state->window
         || state->display != EGL_NO_DISPLAY
         || state->context != EGL_NO_CONTEXT
-        || state->surface != EGL_NO_SURFACE)
+        || state->surface != EGL_NO_SURFACE
+        || state->ownerThreadValid)
         return false;
 
+    state->ownerThread = pthread_self();
+    state->ownerThreadValid = true;
     ANativeWindow_acquire(window);
     state->window = window;
     state->display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
@@ -126,7 +143,8 @@ fail:
 bool R_AndroidEglPresent(const IW3AndroidEglContext *state)
 {
     // A successful swap only proves an EGL surface, NOT an IW3 rendered frame.
-    if (!state || state->display == EGL_NO_DISPLAY
+    if (!R_AndroidEglIsOwnerThread(state)
+        || state->display == EGL_NO_DISPLAY
         || state->surface == EGL_NO_SURFACE
         || state->context == EGL_NO_CONTEXT
         || eglGetCurrentDisplay() != state->display
