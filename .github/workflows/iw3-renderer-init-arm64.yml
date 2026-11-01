@@ -251,7 +251,7 @@ jobs:
           set -e
           if [ "$rc" -eq 0 ]; then
             "$ndk/llvm-readelf" -h "$out" | grep -E 'Class:|Machine:' | tee -a "$report"
-            "$ndk/llvm-nm" -C --defined-only "$out" | grep -E 'R_BeginRegistration\\(|R_GetCommandBuffer\\(|RB_CallExecuteRenderCommands\\(' | tee -a "$report"
+            "$ndk/llvm-nm" -C --defined-only "$out" | grep -F -e 'R_BeginRegistration(' -e 'R_GetCommandBuffer(' -e 'RB_CallExecuteRenderCommands(' | tee -a "$report"
             "$ndk/llvm-nm" -C -u "$out" > "$RUNNER_TEMP/iw3-original-renderer-three-tu-undefined.txt"
             echo "IW3_ORIGINAL_RENDERER_THREE_TU_UNDEFINED_SYMBOL_COUNT=$(wc -l < "$RUNNER_TEMP/iw3-original-renderer-three-tu-undefined.txt")" | tee -a "$report"
             echo 'IW3_ORIGINAL_RENDERER_THREE_TU_RELOCATABLE_LINK=true' | tee -a "$report"
