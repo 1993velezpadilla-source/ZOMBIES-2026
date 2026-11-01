@@ -12,6 +12,8 @@ struct IW3AndroidEglContext
     EGLDisplay display = EGL_NO_DISPLAY;
     EGLSurface surface = EGL_NO_SURFACE;
     EGLContext context = EGL_NO_CONTEXT;
+    EGLConfig config = nullptr; // EGLConfig selected by Create, reused on Surface replacement
+    EGLint nativeVisualId = 0;
     ANativeWindow *window = nullptr; // acquired reference owned by this object
     EGLint width = 0;
     EGLint height = 0;
@@ -33,6 +35,10 @@ bool R_AndroidEglCreate(IW3AndroidEglContext *state, ANativeWindow *window);
 // Requires the provider's context and draw surface current on the render thread.
 // Failed queries preserve the last valid dimensions; no viewport is changed.
 bool R_AndroidEglRefreshSize(IW3AndroidEglContext *state);
+// Transactionally attach a newly created Android Surface on the owning render thread.
+// Keeps the original ES3 context; the previous surface remains usable on failure.
+// Does NOT connect the genuine IW3 draw-command backend or prove rendering.
+bool R_AndroidEglReplaceWindow(IW3AndroidEglContext *state, ANativeWindow *newWindow);
 bool R_AndroidEglPresent(const IW3AndroidEglContext *state);
 // Returns false on null state or a foreign thread (state left intact).
 // Idempotent on the owning thread, including after failed partial Create.
