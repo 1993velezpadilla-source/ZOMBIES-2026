@@ -2,12 +2,11 @@
 
 #include <qcommon/thread_context.h>
 
-#if !defined(__ANDROID__)
 #if defined(__ANDROID__)
+// Preserve pointer declarations, never pretend D3D9 methods exist on Android.
 #include "r_d3d9_opaque.h"
 #else
 #include <d3d9.h>
-#endif
 #endif
 #include "r_material.h" // GfxVertex
 #include "r_init.h"
