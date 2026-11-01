@@ -417,6 +417,11 @@ void __cdecl RB_SplitScreenTexCoords(float x, float y, float w, float h, float *
 
 void __cdecl R_Resolve(GfxCmdBufContext context, GfxImage *image)
 {
+#if defined(__ANDROID__)
+    (void)context;
+    (void)image;
+    Com_Error(ERR_FATAL, "IW3 Android R_Resolve requires GLES render-target resolve");
+#else
     const char *v4; // eax
     int v6; // [esp+0h] [ebp-Ch]
     int hr; // [esp+4h] [ebp-8h]
@@ -466,6 +471,8 @@ void __cdecl R_Resolve(GfxCmdBufContext context, GfxImage *image)
             } while (alwaysfails);
         }
     } while (alwaysfails);
+
+#endif
 }
 
 void __cdecl RB_StretchPicCmd(GfxRenderCommandExecState *execState)
@@ -662,6 +669,11 @@ void __cdecl RB_StretchRawCmd(GfxRenderCommandExecState *execState)
 
 void __cdecl RB_StretchRaw(int x, int y, int w, int h, int cols, int rows, const uint8_t *data)
 {
+#if defined(__ANDROID__)
+    (void)x; (void)y; (void)w; (void)h;
+    (void)cols; (void)rows; (void)data;
+    Com_Error(ERR_FATAL, "IW3 Android RB_StretchRaw requires GLES texture upload and draw");
+#else
     const char *v7; // eax
     int v8; // [esp+8h] [ebp-34h]
     _D3DLOCKED_RECT lockedRect; // [esp+10h] [ebp-2Ch] BYREF
@@ -722,6 +734,8 @@ void __cdecl RB_StretchRaw(int x, int y, int w, int h, int cols, int rows, const
 
         rawSurf->Release();
     }
+
+#endif
 }
 
 void __cdecl R_DrawSurfs(GfxCmdBufContext context, GfxCmdBufState *prepassState, const GfxDrawSurfListInfo *info)
@@ -885,6 +899,10 @@ void __cdecl RB_ClearScreenCmd(GfxRenderCommandExecState *execState)
 
 void __cdecl RB_SetGammaRamp(const GfxGammaRamp *gammaTable)
 {
+#if defined(__ANDROID__)
+    (void)gammaTable;
+    Com_Error(ERR_FATAL, "IW3 Android RB_SetGammaRamp requires a platform color-mapping path");
+#else
     int colorIndex; // [esp+0h] [ebp-60Ch]
     _D3DGAMMARAMP d3dGammaRamp; // [esp+4h] [ebp-608h] BYREF
 
@@ -898,6 +916,8 @@ void __cdecl RB_SetGammaRamp(const GfxGammaRamp *gammaTable)
         d3dGammaRamp.blue[colorIndex] = gammaTable->entries[colorIndex];
     }
     dx.device->SetGammaRamp(dx.targetWindowIndex, 0, &d3dGammaRamp);
+
+#endif
 }
 
 void __cdecl RB_SaveScreenCmd(GfxRenderCommandExecState *execState)
@@ -2628,6 +2648,10 @@ void __cdecl RB_ResetStatTracking()
 
 void __cdecl RB_BeginFrame(const GfxBackEndData *data)
 {
+#if defined(__ANDROID__)
+    (void)data;
+    Com_Error(ERR_FATAL, "IW3 Android RB_BeginFrame requires GLES scene begin");
+#else
     int hr; // [esp+0h] [ebp-4h]
 
     backEndData = (GfxBackEndData*)data;
@@ -2664,6 +2688,8 @@ void __cdecl RB_BeginFrame(const GfxBackEndData *data)
         tess.indexCount = 0;
         tess.vertexCount = 0;
     }
+
+#endif
 }
 
 void __cdecl RB_EndFrame(char drawType)
@@ -2688,6 +2714,10 @@ void __cdecl RB_EndFrame(char drawType)
 
 GfxIndexBufferState *RB_SwapBuffers()
 {
+#if defined(__ANDROID__)
+    Com_Error(ERR_FATAL, "IW3 Android RB_SwapBuffers requires real EGL presentation");
+    return nullptr;
+#else
     GfxIndexBufferState *result;
     int hr;
 
@@ -2726,6 +2756,8 @@ GfxIndexBufferState *RB_SwapBuffers()
     result = gfxBuf.dynamicIndexBuffer;
     gfxBuf.dynamicIndexBuffer->used = 0;
     return result;
+
+#endif
 }
 
 void RB_UpdateBackEndDvarOptions()
@@ -2793,6 +2825,10 @@ void __cdecl RB_Draw3D()
 
 int RB_AdaptiveGpuSyncFinal()
 {
+#if defined(__ANDROID__)
+    Com_Error(ERR_FATAL, "IW3 Android RB_AdaptiveGpuSyncFinal requires GLES sync fences");
+    return -1;
+#else
     unsigned __int64 v0; // rax
     int waitedTime; // [esp+18h] [ebp-8h]
     int startTime; // [esp+1Ch] [ebp-4h]
@@ -2830,6 +2866,8 @@ int RB_AdaptiveGpuSyncFinal()
         }
     }
     return v0;
+
+#endif
 }
 
 void __cdecl RB_CallExecuteRenderCommands()
@@ -3044,6 +3082,10 @@ void __cdecl  RB_RenderThread(uint32_t threadContext)
 
 int __cdecl RB_BackendTimeout()
 {
+#if defined(__ANDROID__)
+    Com_Error(ERR_FATAL, "IW3 Android RB_BackendTimeout requires GLES sync query");
+    return 1;
+#else
     BOOL v1; // [esp+0h] [ebp-Ch]
     _BYTE v2[4]; // [esp+8h] [ebp-4h] BYREF
 
@@ -3055,6 +3097,8 @@ int __cdecl RB_BackendTimeout()
     else
         v1 = 0;
     return !v1;
+
+#endif
 }
 
 void __cdecl RB_RenderCommandFrame(const GfxBackEndData *data)
