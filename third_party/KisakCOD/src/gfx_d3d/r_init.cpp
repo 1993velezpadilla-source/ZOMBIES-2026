@@ -3255,6 +3255,18 @@ void __cdecl R_BuildDisplayModeDvars()
 
 void __cdecl R_EnumDisplayModes(uint32_t adapterIndex)
 {
+#if defined(__ANDROID__)
+    // Android's real Surface/Display snapshot must be applied on the renderer
+    // thread by R_AndroidApplySurfaceMode before enumerating modes. D3D9
+    // adapter enumeration does not exist on Android.
+    (void)adapterIndex;
+    if (dx.displayModeCount == 0 || dx.displayModeCount > 0x100)
+    {
+        R_FatalInitError("Android renderer display mode missing or invalid");
+        return;
+    }
+    R_BuildDisplayModeDvars();
+#else
     HRESULT hr;
     uint32_t modeCountReported;
     uint32_t modeIndex;
@@ -3274,10 +3286,20 @@ void __cdecl R_EnumDisplayModes(uint32_t adapterIndex)
         }
     }
     R_BuildDisplayModeDvars();
+
+#endif
 }
 
 char __cdecl R_PreCreateWindow()
 {
+#if defined(__ANDROID__)
+    // The desktop D3D9 startup cannot initialize the Android EGL context.
+    // Do not report a usable renderer until real IW3 draw commands are
+    // connected to GLES; the Surface mode provider is NOT that backend.
+    Com_Printf(CON_CHANNEL_GFX,
+        "IW3 Android: authentic GLES renderer command backend not integrated.\n");
+    return 0;
+#else
     if (dx.d3d9)
     {
         if (!alwaysfails)
@@ -3297,6 +3319,8 @@ char __cdecl R_PreCreateWindow()
     R_StoreDirect3DCaps(dx.adapterIndex);
     R_EnumDisplayModes(dx.adapterIndex);
     return 1;
+
+#endif
 }
 
 void __cdecl R_RespondToMissingCaps(DxCapsResponse response, const char *msg, int *allowedPaths)
