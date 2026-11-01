@@ -20,7 +20,7 @@ At baseline [renderer workflow 41271203367](https://github.com/1993velezpadilla-
 
 Code commits: `364ca8738e5b08fdbdc36a767f55eecdaf558e96`, `3e2f2098f02e2176abb51b79b6908fb770cbad8c`, `dd6f228df7a719be7470e13c7d387cdf7702c62b`.
 
-New renderer CI run: [41277583886](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41277583886). **Await its actual completion before claiming tests pass.** The workflow is a host regression and AArch64 compile/link probe, not a real-device renderer/gameplay test. The independent Android NDK `libiw3-android-egl-platform-arm64.so` is only a platform EGL provider.
+Final renderer CI on commit `a50388dd5e5dc33badf0309df2b92bd6fbb453e0`: [Actions 41277618336](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41277618336) **both jobs succeeded**. The host executed **10/10 tests** (including the real `std::thread` teardown regression) under ASan/UBSan. Android NDK linked the EGL provider as **ELF64 AArch64**, with `R_AndroidEglRefreshSize` and `R_AndroidEglDestroy` symbols present. The genuine full `r_init.cpp` compile probe still reported **`IW3_ORIGINAL_RENDERER_R_INIT_AARCH64_COMPILED=false`** (Direct3D9, Win32 and x86 `__rdtsc` errors); `IW3_RENDERER_BACKEND_LINKED=false`, `IW3_PLAYABLE_APK=false`. The workflow is a host regression and AArch64 compile/link probe, not a real-device renderer/gameplay test. The independent Android NDK `libiw3-android-egl-platform-arm64.so` is only a platform EGL provider.
 
 Remaining gates: `IW3_ORIGINAL_RENDERER_R_INIT_AARCH64_COMPILED=false` at baseline; `IW3_RENDERER_BACKEND_LINKED=false`; `IW3_RENDERER_FRAME_PROVEN=false`; `IW3_REAL_MAP_LOADED=false`; `IW3_GAMEPLAY_PROVEN=false`; `IW3_PLAYABLE_APK=false`.
 
