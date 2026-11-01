@@ -74,6 +74,7 @@ HARNESS = r"""
 #include <cassert>
 #include <cstdio>
 #include <initializer_list>
+#include <thread>
 #include "r_android_egl.cpp"
 static int acquired=0, released=0, destroyedContexts=0, destroyedSurfaces=0, terminated=0;
 static int failAt=0, swapCalls=0;
@@ -166,20 +167,33 @@ int main() {
     assert(!R_AndroidEglPresent(&ctx)); // wrong draw surface
     currentSurface=goodSurface;
     failAt=10; assert(!R_AndroidEglPresent(&ctx)); failAt=0;
-    R_AndroidEglDestroy(&ctx);
+    // A UI-thread teardown must not destroy a live render-thread context.
+    std::thread uiThread([&] {
+        assert(!R_AndroidEglRefreshSize(&ctx));
+        assert(!R_AndroidEglPresent(&ctx));
+        assert(!R_AndroidEglDestroy(&ctx));
+    });
+    uiThread.join();
+    assert(acquired==1 && released==0 && destroyedContexts==0
+           && destroyedSurfaces==0 && terminated==0);
+    assert(ctx.ownerThreadValid && ctx.window==&window);
+    assert(R_AndroidEglDestroy(&ctx));
     assert(acquired==released && destroyedContexts==1 && destroyedSurfaces==1 && terminated==1);
     assert(ctx.window==nullptr && ctx.width==0 && ctx.context==EGL_NO_CONTEXT);
-    R_AndroidEglDestroy(&ctx); // idempotent
+    assert(!ctx.ownerThreadValid);
+    assert(R_AndroidEglDestroy(&ctx)); // idempotent
+    assert(!R_AndroidEglDestroy(nullptr));
     assert(released==1);
     for (int fail=1; fail<=9; ++fail) {
         failAt=fail;
         assert(!R_AndroidEglCreate(&ctx, &window));
         assert(ctx.window==nullptr && ctx.display==EGL_NO_DISPLAY);
+        assert(!ctx.ownerThreadValid);
         assert(acquired==released); // no leaked ANativeWindow reference
         failAt=0;
     }
     assert(R_AndroidEglCreate(&ctx, &window));
-    R_AndroidEglDestroy(&ctx);
+    assert(R_AndroidEglDestroy(&ctx));
     assert(acquired==released);
     std::puts("IW3_ANDROID_EGL_LIFECYCLE_HOST_SANITIZER_PASS_NOT_RENDERER");
 }
@@ -201,7 +215,7 @@ class AndroidEglLifecycle(unittest.TestCase):
             build = subprocess.run(
                 [os.environ.get("CXX", "g++"), "-std=c++17", "-D__ANDROID__",
                  "-O1", "-g", "-UNDEBUG", "-fsanitize=address,undefined",
-                 "-fno-omit-frame-pointer", "-I", str(base), "-I", str(SRC.parent),
+                 "-fno-omit-frame-pointer", "-pthread", "-I", str(base), "-I", str(SRC.parent),
                  str(test), "-o", str(binary)],
                 capture_output=True, text=True, timeout=90)
             self.assertEqual(build.returncode, 0, build.stdout + build.stderr)
