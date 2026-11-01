@@ -13,7 +13,11 @@ from tools.iw3_android.prepare_g_runframe_prereqs import function_source
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "third_party/KisakCOD/src/gfx_d3d/r_android_display.cpp"
-SIGNATURE = "bool R_AndroidPopulateDisplayMode(JNIEnv *env, jobject surface, jobject display)"
+SIGNATURES = (
+    "bool R_AndroidReadSurfaceMode(JNIEnv *env, jobject surface, jobject display,",
+    "bool R_AndroidApplySurfaceMode(const IW3AndroidSurfaceMode &mode)",
+    "bool R_AndroidPopulateDisplayMode(JNIEnv *env, jobject surface, jobject display)",
+)
 
 HARNESS = r"""
 #include <cassert>
@@ -30,6 +34,9 @@ enum _D3DFORMAT { UNKNOWN_ANDROID_FORMAT = 0 };
 struct _D3DDISPLAYMODE {
     uint32_t Width = 0, Height = 0, RefreshRate = 0;
     _D3DFORMAT Format = UNKNOWN_ANDROID_FORMAT;
+};
+struct IW3AndroidSurfaceMode {
+    uint32_t width, height, refreshHz;
 };
 struct {
     _D3DDISPLAYMODE displayModes[256]{};
@@ -127,6 +134,28 @@ int main() {
     assert(!R_AndroidPopulateDisplayMode(&env, surface, display));
     failSurface = false;
     assert(builderCalls == 2);
+    // JNI read is a value-only snapshot: no renderer state or dvar mutation.
+    IW3AndroidSurfaceMode staged{0, 0, 0};
+    assert(R_AndroidReadSurfaceMode(&env, surface, display, &staged));
+    assert(staged.width == 1080 && staged.height == 2400 && staged.refreshHz == 60);
+    assert(builderCalls == 2 && dx.displayModes[0].RefreshRate == 144);
+    assert(R_AndroidApplySurfaceMode(staged));
+    assert(builderCalls == 3 && dx.displayModes[0].RefreshRate == 60);
+    const IW3AndroidSurfaceMode bad{639, 2400, 60};
+    assert(!R_AndroidApplySurfaceMode(bad));
+    assert(builderCalls == 3 && dx.displayModes[0].Width == 1080);
+    const IW3AndroidSurfaceMode sentinel{777, 888, 999};
+    staged = sentinel;
+    assert(!R_AndroidReadSurfaceMode(&env, surface, display, nullptr));
+    env.exception = true;
+    assert(!R_AndroidReadSurfaceMode(&env, surface, display, &staged));
+    env.exception = false;
+    window.height = 320;
+    assert(!R_AndroidReadSurfaceMode(&env, surface, display, &staged));
+    window.height = 2400;
+    assert(staged.width == sentinel.width && staged.height == sentinel.height
+           && staged.refreshHz == sentinel.refreshHz);
+    assert(builderCalls == 3);
     std::puts("IW3_ORIGINAL_ANDROID_SURFACE_MODE_PROVIDER_LP64_PASS");
 }
 """
@@ -137,9 +166,11 @@ class AndroidNativeWindowModeProvider(unittest.TestCase):
         self.assertIn("ANativeWindow_fromSurface(env, surface)", source)
         self.assertIn('GetMethodID(displayClass, "getRefreshRate", "()F")', source)
         self.assertIn("R_BuildDisplayModeDvars();", source)
+        self.assertIn("R_AndroidReadSurfaceMode(env, surface, display, &mode)", source)
+        self.assertIn("R_AndroidApplySurfaceMode(mode)", source)
         self.assertNotIn("Direct3DCreate9", source)
         cpp = HARNESS.replace("/* ORIGINAL_ANDROID_PROVIDER */",
-                              function_source(source, SIGNATURE))
+                              "\n".join(function_source(source, signature) for signature in SIGNATURES))
         with tempfile.TemporaryDirectory() as temp:
             src = Path(temp) / "android_display_test.cpp"
             exe = Path(temp) / "android_display_test"
