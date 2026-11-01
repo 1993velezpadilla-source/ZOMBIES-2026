@@ -155,7 +155,7 @@ double __cdecl R_GetAdjustedLodDist(float dist, XModelLodRampType lodRampType);
 
 template <typename T>
 inline void __cdecl R_ReleaseAndSetNULL(
-    IDirect3DSurface9 *var,
+    T *var,
     const char *fn,
     const char *filename,
     int line)
