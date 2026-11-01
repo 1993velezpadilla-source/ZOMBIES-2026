@@ -29,3 +29,12 @@ The workflow must prove `IW3_ORIGINAL_GPU_QUERY_AARCH64_COMPILED=true` and `IW3_
 ## Next engineering work
 
 Implement an EGL-context-owned GLES3 `GLsync` implementation (insertion, poll, wait, abandonment, and cleanup across pause/context loss), connect it to the original `rb_backend.cpp` and `r_setstate_d3d.cpp` call sites, and validate it on an actual Android GLES3 context. Then resolve the remaining original renderer dependencies and translate authentic IW3 materials, geometry and shaders; load a real map and prove gameplay, weapons, actors and touch on device. The JNI diagnostic APK is not acceptance evidence.
+
+## Verified CI (2026-11-01)
+
+- [Renderer workflow 41347509095](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41347509095) completed successfully in both jobs.
+- Host regression suite: **29/29 tests passed**, including the new extracted original GPU-query bodies under ASan/UBSan.
+- Pinned Android NDK compiled the original `r_setstate_d3d.cpp` as an AArch64 object: `IW3_ORIGINAL_GPU_QUERY_AARCH64_COMPILED=true`.
+- Strict `ld.lld -r` succeeded for four original renderer objects: `IW3_ORIGINAL_RENDERER_FOUR_TU_RELOCATABLE_LINK=true`.
+- **273 unresolved external symbols remain** in the combined four-unit object (same count as the prior three-unit probe). This is not a complete shared renderer or an APK.
+- The EGL3 platform provider also linked; it still does not execute IW3 draw commands. No real-map, frame, touch/gameplay or weapon/actor device proof exists.
