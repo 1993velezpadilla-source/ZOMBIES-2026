@@ -23,6 +23,9 @@ on:
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_display.h'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_egl.cpp'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_egl.h'
+      - 'third_party/KisakCOD/src/gfx_d3d/r_android_gpu_fence.cpp'
+      - 'third_party/KisakCOD/src/gfx_d3d/r_android_gpu_fence.h'
+      - 'tests/test_iw3_android_renderer_gpu_fence_gles3.py'
       - 'tests/test_iw3_android_renderer_egl_lifecycle.py'
       - 'tests/test_iw3_android_renderer_native_window_modes.py'
       - 'tests/test_iw3_android_renderer_static_tracking.py'
@@ -53,6 +56,9 @@ on:
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_display.h'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_egl.cpp'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_egl.h'
+      - 'third_party/KisakCOD/src/gfx_d3d/r_android_gpu_fence.cpp'
+      - 'third_party/KisakCOD/src/gfx_d3d/r_android_gpu_fence.h'
+      - 'tests/test_iw3_android_renderer_gpu_fence_gles3.py'
       - 'tests/test_iw3_android_renderer_egl_lifecycle.py'
       - 'tests/test_iw3_android_renderer_native_window_modes.py'
       - 'tests/test_iw3_android_renderer_static_tracking.py'
@@ -367,6 +373,24 @@ jobs:
           echo 'IW3_RENDERER_BACKEND_LINKED=false'
           echo 'IW3_RENDERER_FRAME_PROVEN=false'
           echo 'IW3_PLAYABLE_APK=false'
+      - name: Build actual GLES3 GLsync provider for Android ARM64 (NOT IW3 rendering)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          src="$GITHUB_WORKSPACE/third_party/KisakCOD/src/gfx_d3d/r_android_gpu_fence.cpp"
+          out="$RUNNER_TEMP/libiw3-android-gpu-fence-arm64.so"
+          "$ndk/aarch64-linux-android26-clang++" -std=c++20 -O2 -fPIC -shared \
+            "$src" -o "$out" -lEGL -lGLESv3
+          "$ndk/llvm-readelf" -h "$out" | grep -E 'Class:|Machine:'
+          "$ndk/llvm-nm" -C --defined-only "$out" | grep -F 'R_AndroidGpuFenceInsert('
+          "$ndk/llvm-nm" -C --defined-only "$out" | grep -F 'R_AndroidGpuFencePoll('
+          "$ndk/llvm-nm" -C --defined-only "$out" | grep -F 'R_AndroidGpuFenceWait('
+          "$ndk/llvm-nm" -C --defined-only "$out" | grep -F 'R_AndroidGpuFenceRelease('
+          echo 'IW3_ANDROID_GLES3_GPU_FENCE_PROVIDER_AARCH64_LINKED=true'
+          echo 'IW3_GLES3_GPU_SYNC_WIRED_TO_ORIGINAL_RENDERER=false'
+          echo 'IW3_RENDERER_FRAME_PROVEN=false'
+          echo 'IW3_PLAYABLE_APK=false'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -386,5 +410,6 @@ jobs:
             ${{ runner.temp }}/iw3-r-init-arm64-undefined-symbols.txt
             ${{ runner.temp }}/iw3-original-android-display-aarch64.o
             ${{ runner.temp }}/libiw3-android-egl-platform-arm64.so
+            ${{ runner.temp }}/libiw3-android-gpu-fence-arm64.so
           if-no-files-found: ignore
           retention-days: 7
