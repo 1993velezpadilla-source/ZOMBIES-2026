@@ -49,13 +49,15 @@ GfxCmdArray g_debugFrontEndCmds;
 static uint32_t s_renderCmdBufferSize;
 static int s_renderCmdWarnSize;
 
+// Static renderer globals contain pointers: legacy 32-bit byte totals are
+// incorrect on Android ARM64 and can corrupt memory accounting.
 void __cdecl TRACK_r_rendercmds()
 {
-    track_static_alloc_internal((void *)s_backEndData, 2346752, "s_backEndData", 18);
-    track_static_alloc_internal(g_viewInfo, 212352, "g_viewInfo", 18);
-    track_static_alloc_internal(g_frontEndCmds, 32, "g_frontEndCmds", 18);
-    track_static_alloc_internal(&s_debugFrameGlob, 1173632, "s_debugFrameGlob", 0);
-    track_static_alloc_internal(&g_debugFrontEndCmds, 16, "g_debugFrontEndCmds", 0);
+    track_static_alloc_internal((void *)s_backEndData, sizeof(s_backEndData), "s_backEndData", 18);
+    track_static_alloc_internal(g_viewInfo, sizeof(g_viewInfo), "g_viewInfo", 18);
+    track_static_alloc_internal(g_frontEndCmds, sizeof(g_frontEndCmds), "g_frontEndCmds", 18);
+    track_static_alloc_internal(&s_debugFrameGlob, sizeof(s_debugFrameGlob), "s_debugFrameGlob", 0);
+    track_static_alloc_internal(&g_debugFrontEndCmds, sizeof(g_debugFrontEndCmds), "g_debugFrontEndCmds", 0);
 }
 
 void __cdecl R_FreeGlobalVariable(void *var)
@@ -621,7 +623,8 @@ void __cdecl R_AddCmdDrawStretchPic(
         actualMaterial = rgp.defaultMaterial;
     }
     iassert( !Material_UsesDepthBuffer( actualMaterial ) );
-    cmd = (GfxCmdStretchPic *)R_GetCommandBuffer(RC_FIRST_NONCRITICAL, 44);
+    // Command records contain pointers; reserve the native ABI size on LP64.
+    cmd = (GfxCmdStretchPic *)R_GetCommandBuffer(RC_FIRST_NONCRITICAL, sizeof(*cmd));
     if (cmd)
     {
         cmd->material = actualMaterial;
@@ -723,7 +726,7 @@ void __cdecl R_AddCmdDrawStretchPicFlipST(
         actualMaterial = rgp.defaultMaterial;
     }
     iassert( !Material_UsesDepthBuffer( actualMaterial ) );
-    cmd = (GfxCmdStretchPic *)R_GetCommandBuffer(RC_STRETCH_PIC_FLIP_ST, 44);
+    cmd = (GfxCmdStretchPic *)R_GetCommandBuffer(RC_STRETCH_PIC_FLIP_ST, sizeof(*cmd));
     if (cmd)
     {
         cmd->material = actualMaterial;
@@ -755,7 +758,7 @@ void __cdecl R_AddCmdDrawStretchPicRotateXY(
     Material *defaultMaterial; // [esp+4h] [ebp-8h]
     GfxCmdStretchPicRotateXY *cmd; // [esp+8h] [ebp-4h]
 
-    cmd = (GfxCmdStretchPicRotateXY *)R_GetCommandBuffer(RC_STRETCH_PIC_ROTATE_XY, 48);
+    cmd = (GfxCmdStretchPicRotateXY *)R_GetCommandBuffer(RC_STRETCH_PIC_ROTATE_XY, sizeof(*cmd));
     if (cmd)
     {
         if (material)
@@ -793,7 +796,7 @@ void __cdecl R_AddCmdDrawStretchPicRotateST(
     Material *defaultMaterial; // [esp+4h] [ebp-8h]
     GfxCmdStretchPicRotateST *cmd; // [esp+8h] [ebp-4h]
 
-    cmd = (GfxCmdStretchPicRotateST *)R_GetCommandBuffer(RC_STRETCH_PIC_ROTATE_ST, 52);
+    cmd = (GfxCmdStretchPicRotateST *)R_GetCommandBuffer(RC_STRETCH_PIC_ROTATE_ST, sizeof(*cmd));
     if (cmd)
     {
         if (material)
@@ -1198,7 +1201,7 @@ void __cdecl R_AddCmdDrawQuadPic(const float (*verts)[2], const float *color, Ma
     int cornerIndex; // [esp+Ch] [ebp-8h]
     GfxCmdDrawQuadPic *cmd; // [esp+10h] [ebp-4h]
 
-    cmd = (GfxCmdDrawQuadPic *)R_GetCommandBuffer(RC_DRAW_QUAD_PIC, 44);
+    cmd = (GfxCmdDrawQuadPic *)R_GetCommandBuffer(RC_DRAW_QUAD_PIC, sizeof(*cmd));
     if (cmd)
     {
         if (material)
