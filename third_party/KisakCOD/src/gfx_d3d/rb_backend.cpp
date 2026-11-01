@@ -17,6 +17,7 @@
 #include "r_setstate_d3d.h"
 #if defined(__ANDROID__)
 #include "r_android_gpu_fence.h"
+#include "r_android_clear.h"
 #endif
 #include <win32/win_local.h>
 #include "rb_pixelcost.h"
@@ -902,6 +903,16 @@ void __cdecl RB_ClearScreenCmd(GfxRenderCommandExecState *execState)
     if (tess.indexCount)
         RB_EndTessSurface();
 
+#if defined(__ANDROID__)
+    // Consume the real IW3 RC_CLEAR_SCREEN payload with GLES3, not a fake
+    // diagnostic draw. The rest of the original renderer remains incomplete.
+    if (!R_AndroidGlesClear(cmd->whichToClear, cmd->color,
+                            cmd->depth, cmd->stencil))
+    {
+        Com_Error(ERR_FATAL, "IW3 Android: original clear command GLES3 failed");
+        return;
+    }
+#else
     R_ClearScreen(
         gfxCmdBufState.prim.device,
         cmd->whichToClear,
@@ -909,6 +920,7 @@ void __cdecl RB_ClearScreenCmd(GfxRenderCommandExecState *execState)
         cmd->depth,
         cmd->stencil,
         0);
+#endif
 
     execState->cmd = (char *)execState->cmd + cmd->header.byteCount;
 }
