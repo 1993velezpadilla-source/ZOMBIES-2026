@@ -122,5 +122,36 @@ int main() {
             self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
 
 
+    def test_android_excludes_d3d9_device_loss_recovery_without_hiding_shutdown(self):
+        source = SOURCE.read_text(encoding="utf-8")
+        start = source.index("void __cdecl R_ComErrorCleanup()")
+        end = source.index("void __cdecl R_MakeDedicated(")
+        fragment = source[start:end]
+        for platform, flags in (("android", ["-D__ANDROID__"]), ("desktop", [])):
+            with self.subTest(platform=platform):
+                result = subprocess.run(
+                    [os.environ.get("CXX", "g++"), "-E", "-P", "-x", "c++",
+                     *flags, "-"], input=fragment, capture_output=True,
+                    text=True, timeout=30)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                processed = result.stdout
+                self.assertIn("R_ComErrorCleanup()", processed)
+                self.assertIn("R_ReleaseForShutdownOrReset()", processed)
+                if platform == "android":
+                    self.assertIn("in-scene error cleanup requires native GLES backend",
+                                  processed)
+                    self.assertNotIn("dx.device->EndScene()", processed)
+                    self.assertNotIn("R_CanRecoverLostDevice()", processed)
+                    self.assertNotIn("void R_ResetDevice()", processed)
+                    self.assertNotIn("R_RecoverLostDevice()", processed)
+                    self.assertNotIn("R_CheckLostDevice()", processed)
+                else:
+                    self.assertIn("dx.device->EndScene()", processed)
+                    self.assertIn("R_CanRecoverLostDevice()", processed)
+                    self.assertIn("void R_ResetDevice()", processed)
+                    self.assertIn("R_RecoverLostDevice()", processed)
+                    self.assertIn("R_CheckLostDevice()", processed)
+
+
 if __name__ == "__main__":
     unittest.main()
