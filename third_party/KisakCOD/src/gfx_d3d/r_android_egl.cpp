@@ -144,21 +144,62 @@ fail:
     return false;
 }
 
+// Pause rendering while preserving the genuine IW3 GLES3 context. Android may
+// destroy its Surface before a replacement exists (Activity background/rotation).
+// Only the owning render thread may detach; no IW3 draw calls are performed.
+bool R_AndroidEglDetachWindow(IW3AndroidEglContext *state)
+{
+    if (!R_AndroidEglIsOwnerThread(state)
+        || state->display == EGL_NO_DISPLAY
+        || state->context == EGL_NO_CONTEXT
+        || state->surface == EGL_NO_SURFACE || !state->window
+        || eglGetCurrentDisplay() != state->display
+        || eglGetCurrentContext() != state->context
+        || eglGetCurrentSurface(EGL_DRAW) != state->surface
+        || eglGetCurrentSurface(EGL_READ) != state->surface)
+        return false;
+
+    // EGLSurface must not be current when destroyed. Keep state intact if
+    // unbinding fails; do not release the Android window prematurely.
+    if (!eglMakeCurrent(state->display, EGL_NO_SURFACE, EGL_NO_SURFACE,
+                        EGL_NO_CONTEXT))
+        return false;
+    if (!eglDestroySurface(state->display, state->surface))
+    {
+        // Best-effort restoration; Present still rejects a non-current surface.
+        eglMakeCurrent(state->display, state->surface, state->surface,
+                       state->context);
+        return false;
+    }
+    ANativeWindow_release(state->window);
+    state->surface = EGL_NO_SURFACE;
+    state->window = nullptr;
+    state->width = 0;
+    state->height = 0;
+    return true;
+}
+
 // Surface replacement is necessary after Android destroys/recreates a Surface
 // while the engine's render thread keeps the same ES3 context alive.
 // Do not mutate IW3 renderer state here: this only replaces the EGL drawable.
 bool R_AndroidEglReplaceWindow(IW3AndroidEglContext *state, ANativeWindow *newWindow)
 {
+    const bool detached = state && state->surface == EGL_NO_SURFACE
+        && state->window == nullptr;
     if (!state || !newWindow || newWindow == state->window
         || !R_AndroidEglIsOwnerThread(state)
         || state->display == EGL_NO_DISPLAY
-        || state->surface == EGL_NO_SURFACE
         || state->context == EGL_NO_CONTEXT
         || !state->config || state->nativeVisualId <= 0
-        || eglGetCurrentDisplay() != state->display
-        || eglGetCurrentContext() != state->context
-        || eglGetCurrentSurface(EGL_DRAW) != state->surface
-        || eglGetCurrentSurface(EGL_READ) != state->surface)
+        || (!detached && (state->surface == EGL_NO_SURFACE || !state->window
+            || eglGetCurrentDisplay() != state->display
+            || eglGetCurrentContext() != state->context
+            || eglGetCurrentSurface(EGL_DRAW) != state->surface
+            || eglGetCurrentSurface(EGL_READ) != state->surface))
+        || (detached && (eglGetCurrentDisplay() != EGL_NO_DISPLAY
+            || eglGetCurrentContext() != EGL_NO_CONTEXT
+            || eglGetCurrentSurface(EGL_DRAW) != EGL_NO_SURFACE
+            || eglGetCurrentSurface(EGL_READ) != EGL_NO_SURFACE)))
         return false;
 
     ANativeWindow_acquire(newWindow);
@@ -196,8 +237,10 @@ bool R_AndroidEglReplaceWindow(IW3AndroidEglContext *state, ANativeWindow *newWi
     state->window = newWindow;
     state->width = width;
     state->height = height;
-    eglDestroySurface(state->display, oldSurface);
-    ANativeWindow_release(oldWindow);
+    if (oldSurface != EGL_NO_SURFACE)
+        eglDestroySurface(state->display, oldSurface);
+    if (oldWindow)
+        ANativeWindow_release(oldWindow);
     return true;
 }
 
