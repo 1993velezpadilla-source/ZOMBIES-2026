@@ -58,5 +58,12 @@ NDK compile, mock host test or JNI diagnostic APK is **not** gameplay evidence.
 `IW3_TOUCH_GAMEPLAY_PROVEN=false`  
 `IW3_PLAYABLE_APK=false`
 
-CI results and links will be recorded in PR #4 after verification. Do not
-merge to `main` while the acceptance gates are unmet.
+## Verified CI (2026-11-01)
+
+- [GitHub Actions renderer run 41348127132](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41348127132): both jobs completed successfully.
+- **30/30 host tests passed**, including the new real-provider source executed with mock GL/EGL entry points under AddressSanitizer/UndefinedBehaviorSanitizer. These tests are not a real GLES device test.
+- Pinned Android NDK produced an ELF64/AArch64 shared object linked against the real Android EGL and GLESv3 libraries, with exported `R_AndroidGpuFenceInsert`, `Poll`, `Wait`, and `Release` symbols: `IW3_ANDROID_GLES3_GPU_FENCE_PROVIDER_AARCH64_LINKED=true`.
+- The original four renderer objects still only link relocatably with **273 unresolved external symbols**; no full renderer is linked or run.
+- `IW3_GLES3_GPU_SYNC_WIRED_TO_ORIGINAL_RENDERER=false` and `IW3_PLAYABLE_APK=false` remain explicit in CI logs.
+
+Do not merge to `main` while the acceptance gates are unmet.
