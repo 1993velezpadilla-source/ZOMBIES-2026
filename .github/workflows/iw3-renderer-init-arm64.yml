@@ -18,6 +18,7 @@ on:
       - 'tests/test_iw3_android_renderer_com_release_portability.py'
       - 'tests/test_iw3_android_renderer_mode_text_bounds.py'
       - 'tests/test_iw3_android_renderer_display_modes_lp64.py'
+      - 'tests/test_iw3_android_renderer_d3d_caps_boundary.py'
       - 'android/iw3-native/common_compat/**'
   pull_request:
     branches:
@@ -36,6 +37,7 @@ on:
       - 'tests/test_iw3_android_renderer_com_release_portability.py'
       - 'tests/test_iw3_android_renderer_mode_text_bounds.py'
       - 'tests/test_iw3_android_renderer_display_modes_lp64.py'
+      - 'tests/test_iw3_android_renderer_d3d_caps_boundary.py'
       - 'android/iw3-native/common_compat/**'
 
 permissions:
