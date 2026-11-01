@@ -154,6 +154,24 @@ int main() {
     R_BuildDisplayModeDvars();
     assert((resolutions == std::vector<std::string>{"800x600", "1600x900"}));
     assert((refreshes == std::vector<std::string>{"60 Hz", "120 Hz"}));
+    // Same genuine renderer function, compiled for each platform: desktop
+    // rejects phone-sized modes; Android accepts physical portrait/landscape.
+    dx.displayModeCount = 2;
+    dx.displayModes[0] = {360, 800, 60, 0};
+    dx.displayModes[1] = {800, 360, 60, 0};
+#if defined(__ANDROID__)
+    assert(R_AddValidResolution(360, 800, 0, fullResolutions) == 1);
+    assert(R_AddValidResolution(319, 800, 0, fullResolutions) == 0);
+    R_BuildDisplayModeDvars();
+    assert((resolutions == std::vector<std::string>{"360x800", "800x360"}));
+    assert((refreshes == std::vector<std::string>{"60 Hz"}));
+#else
+    assert(R_AddValidResolution(360, 800, 0, fullResolutions) == 0);
+    bool narrowRejected = false;
+    try { R_BuildDisplayModeDvars(); }
+    catch (const std::runtime_error &) { narrowRejected = true; }
+    assert(narrowRejected);
+#endif
     dx.displayModeCount = 257;
     bool overflowRejected = false;
     try { R_BuildDisplayModeDvars(); }
@@ -183,20 +201,22 @@ class OriginalRendererDisplayModesLP64(unittest.TestCase):
         cpp_source = HARNESS.replace("/* ORIGINAL_RENDERER_FUNCTIONS */", functions)
         with tempfile.TemporaryDirectory() as temp:
             cpp = Path(temp) / "renderer_modes.cpp"
-            exe = Path(temp) / "renderer_modes"
             cpp.write_text(cpp_source, encoding="utf-8")
-            build = subprocess.run(
-                [os.environ.get("CXX", "g++"), "-std=c++17", "-O1", "-g",
-                 "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
-                 str(cpp), "-o", str(exe)],
-                capture_output=True, text=True, timeout=90)
-            self.assertEqual(build.returncode, 0, build.stdout + build.stderr)
-            env = os.environ.copy()
-            env["ASAN_OPTIONS"] = "detect_leaks=1"
-            run = subprocess.run([str(exe)], capture_output=True, text=True,
-                                 timeout=30, env=env)
-            self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
-            self.assertIn("IW3_ORIGINAL_RENDERER_DISPLAY_MODES_LP64_PASS", run.stdout)
+            for platform, flags in (("desktop", []), ("android", ["-D__ANDROID__"])):
+                with self.subTest(platform=platform):
+                    exe = Path(temp) / ("renderer_modes_" + platform)
+                    build = subprocess.run(
+                        [os.environ.get("CXX", "g++"), "-std=c++17", "-O1", "-g",
+                         "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
+                         *flags, str(cpp), "-o", str(exe)],
+                        capture_output=True, text=True, timeout=90)
+                    self.assertEqual(build.returncode, 0, build.stdout + build.stderr)
+                    env = os.environ.copy()
+                    env["ASAN_OPTIONS"] = "detect_leaks=1"
+                    run = subprocess.run([str(exe)], capture_output=True, text=True,
+                                         timeout=30, env=env)
+                    self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+                    self.assertIn("IW3_ORIGINAL_RENDERER_DISPLAY_MODES_LP64_PASS", run.stdout)
 
 if __name__ == "__main__":
     unittest.main()
