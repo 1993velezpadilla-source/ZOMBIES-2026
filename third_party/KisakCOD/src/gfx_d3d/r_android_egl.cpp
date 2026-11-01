@@ -33,6 +33,32 @@ void R_AndroidEglDestroy(IW3AndroidEglContext *state)
     state->height = 0;
 }
 
+bool R_AndroidEglRefreshSize(IW3AndroidEglContext *state)
+{
+    // Android can resize an existing EGL window surface without replacing
+    // its EGLSurface. Query EGL (not cached ANativeWindow geometry) on the
+    // engine render thread before updating the original IW3 viewport.
+    if (!state || state->display == EGL_NO_DISPLAY
+        || state->surface == EGL_NO_SURFACE
+        || state->context == EGL_NO_CONTEXT
+        || eglGetCurrentDisplay() != state->display
+        || eglGetCurrentContext() != state->context
+        || eglGetCurrentSurface(EGL_DRAW) != state->surface)
+        return false;
+
+    EGLint width = 0;
+    EGLint height = 0;
+    if (!eglQuerySurface(state->display, state->surface, EGL_WIDTH, &width)
+        || !eglQuerySurface(state->display, state->surface, EGL_HEIGHT, &height)
+        || width <= 0 || height <= 0)
+        return false;
+
+    // Publish both values together only after all checks pass.
+    state->width = width;
+    state->height = height;
+    return true;
+}
+
 bool R_AndroidEglCreate(IW3AndroidEglContext *state, ANativeWindow *window)
 {
     if (!state || !window || state->window
@@ -87,11 +113,7 @@ bool R_AndroidEglCreate(IW3AndroidEglContext *state, ANativeWindow *window)
         if (!eglMakeCurrent(state->display, state->surface, state->surface,
                             state->context))
             goto fail;
-        if (!eglQuerySurface(state->display, state->surface, EGL_WIDTH,
-                             &state->width)
-            || !eglQuerySurface(state->display, state->surface, EGL_HEIGHT,
-                                &state->height)
-            || state->width <= 0 || state->height <= 0)
+        if (!R_AndroidEglRefreshSize(state))
             goto fail;
     }
     return true;
@@ -107,6 +129,7 @@ bool R_AndroidEglPresent(const IW3AndroidEglContext *state)
     if (!state || state->display == EGL_NO_DISPLAY
         || state->surface == EGL_NO_SURFACE
         || state->context == EGL_NO_CONTEXT
+        || eglGetCurrentDisplay() != state->display
         || eglGetCurrentContext() != state->context
         || eglGetCurrentSurface(EGL_DRAW) != state->surface)
         return false;
