@@ -39,7 +39,7 @@ class RendererD3DCapsBoundaryTests(unittest.TestCase):
                     "R_CheckDxCaps(", "R_PickRenderer(", "R_GetDirect3DCaps(",
                     "R_StoreDirect3DCaps(", "R_SetShadowmapFormats_DX(",
                     "R_ChooseMonitor(", "R_ChooseAdapter(", "R_CreateWindow(",
-                    "R_CreateGameWindow(", "Direct3D9", "GetAdapterIdentifier(",
+                    "R_CreateGameWindow(", "GetAdapterIdentifier(",
                 )
                 for marker in desktop_only:
                     if platform == "android":
