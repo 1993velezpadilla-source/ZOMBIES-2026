@@ -223,10 +223,22 @@ bool R_AndroidEglReplaceWindow(IW3AndroidEglContext *state, ANativeWindow *newWi
     // current and its cached size untouched.
     if (!eglQuerySurface(state->display, replacement, EGL_WIDTH, &width)
         || !eglQuerySurface(state->display, replacement, EGL_HEIGHT, &height)
-        || width <= 0 || height <= 0
-        || !eglMakeCurrent(state->display, replacement, replacement,
-                           state->context))
+        || width <= 0 || height <= 0)
     {
+        eglDestroySurface(state->display, replacement);
+        ANativeWindow_release(newWindow);
+        return false;
+    }
+    if (!eglMakeCurrent(state->display, replacement, replacement,
+                        state->context))
+    {
+        // A failed eglMakeCurrent is not guaranteed to preserve the previous
+        // thread binding on every driver. Attempt to restore the original
+        // drawable before releasing the candidate. Never publish candidate
+        // dimensions or release the previous ANativeWindow on failure.
+        if (!detached)
+            eglMakeCurrent(state->display, state->surface, state->surface,
+                           state->context);
         eglDestroySurface(state->display, replacement);
         ANativeWindow_release(newWindow);
         return false;
