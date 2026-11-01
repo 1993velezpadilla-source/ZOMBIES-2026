@@ -13,7 +13,14 @@
 #include "r_model.h"
 #include "r_state.h"
 #include "r_workercmds.h"
+// The original renderer command producer only calls R_Cinematic_UpdateFrame.
+// Android does not build the legacy Bink/D3D9 cinematic implementation;
+// do not pull its Windows-only headers into this translation unit.
+#if defined(__ANDROID__)
+void __cdecl R_Cinematic_UpdateFrame();
+#else
 #include "r_cinematic.h"
+#endif
 #include "r_dvars.h"
 #include <client/client.h>
 #include "r_bsp.h"
