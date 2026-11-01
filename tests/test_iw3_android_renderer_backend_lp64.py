@@ -54,11 +54,11 @@ int main() {
     static_assert(sizeof(void*) == 8, "LP64 host required");
     TRACK_rb_backend();
     assert(records.size() == 3);
-#define CHECK(i, name) do { \
-    assert(records[i].address == static_cast<const void*>(&name)); \
-    assert(records[i].bytes == sizeof(name)); \
+#define CHECK(i, obj) do { \
+    assert(records[i].address == static_cast<const void*>(&obj)); \
+    assert(records[i].bytes == sizeof(obj)); \
     assert(records[i].kind == 18); \
-    assert(std::strcmp(records[i].name, #name) == 0); \
+    assert(std::strcmp(records[i].name, #obj) == 0); \
 } while (0)
     CHECK(0, backEnd);
     CHECK(1, tess);
