@@ -24,6 +24,10 @@ struct IW3AndroidEglContext
 // serialize Surface destruction/recreation and keep the Java Surface alive.
 // No JNI references are retained; window is acquired/released explicitly.
 bool R_AndroidEglCreate(IW3AndroidEglContext *state, ANativeWindow *window);
+// Refresh actual EGL surface dimensions after Android Surface resize/rotation.
+// Requires the provider's context and draw surface current on the render thread.
+// Failed queries preserve the last valid dimensions; no viewport is changed.
+bool R_AndroidEglRefreshSize(IW3AndroidEglContext *state);
 bool R_AndroidEglPresent(const IW3AndroidEglContext *state);
 void R_AndroidEglDestroy(IW3AndroidEglContext *state);
 #endif
