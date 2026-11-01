@@ -373,10 +373,16 @@ void __cdecl Sys_DirectXFatalError()
     Sys_EnterCriticalSection(CRITSECT_FATAL_ERROR);
     v2 = Win_LocalizeRef("WIN_DIRECTX_INIT_TITLE");
     v1 = Win_LocalizeRef("WIN_DIRECTX_INIT_BODY");
+#if defined(__ANDROID__)
+    // Android has no Win32 dialog, shell or Direct3D 9 runtime.
+    // A call here is an unsupported D3D path, never a successful GLES fallback.
+    Sys_Error("IW3 Android: attempted to initialize the Windows Direct3D 9 backend");
+#else
     ActiveWindow = GetActiveWindow();
     MessageBoxA(ActiveWindow, v1, v2, 0x10u);
     ShellExecuteA(0, "open", "Docs\\TechHelp\\Tech Help\\Information\\DirectX.htm", 0, 0, 3);
     exit(-1);
+#endif
 }
 
 const char *__stdcall DXGetErrorDescription9A(int a1)
@@ -2909,8 +2915,11 @@ void R_ShutdownDirect3D()
     {
         if (!dx.windows[--dx.windowCount].hwnd)
             MyAssertHandler(".\\r_init.cpp", 2205, 0, "%s", "dx.windows[dx.windowCount].hwnd");
+#if !defined(__ANDROID__)
+        // Win32 HWND destruction is not an Android Surface lifecycle operation.
         if (IsWindow(dx.windows[dx.windowCount].hwnd))
             DestroyWindow(dx.windows[dx.windowCount].hwnd);
+#endif
         dx.windows[dx.windowCount].hwnd = 0;
     }
     if (dx.device)
