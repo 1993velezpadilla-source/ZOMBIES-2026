@@ -130,6 +130,12 @@ int main() {
     dx.d3d9 = &api;
     api.modes = {{1920,1080,144,21}, {800,600,60,21},
                  {1920,1080,60,21}, {1280,720,75,21}, {640,480,60,21}};
+#if defined(__ANDROID__)
+    // Real Android mode provider supplies these modes before enumeration.
+    dx.displayModeCount = static_cast<uint32_t>(api.modes.size());
+    for (size_t i = 0; i < api.modes.size(); ++i)
+        dx.displayModes[i] = api.modes[i];
+#endif
     R_EnumDisplayModes(0);
     assert((resolutions == std::vector<std::string>{
         "640x480", "800x600", "1280x720", "1920x1080"}));
@@ -139,6 +145,11 @@ int main() {
     api.modes.clear();
     for (uint32_t i = 0; i < 256; ++i)
         api.modes.push_back({640 + i, 480, 60, 21});
+#if defined(__ANDROID__)
+    dx.displayModeCount = static_cast<uint32_t>(api.modes.size());
+    for (size_t i = 0; i < api.modes.size(); ++i)
+        dx.displayModes[i] = api.modes[i];
+#endif
     R_EnumDisplayModes(0);
     assert(resolutions.size() == 256);
     assert(resolutions.front() == "640x480");
@@ -179,6 +190,9 @@ int main() {
     assert(overflowRejected);
     dx.d3d9 = &api;
     api.modes.clear();
+#if defined(__ANDROID__)
+    dx.displayModeCount = 0; // No Surface mode applied: must reject.
+#endif
     bool rejected = false;
     try { R_EnumDisplayModes(0); }
     catch (const std::runtime_error &) { rejected = true; }
@@ -192,6 +206,9 @@ class OriginalRendererDisplayModesLP64(unittest.TestCase):
         source = SOURCE.read_text(encoding="utf-8")
         functions = "\n".join(function_source(source, s) for s in SIGNATURES)
         self.assertIn("dx.displayModes[modeIndex].Height", functions)
+        self.assertIn("adapter enumeration does not exist on Android.", functions)
+        self.assertIn("Android renderer display mode missing or invalid", functions)
+        self.assertIn("authentic GLES renderer command backend not integrated.", source)
         self.assertIn("dx.displayModes[modeIndex].RefreshRate", functions)
         self.assertNotIn("resolutionNameTable[4 *", functions)
         self.assertNotIn("(int)dx.resolutionNameTable", functions)
