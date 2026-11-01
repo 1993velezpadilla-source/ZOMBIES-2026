@@ -364,20 +364,19 @@ void __cdecl TRACK_r_init()
 
 void __cdecl Sys_DirectXFatalError()
 {
+#if defined(__ANDROID__)
+    // Android has no Win32 dialogs, localized DirectX help or D3D9 runtime.
+    // Do not call the Windows-only localization path on Android.
+    Sys_Error("IW3 Android: attempted to initialize the Windows Direct3D 9 backend");
+#else
     HWND ActiveWindow; // eax
     char *v1; // [esp-Ch] [ebp-Ch]
     char *v2; // [esp-8h] [ebp-8h]
 
     iassert(0); // lwss add
-
     Sys_EnterCriticalSection(CRITSECT_FATAL_ERROR);
     v2 = Win_LocalizeRef("WIN_DIRECTX_INIT_TITLE");
     v1 = Win_LocalizeRef("WIN_DIRECTX_INIT_BODY");
-#if defined(__ANDROID__)
-    // Android has no Win32 dialog, shell or Direct3D 9 runtime.
-    // A call here is an unsupported D3D path, never a successful GLES fallback.
-    Sys_Error("IW3 Android: attempted to initialize the Windows Direct3D 9 backend");
-#else
     ActiveWindow = GetActiveWindow();
     MessageBoxA(ActiveWindow, v1, v2, 0x10u);
     ShellExecuteA(0, "open", "Docs\\TechHelp\\Tech Help\\Information\\DirectX.htm", 0, 0, 3);
