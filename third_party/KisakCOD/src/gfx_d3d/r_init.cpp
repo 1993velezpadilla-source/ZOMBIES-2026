@@ -2916,7 +2916,10 @@ void R_ShutdownDirect3D()
     if (IsFastFileLoad())
         R_UnloadGraphicsAssets();
     R_Cinematic_Shutdown();
+#if !defined(__ANDROID__)
+    // COM reset resources belong to the desktop D3D9 renderer only.
     R_ReleaseForShutdownOrReset();
+#endif
     while (dx.windowCount)
     {
         if (!dx.windows[--dx.windowCount].hwnd)
