@@ -44,6 +44,8 @@ void Com_Error(int kind, const char* message, ...) {
     assert(message && *message);
     throw std::runtime_error(message);
 }
+enum class IW3AndroidGpuFenceResult { Invalid, Idle, Pending, Complete };
+IW3AndroidGpuFenceResult R_AndroidGpuFenceOriginalPoll() { return IW3AndroidGpuFenceResult::Invalid; }
 /* ORIGINAL */
 int main() {
     bool caught = false;

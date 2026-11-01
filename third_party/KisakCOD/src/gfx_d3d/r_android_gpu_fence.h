@@ -40,3 +40,12 @@ bool R_AndroidGpuFenceAbandon(IW3AndroidGpuFence *state);
 // a fence exists but its original context is no longer current.
 bool R_AndroidGpuFenceRelease(IW3AndroidGpuFence *state);
 #endif
+
+// Explicit render-thread bridge for original IW3 GPU-fence call sites.
+// Not automatically bound by the standalone EGL provider yet.
+bool R_AndroidGpuFenceBindOriginal(EGLDisplay display, EGLContext context);
+bool R_AndroidGpuFenceReleaseOriginal();
+bool R_AndroidGpuFenceOriginalInsert();
+IW3AndroidGpuFenceResult R_AndroidGpuFenceOriginalPoll();
+IW3AndroidGpuFenceResult R_AndroidGpuFenceOriginalWait(uint64_t timeoutNs);
+bool R_AndroidGpuFenceOriginalAbandon();

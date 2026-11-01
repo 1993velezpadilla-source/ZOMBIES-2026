@@ -103,6 +103,10 @@ void Com_Error(int kind, const char* message, ...) {
     if (!message || !*message) std::abort();
     throw std::runtime_error(message);
 }
+enum class IW3AndroidGpuFenceResult { Invalid, Idle, Pending, Complete };
+IW3AndroidGpuFenceResult R_AndroidGpuFenceOriginalWait(unsigned long long) { return IW3AndroidGpuFenceResult::Invalid; }
+bool R_AndroidGpuFenceOriginalInsert() { return false; }
+bool R_AndroidGpuFenceOriginalAbandon() { return false; }
 /* ORIGINAL */
 template <typename Func>
 void must_fail(Func f) {

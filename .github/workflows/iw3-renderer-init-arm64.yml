@@ -26,6 +26,7 @@ on:
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_gpu_fence.cpp'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_gpu_fence.h'
       - 'tests/test_iw3_android_renderer_gpu_fence_gles3.py'
+      - 'tests/test_iw3_android_renderer_original_gpu_sync.py'
       - 'tests/test_iw3_android_renderer_egl_lifecycle.py'
       - 'tests/test_iw3_android_renderer_native_window_modes.py'
       - 'tests/test_iw3_android_renderer_static_tracking.py'
@@ -59,6 +60,7 @@ on:
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_gpu_fence.cpp'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_gpu_fence.h'
       - 'tests/test_iw3_android_renderer_gpu_fence_gles3.py'
+      - 'tests/test_iw3_android_renderer_original_gpu_sync.py'
       - 'tests/test_iw3_android_renderer_egl_lifecycle.py'
       - 'tests/test_iw3_android_renderer_native_window_modes.py'
       - 'tests/test_iw3_android_renderer_static_tracking.py'
@@ -253,7 +255,7 @@ jobs:
           "$ndk/llvm-readelf" -h "$out" | grep -E 'Class:|Machine:'
           "$ndk/llvm-nm" -C --defined-only "$out" | grep -F 'RB_IsGpuFenceFinished()'
           echo 'IW3_ORIGINAL_GPU_QUERY_AARCH64_COMPILED=true'
-          echo 'IW3_GLES3_GPU_SYNC_WIRED=false'
+          echo 'IW3_GLES3_GPU_SYNC_EGL_LIFECYCLE_WIRED=false'
           echo 'IW3_PLAYABLE_APK=false'
       - name: Relocatable link three original IW3 renderer units for AArch64 (NOT a GLES backend)
         shell: bash
@@ -324,6 +326,27 @@ jobs:
           echo 'IW3_RENDERER_FRAME_PROVEN=false'
           echo 'IW3_REAL_MAP_LOADED=false'
           echo 'IW3_GAMEPLAY_PROVEN=false'
+          echo 'IW3_PLAYABLE_APK=false'
+      - name: Link original IW3 GPU call sites to GLES3 GLsync provider for AArch64 (NOT GAME)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          src="$GITHUB_WORKSPACE/third_party/KisakCOD/src/gfx_d3d/r_android_gpu_fence.cpp"
+          provider="$RUNNER_TEMP/iw3-android-gles3-fence-aarch64.o"
+          combined="$RUNNER_TEMP/iw3-original-four-tu-gles3-fence-aarch64.o"
+          "$ndk/aarch64-linux-android26-clang++" -std=c++20 -O2 -c "$src" -o "$provider"
+          "$ndk/ld.lld" -r -o "$combined" "$RUNNER_TEMP/iw3-original-renderer-four-tu-aarch64.o" "$provider"
+          "$ndk/llvm-readelf" -h "$combined" | grep -E 'Class:|Machine:'
+          "$ndk/llvm-nm" -C --defined-only "$combined" | grep -F 'R_AndroidGpuFenceOriginalInsert('
+          "$ndk/llvm-nm" -C -u "$combined" > "$RUNNER_TEMP/iw3-original-four-tu-gles3-undefined.txt"
+          if grep -F 'R_AndroidGpuFenceOriginal' "$RUNNER_TEMP/iw3-original-four-tu-gles3-undefined.txt"; then
+            echo 'IW3_GLES3_ORIGINAL_CALLSITES_LINKED=false'
+            exit 1
+          fi
+          echo 'IW3_GLES3_ORIGINAL_CALLSITES_LINKED=true'
+          echo 'IW3_GLES3_GPU_SYNC_EGL_LIFECYCLE_WIRED=false'
+          echo 'IW3_RENDERER_BACKEND_LINKED=false'
           echo 'IW3_PLAYABLE_APK=false'
       - name: Compile genuine Android Surface mode provider for AArch64 (required)
         shell: bash
@@ -411,5 +434,7 @@ jobs:
             ${{ runner.temp }}/iw3-original-android-display-aarch64.o
             ${{ runner.temp }}/libiw3-android-egl-platform-arm64.so
             ${{ runner.temp }}/libiw3-android-gpu-fence-arm64.so
+            ${{ runner.temp }}/iw3-original-four-tu-gles3-fence-aarch64.o
+            ${{ runner.temp }}/iw3-original-four-tu-gles3-undefined.txt
           if-no-files-found: ignore
           retention-days: 7

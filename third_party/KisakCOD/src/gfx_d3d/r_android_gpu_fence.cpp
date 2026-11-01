@@ -104,4 +104,32 @@ bool R_AndroidGpuFenceRelease(IW3AndroidGpuFence *state)
     state->ownerThreadValid = false;
     return true;
 }
+// Original IW3 render-thread bridge: one owned GLsync, never a synthetic query.
+static IW3AndroidGpuFence s_iw3OriginalGpuFence;
+bool R_AndroidGpuFenceBindOriginal(EGLDisplay display, EGLContext context)
+{
+    return R_AndroidGpuFenceBind(&s_iw3OriginalGpuFence, display, context);
+}
+bool R_AndroidGpuFenceReleaseOriginal()
+{
+    return R_AndroidGpuFenceRelease(&s_iw3OriginalGpuFence);
+}
+bool R_AndroidGpuFenceOriginalInsert()
+{
+    return R_AndroidGpuFenceInsert(&s_iw3OriginalGpuFence);
+}
+IW3AndroidGpuFenceResult R_AndroidGpuFenceOriginalPoll()
+{
+    return R_AndroidGpuFencePoll(&s_iw3OriginalGpuFence);
+}
+IW3AndroidGpuFenceResult R_AndroidGpuFenceOriginalWait(uint64_t timeoutNs)
+{
+    return R_AndroidGpuFenceWait(&s_iw3OriginalGpuFence, timeoutNs);
+}
+bool R_AndroidGpuFenceOriginalAbandon()
+{
+    if (!s_iw3OriginalGpuFence.sync)
+        return false;
+    return R_AndroidGpuFenceAbandon(&s_iw3OriginalGpuFence);
+}
 #endif // __ANDROID__

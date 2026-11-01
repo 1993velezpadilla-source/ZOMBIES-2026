@@ -15,6 +15,9 @@
 #include "r_draw_material.h"
 #include "r_shade.h"
 #include "r_setstate_d3d.h"
+#if defined(__ANDROID__)
+#include "r_android_gpu_fence.h"
+#endif
 #include <win32/win_local.h>
 #include "rb_pixelcost.h"
 #include "rb_drawprofile.h"
@@ -109,7 +112,19 @@ bool __cdecl R_GpuFenceTimeout()
 void __cdecl R_FinishGpuFence()
 {
 #if defined(__ANDROID__)
-    Com_Error(ERR_FATAL, "IW3 Android: GPU fence wait requires real GLES synchronization");
+    // Bounded GLES3 wait: five 50ms calls, never an unbounded busy loop.
+    for (int attempt = 0; attempt < 5; ++attempt)
+    {
+        const auto result = R_AndroidGpuFenceOriginalWait(50000000ULL);
+        if (result == IW3AndroidGpuFenceResult::Complete || result == IW3AndroidGpuFenceResult::Idle)
+            return;
+        if (result == IW3AndroidGpuFenceResult::Invalid)
+        {
+            Com_Error(ERR_FATAL, "IW3 Android: GPU wait failed or EGL context lost");
+            return;
+        }
+    }
+    Com_Error(ERR_FATAL, "IW3 Android: GLES3 fence timed out after 250ms");
 #else
     PROF_SCOPED("R_SyncGpu");
     while (!RB_IsGpuFenceFinished());
@@ -129,8 +144,8 @@ void __cdecl R_ReleaseGpuFenceLock()
 void __cdecl R_InsertGpuFence()
 {
 #if defined(__ANDROID__)
-    // No synthetic completion: D3D9 Issue must become GLES glFenceSync.
-    Com_Error(ERR_FATAL, "IW3 Android: GPU fence insertion requires real GLES synchronization");
+    if (!R_AndroidGpuFenceOriginalInsert())
+        Com_Error(ERR_FATAL, "IW3 Android: glFenceSync insertion failed or EGL not bound");
 #else
     const char *v0; // eax
     int hr; // [esp+0h] [ebp-4h]
@@ -163,7 +178,8 @@ void __cdecl R_InsertGpuFence()
 void RB_AbandonGpuFence()
 {
 #if defined(__ANDROID__)
-    Com_Error(ERR_FATAL, "IW3 Android: GPU fence abandon requires real GLES synchronization");
+    if (!R_AndroidGpuFenceOriginalAbandon())
+        Com_Error(ERR_FATAL, "IW3 Android: cannot abandon GLsync from invalid EGL context");
 #else
     iassert( dx.flushGpuQuery );
     iassert( dx.flushGpuQueryIssued );

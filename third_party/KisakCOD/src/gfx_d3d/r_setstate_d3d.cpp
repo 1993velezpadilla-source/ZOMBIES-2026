@@ -1,15 +1,20 @@
 #include <universal/q_shared.h>
 #include "r_setstate_d3d.h"
 #include "r_init.h"
+#if defined(__ANDROID__)
+#include "r_android_gpu_fence.h"
+#endif
 
 
 bool __cdecl RB_IsGpuFinished()
 {
 #if defined(__ANDROID__)
-    // The original D3D9 completion query cannot be interpreted as GLES3.
-    // Until a GLsync-backed command path is wired to the authentic renderer,
-    // fail explicitly rather than returning a fabricated completion result.
-    Com_Error(ERR_FATAL, "IW3 Android: original GPU fence query requires GLES3 GLsync integration");
+    const auto result = R_AndroidGpuFenceOriginalPoll();
+    if (result == IW3AndroidGpuFenceResult::Pending)
+        return false;
+    if (result == IW3AndroidGpuFenceResult::Complete)
+        return true;
+    Com_Error(ERR_FATAL, "IW3 Android: direct GPU query without an issued current GLES3 fence");
     return false;
 #else
     const char *v1; // eax
@@ -60,10 +65,12 @@ bool __cdecl RB_IsGpuFinished()
 bool __cdecl RB_IsGpuFenceFinished()
 {
 #if defined(__ANDROID__)
-    // The original D3D9 completion query cannot be interpreted as GLES3.
-    // Until a GLsync-backed command path is wired to the authentic renderer,
-    // fail explicitly rather than returning a fabricated completion result.
-    Com_Error(ERR_FATAL, "IW3 Android: original GPU fence query requires GLES3 GLsync integration");
+    const auto result = R_AndroidGpuFenceOriginalPoll();
+    if (result == IW3AndroidGpuFenceResult::Pending)
+        return false;
+    if (result == IW3AndroidGpuFenceResult::Complete || result == IW3AndroidGpuFenceResult::Idle)
+        return true; // Idle is only returned from a valid bound EGL context.
+    Com_Error(ERR_FATAL, "IW3 Android: GPU fence query requires owning current EGL context");
     return false;
 #else
     if (dx.flushGpuQueryIssued)
