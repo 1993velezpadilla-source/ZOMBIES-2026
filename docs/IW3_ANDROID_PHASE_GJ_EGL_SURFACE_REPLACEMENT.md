@@ -19,9 +19,9 @@ This is **not** wired into an Android Activity/engine render loop yet. It does n
 
 ## Validation and acceptance
 
-Source commits: `0f14f39c3b77e725d94e540a3a692ae9d4f1a50a`, `4620c78d9d33f0e62ae248f0b387bbc386b0a551`, `6cf6a02ccb8fd887517731237bb0c0f72c08d4bc`.
+Source commits: `0f14f39c3b77e725d94e540a3a692ae9d4f1a50a`, `4620c78d9d33f0e62ae248f0b387bbc386b0a551`, `6cf6a02ccb8fd887517731237bb0c0f72c08d4bc`. CI symbol assertion: `1a6c9d652c1262cc2b35d3f004a709924c64163e`.
 
-CI workflow: [renderer-init-arm64](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/workflows/iw3-renderer-init-arm64.yml); test run for source commit `6cf6a02ccb8fd887517731237bb0c0f72c08d4bc`: [41277884008](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41277884008). **Check the final run status; do not infer test success from a queued job.** The workflow runs host ASan/UBSan regressions and separately compiles/links the platform EGL provider with Android NDK ARM64. Neither proves real-device rendering.
+CI workflow: [renderer-init-arm64](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/workflows/iw3-renderer-init-arm64.yml). Final verified run for commit `1a6c9d652c1262cc2b35d3f004a709924c64163e`: [41277984555](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41277984555), **both jobs success**. Host regression: **10/10 tests OK** under ASan/UBSan, including injected failures and foreign-thread Surface replacement rejection. Android NDK linked EGL provider ELF64/AArch64 with `-Wl,--no-undefined`; `llvm-nm -C` explicitly found `R_AndroidEglReplaceWindow(IW3AndroidEglContext*, ANativeWindow*)`. The diagnostic full original `r_init.cpp` compile **still fails** (`IW3_ORIGINAL_RENDERER_R_INIT_AARCH64_COMPILED=false`, compiler_exit=1) on D3D9 incomplete types, Win32 APIs and `__rdtsc`. `IW3_ANDROID_EGL3_PLATFORM_PROVIDER_LINKED=true` is not real-device rendering.
 
 Required to finish: compile/link original `r_init.cpp`, integrate a GLES backend for original material/geometry/draw commands, connect lifecycle to native Android runtime, load real map assets, and demonstrate on-device touch-controlled original weapons/actors and gameplay.
 
