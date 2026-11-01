@@ -53,6 +53,7 @@ EGLSurface eglCreateWindowSurface(EGLDisplay, EGLConfig, EGLNativeWindowType, co
 EGLContext eglCreateContext(EGLDisplay, EGLConfig, EGLContext, const EGLint *);
 EGLBoolean eglMakeCurrent(EGLDisplay, EGLSurface, EGLSurface, EGLContext);
 EGLBoolean eglQuerySurface(EGLDisplay, EGLSurface, EGLint, EGLint *);
+EGLDisplay eglGetCurrentDisplay();
 EGLContext eglGetCurrentContext();
 EGLSurface eglGetCurrentSurface(EGLint);
 EGLBoolean eglSwapBuffers(EGLDisplay, EGLSurface);
@@ -75,6 +76,8 @@ HARNESS = r"""
 #include "r_android_egl.cpp"
 static int acquired=0, released=0, destroyedContexts=0, destroyedSurfaces=0, terminated=0;
 static int failAt=0, swapCalls=0;
+static EGLDisplay currentDisplay=EGL_NO_DISPLAY;
+static int surfaceWidth=1080, surfaceHeight=2400;
 static EGLContext currentContext=EGL_NO_CONTEXT;
 static EGLSurface currentSurface=EGL_NO_SURFACE;
 static EGLDisplay goodDisplay=reinterpret_cast<void *>(0x10);
@@ -108,12 +111,18 @@ EGLContext eglCreateContext(EGLDisplay, EGLConfig, EGLContext, const EGLint *att
 }
 EGLBoolean eglMakeCurrent(EGLDisplay, EGLSurface draw, EGLSurface, EGLContext ctx) {
     if (failAt==8 && ctx!=EGL_NO_CONTEXT) return EGL_FALSE;
-    currentContext=ctx; currentSurface=draw; return EGL_TRUE;
-}
-EGLBoolean eglQuerySurface(EGLDisplay, EGLSurface, EGLint what, EGLint *out) {
-    *out=what==EGL_WIDTH ? 1080 : (failAt==9 ? 0 : 2400);
+    currentContext=ctx; currentSurface=draw;
+    currentDisplay=(ctx==EGL_NO_CONTEXT ? EGL_NO_DISPLAY : goodDisplay);
     return EGL_TRUE;
 }
+EGLBoolean eglQuerySurface(EGLDisplay, EGLSurface, EGLint what, EGLint *out) {
+    if ((failAt==11 && what==EGL_WIDTH) || (failAt==12 && what==EGL_HEIGHT))
+        return EGL_FALSE;
+    *out=what==EGL_WIDTH ? (failAt==13 ? 0 : surfaceWidth)
+                           : (failAt==9 ? 0 : surfaceHeight);
+    return EGL_TRUE;
+}
+EGLDisplay eglGetCurrentDisplay() { return currentDisplay; }
 EGLContext eglGetCurrentContext() { return currentContext; }
 EGLSurface eglGetCurrentSurface(EGLint which) { assert(which==EGL_DRAW); return currentSurface; }
 EGLBoolean eglSwapBuffers(EGLDisplay, EGLSurface) { ++swapCalls; return failAt==10 ? EGL_FALSE : EGL_TRUE; }
@@ -127,9 +136,25 @@ int main() {
     assert(!R_AndroidEglCreate(nullptr, &window));
     assert(!R_AndroidEglCreate(&ctx, nullptr));
     assert(!R_AndroidEglPresent(&ctx));
+    assert(!R_AndroidEglRefreshSize(&ctx));
     assert(R_AndroidEglCreate(&ctx, &window));
     assert(ctx.width==1080 && ctx.height==2400);
     assert(acquired==1 && released==0);
+    // A live Android Surface may change size without changing EGLSurface.
+    surfaceWidth=2400; surfaceHeight=1080;
+    assert(R_AndroidEglRefreshSize(&ctx));
+    assert(ctx.width==2400 && ctx.height==1080);
+    for (int queryFail : {11, 12, 13, 9}) {
+        failAt=queryFail;
+        assert(!R_AndroidEglRefreshSize(&ctx));
+        assert(ctx.width==2400 && ctx.height==1080); // atomic update
+    }
+    failAt=0;
+    currentDisplay=reinterpret_cast<void *>(0x99);
+    assert(!R_AndroidEglRefreshSize(&ctx));
+    assert(!R_AndroidEglPresent(&ctx));
+    currentDisplay=goodDisplay;
+    assert(R_AndroidEglRefreshSize(&ctx));
     assert(!R_AndroidEglCreate(&ctx, &window)); // no overwrite/leak
     assert(R_AndroidEglPresent(&ctx));
     assert(swapCalls==1);
