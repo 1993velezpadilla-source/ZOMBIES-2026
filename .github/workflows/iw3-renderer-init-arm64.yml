@@ -110,6 +110,14 @@ jobs:
           if [ "$rc" -eq 0 ]; then
             "$ndk/llvm-readelf" -h "$RUNNER_TEMP/iw3-original-r-init-aarch64.o" | tee -a "$report"
             "$ndk/llvm-nm" -C --defined-only "$RUNNER_TEMP/iw3-original-r-init-aarch64.o" | grep -F 'R_BeginRegistration(' | tee -a "$report"
+            # Compiling a translation unit is not linking a complete renderer.
+            # Preserve the genuine unresolved external dependency inventory so
+            # the next GLES/backend link work is driven by actual ARM64 symbols.
+            "$ndk/llvm-nm" -C -u "$RUNNER_TEMP/iw3-original-r-init-aarch64.o" \
+              > "$RUNNER_TEMP/iw3-r-init-arm64-undefined-symbols.txt"
+            echo "IW3_ORIGINAL_RENDERER_OBJECT_UNDEFINED_SYMBOL_COUNT=$(wc -l < "$RUNNER_TEMP/iw3-r-init-arm64-undefined-symbols.txt")" | tee -a "$report"
+            echo 'First 100 unresolved object symbols (not a linked renderer):' | tee -a "$report"
+            sed -n '1,100p' "$RUNNER_TEMP/iw3-r-init-arm64-undefined-symbols.txt" | tee -a "$report"
             echo 'IW3_ORIGINAL_RENDERER_R_INIT_AARCH64_COMPILED=true' | tee -a "$report"
           else
             echo "IW3_ORIGINAL_RENDERER_R_INIT_AARCH64_COMPILED=false (compiler_exit=$rc)" | tee -a "$report"
@@ -177,6 +185,7 @@ jobs:
           path: |
             ${{ runner.temp }}/iw3-renderer-compile-report.txt
             ${{ runner.temp }}/iw3-original-r-init-aarch64.o
+            ${{ runner.temp }}/iw3-r-init-arm64-undefined-symbols.txt
             ${{ runner.temp }}/iw3-original-android-display-aarch64.o
             ${{ runner.temp }}/libiw3-android-egl-platform-arm64.so
           if-no-files-found: ignore
