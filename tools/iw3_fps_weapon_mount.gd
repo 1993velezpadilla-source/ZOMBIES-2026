@@ -85,13 +85,13 @@ func play_action(action: String) -> bool:
 func seek_action(action: String, seconds: float) -> bool:
     if not play_action(action):
         return false
-    # Distinct AnimationPlayers have their own action duration; cap to shortest
-    # to avoid desynchronizing magazine/hand reload end positions.
-    var end_time: float = minf(hands_player.get_animation(action).length,
-                               weapon_player.get_animation(action).length)
-    var target: float = clampf(seconds, 0.0, end_time)
-    hands_player.seek(target, true)
-    weapon_player.seek(target, true)
+    # The hand XANIM is authoritative for the full action duration.
+    # A weapon GLB can have only a one-frame static clip for ADS/fire; clamping
+    # BOTH players to that shortest duration would incorrectly freeze hands.
+    var hand_time: float = clampf(seconds, 0.0, hands_player.get_animation(action).length)
+    var weapon_time: float = clampf(seconds, 0.0, weapon_player.get_animation(action).length)
+    hands_player.seek(hand_time, true)
+    weapon_player.seek(weapon_time, true)
     hands_player.advance(0.0)
     weapon_player.advance(0.0)
     hands_skeleton.force_update_all_bone_transforms()
