@@ -74,4 +74,28 @@ bool R_AndroidVisitD3D9Arithmetic(const void *program, std::size_t programBytes,
                                   IW3AndroidShaderStage stage,
                                   IW3AndroidShaderArithmeticVisitor visitor, void *user);
 
+
+// D3D9 DCL declarations are decoded separately from arithmetic instructions.
+// Keep the original usage/sampler tokens and stage; this is metadata for a
+// future faithful input/output/sampler binding, NOT a GLES vertex attribute.
+struct IW3AndroidShaderDeclaration {
+    std::uint32_t tokenOffset;
+    std::uint32_t declarationToken;
+    std::uint8_t usage;
+    std::uint8_t usageIndex;
+    std::uint8_t samplerTextureType; // D3DSTT_2D=2, CUBE=3, VOLUME=4.
+    bool sampler;
+    IW3AndroidShaderRegister registerOperand;
+};
+using IW3AndroidShaderDeclarationVisitor =
+    bool (*)(const IW3AndroidShaderDeclaration &, void *);
+// Accepts only structurally valid DCL/NOP/MOV/ADD instruction streams,
+// validates every DCL before emitting any callback, and rejects unsupported
+// DCL register classes, reserved declaration bits and invalid sampler types.
+// Arithmetic tokens are not translated or interpreted by this visitor.
+bool R_AndroidVisitD3D9Declarations(const void *program, std::size_t programBytes,
+                                    IW3AndroidShaderStage stage,
+                                    IW3AndroidShaderDeclarationVisitor visitor,
+                                    void *user);
+
 #endif
