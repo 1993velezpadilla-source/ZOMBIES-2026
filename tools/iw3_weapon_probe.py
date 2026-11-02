@@ -23,6 +23,8 @@ from audit_releases import SplitReader, SOURCE_ZIP_BYTES
 ZIP_ROOT = "Call of Duty 4 Modern Warfare/"
 ZONES = ("common_mp", "mp_crash", "common")
 IWD_FILES = ("iw_02.iwd", "iw_03.iwd")
+# Actual IW3 type names from OpenAssetTools src/Common/Game/IW3/GameIW3.cpp.
+IW3_ASSET_TYPES = ("xmodel", "xanim", "weapon", "image", "material")
 KEYWORDS = {
     "M4": re.compile(r"(?<![a-z0-9])(?:m4|m4a1|m4_carbine)(?![a-z0-9])", re.I),
     "AK-47": re.compile(r"(?:ak47|ak_47|ak-47)", re.I),
@@ -156,7 +158,7 @@ def probe(unlinker: Path, root: Path, dump_root: Path, zones: list[str],
         listing = safe_exec(base + ["--list", str(fastfile)], timeout=300)
         extraction = safe_exec(base + [
             "--model-format", "GLB", "--image-format", "DDS",
-            "--include-assets", "xmodel,xanimparts,weapondef,gfximage,material",
+            "--include-assets", ",".join(IW3_ASSET_TYPES),
             "--output-folder", str(out), str(fastfile)], timeout=900)
         inventory = scan_output(out)
         report["zones"][zone] = {"list": listing, "extract": extraction, "inventory": inventory}
