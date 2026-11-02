@@ -66,6 +66,8 @@ func _test_one(path: String) -> Dictionary:
         return {"success": false, "error": "GLB did not become PackedScene"}
     var node: Node = (scene as PackedScene).instantiate()
     root.add_child(node)
+    # Imported GLB Skeleton3D/AnimationMixer are only fully initialized after a frame.
+    await process_frame
     var players: Array[AnimationPlayer] = []
     var rigs: Array[Skeleton3D] = []
     _walk(node, players, rigs)
@@ -104,6 +106,7 @@ func _test_one(path: String) -> Dictionary:
             # Explicitly advance AnimationMixer while inside the SceneTree:
             # importing channels alone previously caused a false "all green".
             player.advance(maxf(0.001, length * fraction))
+            await process_frame
             rig.force_update_all_bone_transforms()
             var pose := _snapshot(rig)
             if pose.has("error"):
@@ -128,7 +131,7 @@ func _test_one(path: String) -> Dictionary:
     node.free()
     return output
 
-func _initialize() -> void:
+func _run() -> void:
     var output := {"engine": Engine.get_version_info().get("string", "unknown"),
                    "guns": {}, "all_actions_evaluated": true,
                    "poses_visually_approved": false, "fps_gameplay_approved": false}
@@ -137,7 +140,7 @@ func _initialize() -> void:
         for kind in ["weapon", "hands"]:
             var suffix: String = "_animated_experimental.glb" if kind == "weapon" else "_hands_animated_experimental.glb"
             var path: String = "res://weapons/" + str(gun) + suffix
-            var result := _test_one(path)
+            var result: Dictionary = await _test_one(path)
             output["guns"][gun][kind] = result
             if not result.get("success", false):
                 output["all_actions_evaluated"] = false
@@ -171,3 +174,6 @@ func _initialize() -> void:
         "gun_count": output["guns"].size(),
         "pose_visual_approval": false}))
     quit(0 if output["all_actions_evaluated"] else 1)
+
+func _initialize() -> void:
+    call_deferred("_run")
