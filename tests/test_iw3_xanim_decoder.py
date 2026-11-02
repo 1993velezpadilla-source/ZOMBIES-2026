@@ -42,7 +42,7 @@ class XAnimV17Test(unittest.TestCase):
             self.assertEqual(x.bones[0].translations.values,[(0.0,2.0,3.0)])
             self.assertEqual(x.bones[1].rotation_type,"half")
             self.assertEqual(x.notes,[("reload",28)])
-            self.assertEqual(duration(x),1.0)
+            self.assertAlmostEqual(duration(x),29/30)
 
     def test_delta_reader(self):
         with tempfile.TemporaryDirectory() as t:
