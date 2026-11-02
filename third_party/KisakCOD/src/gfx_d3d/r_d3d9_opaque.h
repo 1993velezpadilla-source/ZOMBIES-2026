@@ -20,6 +20,18 @@ struct IDirect3DSurface9;
 struct IDirect3DVertexDeclaration9;
 struct IDirect3DVertexShader9;
 struct IDirect3DPixelShader9;
+// D3D9's 8-byte declaration element; used only to retain the authentic
+// Material_BuildVertexDecl metadata on Android, never as a COM object.
+struct _D3DVERTEXELEMENT9 {
+    std::uint16_t Stream;
+    std::uint16_t Offset;
+    std::uint8_t Type;
+    std::uint8_t Method;
+    std::uint8_t Usage;
+    std::uint8_t UsageIndex;
+};
+static_assert(sizeof(_D3DVERTEXELEMENT9) == 8, "D3D9 vertex element ABI");
+
 struct _D3DCAPS9;
 struct _D3DPRESENT_PARAMETERS_;
 
