@@ -48,6 +48,8 @@ class OriginalVertexDeclarationMetadata(unittest.TestCase):
         material=(GFX/"r_material.cpp").read_text()
         shade=(GFX/"rb_shade.cpp").read_text()
         self.assertIn("R_AndroidCreateVertexDeclaration(", material)
+        self.assertIn("androidElements[i] =", material)
+        self.assertNotIn("reinterpret_cast<const IW3AndroidVertexElement *>", material)
         self.assertIn("R_AndroidSelectVertexDeclaration(", shade)
         self.assertIn("dx.device->CreateVertexDeclaration(elemTable, &decl)", material)
         self.assertIn("device->SetVertexDeclaration(v3)", shade)
