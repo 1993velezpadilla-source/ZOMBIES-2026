@@ -22,6 +22,8 @@ bool R_AndroidInspectD3D9Shader(const void *program, std::size_t programBytes,
         || (programBytes & 3u) != 0)
         return false;
 
+    if (stage != IW3AndroidShaderStage::Vertex && stage != IW3AndroidShaderStage::Pixel)
+        return false;
     const auto *bytes = static_cast<const unsigned char *>(program);
     const std::uint32_t version = ReadDword(bytes);
     const std::uint32_t expectedTag =
@@ -92,3 +94,34 @@ bool R_AndroidInspectD3D9Shader(const void *program, std::size_t programBytes,
     return true;
 }
 #endif
+
+// Two-pass boundary walk: never expose a prefix of a malformed stream to a
+// translator. Original D3D9 operand words are deliberately NOT interpreted.
+bool R_AndroidVisitD3D9Shader(const void *program, std::size_t programBytes,
+                             IW3AndroidShaderStage stage,
+                             IW3AndroidShaderVisitor visitor, void *user)
+{
+    IW3AndroidShaderEnvelope envelope{};
+    if (!visitor || !R_AndroidInspectD3D9Shader(program, programBytes, stage, &envelope))
+        return false;
+    const auto *bytes = static_cast<const unsigned char *>(program);
+    std::size_t i = 1;
+    while (i < envelope.dwordCount) {
+        const std::uint32_t token = ReadDword(bytes + i * sizeof(std::uint32_t));
+        const std::uint32_t opcode = token & 0xFFFFu;
+        if (opcode == 0xFFFFu) return true;
+        if (opcode == 0xFFFEu) {
+            i += 1u + ((token >> 16) & 0x7FFFu);
+            continue;
+        }
+        const auto operands = static_cast<std::uint8_t>((token >> 24) & 0xFu);
+        const IW3AndroidShaderInstruction record{
+            static_cast<std::uint32_t>(i), token,
+            static_cast<std::uint16_t>(opcode), operands,
+            (token & 0x10000000u) != 0
+        };
+        if (!visitor(record, user)) return false;
+        i += 1u + operands;
+    }
+    return false;
+}
