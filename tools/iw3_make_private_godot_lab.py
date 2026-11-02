@@ -14,6 +14,7 @@ import shutil
 import sys
 
 from iw3_gltf_animation_bridge import read_glb
+from iw3_make_android_safe_project import EXPORT as BASE_ANDROID_EXPORT
 
 GUNS=("m4","ak47","mp5")
 TOOLS = {
@@ -32,6 +33,8 @@ window/size/viewport_height=720
 [rendering]
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
+textures/vram_compression/import_etc2_astc=true
+window/handheld/orientation=0
 '''
 
 def assemble(root: Path, output: Path, tools: Path) -> dict:
@@ -74,11 +77,21 @@ def assemble(root: Path, output: Path, tools: Path) -> dict:
     for source,name in TOOLS.items():
         shutil.copy2(tools/source,output/name)
     (output/"project.godot").write_text(PROJECT)
+    # Same proven Android export preset as the asset-free GREEN Android APK.
+    # The only differences are private application ID/name and output path.
+    # Never commit/upload the generated project or original game assets.
+    export_preset=(BASE_ANDROID_EXPORT
+        .replace("org.xziellabs.zombiesfpssafe","org.xziellabs.zombiesiw3private")
+        .replace("ZOMBIES FPS LAB SAFE","ZOMBIES IW3 PRIVATE LAB")
+        .replace("ZOMBIES_FPS_LAB_SAFE_ARM64.apk","ZOMBIES_IW3_ORIGINAL_ARM64.apk"))
+    (output/"export_presets.cfg").write_text(export_preset)
+    (output/"build").mkdir(exist_ok=True)
     report={"offline_private_project":str(output.resolve()),
             "original_weapon_glbs":len(expected),"png_textures":len(required_images),
             "godot_scene":"res://playground.tscn",
             "requires_user_to_supply_owned_original_assets":True,
-            "android_apk_created":False,"commercial_distribution_authorized":False}
+            "android_apk_created":False,"android_export_preset_ready":True,
+            "commercial_distribution_authorized":False}
     return report
 
 def main()->int:
