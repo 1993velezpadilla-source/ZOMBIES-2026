@@ -55,6 +55,7 @@ on:
       - 'tests/test_iw3_android_renderer_original_blend_gles3.py'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_render_state.h'
       - 'tests/test_iw3_android_renderer_original_alpha_color_gles3.py'
+      - 'tests/test_iw3_android_renderer_original_alpha_coverage_gles3.py'
       - 'tests/test_iw3_android_renderer_original_cull_polygon_gles3.py'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_initial_state.cpp'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_initial_state.h'
@@ -131,6 +132,7 @@ on:
       - 'tests/test_iw3_android_renderer_original_blend_gles3.py'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_render_state.h'
       - 'tests/test_iw3_android_renderer_original_alpha_color_gles3.py'
+      - 'tests/test_iw3_android_renderer_original_alpha_coverage_gles3.py'
       - 'tests/test_iw3_android_renderer_original_cull_polygon_gles3.py'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_initial_state.cpp'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_initial_state.h'
@@ -663,6 +665,7 @@ jobs:
             -o "$out" -lEGL -lGLESv3
           "$ndk/llvm-readelf" -h "$out" | grep -E 'Class:|Machine:'
           "$ndk/llvm-nm" -C --defined-only "$out" | grep -F 'R_AndroidGlesSetAlphaTestEnable('
+          "$ndk/llvm-nm" -C --defined-only "$out" | grep -F 'R_AndroidGlesSetAlphaCoverage('
           "$ndk/llvm-nm" -C --defined-only "$out" | grep -F 'R_AndroidGlesSetColorMask('
           "$ndk/llvm-nm" -C --defined-only "$out" | grep -F 'R_AndroidGlesSetCullFace('
           "$ndk/llvm-nm" -C --defined-only "$out" | grep -F 'R_AndroidGlesSetPolygonMode('
