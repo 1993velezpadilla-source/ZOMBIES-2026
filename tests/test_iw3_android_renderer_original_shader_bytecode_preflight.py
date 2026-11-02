@@ -29,6 +29,19 @@ static bool Collect(const IW3AndroidShaderInstruction &ins, void *context) {
     ++visits.count;
     return !visits.reject;
 }
+
+struct ArithmeticVisits {
+    unsigned count = 0;
+    IW3AndroidShaderArithmetic records[4]{};
+    bool reject = false;
+};
+static bool CollectArithmetic(const IW3AndroidShaderArithmetic &ins, void *context) {
+    auto &visits = *static_cast<ArithmeticVisits *>(context);
+    assert(visits.count < 4);
+    visits.records[visits.count++] = ins;
+    return !visits.reject;
+}
+
 int main() {
     // Real D3D9 token framing: MOV has two operands, ADD has three.
     // A COMMENT payload is arbitrary data, including the END bit pattern.
@@ -146,6 +159,81 @@ int main() {
     assert(!R_AndroidInspectD3D9Shader(vs, sizeof(vs),
                                       static_cast<IW3AndroidShaderStage>(255), &info));
     assert(info.dwordCount == 0);
+
+    // Decode original D3D9 register bitfields, not invented GLSL variables.
+    IW3AndroidShaderRegister reg{};
+    assert(R_AndroidDecodeD3D9Register(0x800F0000u, true, &reg));
+    assert(reg.type == 0 && reg.number == 0 && reg.writeMask == 15);
+    assert(R_AndroidDecodeD3D9Register(0x90E40003u, false, &reg));
+    assert(reg.type == 1 && reg.number == 3 && reg.swizzle == 0xE4);
+    assert(R_AndroidDecodeD3D9Register(0xB0E40802u, false, &reg));
+    assert(reg.type == 11 && reg.number == 2); // split type bits 11..12
+    assert(R_AndroidDecodeD3D9Register(0x90E42000u, false, &reg));
+    assert(reg.relativeAddressing);
+    assert(!R_AndroidDecodeD3D9Register(0x10E40000u, false, &reg));
+    assert(!R_AndroidDecodeD3D9Register(0xF0E41800u, false, &reg));
+    assert(!R_AndroidDecodeD3D9Register(0x9EE40000u, false, &reg));
+    assert(!R_AndroidDecodeD3D9Register(0x80000000u, true, &reg));
+    assert(reg.number == 0 && reg.writeMask == 0);
+
+    const std::uint32_t arithmetic[] = {
+        0xFFFE0300u,
+        0x02000001u, 0x800F0000u, 0x90E40003u,
+        0x03000002u, 0x80070001u, 0x80E40000u, 0xA0E40002u,
+        0x0000FFFFu
+    };
+    ArithmeticVisits av{};
+    assert(R_AndroidVisitD3D9Arithmetic(arithmetic, sizeof(arithmetic),
+                                         IW3AndroidShaderStage::Vertex,
+                                         CollectArithmetic, &av));
+    assert(av.count == 2 && av.records[0].tokenOffset == 1);
+    assert(av.records[0].opcode == 1 && av.records[0].sourceCount == 1);
+    assert(av.records[0].sources[0].number == 3);
+    assert(av.records[1].tokenOffset == 4 && av.records[1].opcode == 2);
+    assert(av.records[1].destination.writeMask == 7);
+    assert(av.records[1].sources[1].type == 2 && av.records[1].sources[1].number == 2);
+    // Two-pass semantic validation: a later unsupported register must yield
+    // ZERO earlier callbacks. Relative addressing requires separate tokens.
+    const std::uint32_t lateRelative[] = {
+        0xFFFE0300u,
+        0x02000001u, 0x800F0000u, 0x90E40000u,
+        0x03000002u, 0x800F0000u, 0x90E42000u, 0xA0E40000u,
+        0x0000FFFFu
+    };
+    av = {};
+    assert(!R_AndroidVisitD3D9Arithmetic(lateRelative, sizeof(lateRelative),
+                                          IW3AndroidShaderStage::Vertex,
+                                          CollectArithmetic, &av));
+    assert(av.count == 0);
+    av = {};
+    assert(!R_AndroidVisitD3D9Arithmetic(predMov, sizeof(predMov),
+                                          IW3AndroidShaderStage::Vertex,
+                                          CollectArithmetic, &av));
+    assert(av.count == 0);
+    av = {};
+    assert(R_AndroidVisitD3D9Arithmetic(vs, sizeof(vs),
+                                         IW3AndroidShaderStage::Vertex,
+                                         CollectArithmetic, &av));
+    assert(av.count == 1); // COMMENT payload skipped
+
+    const std::uint32_t unsupportedOpcode[] = {
+        0xFFFE0300u, 0x00000005u, 0x0000FFFFu
+    };
+    av = {};
+    assert(!R_AndroidVisitD3D9Arithmetic(unsupportedOpcode, sizeof(unsupportedOpcode),
+                                          IW3AndroidShaderStage::Vertex,
+                                          CollectArithmetic, &av));
+    assert(av.count == 0);
+    av = {};
+    av.reject = true;
+    assert(!R_AndroidVisitD3D9Arithmetic(arithmetic, sizeof(arithmetic),
+                                          IW3AndroidShaderStage::Vertex,
+                                          CollectArithmetic, &av));
+    assert(av.count == 1);
+    assert(!R_AndroidVisitD3D9Arithmetic(arithmetic, sizeof(arithmetic),
+                                          IW3AndroidShaderStage::Vertex,
+                                          nullptr, &av));
+
     std::puts("IW3_ORIGINAL_D3D9_SHADER_PREDICATION_PASS_NOT_TRANSLATED");
 }
 '''
