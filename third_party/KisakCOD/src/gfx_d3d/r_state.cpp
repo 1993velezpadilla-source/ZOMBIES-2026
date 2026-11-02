@@ -3044,5 +3044,6 @@ void __cdecl R_SetAlphaAntiAliasingState(IDirect3DDevice9 *device, __int16 state
                     v2);
             } while (alwaysfails);
         }
-    } while (alwaysfails);#endif
+    } while (alwaysfails);
+#endif
 }
