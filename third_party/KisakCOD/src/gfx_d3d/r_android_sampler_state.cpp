@@ -37,7 +37,9 @@ bool HasAnisotropy()
         if (ext && std::strcmp(ext, "GL_EXT_texture_filter_anisotropic") == 0)
             return true;
     }
-    return glGetError() == GL_NO_ERROR && false;
+    // No supported extension was advertised; do not silently emulate it.
+    (void)glGetError();
+    return false;
 }
 } // namespace
 
@@ -91,7 +93,11 @@ bool R_AndroidGlesSetSamplerState(uint32_t unit, uint32_t state,
 
     GLuint next = 0;
     glGenSamplers(1, &next);
-    if (!next || glGetError() != GL_NO_ERROR) return false;
+    if (glGetError() != GL_NO_ERROR || !next) {
+        if (next) glDeleteSamplers(1, &next);
+        (void)glGetError();
+        return false;
+    }
     glSamplerParameteri(next, GL_TEXTURE_MIN_FILTER, static_cast<GLint>(minFilter));
     glSamplerParameteri(next, GL_TEXTURE_MAG_FILTER, static_cast<GLint>(magFilter));
     glSamplerParameteri(next, GL_TEXTURE_WRAP_S, static_cast<GLint>(wrapS));
