@@ -6,7 +6,7 @@ on:
         description: 'Source private-render audit run'
         required: true
         type: string
-        default: '41456707471'
+        default: '41456974030'
   push:
     branches: [feature/iw3-arsenal-extraction-audit-20261102]
     paths: ['.github/workflows/iw3-fps-camera-report.yml']
@@ -23,7 +23,7 @@ jobs:
       - name: Download only numeric camera metadata, never COD4 imagery
         env:
           GH_TOKEN: ${{ github.token }}
-          SOURCE_RUN: ${{ inputs.source_run_id || '41456707471' }}
+          SOURCE_RUN: ${{ inputs.source_run_id || '41456974030' }}
         run: |
           set -euo pipefail
           mkdir -p _reports
