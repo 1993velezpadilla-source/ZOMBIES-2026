@@ -18,6 +18,7 @@ var hands_player: AnimationPlayer
 var weapon_player: AnimationPlayer
 var configured: bool = false
 var initial_local_position: Vector3 = Vector3.ZERO
+var active_action: String = ""
 
 func _find_skeleton(node: Node) -> Skeleton3D:
     if node is Skeleton3D:
@@ -79,6 +80,7 @@ func play_action(action: String) -> bool:
     weapon_player.stop()
     hands_player.play(action)
     weapon_player.play(action)
+    active_action = action
     # Both clips start at the same local time.
     hands_player.seek(0.0, true)
     weapon_player.seek(0.0, true)
@@ -94,6 +96,26 @@ func seek_action(action: String, seconds: float) -> bool:
     var weapon_time: float = clampf(seconds, 0.0, weapon_player.get_animation(action).length)
     hands_player.seek(hand_time, true)
     weapon_player.seek(weapon_time, true)
+    hands_player.advance(0.0)
+    weapon_player.advance(0.0)
+    hands_skeleton.force_update_all_bone_transforms()
+    weapon_skeleton.force_update_all_bone_transforms()
+    mount.on_skeleton_update()
+    return true
+
+# Runtime animation scrubber: only restarts the AnimationPlayers when the
+# action actually changes. This prevents per-frame stop/play churn on phones.
+func set_timed_action(action: String, seconds: float) -> bool:
+    if not configured:
+        return false
+    if active_action != action and not play_action(action):
+        return false
+    if not hands_player.has_animation(action) or not weapon_player.has_animation(action):
+        return false
+    var hand_time: float = clampf(seconds, 0.0, hands_player.get_animation(action).length)
+    var gun_time: float = clampf(seconds, 0.0, weapon_player.get_animation(action).length)
+    hands_player.seek(hand_time, true)
+    weapon_player.seek(gun_time, true)
     hands_player.advance(0.0)
     weapon_player.advance(0.0)
     hands_skeleton.force_update_all_bone_transforms()
