@@ -92,6 +92,16 @@ void __cdecl R_ChangeStreamSource(
     int hr; // [esp+0h] [ebp-8h]
     IDirect3DDevice9 *device; // [esp+4h] [ebp-4h]
 
+#if defined(__ANDROID__)
+    // Validate before touching the original two-element stream array.
+    if (streamIndex >= 2)
+    {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android: original vertex stream index out of bounds");
+        return;
+    }
+#endif
+
     iassert(state->streams[streamIndex].vb != vb || state->streams[streamIndex].offset != vertexOffset || state->streams[streamIndex].stride != vertexStride);
 
     state->streams[streamIndex].vb = vb;
