@@ -39,7 +39,7 @@ bool R_AndroidInspectD3D9Shader(const void *program, std::size_t programBytes,
     // literal 0x0000FFFF there must never be mistaken for shader END.
     const std::size_t words = programBytes / sizeof(std::uint32_t);
     std::size_t i = 1;
-    std::uint32_t instructions = 0, comments = 0;
+    std::uint32_t instructions = 0, comments = 0, predicatedInstructions = 0;
     bool terminated = false;
     while (i < words) {
         const std::uint32_t token = ReadDword(bytes + i * sizeof(std::uint32_t));
@@ -64,14 +64,22 @@ bool R_AndroidInspectD3D9Shader(const void *program, std::size_t programBytes,
 
         const std::size_t operands = (token >> 24) & 0xFu;
         if (operands > remaining) return false;
-        // Check common known operand counts. Other opcode/register
-        // semantics still require a real D3D9 decoder before translation.
-        if ((opcode == 0 && operands != 0) // NOP
-            || (opcode == 1 && operands != 2) // MOV
-            || (opcode == 2 && operands != 3) // ADD
-            || (opcode == 31 && operands != 2)) // DCL
+        // Shader Model 2/3 instruction bit 28 marks predication. The
+        // predicate source token is INCLUDED in the encoded length (bits
+        // 24..27). The previous fixed MOV/ADD counts rejected legitimate
+        // predicated instructions and could accept truncated ones.
+        const bool predicated = (token & 0x10000000u) != 0;
+        const std::size_t predicateTokens = predicated ? 1u : 0u;
+        // NOP and DCL are not predicable; keep the supported opcode
+        // checks conservative. Other opcode/register semantics still
+        // require a complete D3D9 decoder before GLSL translation.
+        if ((opcode == 0 && (predicated || operands != 0)) // NOP
+            || (opcode == 1 && operands != 2u + predicateTokens) // MOV
+            || (opcode == 2 && operands != 3u + predicateTokens) // ADD
+            || (opcode == 31 && (predicated || operands != 2))) // DCL
             return false;
         ++instructions;
+        if (predicated) ++predicatedInstructions;
         i += operands + 1;
     }
     if (!terminated) return false;
@@ -80,6 +88,7 @@ bool R_AndroidInspectD3D9Shader(const void *program, std::size_t programBytes,
     out->dwordCount = static_cast<std::uint32_t>(words);
     out->instructionCount = instructions;
     out->commentCount = comments;
+    out->predicatedInstructionCount = predicatedInstructions;
     return true;
 }
 #endif
