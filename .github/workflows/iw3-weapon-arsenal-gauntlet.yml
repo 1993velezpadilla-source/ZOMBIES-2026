@@ -15,6 +15,7 @@ on:
       - 'tools/iw3_build_animated_previews.py'
       - 'tools/iw3_stage_weapon_textures.py'
       - 'tools/iw3_png_materials.py'
+      - 'tools/iw3_keyframe_variation.py'
       - 'tools/godot_iw3_import_probe.gd'
       - 'tools/godot_iw3_pose_probe.gd'
       - 'tests/test_iw3_weapon_probe.py'
@@ -110,6 +111,7 @@ jobs:
           python3 tools/iw3_anim_rig_gate.py _iw3_private/dumps _iw3_reports/animation-gate.json
           python3 tools/iw3_anim_correlation.py _iw3_private/dumps _iw3_reports/bone-correlation.json
           python3 tools/iw3_build_animated_previews.py _iw3_private/dumps _iw3_private/animated_preview _iw3_reports/animated-glb-gate.json
+          python3 tools/iw3_keyframe_variation.py _iw3_private/animated_preview _iw3_reports/keyframe-variation.json
 
       - name: Restore temporary weapon textures (IWD/IWI -> DDS) for material imports
         run: |
@@ -125,6 +127,7 @@ jobs:
             _iw3_private/godot_sandbox/images \
             _iw3_private/animated_preview \
             _iw3_reports/png-materials.json
+            _iw3_reports/keyframe-variation.json
 
       - name: Install official Godot 4.6.3 and import 3 temporary animated GLBs
         run: |
