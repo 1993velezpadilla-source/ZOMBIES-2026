@@ -1,0 +1,103 @@
+name: IW3 COD4 weapon arsenal proof (metadata only)
+
+on:
+  push:
+    branches:
+      - feature/iw3-arsenal-extraction-audit-20261102
+    paths:
+      - '.github/workflows/iw3-weapon-arsenal-gauntlet.yml'
+      - 'tools/iw3_weapon_probe.py'
+      - 'tests/test_iw3_weapon_probe.py'
+      - 'docs/audit/IW3_WEAPON_ARSENAL_GATE.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: iw3-weapon-arsenal-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Python syntax and synthetic GLB/rig tests
+        run: |
+          set -euo pipefail
+          python3 -m py_compile tools/iw3_weapon_probe.py tests/test_iw3_weapon_probe.py
+          python3 -m unittest discover -s tests -p 'test_iw3_weapon_probe.py' -v
+
+  real-archive-smoke:
+    needs: unit-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 115
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Ensure OpenAssetTools 32-bit Linux runtime
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends libc6-i386 lib32stdc++6
+
+      - name: Install pinned official OpenAssetTools v0.34.0
+        run: |
+          set -euo pipefail
+          mkdir -p _oat
+          curl --fail --location --retry 3 --output /tmp/oat-linux.tar.gz \
+            https://github.com/Laupetin/OpenAssetTools/releases/download/v0.34.0/oat-linux.tar.gz
+          tar -xzf /tmp/oat-linux.tar.gz -C _oat
+          BIN="$(find _oat -type f -name Unlinker -print -quit)"
+          test -n "$BIN"
+          chmod +x "$BIN"
+          file "$BIN"
+          "$BIN" --version
+          echo "UNLINKER=$PWD/$BIN" >> "$GITHUB_ENV"
+
+      - name: Retrieve user's COD4 source archive privately inside runner
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p _release_assets/c4
+          gh release download gofile-p2DdQHsz --repo "$GITHUB_REPOSITORY" \
+            --pattern 'C4-Mocs.zip.part-*' --dir _release_assets/c4
+          echo 'Checking original 7GB split ZIP SHA-256 without reconstructing another copy'
+          actual="$(cat _release_assets/c4/C4-Mocs.zip.part-* | sha256sum | cut -d' ' -f1)"
+          test "$actual" = '6787f2082b39ee76445db7fca92892256bfb97e62bbdebfe63f6ee11de6a8d99'
+
+      - name: Stage only 2 FF zones and 2 IWDs, never the whole installation
+        run: |
+          set -euo pipefail
+          python3 tools/iw3_weapon_probe.py prepare --with-iwds
+          rm -rf _release_assets
+          df -h .
+
+      - name: Unlinker list and GLB export probe, M4 AK-47 MP5 and viewhands
+        run: |
+          set -euo pipefail
+          python3 tools/iw3_weapon_probe.py probe --unlinker "$UNLINKER"
+
+      - name: Archive ONLY metadata and safe audit results (no extracted game files)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: iw3-cod4-weapon-probe-metadata
+          path: |
+            _iw3_reports/staging.json
+            _iw3_reports/results.json
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Destroy all temporary game files and tool binaries
+        if: always()
+        run: |
+          rm -rf _release_assets _iw3_private _oat
+          echo 'Game archive and extracted weapon assets not committed or uploaded.'
