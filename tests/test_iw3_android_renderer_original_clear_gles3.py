@@ -185,13 +185,13 @@ class OriginalClearGles3(unittest.TestCase):
         original = (SRC.parent / "r_state.cpp").read_text()
         self.assertIn('#include "r_android_clear.h"', original)
         direct = original.split("void __cdecl R_ClearScreenInternal(", 1)[1].split(
-            "\\nvoid __cdecl R_ClearScreen(", 1)[0]
+            "\nvoid __cdecl R_ClearScreen(", 1)[0]
         self.assertIn("#if defined(__ANDROID__)", direct)
         self.assertIn("viewport || !R_AndroidGlesClear(whichToClear, color, depth, stencil)", direct)
         self.assertIn('Com_Error(ERR_FATAL, "IW3 Android: original R_ClearScreenInternal GLES3 clear failed")', direct)
-        self.assertIn("return;\\n#else\\n    iassert( device );", direct)
+        self.assertIn("return;\n#else\n    iassert( device );", direct)
         self.assertIn("hr = device->Clear(0, 0, whichToClear, nativeColor.packed, depth, stencil);", direct)
-        self.assertIn("#endif\\n}", direct)
+        self.assertIn("#endif\n}", direct)
         backend = BACKEND.read_text()
         self.assertIn("R_AndroidGlesClear(cmd->whichToClear, cmd->color", backend)
         self.assertIn('Com_Error(ERR_FATAL, "IW3 Android: original clear command GLES3 failed")', backend)
