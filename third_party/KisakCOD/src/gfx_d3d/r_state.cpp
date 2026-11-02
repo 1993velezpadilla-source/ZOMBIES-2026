@@ -2799,6 +2799,15 @@ void __cdecl R_ForceSetPolygonOffset(IDirect3DDevice9 *device, char stateBits1)
 
 void __cdecl R_HW_SetPolygonOffset(IDirect3DDevice9 *device, float scale, float bias)
 {
+#if defined(__ANDROID__)
+    (void)device;
+    if (!R_AndroidGlesSetPolygonOffset(scale, bias))
+    {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android: original polygon depth offset has no valid GLES3 equivalent");
+    }
+    return;
+#else
     const char *v3; // eax
     const char *v4; // eax
     int v5; // [esp+8h] [ebp-8h]
@@ -2851,6 +2860,7 @@ void __cdecl R_HW_SetPolygonOffset(IDirect3DDevice9 *device, float scale, float 
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl R_SetMeshStream(GfxCmdBufState *state, GfxMeshData *mesh)
