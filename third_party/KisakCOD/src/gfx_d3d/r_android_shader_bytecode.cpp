@@ -124,4 +124,88 @@ bool R_AndroidVisitD3D9Shader(const void *program, std::size_t programBytes,
     }
     return false;
 }
+
+bool R_AndroidDecodeD3D9Register(std::uint32_t token, bool destination,
+                                 IW3AndroidShaderRegister *out)
+{
+    if (out) *out = {};
+    // D3D9 register tokens have bit 31 set. Register type uses two
+    // NONCONTIGUOUS fields: bits 28..30 and bits 11..12.
+    if (!out || (token & 0x80000000u) == 0) return false;
+    const auto type = static_cast<std::uint8_t>(
+        ((token >> 28) & 7u) | ((token >> 8) & 0x18u));
+    // D3DSPR_PREDICATE is 19; 20..31 are not D3D9 register types.
+    if (type > 19) return false;
+    const auto modifier = static_cast<std::uint8_t>(
+        (token >> (destination ? 20u : 24u)) & 15u);
+    // Destination modifiers are a three-bit combination of SATURATE,
+    // PARTIALPRECISION and CENTROID. Source modifiers 14/15 are reserved.
+    if ((destination && modifier > 7) || (!destination && modifier > 13))
+        return false;
+    const auto writeMask = static_cast<std::uint8_t>((token >> 16) & 15u);
+    if (destination && writeMask == 0) return false;
+    out->number = static_cast<std::uint16_t>(token & 0x7FFu);
+    out->type = type;
+    out->writeMask = destination ? writeMask : 0;
+    out->swizzle = destination ? 0 : static_cast<std::uint8_t>((token >> 16) & 255u);
+    out->modifier = modifier;
+    out->destinationShift = destination ? static_cast<std::uint8_t>((token >> 24) & 15u) : 0;
+    out->relativeAddressing = (token & 0x00002000u) != 0;
+    return true;
+}
+
+namespace {
+struct ArithmeticWalk {
+    const unsigned char *bytes;
+    IW3AndroidShaderArithmeticVisitor visitor;
+    void *user;
+    bool validateOnly;
+};
+bool WalkArithmetic(const IW3AndroidShaderInstruction &ins, void *context)
+{
+    auto &state = *static_cast<ArithmeticWalk *>(context);
+    if (ins.opcode == 0) return true; // NOP, already length-checked.
+    // Never silently drop unsupported original instructions or predication.
+    if ((ins.opcode != 1 && ins.opcode != 2) || ins.predicated)
+        return false;
+    const std::uint8_t sourceCount = ins.opcode == 1 ? 1 : 2;
+    if (ins.operandTokenCount != sourceCount + 1) return false;
+    IW3AndroidShaderArithmetic decoded{};
+    decoded.tokenOffset = ins.tokenOffset;
+    decoded.opcode = ins.opcode;
+    decoded.sourceCount = sourceCount;
+    const auto *operandBytes = state.bytes + (ins.tokenOffset + 1u) * sizeof(std::uint32_t);
+    if (!R_AndroidDecodeD3D9Register(ReadDword(operandBytes), true,
+                                     &decoded.destination)
+        || decoded.destination.relativeAddressing)
+        return false;
+    for (std::uint8_t n = 0; n < sourceCount; ++n) {
+        if (!R_AndroidDecodeD3D9Register(
+                ReadDword(operandBytes + (n + 1u) * sizeof(std::uint32_t)),
+                false, &decoded.sources[n])
+            || decoded.sources[n].relativeAddressing)
+            return false;
+    }
+    return state.validateOnly || state.visitor(decoded, state.user);
+}
+} // namespace
+
+bool R_AndroidVisitD3D9Arithmetic(const void *program, std::size_t programBytes,
+                                  IW3AndroidShaderStage stage,
+                                  IW3AndroidShaderArithmeticVisitor visitor, void *user)
+{
+    if (!visitor) return false;
+    // The boundary walker itself validates the WHOLE original stream first.
+    // First semantic pass ensures no partially decoded shader is exposed if
+    // an unsupported instruction or register occurs later in the stream.
+    ArithmeticWalk state{static_cast<const unsigned char *>(program),
+                         visitor, user, true};
+    if (!R_AndroidVisitD3D9Shader(program, programBytes, stage,
+                                 WalkArithmetic, &state))
+        return false;
+    state.validateOnly = false;
+    return R_AndroidVisitD3D9Shader(program, programBytes, stage,
+                                   WalkArithmetic, &state);
+}
+
 #endif
