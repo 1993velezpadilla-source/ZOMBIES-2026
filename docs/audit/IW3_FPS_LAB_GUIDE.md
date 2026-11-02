@@ -49,3 +49,11 @@ Se publican **solo JSON con métricas**; no GLB, XANIM, IWI, DDS, PNG, ni captur
 ## Limitaciones expresas
 
 La prueba numérica de `tag_iron_sight` / `tag_reflex_sight` centrada no equivale a certificar ADS de miras de hierro frente/trasera. El look/recarga de la animación original puede seguir deformado. La sala utiliza dianas geométricas; no hay zombies, rondas ni AI. No se ha realizado test en un teléfono Android real, ni se ha creado un APK distribuible. El uso público/comercial de material original de Call of Duty requiere permisos aparte. El siguiente esfuerzo debe priorizar validación visual del arma/manos y Android, no inflar artificialmente los contadores de modelos.
+
+## Feedback real del Pixel Fold: viewmodels rotados 90 grados (2 de noviembre de 2026)
+
+Capturas **del APK Android con las armas reales** confirman que el programa abre, los 3 modelos y texturas están presentes, existen controles táctiles y el contador ADS cambia. Pero NO deben confundirse esos resultados con un comportamiento visual correcto: **todas las armas tienen su cara superior apuntando a las 9 en vez de las 12** (roll de -/+90° pendiente de validación directa con nuevas capturas). En MP5 y AK-47, el ADS también sitúa armas/manos demasiado cerca o cubriendo la cámara.
+
+En `tools/iw3_fps_playground.gd` se introdujo una corrección de orientación en el **nodo común que contiene manos y arma**, no sobre la malla del arma. El sistema mantiene el eje original +X de IW3 como forward y aplica una rotación de -90° alrededor de ese eje antes de proyectarse en la cámara FPS. Matemáticamente, `Basis(Vector3.RIGHT,-PI/2) * Vector3.BACK` da `Vector3.UP`: la parte superior queda a las **12 en punto**, sin mover ni romper el `tag_weapon` entre arma/manos. Se utiliza el mismo cálculo para los tres modelos; no se adivinan tres offsets diferentes.
+
+`tools/godot_iw3_roll_orientation_probe.gd` comprueba con GLB auténticos que +X source sigue al frente de la cámara y que source +Z queda alineado con screen-up tanto en idle como ADS, fire y reload, con error cero en el attachment. **El pase matemático no sustituye el test de orientación visual y tamaño real en el Pixel Fold.** La rotación puede revelar problemas adicionales en el rest-pose / retargeting XANIM y calibración del ADS; esos deben corregirse independientemente.
