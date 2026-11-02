@@ -1,0 +1,55 @@
+name: IW3 weapon audit report (metadata inspection)
+
+on:
+  push:
+    branches: [feature/iw3-arsenal-extraction-audit-20261102]
+    paths:
+      - '.github/workflows/iw3-weapon-report.yml'
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: 'Completed IW3 extract probe workflow run ID'
+        required: true
+        type: string
+        default: '41404142328'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  report-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Download ONLY JSON evidence from earlier run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN: ${{ inputs.source_run_id || '41404142328' }}
+        run: |
+          set -euo pipefail
+          mkdir -p _evidence
+          gh run download "$SOURCE_RUN" --repo "$GITHUB_REPOSITORY" \
+            --name 'iw3-cod4-weapon-probe-metadata' --dir _evidence
+          test -f _evidence/results.json
+      - name: Display precise weapon and skeleton counts (no game binary)
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          data=json.loads(Path('_evidence/results.json').read_text())
+          print('PROBE_SUCCESS:', data.get('probe_success'))
+          for name, zone in data.get('zones',{}).items():
+              index=zone['inventory']
+              print('ZONE:',name)
+              print('LIST_RC:',zone['list']['returncode'],'EXTRACT_RC:',zone['extract']['returncode'])
+              print('FILE_COUNT:',index['file_count'])
+              print('EXTENSIONS:',json.dumps(index['extensions']))
+              print('GLB_COUNT:',index['glb_total'],'GLB_INSPECTED:',index['glb_inspected'])
+              print('SKINS_AMONG_INSPECTED:',index['glb_with_skins'])
+              print('ANIMATIONS_AMONG_INSPECTED:',index['glb_with_animations'])
+              print('GLB_VALIDATION_ERRORS:',len(index['invalid_glb']))
+              for weapon, hits in index['weapon_filename_matches'].items():
+                  print('WEAPON:', weapon,'MATCHES:',len(hits),'EXAMPLES:',json.dumps(hits[:8]))
+          print('VERIFIED_ANIMATED_WEAPONS:',data.get('all_weapon_animations_verified'))
+          PY
