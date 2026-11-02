@@ -2340,7 +2340,7 @@ void __cdecl R_HW_SetRenderTarget(GfxCmdBufState *state, GfxRenderTargetId newTa
                                  gfxRenderTargets[newTargetId].height))
     {
         Com_Error(ERR_FATAL,
-                  "IW3 Android: original R_HW_SetRenderTarget GLES3 binding failed (target %d)\\n",
+                  "IW3 Android: original R_HW_SetRenderTarget GLES3 binding failed (target %d)\n",
                   static_cast<int>(newTargetId));
         return;
     }
@@ -2411,7 +2411,8 @@ void __cdecl R_HW_SetRenderTarget(GfxCmdBufState *state, GfxRenderTargetId newTa
                 } while (alwaysfails);
             }
         } while (alwaysfails);
-    }#endif
+    }
+#endif
 }
 
 void __cdecl R_UpdateStatsTarget(int newTargetId)
