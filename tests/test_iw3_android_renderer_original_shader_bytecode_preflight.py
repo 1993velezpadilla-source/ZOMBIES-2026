@@ -12,6 +12,23 @@ HARNESS = r'''
 #include <cassert>
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
+struct Visits {
+    unsigned count = 0;
+    std::uint32_t offsets[8]{};
+    std::uint16_t opcodes[8]{};
+    bool predicate[8]{};
+    bool reject = false;
+};
+static bool Collect(const IW3AndroidShaderInstruction &ins, void *context) {
+    auto &visits = *static_cast<Visits *>(context);
+    assert(visits.count < 8);
+    visits.offsets[visits.count] = ins.tokenOffset;
+    visits.opcodes[visits.count] = ins.opcode;
+    visits.predicate[visits.count] = ins.predicated;
+    ++visits.count;
+    return !visits.reject;
+}
 int main() {
     // Real D3D9 token framing: MOV has two operands, ADD has three.
     // A COMMENT payload is arbitrary data, including the END bit pattern.
@@ -99,6 +116,36 @@ int main() {
     assert(!R_AndroidInspectD3D9Shader(predDcl, sizeof(predDcl),
                                       IW3AndroidShaderStage::Vertex, &info));
     assert(info.predicatedInstructionCount == 0);
+    // Boundary visitor: complete prevalidation, COMMENT skipped, predication
+    // preserved, explicit callback rejection, and unaligned input safety.
+    Visits visits{};
+    assert(R_AndroidVisitD3D9Shader(vs, sizeof(vs), IW3AndroidShaderStage::Vertex,
+                                   Collect, &visits));
+    assert(visits.count == 1 && visits.offsets[0] == 1 && visits.opcodes[0] == 1);
+    visits = {};
+    assert(R_AndroidVisitD3D9Shader(predAdd, sizeof(predAdd), IW3AndroidShaderStage::Pixel,
+                                   Collect, &visits));
+    assert(visits.count == 1 && visits.opcodes[0] == 2 && visits.predicate[0]);
+    visits = {};
+    assert(!R_AndroidVisitD3D9Shader(truncated, sizeof(truncated), IW3AndroidShaderStage::Vertex,
+                                    Collect, &visits));
+    assert(visits.count == 0);
+    assert(!R_AndroidVisitD3D9Shader(vs, sizeof(vs), IW3AndroidShaderStage::Vertex,
+                                    nullptr, &visits));
+    visits = {};
+    visits.reject = true;
+    assert(!R_AndroidVisitD3D9Shader(vs, sizeof(vs), IW3AndroidShaderStage::Vertex,
+                                    Collect, &visits));
+    assert(visits.count == 1);
+    unsigned char unaligned[sizeof(vs) + 1]{};
+    std::memcpy(unaligned + 1, vs, sizeof(vs));
+    visits = {};
+    assert(R_AndroidVisitD3D9Shader(unaligned + 1, sizeof(vs),
+                                   IW3AndroidShaderStage::Vertex, Collect, &visits));
+    assert(visits.count == 1);
+    assert(!R_AndroidInspectD3D9Shader(vs, sizeof(vs),
+                                      static_cast<IW3AndroidShaderStage>(255), &info));
+    assert(info.dwordCount == 0);
     std::puts("IW3_ORIGINAL_D3D9_SHADER_PREDICATION_PASS_NOT_TRANSLATED");
 }
 '''
