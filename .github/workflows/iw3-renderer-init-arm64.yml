@@ -461,6 +461,35 @@ jobs:
           echo 'IW3_ORIGINAL_VIEWPORT_COMMAND_GLES3_AARCH64_LINKED=true'
           echo 'IW3_RENDERER_FRAME_PROVEN=false'
           echo 'IW3_PLAYABLE_APK=false'
+      - name: Relocatable-link original IW3 command consumers with GLES3 providers (NOT GAME)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          root="$GITHUB_WORKSPACE/third_party/KisakCOD/src/gfx_d3d"
+          "$ndk/aarch64-linux-android26-clang++" -std=c++20 -O2 -c \
+            "$root/r_android_clear.cpp" -o "$RUNNER_TEMP/iw3-android-clear-aarch64.o"
+          "$ndk/aarch64-linux-android26-clang++" -std=c++20 -O2 -c \
+            "$root/r_android_viewport.cpp" -o "$RUNNER_TEMP/iw3-android-viewport-aarch64.o"
+          combined="$RUNNER_TEMP/iw3-original-four-tu-gles3-commands-aarch64.o"
+          "$ndk/ld.lld" -r -o "$combined" \
+            "$RUNNER_TEMP/iw3-original-four-tu-gles3-fence-aarch64.o" \
+            "$RUNNER_TEMP/iw3-android-clear-aarch64.o" \
+            "$RUNNER_TEMP/iw3-android-viewport-aarch64.o"
+          "$ndk/llvm-readelf" -h "$combined" | grep -E 'Class:|Machine:'
+          "$ndk/llvm-nm" -C --defined-only "$combined" | grep -F 'RB_ClearScreenCmd('
+          "$ndk/llvm-nm" -C --defined-only "$combined" | grep -F 'RB_SetViewportCmd('
+          "$ndk/llvm-nm" -C -u "$combined" > "$RUNNER_TEMP/iw3-original-four-tu-gles3-commands-undefined.txt"
+          if grep -E 'R_AndroidGles(Clear|SetViewport)|R_AndroidGpuFenceOriginal' \
+            "$RUNNER_TEMP/iw3-original-four-tu-gles3-commands-undefined.txt"; then
+            echo 'IW3_ORIGINAL_RENDER_COMMAND_GLES3_CALLSITES_RESOLVED=false'
+            exit 1
+          fi
+          echo 'IW3_ORIGINAL_RENDER_COMMAND_GLES3_CALLSITES_RESOLVED=true (relocatable only)'
+          echo "IW3_ORIGINAL_RENDERER_REMAINING_UNDEFINED=$(wc -l < "$RUNNER_TEMP/iw3-original-four-tu-gles3-commands-undefined.txt")"
+          echo 'IW3_RENDERER_BACKEND_LINKED=false'
+          echo 'IW3_RENDERER_FRAME_PROVEN=false'
+          echo 'IW3_PLAYABLE_APK=false'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -483,6 +512,8 @@ jobs:
             ${{ runner.temp }}/libiw3-android-gpu-fence-arm64.so
             ${{ runner.temp }}/libiw3-original-clear-gles3-arm64.so
             ${{ runner.temp }}/libiw3-original-viewport-gles3-arm64.so
+            ${{ runner.temp }}/iw3-original-four-tu-gles3-commands-aarch64.o
+            ${{ runner.temp }}/iw3-original-four-tu-gles3-commands-undefined.txt
             ${{ runner.temp }}/iw3-original-four-tu-gles3-fence-aarch64.o
             ${{ runner.temp }}/iw3-original-four-tu-gles3-undefined.txt
           if-no-files-found: ignore
