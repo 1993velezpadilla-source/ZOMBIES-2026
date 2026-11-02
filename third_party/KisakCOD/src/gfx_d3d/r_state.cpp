@@ -19,6 +19,7 @@
 #include "r_android_blend.h"
 #include "r_android_depth_state.h"
 #include "r_android_stencil_state.h"
+#include "r_android_sampler_state.h"
 #endif
 
 //float const *const shadowmapClearColor 820ebb50     gfx_d3d : r_state.obj
@@ -1961,6 +1962,18 @@ uint32_t __cdecl R_HW_SetSamplerState(
     uint32_t samplerState,
     uint32_t oldSamplerState)
 {
+#if defined(__ANDROID__)
+    (void)device;
+    uint32_t appliedState = oldSamplerState;
+    if (!R_AndroidGlesSetSamplerState(samplerIndex, samplerState,
+                                      oldSamplerState, &appliedState))
+    {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android: original sampler state cannot be represented by GLES3 (unit %u)", samplerIndex);
+        return oldSamplerState;
+    }
+    return appliedState;
+#else
     const char *v4; // eax
     const char *v5; // eax
     const char *v6; // eax
@@ -2159,6 +2172,7 @@ uint32_t __cdecl R_HW_SetSamplerState(
         }
     }
     return finalSamplerState;
+#endif
 }
 
 uint32_t __cdecl R_DecodeSamplerState(uint8_t samplerState)
