@@ -1068,8 +1068,6 @@ void __cdecl R_HW_SetCullFace(IDirect3DDevice9 *device, __int16 stateBits0)
             } while (alwaysfails);
         }
     } while (alwaysfails);
-}
-
 #endif
 }
 
