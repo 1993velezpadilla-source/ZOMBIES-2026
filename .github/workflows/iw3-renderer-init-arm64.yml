@@ -63,6 +63,8 @@ on:
       - 'tests/test_iw3_android_renderer_original_indexed_draw_gles3.py'
       - 'tests/test_iw3_android_renderer_hw_viewport_depth_gles3.py'
       - 'third_party/KisakCOD/src/gfx_d3d/r_state.cpp'
+      - 'third_party/KisakCOD/src/gfx_d3d/r_buffers.cpp'
+      - 'third_party/KisakCOD/src/gfx_d3d/r_buffers.h'
       - 'tests/test_iw3_android_renderer_original_target_gles3.py'
       - 'tests/test_iw3_android_renderer_original_viewport_gles3.py'
       - 'tests/test_iw3_android_renderer_original_clear_gles3.py'
@@ -805,6 +807,41 @@ jobs:
           fi
           echo 'IW3_RENDERER_FRAME_PROVEN=false'
           echo 'IW3_PLAYABLE_APK=false'
+      - name: Probe original IW3 buffer allocator for ARM64 (NOT GAME)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          root="$GITHUB_WORKSPACE/third_party/KisakCOD/src"
+          report="$RUNNER_TEMP/iw3-original-r-buffers-arm64-report.txt"
+          obj="$RUNNER_TEMP/iw3-original-r-buffers-aarch64.o"
+          set +e
+          "$ndk/aarch64-linux-android26-clang++" \
+            -std=c++20 -DKISAK_SP=1 -DKISAK_OPENAL=1 \
+            -DIW3_ANDROID_DISABLE_SCRIPT_DEBUGGER=1 \
+            -DIW3_ANDROID_COMMON_HEADER_ONLY_OPENAL=1 \
+            -fms-extensions -UNDEBUG -O2 -fsigned-char -frounding-math -fno-fast-math \
+            -ferror-limit=20 \
+            -I "$GITHUB_WORKSPACE/android/iw3-native/common_compat" \
+            -I "$GITHUB_WORKSPACE/android/iw3-native" \
+            -I "$root" -I "$GITHUB_WORKSPACE/third_party/KisakCOD/deps" \
+            -I "$RUNNER_TEMP/iw3-openal-headers" \
+            -c "$root/gfx_d3d/r_buffers.cpp" -o "$obj" >"$report" 2>&1
+          rc=$?
+          set -e
+          if [ "$rc" -eq 0 ]; then
+            echo 'IW3_ORIGINAL_R_BUFFERS_AARCH64_COMPILED=true' | tee -a "$report"
+            "$ndk/llvm-readelf" -h "$obj" | grep -E 'Class:|Machine:' | tee -a "$report"
+            "$ndk/llvm-nm" -C --defined-only "$obj" | grep -F 'R_AllocStaticVertexBuffer(' | tee -a "$report"
+          else
+            echo "IW3_ORIGINAL_R_BUFFERS_AARCH64_COMPILED=false (compiler_exit=$rc)" | tee -a "$report"
+            sed -n '1,100p' "$report"
+          fi
+          echo 'IW3_ORIGINAL_BUFFER_ALLOCATOR_GLES3_WIRED=false'
+          echo 'IW3_RENDERER_FRAME_PROVEN=false'
+          echo 'IW3_PLAYABLE_APK=false'
+          # Diagnostic only until the genuine allocator and resource lifetime
+          # are ported. Do not fail unrelated renderer regressions.
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -834,6 +871,8 @@ jobs:
             ${{ runner.temp }}/libiw3-original-depth-gles3-arm64.so
             ${{ runner.temp }}/libiw3-original-sampler-gles3-arm64.so
             ${{ runner.temp }}/libiw3-original-texture-unbind-gles3-arm64.so
+            ${{ runner.temp }}/iw3-original-r-buffers-arm64-report.txt
+            ${{ runner.temp }}/iw3-original-r-buffers-aarch64.o
             ${{ runner.temp }}/iw3-original-r-state-arm64-report.txt
             ${{ runner.temp }}/iw3-original-r-state-aarch64.o
             ${{ runner.temp }}/iw3-original-r-state-plus-target-aarch64.o
