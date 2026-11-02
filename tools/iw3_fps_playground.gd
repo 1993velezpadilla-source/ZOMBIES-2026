@@ -10,11 +10,13 @@ extends Node3D
 
 const GunController = preload("res://fps_controller.gd")
 const ARM_SCALE: float = 0.0254 # hypothesis IW3 inch -> Godot metre
-# Phone screenshots (2026-11-02): gun top is at screen 9 o'clock.
-# A -90 degree roll around the weapon's ORIGINAL +X forward axis maps its
-# exported +Z 'top' to +Y upright. Rotate the WHOLE viewmodel (hands+gun),
-# not weapon_root alone, to preserve original tag_weapon attachment alignment.
-const VIEWMODEL_ROLL_RADIANS: float = -PI / 2.0
+# Actual Pixel Fold comparison (2026-11-02):
+#   unrolled: weapons' mesh top points to 9 o'clock;
+#   previous -90 deg: mesh top points to 6 o'clock (user screenshots);
+#   corrected +90 deg: original mesh top (-Z, NOT +Z) maps to camera +Y.
+# Rotate the WHOLE first-person rig, NOT the weapon alone, so tag_weapon and
+# hands retain their original shared hierarchy. Android visual retest required.
+const VIEWMODEL_ROLL_RADIANS: float = PI / 2.0
 const GUNS: Array[String] = ["m4", "ak47", "mp5"]
 const MAG_CAPACITY: int = 30
 
@@ -362,7 +364,7 @@ func equip(index: int) -> bool:
     controller.name = name + "_FPS"
     # Source IW3 uses +X forward, while Godot camera sees -Z as forward.
     # Camera is already yawed -90 degrees to face world +X. The +90 yaw here
-    # cancels that transform; then apply -90 roll in SOURCE +X space.
+    # cancels that transform; then apply +90 roll in SOURCE +X space.
     # Put roll on the combined hands+gun container; rolling ONLY the gun
     # would break its skeleton's attachment to the original hand rig.
     var source_to_camera: Basis = Basis(Vector3.UP, PI / 2.0) * \
