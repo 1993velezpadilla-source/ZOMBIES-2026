@@ -1,0 +1,148 @@
+name: ZOMBIES FPS Android SAFE playable APK (no COD4 assets)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/iw3-arsenal-extraction-audit-20261102
+    paths:
+      - '.github/workflows/iw3-android-safe-apk.yml'
+      - 'tools/iw3_fps_android_safe.gd'
+      - 'tools/iw3_fps_android_safe.tscn'
+      - 'tools/iw3_fps_playground.gd'
+      - 'tools/iw3_fps_weapon_mount.gd'
+      - 'tools/iw3_fps_weapon_controller.gd'
+      - 'tools/iw3_make_android_safe_project.py'
+      - 'tools/godot_iw3_android_safe_probe.gd'
+      - 'tools/godot_iw3_config_android.gd'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zombies-fps-android-safe-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GODOT_VERSION: '4.6.3-stable'
+  GODOT_BIN: Godot_v4.6.3-stable_linux.x86_64
+  GODOT_EDITOR_URL: https://github.com/godotengine/godot/releases/download/4.6.3-stable/Godot_v4.6.3-stable_linux.x86_64.zip
+  GODOT_TEMPLATES_URL: https://github.com/godotengine/godot/releases/download/4.6.3-stable/Godot_v4.6.3-stable_export_templates.tpz
+
+jobs:
+  source-and-godot-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 13
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Assemble public-safe source with original procedural shapes
+        run: |
+          set -euo pipefail
+          python3 -m py_compile tools/iw3_make_android_safe_project.py
+          python3 tools/iw3_make_android_safe_project.py --output _safe_android_fps
+          cp tools/godot_iw3_android_safe_probe.gd _safe_android_fps/safe_probe.gd
+          cp tools/godot_iw3_config_android.gd _safe_android_fps/config_android.gd
+          test "$(find _safe_android_fps -type f -name '*.glb' | wc -l)" -eq 0
+          test "$(find _safe_android_fps -type f -name '*.iwd' | wc -l)" -eq 0
+      - name: Download official Godot editor and parse real safe scene
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 -o /tmp/godot.zip "$GODOT_EDITOR_URL"
+          unzip -q /tmp/godot.zip -d /tmp/
+          chmod +x "/tmp/$GODOT_BIN"
+          "/tmp/$GODOT_BIN" --version
+          "/tmp/$GODOT_BIN" --headless --editor --path _safe_android_fps --import
+      - name: Exercise real FPS movement/touch/ADS/combat/geometry without IP
+        run: |
+          set -euo pipefail
+          "/tmp/$GODOT_BIN" --headless --path _safe_android_fps --script res://safe_probe.gd
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          report=json.loads(Path('_safe_android_fps/android-safe-gate.json').read_text())
+          assert report['all'] and report['procedural_only'], report
+          assert not report['android_device_tested']
+          print('SAFE_LAB_SCENE_TEST_GREEN: all mandatory physics/touch/combat checks passed')
+          PY
+
+  build-safe-android-arm64-apk:
+    needs: source-and-godot-smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 105
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Install pinned Android SDK tools for Godot 4.6
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager --install 'platform-tools' 'build-tools;35.0.1' 'platforms;android-35' 'cmdline-tools;latest' 'ndk;28.1.13356709'
+          test -x "$ANDROID_HOME/platform-tools/adb"
+          test -x "$ANDROID_HOME/build-tools/35.0.1/aapt"
+      - name: Create redistributable FPS source (NO Activision assets)
+        run: |
+          set -euo pipefail
+          python3 tools/iw3_make_android_safe_project.py --output _safe_android_fps
+          cp tools/godot_iw3_config_android.gd _safe_android_fps/config_android.gd
+          mkdir -p _safe_android_fps/build
+      - name: Fetch official matching editor + Android templates
+        run: |
+          set -euo pipefail
+          mkdir -p _godot_editor
+          curl -fL --retry 3 -o /tmp/godot-linux.zip "$GODOT_EDITOR_URL"
+          unzip -q /tmp/godot-linux.zip -d _godot_editor
+          chmod +x "_godot_editor/$GODOT_BIN"
+          "_godot_editor/$GODOT_BIN" --version
+          curl -fL --retry 3 -o /tmp/godot-templates.tpz "$GODOT_TEMPLATES_URL"
+          mkdir -p "$HOME/.local/share/godot/export_templates/4.6.3.stable"
+          unzip -p /tmp/godot-templates.tpz templates/android_debug.apk > "$HOME/.local/share/godot/export_templates/4.6.3.stable/android_debug.apk"
+          unzip -p /tmp/godot-templates.tpz templates/android_release.apk > "$HOME/.local/share/godot/export_templates/4.6.3.stable/android_release.apk"
+          test -s "$HOME/.local/share/godot/export_templates/4.6.3.stable/android_debug.apk"
+          echo '4.6.3.stable' > "$HOME/.local/share/godot/export_templates/4.6.3.stable/version.txt"
+          rm -f /tmp/godot-templates.tpz
+      - name: Install temporary test-only debug signing key
+        run: |
+          set -euo pipefail
+          keytool -genkeypair -v -keystore "$RUNNER_TEMP/zombies-test-debug.keystore" \
+            -storepass android -keypass android -alias androiddebugkey \
+            -keyalg RSA -keysize 2048 -validity 2500 -dname 'CN=ZOMBIES SAFE LAB DEV,O=Private Local Test,C=US'
+      - name: Configure Godot editor and export ARM64 debug APK
+        env:
+          GODOT_ANDROID_KEYSTORE_DEBUG_USER: androiddebugkey
+          GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: android
+        run: |
+          set -euo pipefail
+          export GODOT_ANDROID_KEYSTORE_DEBUG_PATH="$RUNNER_TEMP/zombies-test-debug.keystore"
+          "_godot_editor/$GODOT_BIN" --headless --editor --path _safe_android_fps --import
+          "_godot_editor/$GODOT_BIN" --headless --editor --path _safe_android_fps --script res://config_android.gd
+          "_godot_editor/$GODOT_BIN" --headless --path _safe_android_fps \
+            --export-debug 'Android' build/ZOMBIES_FPS_LAB_SAFE_ARM64.apk
+          test -s _safe_android_fps/build/ZOMBIES_FPS_LAB_SAFE_ARM64.apk
+      - name: Audit APK binary and ensure source contains zero COD4 assets
+        run: |
+          set -euo pipefail
+          APK=_safe_android_fps/build/ZOMBIES_FPS_LAB_SAFE_ARM64.apk
+          unzip -tq "$APK"
+          unzip -Z1 "$APK" > /tmp/zombies-safe-apk-entries.txt
+          if grep -Ei '\.(glb|iwi|iwd|dds|xanim|ff)(\.|$)|C4-Mocs|viewmodel_.*\.glb' /tmp/zombies-safe-apk-entries.txt; then
+            echo 'Unsafe asset type detected in Android artifact'
+            exit 2
+          fi
+          "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging "$APK" | head -15
+          echo 'No original COD4 content included, no gun-model downloads at runtime.'
+          sha256sum "$APK"
+          du -h "$APK"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ZOMBIES_FPS_LAB_SAFE_ANDROID_ARM64_DEBUG_APK
+          path: _safe_android_fps/build/ZOMBIES_FPS_LAB_SAFE_ARM64.apk
+          retention-days: 14
+          if-no-files-found: error
