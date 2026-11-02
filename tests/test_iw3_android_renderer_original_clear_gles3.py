@@ -179,6 +179,19 @@ int main() {
 class OriginalClearGles3(unittest.TestCase):
     def test_original_command_wired_and_gles_state_restored(self):
         self.assertTrue(SRC.exists())
+        # Both original IW3 clear entry points must route to the SAME GLES3
+        # provider. The direct path must not assert a D3D9 device on Android,
+        # while Windows must retain the original device->Clear operation.
+        original = (SRC.parent / "r_state.cpp").read_text()
+        self.assertIn('#include "r_android_clear.h"', original)
+        direct = original.split("void __cdecl R_ClearScreenInternal(", 1)[1].split(
+            "\\nvoid __cdecl R_ClearScreen(", 1)[0]
+        self.assertIn("#if defined(__ANDROID__)", direct)
+        self.assertIn("viewport || !R_AndroidGlesClear(whichToClear, color, depth, stencil)", direct)
+        self.assertIn('Com_Error(ERR_FATAL, "IW3 Android: original R_ClearScreenInternal GLES3 clear failed")', direct)
+        self.assertIn("return;\\n#else\\n    iassert( device );", direct)
+        self.assertIn("hr = device->Clear(0, 0, whichToClear, nativeColor.packed, depth, stencil);", direct)
+        self.assertIn("#endif\\n}", direct)
         backend = BACKEND.read_text()
         self.assertIn("R_AndroidGlesClear(cmd->whichToClear, cmd->color", backend)
         self.assertIn('Com_Error(ERR_FATAL, "IW3 Android: original clear command GLES3 failed")', backend)
