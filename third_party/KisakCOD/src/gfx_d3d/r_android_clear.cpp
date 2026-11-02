@@ -19,10 +19,18 @@ bool R_AndroidGlesClear(uint8_t whichToClear, const float color[4],
         if (!std::isfinite(color[i]))
             return false;
 
-    // D3D9 Clear(0, nullptr, ...) clears the entire bound render target.
-    // GLES glClear is affected by scissor/write masks: preserve the existing
-    // IW3 state while temporarily enabling only the requested attachments.
+    // D3D9 Clear(0, nullptr, ...) clears the CURRENT VIEWPORT, not the
+    // whole render target. GLES glClear ignores glViewport and uses scissor
+    // instead. Restrict this clear to the active GL viewport and restore the
+    // original scissor box/enable state so split-screen and offscreen targets
+    // are not accidentally wiped outside their IW3 viewport.
     const GLboolean scissor = glIsEnabled(GL_SCISSOR_TEST);
+    GLint oldScissorBox[4] = {0, 0, 0, 0};
+    GLint viewport[4] = {0, 0, 0, 0};
+    glGetIntegerv(GL_SCISSOR_BOX, oldScissorBox);
+    glGetIntegerv(GL_VIEWPORT, viewport);
+    if (viewport[2] <= 0 || viewport[3] <= 0)
+        return false;
     GLboolean colorMask[4] = {GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE};
     GLboolean depthMask = GL_TRUE;
     GLint stencilFrontMask = -1, stencilBackMask = -1;
@@ -58,11 +66,13 @@ bool R_AndroidGlesClear(uint8_t whichToClear, const float color[4],
         bits |= GL_STENCIL_BUFFER_BIT;
     }
 
-    if (scissor)
-        glDisable(GL_SCISSOR_TEST);
+    glEnable(GL_SCISSOR_TEST);
+    glScissor(viewport[0], viewport[1], viewport[2], viewport[3]);
     glClear(bits);
-    if (scissor)
-        glEnable(GL_SCISSOR_TEST);
+    glScissor(oldScissorBox[0], oldScissorBox[1],
+              oldScissorBox[2], oldScissorBox[3]);
+    if (!scissor)
+        glDisable(GL_SCISSOR_TEST);
 
     if (whichToClear & 1)
     {
