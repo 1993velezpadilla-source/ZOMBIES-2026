@@ -14,6 +14,7 @@ on:
       - 'tools/iw3_gltf_animation_bridge.py'
       - 'tools/iw3_build_animated_previews.py'
       - 'tools/iw3_stage_weapon_textures.py'
+      - 'tools/iw3_png_materials.py'
       - 'tools/godot_iw3_import_probe.gd'
       - 'tools/godot_iw3_pose_probe.gd'
       - 'tests/test_iw3_weapon_probe.py'
@@ -116,6 +117,15 @@ jobs:
           python3 tools/iw3_stage_weapon_textures.py _iw3_private "$PWD/_oat/ImageConverter" _iw3_reports/texture-gate.json
           rm -rf _release_assets
 
+      - name: Convert DDS to portable PNG and repoint private animated GLBs
+        run: |
+          set -euo pipefail
+          python3 -m pip install --disable-pip-version-check --quiet --target _iw3_private/python_deps Pillow==12.0.0
+          PYTHONPATH="$PWD/_iw3_private/python_deps" python3 tools/iw3_png_materials.py \
+            _iw3_private/godot_sandbox/images \
+            _iw3_private/animated_preview \
+            _iw3_reports/png-materials.json
+
       - name: Install official Godot 4.6.3 and import 3 temporary animated GLBs
         run: |
           set -euo pipefail
@@ -162,6 +172,7 @@ jobs:
             _iw3_reports/animated-glb-gate.json
             _iw3_reports/godot-import-gate.json
             _iw3_reports/godot-pose-gate.json
+            _iw3_reports/png-materials.json
             _iw3_reports/texture-gate.json
           retention-days: 14
           if-no-files-found: warn
