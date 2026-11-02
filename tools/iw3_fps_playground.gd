@@ -10,6 +10,11 @@ extends Node3D
 
 const GunController = preload("res://fps_controller.gd")
 const ARM_SCALE: float = 0.0254 # hypothesis IW3 inch -> Godot metre
+# Phone screenshots (2026-11-02): gun top is at screen 9 o'clock.
+# A -90 degree roll around the weapon's ORIGINAL +X forward axis maps its
+# exported +Z 'top' to +Y upright. Rotate the WHOLE viewmodel (hands+gun),
+# not weapon_root alone, to preserve original tag_weapon attachment alignment.
+const VIEWMODEL_ROLL_RADIANS: float = -PI / 2.0
 const GUNS: Array[String] = ["m4", "ak47", "mp5"]
 const MAG_CAPACITY: int = 30
 
@@ -355,9 +360,14 @@ func equip(index: int) -> bool:
         return false
     controller = GunController.new()
     controller.name = name + "_FPS"
-    controller.scale = Vector3.ONE * ARM_SCALE
-    # Rotate source +X into Godot camera -Z without per-weapon XYZ edits.
-    controller.rotation.y = PI / 2.0
+    # Source IW3 uses +X forward, while Godot camera sees -Z as forward.
+    # Camera is already yawed -90 degrees to face world +X. The +90 yaw here
+    # cancels that transform; then apply -90 roll in SOURCE +X space.
+    # Put roll on the combined hands+gun container; rolling ONLY the gun
+    # would break its skeleton's attachment to the original hand rig.
+    var source_to_camera: Basis = Basis(Vector3.UP, PI / 2.0) * \
+        Basis(Vector3.RIGHT, VIEWMODEL_ROLL_RADIANS)
+    controller.transform = Transform3D(source_to_camera.scaled(Vector3.ONE * ARM_SCALE), Vector3.ZERO)
     camera.add_child(controller)
     controller.set_process(false)
     if not controller.configure(camera, hand_scene as PackedScene, gun_scene as PackedScene):
@@ -452,4 +462,5 @@ func metrics() -> Dictionary:
         "yaw": yaw_degrees, "pitch": pitch_degrees, "joystick_vector": [touch_move_vector.x, touch_move_vector.y],
         "touch_controls": button_instances.size(),
         "reload_pending": reload_pending,
-        "weapon_status": controller.status() if gun_ready else {}}
+        "weapon_status": controller.status() if gun_ready else {},
+        "viewmodel_roll_degrees": rad_to_deg(VIEWMODEL_ROLL_RADIANS)}
