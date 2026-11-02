@@ -76,7 +76,12 @@ func _test_one(path: String) -> Dictionary:
     var player: AnimationPlayer = players[0]
     var rig: Skeleton3D = rigs[0]
     var bones: int = rig.get_bone_count()
-    var output := {"success": true, "bone_count": bones, "actions": {}}
+    var target_root: Node = player.get_node_or_null(player.root_node)
+    var output := {"success": true, "bone_count": bones, "actions": {},
+                  "animation_player_root_path": str(player.root_node),
+                  "animation_player_root_resolves": target_root != null,
+                  "animation_player_node_path": str(node.get_path_to(player)),
+                  "skeleton_node_path": str(node.get_path_to(rig))}
     var rest_snapshot: Dictionary = _snapshot(rig)
     if rest_snapshot.has("error"):
         node.queue_free()
@@ -106,7 +111,17 @@ func _test_one(path: String) -> Dictionary:
                 samples.append({"fraction": fraction, "error": pose})
             else:
                 samples.append({"fraction": fraction, "relative_to_import_rest": _measure(rest_snapshot, pose)})
-        output["actions"][action] = {"duration_seconds": snappedf(length, 0.00001),
+        var track_paths: Array[String] = []
+        var track_valid: int = 0
+        for track_idx in range(clip.get_track_count()):
+            var path_to_target: NodePath = clip.track_get_path(track_idx)
+            if track_idx < 7:
+                track_paths.append(str(path_to_target))
+            if target_root != null and target_root.get_node_or_null(path_to_target.get_concatenated_names()) != null:
+                track_valid += 1
+        output["actions"][action] = {"track_path_samples": track_paths,
+                                     "track_node_resolution_count": track_valid,
+                                     "duration_seconds": snappedf(length, 0.00001),
                                      "sampled": samples,
                                      "track_count": clip.get_track_count()}
     player.stop()
