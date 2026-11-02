@@ -9,9 +9,12 @@ on:
       - 'tools/iw3_weapon_probe.py'
       - 'tools/iw3_arsenal_detail.py'
       - 'tools/iw3_anim_rig_gate.py'
+      - 'tools/iw3_xanim_v17.py'
+      - 'tools/iw3_anim_correlation.py'
       - 'tests/test_iw3_weapon_probe.py'
       - 'tests/test_iw3_arsenal_detail.py'
       - 'tests/test_iw3_anim_rig_gate.py'
+      - 'tests/test_iw3_xanim_decoder.py'
       - 'docs/audit/IW3_WEAPON_ARSENAL_GATE.md'
   workflow_dispatch:
 
@@ -37,6 +40,7 @@ jobs:
           python3 -m unittest discover -s tests -p 'test_iw3_weapon_probe.py' -v
           python3 -m unittest discover -s tests -p 'test_iw3_arsenal_detail.py' -v
           python3 -m unittest discover -s tests -p 'test_iw3_anim_rig_gate.py' -v
+          python3 -m unittest discover -s tests -p 'test_iw3_xanim_decoder.py' -v
 
   real-archive-smoke:
     needs: unit-tests
@@ -92,6 +96,7 @@ jobs:
           python3 tools/iw3_weapon_probe.py probe --unlinker "$UNLINKER"
           python3 tools/iw3_arsenal_detail.py _iw3_private/dumps _iw3_reports/arsenal-detail.json
           python3 tools/iw3_anim_rig_gate.py _iw3_private/dumps _iw3_reports/animation-gate.json
+          python3 tools/iw3_anim_correlation.py _iw3_private/dumps _iw3_reports/bone-correlation.json
 
       - name: Archive ONLY metadata and safe audit results (no extracted game files)
         if: always()
@@ -103,6 +108,7 @@ jobs:
             _iw3_reports/results.json
             _iw3_reports/arsenal-detail.json
             _iw3_reports/animation-gate.json
+            _iw3_reports/bone-correlation.json
           retention-days: 14
           if-no-files-found: warn
 
