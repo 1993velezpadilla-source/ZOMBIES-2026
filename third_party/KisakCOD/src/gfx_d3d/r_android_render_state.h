@@ -5,4 +5,6 @@
 #include <cstdint>
 bool R_AndroidGlesSetAlphaTestEnable(uint16_t originalStateBits0);
 bool R_AndroidGlesSetColorMask(uint32_t originalStateBits0);
+bool R_AndroidGlesSetCullFace(uint16_t originalStateBits0);
+bool R_AndroidGlesSetPolygonMode(uint32_t originalStateBits0);
 #endif

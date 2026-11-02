@@ -49,4 +49,58 @@ bool R_AndroidGlesSetColorMask(uint32_t originalStateBits0)
     (void)glGetError();
     return false;
 }
+
+bool R_AndroidGlesSetCullFace(uint16_t originalStateBits0)
+{
+    // Authentic GFXS0_CULL_* values from r_state.h.
+    const uint16_t mode = originalStateBits0 & 0xC000u;
+    if (mode != 0x4000u && mode != 0x8000u && mode != 0xC000u)
+        return false;
+    if (!HasCurrentContextAndNoError())
+        return false;
+
+    const GLboolean previousEnabled = glIsEnabled(GL_CULL_FACE);
+    GLint previousFront = 0;
+    GLint previousCull = 0;
+    glGetIntegerv(GL_FRONT_FACE, &previousFront);
+    glGetIntegerv(GL_CULL_FACE_MODE, &previousCull);
+    if (glGetError() != GL_NO_ERROR)
+        return false;
+
+    // D3D9 considers clockwise triangles front-facing; its
+    // D3DCULL_CCW is IW3 BACK and D3DCULL_CW is IW3 FRONT.
+    // GLES3 defaults to CCW front-facing, so set the winding explicitly.
+    glFrontFace(GL_CW);
+    if (mode == 0x4000u)
+    {
+        glDisable(GL_CULL_FACE);
+    }
+    else
+    {
+        glCullFace(mode == 0x8000u ? GL_BACK : GL_FRONT);
+        glEnable(GL_CULL_FACE);
+    }
+    if (glGetError() == GL_NO_ERROR)
+        return true;
+
+    // Do not leak partially applied culling into later original draws.
+    glFrontFace(static_cast<GLenum>(previousFront));
+    glCullFace(static_cast<GLenum>(previousCull));
+    if (previousEnabled)
+        glEnable(GL_CULL_FACE);
+    else
+        glDisable(GL_CULL_FACE);
+    (void)glGetError();
+    return false;
+}
+
+bool R_AndroidGlesSetPolygonMode(uint32_t originalStateBits0)
+{
+    if (!HasCurrentContextAndNoError())
+        return false;
+    // GFXS0_POLYMODE_LINE: GLES3 lacks fixed-function wireframe.
+    // Solid needs no state change; reject line mode until an authentic
+    // mesh-edge rendering path exists.
+    return (originalStateBits0 & 0x80000000u) == 0;
+}
 #endif

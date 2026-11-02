@@ -1027,6 +1027,16 @@ void __cdecl R_HW_SetColorMask(IDirect3DDevice9 *device, uint32_t stateBits0)
 
 void __cdecl R_HW_SetCullFace(IDirect3DDevice9 *device, __int16 stateBits0)
 {
+#if defined(__ANDROID__)
+    // IW3 D3DCULL_CCW (BACK) and D3DCULL_CW (FRONT) are translated
+    // using D3D9's clockwise-front winding, not GL's CCW default.
+    (void)device;
+    if (!R_AndroidGlesSetCullFace(static_cast<uint16_t>(stateBits0)))
+    {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android: original cull mode GLES3 translation failed");
+    }
+#else
     const char *v2; // eax
     int hr; // [esp+0h] [ebp-4h]
 
@@ -1060,8 +1070,20 @@ void __cdecl R_HW_SetCullFace(IDirect3DDevice9 *device, __int16 stateBits0)
     } while (alwaysfails);
 }
 
+#endif
+}
+
 void __cdecl R_HW_SetPolygonMode(IDirect3DDevice9 *device, signed int stateBits0)
 {
+#if defined(__ANDROID__)
+    // GLES3 has no glPolygonMode; never silently treat IW3 wireframe as solid.
+    (void)device;
+    if (!R_AndroidGlesSetPolygonMode(static_cast<uint32_t>(stateBits0)))
+    {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android: original wireframe polygon mode requires an explicit GLES3 implementation");
+    }
+#else
     const char *v2; // eax
     int hr; // [esp+0h] [ebp-4h]
 
@@ -1088,6 +1110,7 @@ void __cdecl R_HW_SetPolygonMode(IDirect3DDevice9 *device, signed int stateBits0
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl R_HW_DisableBlend(IDirect3DDevice9 *device)
