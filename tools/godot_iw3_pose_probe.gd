@@ -117,7 +117,7 @@ func _test_one(path: String) -> Dictionary:
             var path_to_target: NodePath = clip.track_get_path(track_idx)
             if track_idx < 7:
                 track_paths.append(str(path_to_target))
-            if target_root != null and target_root.get_node_or_null(path_to_target.get_concatenated_names()) != null:
+            if target_root != null and target_root.get_node_or_null(NodePath(str(path_to_target).split(":")[0])) != null:
                 track_valid += 1
         output["actions"][action] = {"track_path_samples": track_paths,
                                      "track_node_resolution_count": track_valid,
