@@ -40,6 +40,8 @@ using GLbitfield = unsigned int;
 #define GL_COLOR_CLEAR_VALUE 6
 #define GL_DEPTH_CLEAR_VALUE 7
 #define GL_STENCIL_CLEAR_VALUE 8
+#define GL_VIEWPORT 11
+#define GL_SCISSOR_BOX 12
 #define GL_FRONT 9
 #define GL_BACK 10
 #define GL_COLOR_BUFFER_BIT 0x4000
@@ -58,6 +60,7 @@ void glClearStencil(GLint);
 void glDisable(GLenum);
 void glEnable(GLenum);
 void glClear(GLbitfield);
+void glScissor(GLint, GLint, GLint, GLint);
 GLenum glGetError();
 """
 
@@ -72,6 +75,8 @@ static GLboolean colorMask[4]={1,0,1,0}, depthMask=0;
 static GLint frontMask=0x1, backMask=0x2, clearStencil=9;
 static GLfloat clearColor[4]={0.2f,0.3f,0.4f,0.5f}, clearDepth=0.25f;
 static GLbitfield lastBits=0;
+static GLint viewport[4]={4,6,80,60};
+static GLint scissorBox[4]={12,14,22,24};
 static int clearCalls=0;
 static GLenum glError=GL_NO_ERROR;
 EGLDisplay eglGetCurrentDisplay() { return hasContext ? (void*)0x11 : EGL_NO_DISPLAY; }
@@ -86,7 +91,11 @@ void glGetFloatv(GLenum x, GLfloat *out) {
     else { assert(x==GL_DEPTH_CLEAR_VALUE); *out=clearDepth; }
 }
 void glGetIntegerv(GLenum x, GLint *out) {
-    if(x==GL_STENCIL_WRITEMASK) *out=frontMask;
+    if(x==GL_VIEWPORT || x==GL_SCISSOR_BOX) {
+        const GLint *src=(x==GL_VIEWPORT)?viewport:scissorBox;
+        for(int i=0;i<4;++i) out[i]=src[i];
+    }
+    else if(x==GL_STENCIL_WRITEMASK) *out=frontMask;
     else if(x==GL_STENCIL_BACK_WRITEMASK) *out=backMask;
     else { assert(x==GL_STENCIL_CLEAR_VALUE); *out=clearStencil; }
 }
@@ -105,8 +114,12 @@ void glClearDepthf(GLfloat a) { clearDepth=a; }
 void glClearStencil(GLint a) { clearStencil=a; }
 void glDisable(GLenum x) { assert(x==GL_SCISSOR_TEST); scissor=false; }
 void glEnable(GLenum x) { assert(x==GL_SCISSOR_TEST); scissor=true; }
+void glScissor(GLint x,GLint y,GLint w,GLint h) {
+    scissorBox[0]=x;scissorBox[1]=y;scissorBox[2]=w;scissorBox[3]=h;
+}
 void glClear(GLbitfield bits) {
-    assert(!scissor);
+    assert(scissor);
+    for(int i=0;i<4;++i) assert(scissorBox[i]==viewport[i]);
     if(bits&GL_COLOR_BUFFER_BIT) for(int i=0;i<4;++i) assert(colorMask[i]==1);
     if(bits&GL_DEPTH_BUFFER_BIT) assert(depthMask==1);
     if(bits&GL_STENCIL_BUFFER_BIT) assert(frontMask==-1 && backMask==-1);
@@ -135,15 +148,30 @@ int main() {
         assert(lastBits==expected);
         assert(scissor && colorMask[0]==1 && colorMask[1]==0
                && colorMask[2]==1 && colorMask[3]==0);
+        assert(scissorBox[0]==12 && scissorBox[1]==14
+               && scissorBox[2]==22 && scissorBox[3]==24);
         assert(depthMask==0 && frontMask==1 && backMask==2);
         assert(clearStencil==9 && clearDepth==0.25f);
         assert(clearColor[0]==0.2f && clearColor[3]==0.5f);
     }
     assert(clearCalls==7);
-    glError=0x0502;
+    // An initially disabled scissor must be restored, including its box.
+    scissor=false;
+    viewport[0]=3;viewport[1]=5;viewport[2]=40;viewport[3]=30;
+    assert(R_AndroidGlesClear(1,color,0.5f,2));
+    assert(!scissor && scissorBox[0]==12 && scissorBox[1]==14
+           && scissorBox[2]==22 && scissorBox[3]==24);
+    // Never issue glClear for an invalid zero-sized viewport.
+    viewport[2]=0;
     assert(!R_AndroidGlesClear(1,color,0.5f,2));
     assert(clearCalls==8);
+    viewport[2]=40;
+    scissor=true;
+    glError=0x0502;
+    assert(!R_AndroidGlesClear(1,color,0.5f,2));
+    assert(clearCalls==9);
     assert(scissor && colorMask[1]==0);
+    assert(scissorBox[0]==12 && scissorBox[2]==22);
     std::puts("IW3_ORIGINAL_CLEAR_GLES3_HOST_SANITIZER_PASS_NOT_FRAME");
 }
 """
