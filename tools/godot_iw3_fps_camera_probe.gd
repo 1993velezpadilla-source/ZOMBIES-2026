@@ -108,11 +108,16 @@ func _apply_camera(camera: Camera3D, hypothesis: String, reference: Transform3D)
             camera.look_at(reference.origin + Vector3.RIGHT, WORLD_UP)
 
 func _point_projection(camera: Camera3D, point: Vector3, viewport: SubViewport) -> Dictionary:
+    var camera_space: Vector3 = camera.global_transform.affine_inverse() * point
+    if absf(camera_space.z) < 0.00001:
+        return {"projection_valid": false, "behind": true,
+            "in_frustum": false, "screen": null, "center_offset": null,
+            "reason": "point lies on camera image plane"}
     var behind: bool = camera.is_position_behind(point)
     var projection: Vector2 = camera.unproject_position(point)
     var dims: Vector2 = Vector2(viewport.size)
     var center_delta: Vector2 = (projection - dims * 0.5) / dims
-    return {"behind": behind, "in_frustum": camera.is_position_in_frustum(point),
+    return {"projection_valid": true, "behind": behind, "in_frustum": camera.is_position_in_frustum(point),
        "screen": [snappedf(projection.x, 0.001), snappedf(projection.y, 0.001)],
        "center_offset": [snappedf(center_delta.x, 0.0001), snappedf(center_delta.y, 0.0001)],
        "camera_distance_m": snappedf(camera.global_position.distance_to(point), 0.0001)}
