@@ -10,10 +10,13 @@ struct IW3AndroidShaderEnvelope {
     std::uint8_t major;
     std::uint8_t minor;
     std::uint32_t dwordCount;
+    std::uint32_t instructionCount;
+    std::uint32_t commentCount;
 };
 // programSize is the serialized Gfx*ShaderLoadDef byte length, not a token count.
-// Validates the D3D9 shader version envelope and terminal END token only;
-// does NOT validate all instruction opcodes, register semantics, or translation.
+// Walks bounded D3D9 SM2/SM3 instruction lengths and COMMENT payloads, requiring
+// a terminal END at an instruction boundary. This is structural validation,
+// NOT opcode/register/semantic verification and NOT GLSL translation.
 bool R_AndroidInspectD3D9Shader(const void *program, std::size_t programBytes,
                                IW3AndroidShaderStage stage,
                                IW3AndroidShaderEnvelope *out);
