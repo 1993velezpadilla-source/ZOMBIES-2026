@@ -98,4 +98,27 @@ bool R_AndroidVisitD3D9Declarations(const void *program, std::size_t programByte
                                     IW3AndroidShaderDeclarationVisitor visitor,
                                     void *user);
 
+
+// Unified, ORDERED subset IR for genuine D3D9 DCL/MOV/ADD/NOP streams.
+// Existing declaration-only and arithmetic-only visitors deliberately reject
+// each other's instructions; neither can consume an ordinary mixed shader.
+// This API reuses both semantic decoders, prevalidates the entire mixed stream,
+// then publishes DCL and arithmetic records in original token order.
+// It does NOT generate GLSL, create GPU programs, or execute a shader.
+enum class IW3AndroidShaderDecodedKind : std::uint8_t { Declaration, Arithmetic };
+struct IW3AndroidShaderDecodedInstruction {
+    IW3AndroidShaderDecodedKind kind;
+    std::uint32_t tokenOffset;
+    IW3AndroidShaderDeclaration declaration;
+    IW3AndroidShaderArithmetic arithmetic;
+};
+using IW3AndroidShaderDecodedVisitor =
+    bool (*)(const IW3AndroidShaderDecodedInstruction &, void *);
+// No callbacks on malformed or unsupported bytecode; an explicit callback
+// rejection can stop a partially delivered (otherwise valid) stream.
+bool R_AndroidVisitD3D9DecodedShader(const void *program, std::size_t programBytes,
+                                     IW3AndroidShaderStage stage,
+                                     IW3AndroidShaderDecodedVisitor visitor,
+                                     void *user);
+
 #endif
