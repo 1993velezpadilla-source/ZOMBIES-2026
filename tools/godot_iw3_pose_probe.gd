@@ -119,7 +119,7 @@ func _initialize() -> void:
         output["guns"][gun] = {}
         for kind in ["weapon", "hands"]:
             var suffix: String = "_animated_experimental.glb" if kind == "weapon" else "_hands_animated_experimental.glb"
-            var path := "res://weapons/" + gun + suffix
+            var path: String = "res://weapons/" + str(gun) + suffix
             var result := _test_one(path)
             output["guns"][gun][kind] = result
             if not result.get("success", false):
