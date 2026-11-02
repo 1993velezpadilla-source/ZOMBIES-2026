@@ -18,6 +18,8 @@ on:
       - 'tools/iw3_keyframe_variation.py'
       - 'tools/godot_iw3_import_probe.gd'
       - 'tools/godot_iw3_pose_probe.gd'
+      - 'tools/iw3_fps_weapon_mount.gd'
+      - 'tools/godot_iw3_mount_probe.gd'
       - 'tests/test_iw3_weapon_probe.py'
       - 'tests/test_iw3_arsenal_detail.py'
       - 'tests/test_iw3_anim_rig_gate.py'
@@ -136,6 +138,8 @@ jobs:
           cp _iw3_private/animated_preview/*_animated_experimental.glb _iw3_private/godot_sandbox/weapons/
           cp tools/godot_iw3_import_probe.gd _iw3_private/godot_sandbox/import_probe.gd
           cp tools/godot_iw3_pose_probe.gd _iw3_private/godot_sandbox/pose_probe.gd
+          cp tools/iw3_fps_weapon_mount.gd _iw3_private/godot_sandbox/weapon_mount.gd
+          cp tools/godot_iw3_mount_probe.gd _iw3_private/godot_sandbox/mount_probe.gd
           cat > _iw3_private/godot_sandbox/project.godot <<'INI'
           config_version=5
           [application]
@@ -159,6 +163,9 @@ jobs:
           "$BIN" --headless --path _iw3_private/godot_sandbox \
             --script res://pose_probe.gd
           cp _iw3_private/godot_sandbox/godot-pose-gate.json _iw3_reports/godot-pose-gate.json
+          "$BIN" --headless --path _iw3_private/godot_sandbox \
+            --script res://mount_probe.gd
+          cp _iw3_private/godot_sandbox/godot-mount-gate.json _iw3_reports/godot-mount-gate.json
 
       - name: Archive ONLY metadata and safe audit results (no extracted game files)
         if: always()
@@ -174,6 +181,7 @@ jobs:
             _iw3_reports/animated-glb-gate.json
             _iw3_reports/godot-import-gate.json
             _iw3_reports/godot-pose-gate.json
+            _iw3_reports/godot-mount-gate.json
             _iw3_reports/png-materials.json
             _iw3_reports/texture-gate.json
           retention-days: 14
