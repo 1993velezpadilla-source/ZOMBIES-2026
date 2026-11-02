@@ -12,3 +12,9 @@ _oat/
 *.glb
 *.gltf
 *.dds
+
+# Generated Android builds and transient Godot editor/import data.
+_safe_android_fps/
+*.apk
+*.aab
+.godot/
