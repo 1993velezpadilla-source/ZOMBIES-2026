@@ -10,6 +10,7 @@ from pathlib import Path
 import re
 import sys
 from iw3_gltf_animation_bridge import attach, read_glb
+from iw3_anim_correlation import read_nodes
 from iw3_xanim_v17 import load_xanim
 from iw3_weapon_probe import atomic_json
 
@@ -30,20 +31,42 @@ def run(root:Path, destination:Path):
     for gun,pat in GUNS.items():
         models=[p for p in all_glbs if pat.match(p.stem)]
         anims=[p for p in all_anims if pat.match(p.name)]
-        picked={}
-        for action,rx in ACTIONS.items():
-            possibles=[a for a in anims if rx.search(a.name)]
-            if not possibles:
-                continue
-            # Prefer vanilla animations over scoped/silencer variants.
-            possibles.sort(key=lambda p:(len(p.name),p.name))
-            picked[action]=possibles[0]
-        models.sort(key=lambda m:(len(m.name),m.name))
-        rec={"source_models":len(models), "source_anims":len(anims),
-             "found_actions":sorted(picked),"selected_model":models[0].name if models else None}
-        if len(picked)==4 and models:
+        # Score candidate model/animation pairs by *joint overlap*, not by short filename.
+        # A source package can contain first-person variants with different skeletons.
+        scored=[]
+        for model in models:
             try:
-                selected=models[0]
+                joints=read_nodes(model)["joints"]
+            except (ValueError,OSError,KeyError,IndexError):
+                continue
+            if not joints: continue
+            chosen={}
+            overlaps={}
+            for action,rx in ACTIONS.items():
+                compatible=[]
+                for a in anims:
+                    if not rx.search(a.name): continue
+                    try:
+                        x=load_xanim(a)
+                    except (ValueError,OSError): continue
+                    common=len(joints & {bone.name.casefold() for bone in x.bones})
+                    if common:
+                        compatible.append((common,a))
+                if compatible:
+                    compatible.sort(key=lambda row:(-row[0],len(row[1].name),row[1].name))
+                    overlaps[action]=compatible[0][0]
+                    chosen[action]=compatible[0][1]
+            if len(chosen)==4:
+                scored.append((sum(overlaps.values()),min(overlaps.values()),len(joints),model,chosen,overlaps))
+        scored.sort(key=lambda row:(-row[1],-row[0],-row[2],len(row[3].name)))
+        rec={"source_models":len(models),"source_anims":len(anims),
+             "rig_compatible_candidates":len(scored),
+             "found_actions":sorted(scored[0][4]) if scored else [],
+             "selected_model":scored[0][3].name if scored else None,
+             "joint_overlaps_by_action":scored[0][5] if scored else {}}
+        if scored:
+            _,_,_,selected,picked,_=scored[0]
+            try:
                 target=destination/f"{gun}_animated_experimental.glb"
                 result=attach(selected,picked,target)
                 rec["gltf"]=result
