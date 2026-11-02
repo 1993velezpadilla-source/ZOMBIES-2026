@@ -15,6 +15,7 @@
 #include "r_android_indexed_draw.h"
 #include "r_android_vertex_stream.h"
 #include "r_android_initial_state.h"
+#include "r_android_render_state.h"
 #endif
 
 //float const *const shadowmapClearColor 820ebb50     gfx_d3d : r_state.obj
@@ -947,6 +948,17 @@ void __cdecl R_ChangeState_0(GfxCmdBufState *state, uint32_t stateBits0)
 
 void __cdecl R_HW_SetAlphaTestEnable(IDirect3DDevice9 *device, __int16 stateBits0)
 {
+#if defined(__ANDROID__)
+    // GLES3 has no fixed-function alpha test. Reject enabled materials until
+    // the original fragment-shader path supplies equivalent discard logic.
+    (void)device;
+    if (!R_AndroidGlesSetAlphaTestEnable(static_cast<uint16_t>(stateBits0)))
+    {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android: alpha-tested material requires original shader discard port");
+    }
+    return;
+#else
     const char *v2; // eax
     int hr; // [esp+0h] [ebp-4h]
 
@@ -972,10 +984,20 @@ void __cdecl R_HW_SetAlphaTestEnable(IDirect3DDevice9 *device, __int16 stateBits
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl R_HW_SetColorMask(IDirect3DDevice9 *device, uint32_t stateBits0)
 {
+#if defined(__ANDROID__)
+    (void)device;
+    if (!R_AndroidGlesSetColorMask(stateBits0))
+    {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android: original color write mask GLES3 state failed");
+    }
+    return;
+#else
     const char *v2; // eax
     int hr; // [esp+0h] [ebp-8h]
 
@@ -1000,6 +1022,7 @@ void __cdecl R_HW_SetColorMask(IDirect3DDevice9 *device, uint32_t stateBits0)
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl R_HW_SetCullFace(IDirect3DDevice9 *device, __int16 stateBits0)
