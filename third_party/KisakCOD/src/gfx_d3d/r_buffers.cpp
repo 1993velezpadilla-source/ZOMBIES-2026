@@ -182,16 +182,8 @@ void __cdecl Load_VertexBuffer(IDirect3DVertexBuffer9 **vb, uint8_t *bufferData,
     }
     else
     {
-#if defined(__ANDROID__)
-    if (!R_AndroidUnlockBufferHandle(vb)) {
-        ++g_disableRendering;
-        Com_Error(ERR_FATAL, "Android GLES3 static vertex upload failed");
-    }
-#else
         *vb = 0;
-    
-#endif
-}
+    }
 }
 
 void __cdecl R_InitDynamicVertexBufferState(GfxVertexBufferState *vb, int bytes)
@@ -380,6 +372,12 @@ void __cdecl R_CreateParticleCloudBuffer()
 
 void __cdecl R_FinishStaticVertexBuffer(IDirect3DVertexBuffer9 *vb)
 {
+#if defined(__ANDROID__)
+    if (!R_AndroidUnlockBufferHandle(vb)) {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "Android GLES3 static vertex upload failed");
+    }
+#else
     const char *v1; // eax
     int hr; // [esp+0h] [ebp-4h]
 
@@ -399,6 +397,8 @@ void __cdecl R_FinishStaticVertexBuffer(IDirect3DVertexBuffer9 *vb)
             } while (alwaysfails);
         }
     } while (alwaysfails);
+
+#endif
 }
 
 void __cdecl R_UnlockVertexBuffer(IDirect3DVertexBuffer9* handle)
