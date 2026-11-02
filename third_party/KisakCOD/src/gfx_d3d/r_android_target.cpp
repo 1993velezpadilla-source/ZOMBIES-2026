@@ -16,6 +16,8 @@ struct Target {
 Target targets[kTargetCount] = {};
 EGLDisplay ownerDisplay = EGL_NO_DISPLAY;
 EGLContext ownerContext = EGL_NO_CONTEXT;
+int boundWidth = 0;
+int boundHeight = 0;
 
 bool CurrentContext()
 {
@@ -120,6 +122,18 @@ bool R_AndroidGlesBindTarget(int id, int width, int height)
         glGetError();
         return false;
     }
+    boundWidth = width;
+    boundHeight = height;
+    return true;
+}
+
+bool R_AndroidGlesGetBoundTargetDimensions(int *width, int *height)
+{
+    if (!width || !height || !CurrentContext()
+        || boundWidth <= 0 || boundHeight <= 0)
+        return false;
+    *width = boundWidth;
+    *height = boundHeight;
     return true;
 }
 
@@ -141,6 +155,8 @@ bool R_AndroidGlesReleaseTargets()
     }
     if (glGetError() != GL_NO_ERROR)
         return false;
+    boundWidth = 0;
+    boundHeight = 0;
     ownerDisplay = EGL_NO_DISPLAY;
     ownerContext = EGL_NO_CONTEXT;
     return true;
