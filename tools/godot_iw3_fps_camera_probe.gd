@@ -176,9 +176,11 @@ func _run() -> void:
                 values["weapon_pivot"] = _point_projection(camera, rig.weapon_root.global_position, viewport)
                 values["tag_camera_stationary"] = camera.global_position.distance_to(eye.origin) < 0.000001
                 values["attachment_position_error_m"] = rig.anchor_error()["anchor_position_error"]
-                for tag in ["tag_flash", "tag_aim", "tag_scope", "tag_sight", "tag_brass", "tag_clip"]:
+                for tag in ["tag_flash", "tag_aim", "tag_scope", "tag_sight", "tag_iron_sight", "tag_reflex_sight", "tag_acog", "tag_brass", "tag_clip"]:
                     if rig.weapon_skeleton.find_bone(tag) >= 0:
                         values[tag] = _point_projection(camera, _bone_pose(rig.weapon_skeleton, tag).origin, viewport)
+                if rig.hands_skeleton.find_bone("tag_ads") >= 0:
+                    values["hands_tag_ads"] = _point_projection(camera, _bone_pose(rig.hands_skeleton, "tag_ads").origin, viewport)
                 actions[action] = values
             info["candidate_views"][hypothesis] = actions
         report["guns"][gun] = info
