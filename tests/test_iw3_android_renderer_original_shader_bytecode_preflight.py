@@ -550,7 +550,7 @@ class OriginalShaderBytecodePreflight(unittest.TestCase):
             run = subprocess.run([str(binary)], capture_output=True, text=True,
                                  env=env, timeout=30)
             self.assertEqual(run.returncode, 0, run.stdout+run.stderr)
-            self.assertIn("IW3_ORIGINAL_D3D9_SHADER_PREDICATION_PASS_NOT_TRANSLATED", run.stdout)
+            self.assertIn("IW3_ORIGINAL_D3D9_SHADER_COLOR0_GLSL_SUBSET_PASS_NOT_GPU", run.stdout)
 
 if __name__ == "__main__":
     unittest.main()
