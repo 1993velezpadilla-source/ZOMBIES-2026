@@ -73,6 +73,9 @@ on:
       - 'third_party/KisakCOD/src/gfx_d3d/r_d3d9_opaque.h'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_vertex_declaration.cpp'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_vertex_declaration.h'
+      - 'third_party/KisakCOD/src/gfx_d3d/r_android_shader_bytecode.cpp'
+      - 'third_party/KisakCOD/src/gfx_d3d/r_android_shader_bytecode.h'
+      - 'tests/test_iw3_android_renderer_original_shader_bytecode_preflight.py'
       - 'tests/test_iw3_android_renderer_original_vertex_declaration_metadata.py'
       - 'third_party/KisakCOD/src/gfx_d3d/r_state.cpp'
       - 'third_party/KisakCOD/src/gfx_d3d/r_buffers.cpp'
@@ -164,6 +167,9 @@ on:
       - 'third_party/KisakCOD/src/gfx_d3d/r_d3d9_opaque.h'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_vertex_declaration.cpp'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_vertex_declaration.h'
+      - 'third_party/KisakCOD/src/gfx_d3d/r_android_shader_bytecode.cpp'
+      - 'third_party/KisakCOD/src/gfx_d3d/r_android_shader_bytecode.h'
+      - 'tests/test_iw3_android_renderer_original_shader_bytecode_preflight.py'
       - 'tests/test_iw3_android_renderer_original_vertex_declaration_metadata.py'
       - 'third_party/KisakCOD/src/gfx_d3d/r_state.cpp'
       - 'tests/test_iw3_android_renderer_original_target_gles3.py'
@@ -943,6 +949,21 @@ jobs:
           echo 'IW3_ORIGINAL_VERTEX_DECL_GLES3_VAO_BOUND=false'
           echo 'IW3_FULL_RENDERER_LINKED=false'
           echo 'IW3_PLAYABLE_APK=false'
+      - name: Link bounded authentic IW3 D3D9 shader bytecode preflight for ARM64 (NOT GLSL)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          gfx="$GITHUB_WORKSPACE/third_party/KisakCOD/src/gfx_d3d"
+          out="$RUNNER_TEMP/libiw3-original-shader-bytecode-preflight-arm64.so"
+          "$ndk/aarch64-linux-android26-clang++" -std=c++20 -D__ANDROID__ -O2 -fPIC -shared \
+            -Wl,--no-undefined "$gfx/r_android_shader_bytecode.cpp" -o "$out"
+          "$ndk/llvm-readelf" -h "$out" | grep -E 'Class:|Machine:'
+          "$ndk/llvm-nm" -C --defined-only "$out" | grep -F 'R_AndroidInspectD3D9Shader('
+          echo 'IW3_ORIGINAL_SHADER_BYTECODE_PREFLIGHT_ARM64_LINKED=true'
+          echo 'IW3_ORIGINAL_SHADER_TRANSLATED_TO_GLES3=false'
+          echo 'IW3_RENDERER_FRAME_PROVEN=false'
+          echo 'IW3_PLAYABLE_APK=false'
       - name: Probe original material and shade translation units for ARM64 (diagnostic only)
         shell: bash
         run: |
@@ -1009,6 +1030,7 @@ jobs:
             ${{ runner.temp }}/iw3-original-r-buffers-plus-gles3-aarch64.o
             ${{ runner.temp }}/iw3-original-r-buffers-plus-gles3-undefined.txt
             ${{ runner.temp }}/libiw3-original-vertex-decl-metadata-arm64.so
+            ${{ runner.temp }}/libiw3-original-shader-bytecode-preflight-arm64.so
             ${{ runner.temp }}/iw3-original-r_material-arm64-report.txt
             ${{ runner.temp }}/iw3-original-rb_shade-arm64-report.txt
             ${{ runner.temp }}/iw3-original-r-state-arm64-report.txt
