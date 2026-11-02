@@ -29,6 +29,10 @@ on:
       - 'tools/iw3_fps_playground.tscn'
       - 'tools/godot_iw3_fps_playground_probe.gd'
       - 'tools/iw3_make_private_godot_lab.py'
+      - 'tools/iw3_private_apk_crypt.py'
+      - 'tools/iw3_private_transfer_public.pem'
+      - 'tools/iw3_make_android_safe_project.py'
+      - 'tools/godot_iw3_config_android.gd'
       - 'tests/test_iw3_weapon_probe.py'
       - 'tests/test_iw3_arsenal_detail.py'
       - 'tests/test_iw3_anim_rig_gate.py'
@@ -205,6 +209,96 @@ jobs:
             --path _iw3_private/godot_sandbox --script res://fps_camera_probe.gd
           cp _iw3_private/godot_sandbox/godot-fps-camera-gate.json _iw3_reports/godot-fps-camera-gate.json
 
+      - name: Set up Java 17 for private Android debug export
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK (no proprietary assets are uploaded)
+        uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools'
+
+      - name: Install Godot 4.6.3 Android export SDK and templates
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager --install 'platform-tools' 'build-tools;35.0.1' 'platforms;android-35' 'cmdline-tools;latest' 'ndk;28.1.13356709'
+          curl --fail --location --retry 3 --output /tmp/iw3-godot-android-templates.tpz \
+            https://github.com/godotengine/godot/releases/download/4.6.3-stable/Godot_v4.6.3-stable_export_templates.tpz
+          mkdir -p "$HOME/.local/share/godot/export_templates/4.6.3.stable"
+          unzip -p /tmp/iw3-godot-android-templates.tpz templates/android_debug.apk > "$HOME/.local/share/godot/export_templates/4.6.3.stable/android_debug.apk"
+          unzip -p /tmp/iw3-godot-android-templates.tpz templates/android_release.apk > "$HOME/.local/share/godot/export_templates/4.6.3.stable/android_release.apk"
+          echo '4.6.3.stable' > "$HOME/.local/share/godot/export_templates/4.6.3.stable/version.txt"
+          test -s "$HOME/.local/share/godot/export_templates/4.6.3.stable/android_debug.apk"
+          rm -f /tmp/iw3-godot-android-templates.tpz
+
+      - name: Create ephemeral debug signing identity and configure Godot
+        run: |
+          set -euo pipefail
+          keytool -genkeypair -keystore "$RUNNER_TEMP/iw3-private-debug.keystore" \
+            -storepass android -keypass android -alias androiddebugkey \
+            -keyalg RSA -keysize 2048 -validity 2500 \
+            -dname 'CN=ZOMBIES IW3 PRIVATE TEST,O=Development,C=US' > /dev/null
+          cp tools/godot_iw3_config_android.gd _iw3_private/fps_lab/config_android.gd
+          BIN="$(find _iw3_private/godot_bin -type f -name 'Godot*' -print -quit)"
+          test -x "$BIN"
+          "$BIN" --headless --editor --path _iw3_private/fps_lab --script res://config_android.gd
+
+      - name: Export private Android ARM64 APK with REAL M4 AK47 MP5 and original hands
+        env:
+          GODOT_ANDROID_KEYSTORE_DEBUG_USER: androiddebugkey
+          GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: android
+        run: |
+          set -euo pipefail
+          export GODOT_ANDROID_KEYSTORE_DEBUG_PATH="$RUNNER_TEMP/iw3-private-debug.keystore"
+          BIN="$(find _iw3_private/godot_bin -type f -name 'Godot*' -print -quit)"
+          test "$(find _iw3_private/fps_lab/weapons -maxdepth 1 -name '*_animated_experimental.glb' | wc -l)" -eq 6
+          test "$(find _iw3_private/fps_lab/images -maxdepth 1 -name '*.png' | wc -l)" -ge 16
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path('_iw3_private/fps_lab')
+          for gun in ['m4','ak47','mp5']:
+              for suffix in ['_animated_experimental.glb','_hands_animated_experimental.glb']:
+                  assert (root/'weapons'/(gun+suffix)).stat().st_size > 500
+          assert (root/'project.godot').exists()
+          assert (root/'export_presets.cfg').exists()
+          print('REAL_IW3_PRIVATE_EXPORT_INPUT: 3 guns + 3 viewhands + 16 textures present')
+          PY
+          "$BIN" --headless --editor --path _iw3_private/fps_lab --import
+          "$BIN" --headless --path _iw3_private/fps_lab \
+            --export-debug 'Android' build/ZOMBIES_IW3_ORIGINAL_ARM64.apk
+          APK=_iw3_private/fps_lab/build/ZOMBIES_IW3_ORIGINAL_ARM64.apk
+          test -s "$APK"
+          unzip -tq "$APK"
+          "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging "$APK" | head -10
+          echo 'PRIVATE_IW3_ARM64_APK_BUILT=1'
+          sha256sum "$APK"
+
+      - name: Seal original gun APK with recipient-only AES-GCM before artifact upload
+        run: |
+          set -euo pipefail
+          python3 -m pip install --disable-pip-version-check --quiet --target _iw3_private/cryptodeps cryptography==46.0.3
+          mkdir -p _iw3_secure_handoff
+          PYTHONPATH="$PWD/_iw3_private/cryptodeps" python3 tools/iw3_private_apk_crypt.py seal \
+            _iw3_private/fps_lab/build/ZOMBIES_IW3_ORIGINAL_ARM64.apk \
+            _iw3_secure_handoff/ZOMBIES_IW3_ORIGINAL_ARM64.iw3sealed \
+            tools/iw3_private_transfer_public.pem
+          test -s _iw3_secure_handoff/ZOMBIES_IW3_ORIGINAL_ARM64.iw3sealed
+          # The plaintext file must NOT appear in any public artifact.
+          rm -f _iw3_private/fps_lab/build/ZOMBIES_IW3_ORIGINAL_ARM64.apk
+          echo 'ONLY ENCRYPTED CONTENT IS ELIGIBLE FOR UPLOAD'
+
+      - name: Upload encrypted private APK only (no original game data publicly readable)
+        uses: actions/upload-artifact@v4
+        with:
+          name: IW3_OWNER_ONLY_AES256GCM_ARMORED_APK
+          path: _iw3_secure_handoff/ZOMBIES_IW3_ORIGINAL_ARM64.iw3sealed
+          compression-level: 0
+          retention-days: 2
+          if-no-files-found: error
+
       - name: Archive ONLY metadata and safe audit results (no extracted game files)
         if: always()
         uses: actions/upload-artifact@v4
@@ -233,5 +327,5 @@ jobs:
       - name: Destroy all temporary game files and tool binaries
         if: always()
         run: |
-          rm -rf _release_assets _iw3_private _oat
+          rm -rf _release_assets _iw3_private _oat _iw3_secure_handoff
           echo 'Game archive and extracted weapon assets not committed or uploaded.'
