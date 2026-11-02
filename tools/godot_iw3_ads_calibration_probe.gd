@@ -91,13 +91,10 @@ func _run() -> void:
                 var position_before: Vector3 = _at(rig.weapon_skeleton, tag)
                 var screen_before: Array = _offset(camera, position_before, viewport)
                 var in_front: bool = not camera.is_position_behind(position_before)
-                var local: Vector3 = camera.global_transform.affine_inverse() * position_before
-                var displacement: Vector3 = camera.global_transform.basis * Vector3(-local.x, -local.y, 0.0)
                 var blend: float = float(progress) if action == "ads" else 0.0
-                rig.global_position += displacement * blend
-                rig.hands_skeleton.force_update_all_bone_transforms()
-                rig.weapon_skeleton.force_update_all_bone_transforms()
-                rig.mount.on_skeleton_update()
+                var calibration: Dictionary = rig.apply_procedural_ads_alignment(camera, blend)
+                if not calibration.get("success", false):
+                    report["all_numerical_offsets_solving"] = false
                 var position_after: Vector3 = _at(rig.weapon_skeleton, tag)
                 var screen_after: Array = _offset(camera, position_after, viewport)
                 var anchor_error: Dictionary = rig.anchor_error()
@@ -105,7 +102,8 @@ func _run() -> void:
                     "progress": progress, "time": snappedf(time, 0.00001),
                     "before": screen_before, "after": screen_after,
                     "in_front": in_front,
-                    "moved_m": snappedf((displacement * blend).length(), 0.00001),
+                    "moved_m": calibration.get("translation_m", -1.0),
+                    "calibration_success": calibration.get("success", false),
                     "anchor_error": anchor_error["anchor_position_error"],
                     "camera_unchanged": camera.global_position.distance_to(eye) < 0.000001}
                 if action == "ads" and progress >= 0.9:
