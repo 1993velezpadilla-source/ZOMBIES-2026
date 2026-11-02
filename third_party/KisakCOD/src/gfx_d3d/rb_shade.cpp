@@ -7,6 +7,9 @@
 #include "r_shade.h"
 #include "r_state.h"
 #include "r_draw_bsp.h"
+#if defined(__ANDROID__)
+#include "r_android_vertex_declaration.h"
+#endif
 #include <universal/profile.h>
 
 
@@ -24,6 +27,16 @@ void __cdecl R_SetVertexDecl(GfxCmdBufPrimState *primState, const MaterialVertex
 
     if (primState->vertexDecl != v3)
     {
+#if defined(__ANDROID__)
+        // Select authentic declaration metadata only. GLES3 VAO attribute
+        // routing and shader binding are separate, still-unfinished gates.
+        if (!R_AndroidSelectVertexDeclaration(v3)) {
+            ++g_disableRendering;
+            Com_Error(ERR_FATAL, "Android original vertex declaration is unregistered");
+            return;
+        }
+        primState->vertexDecl = v3;
+#else
         PROF_SCOPED("RB_SetVertexDeclaration");
         device = primState->device;
         iassert(device);
@@ -47,6 +60,7 @@ void __cdecl R_SetVertexDecl(GfxCmdBufPrimState *primState, const MaterialVertex
             }
         } while (alwaysfails);
         primState->vertexDecl = v3;
+#endif
     }
 }
 
