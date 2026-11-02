@@ -1,0 +1,62 @@
+name: IW3 fixed first-person camera audit (metadata only)
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: 'Source private-render audit run'
+        required: true
+        type: string
+        default: '41456707471'
+  push:
+    branches: [feature/iw3-arsenal-extraction-audit-20261102]
+    paths: ['.github/workflows/iw3-fps-camera-report.yml']
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  summary-no-assets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Download only numeric camera metadata, never COD4 imagery
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN: ${{ inputs.source_run_id || '41456707471' }}
+        run: |
+          set -euo pipefail
+          mkdir -p _reports
+          gh run download "$SOURCE_RUN" --repo "$GITHUB_REPOSITORY" \
+            --name iw3-cod4-weapon-probe-metadata --dir _reports
+          test -f _reports/godot-fps-camera-gate.json
+      - name: Quantify fixed tag_camera hypotheses (no auto-approval)
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('_reports/godot-fps-camera-gate.json').read_text())
+          print('ENGINE',r['engine'],'RENDERER',r['renderer'])
+          print('VISUAL_APPROVAL',r['visual_approval'])
+          for gun,item in r['guns'].items():
+              print('GUN',gun,'TAG_CAMERA',item.get('camera_tag_found'),
+                    'WEAPON_TAGS',item.get('weapon_tags'),
+                    'HAND_TAGS',item.get('hand_tags'))
+              views=item.get('candidate_views',{})
+              for axis,actions in views.items():
+                  print('AXIS',gun,axis,
+                        'HIP',actions['idle']['fraction'],
+                        'ADS',actions['ads']['fraction'],
+                        'FIRE',actions['fire']['fraction'],
+                        'RELOAD',actions['reload']['fraction'],
+                        'PIVOT_ADS',actions['ads']['weapon_pivot']['center_offset'],
+                        'PIVOT_BEHIND',actions['ads']['weapon_pivot']['behind'],
+                        'FIXED_EYE',actions['ads']['tag_camera_stationary'])
+                  for tag in ('tag_aim','tag_sight','tag_scope','tag_flash'):
+                      if tag in actions['ads']:
+                          print('ADS_TAG',gun,axis,tag,
+                                'OFFSET',actions['ads'][tag]['center_offset'],
+                                'BEHIND',actions['ads'][tag]['behind'],
+                                'VISIBLE',actions['ads'][tag]['in_frustum'])
+              print('WARNING',gun,'no anatomical, iron-sight or distribution approval')
+          PY
