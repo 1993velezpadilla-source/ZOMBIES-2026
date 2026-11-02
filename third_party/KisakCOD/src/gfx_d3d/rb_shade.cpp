@@ -73,6 +73,17 @@ void __cdecl RB_ClearPixelShader()
 
 void __cdecl R_HW_SetPixelShader(IDirect3DDevice9 *device, const MaterialPixelShader *mtlShader)
 {
+#if defined(__ANDROID__)
+    // No D3D9 COM device exists on Android. A non-null original shader
+    // requires authentic bytecode translation and GLES program linkage.
+    // Reject it instead of silently drawing with an unrelated shader.
+    (void)device;
+    if (mtlShader) {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android shader binding requires translated GLES3 program");
+    }
+    return;
+#else
     int v2; // eax
     HRESULT hr; // [esp+4h] [ebp-4h]
 
@@ -105,6 +116,7 @@ void __cdecl R_HW_SetPixelShader(IDirect3DDevice9 *device, const MaterialPixelSh
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl RB_ClearVertexShader()
@@ -116,6 +128,17 @@ void __cdecl RB_ClearVertexShader()
 
 void __cdecl R_HW_SetVertexShader(IDirect3DDevice9 *device, const MaterialVertexShader *mtlShader)
 {
+#if defined(__ANDROID__)
+    // No D3D9 COM device exists on Android. A non-null original shader
+    // requires authentic bytecode translation and GLES program linkage.
+    // Reject it instead of silently drawing with an unrelated shader.
+    (void)device;
+    if (mtlShader) {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android shader binding requires translated GLES3 program");
+    }
+    return;
+#else
     int v2; // eax
     HRESULT hr; // [esp+4h] [ebp-4h]
 
@@ -147,6 +170,7 @@ void __cdecl R_HW_SetVertexShader(IDirect3DDevice9 *device, const MaterialVertex
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl RB_ClearVertexDecl()
