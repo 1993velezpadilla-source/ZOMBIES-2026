@@ -213,6 +213,7 @@ namespace {
 struct DeclarationWalk {
     const unsigned char *bytes;
     IW3AndroidShaderStage stage;
+    std::uint8_t shaderMajor;
     IW3AndroidShaderDeclarationVisitor visitor;
     void *user;
     bool validateOnly;
@@ -245,6 +246,9 @@ bool WalkDeclarations(const IW3AndroidShaderInstruction &ins, void *context)
     decoded.samplerTextureType =
         static_cast<std::uint8_t>((declaration >> 27) & 15u);
     if (decoded.sampler) {
+        // Vertex texture fetch and sampler declarations require VS 3.0.
+        if (state.stage == IW3AndroidShaderStage::Vertex && state.shaderMajor < 3)
+            return false;
         // D3D9 DCL sampler declaration carries a D3DSTT texture class,
         // not a vertex semantic. Only defined D3D9 texture classes.
         if ((declaration & ~0x78000000u) != 0
@@ -259,7 +263,7 @@ bool WalkDeclarations(const IW3AndroidShaderInstruction &ins, void *context)
             (state.stage == IW3AndroidShaderStage::Vertex
                 && (reg.type == 1 || reg.type == 6))
             || (state.stage == IW3AndroidShaderStage::Pixel
-                && (reg.type == 1 || reg.type == 3));
+                && (reg.type == 1 || (reg.type == 3 && state.shaderMajor == 2)));
         if (!registerClassAllowed || decoded.usage > 13
             || (declaration & ~0x000F000Fu) != 0)
             return false;
@@ -273,11 +277,14 @@ bool R_AndroidVisitD3D9Declarations(const void *program, std::size_t programByte
                                     IW3AndroidShaderDeclarationVisitor visitor,
                                     void *user)
 {
-    if (!visitor) return false;
+    IW3AndroidShaderEnvelope envelope{};
+    if (!visitor || !R_AndroidInspectD3D9Shader(program, programBytes,
+                                               stage, &envelope))
+        return false;
     // Prevalidate the whole original token stream and every DCL before
     // publishing any declaration, even if a later declaration is invalid.
     DeclarationWalk state{static_cast<const unsigned char *>(program),
-                          stage, visitor, user, true};
+                          stage, envelope.major, visitor, user, true};
     if (!R_AndroidVisitD3D9Shader(program, programBytes, stage,
                                  WalkDeclarations, &state))
         return false;
