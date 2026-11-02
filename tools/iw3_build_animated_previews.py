@@ -75,9 +75,25 @@ def run(root:Path, destination:Path):
                     len(a["channels"])>0 for a in doc["animations"])
                 rec["output_size_bytes"]=target.stat().st_size
                 rec["base_image_uris"]=len(doc.get("images",[]))
+                # Apply the *same four original animations* to the associated
+                # first-person viewhands rig, preserving shared timing.
+                hands=source/"model_export"/"viewmodel_base_viewhands_lod0.glb"
+                if hands.is_file():
+                    try:
+                        hand_target=destination/f"{gun}_hands_animated_experimental.glb"
+                        hand_result=attach(hands,picked,hand_target)
+                        hand_doc,_=read_glb(hand_target)
+                        rec["hands"]=hand_result
+                        rec["hand_glb_valid"]=len(hand_doc.get("animations",[]))>=4
+                    except (ValueError,OSError,KeyError) as hands_exc:
+                        rec["hand_error"]=str(hands_exc)[:300]
+                else:
+                    rec["hand_error"]="First-person viewhands source GLB absent."
             except (ValueError, OSError, KeyError) as err:
                 rec["error"]=str(err)[:300]
         report["guns"][gun]=rec
+    report["hand_structural_proof_count"]=sum(x.get("hand_glb_valid",False)
+                                               for x in report["guns"].values())
     report["structural_proof_count"]=sum(x.get("glb_import_ready_structure",False)
                                           for x in report["guns"].values())
     return report
@@ -90,8 +106,10 @@ if __name__=="__main__":
     r=run(src,out)
     atomic_json(dest,r)
     print(json.dumps({"structural_proof_count":r["structural_proof_count"],
+                      "hands_proof_count":r["hand_structural_proof_count"],
                       "guns":{g:{"actions":o["found_actions"],"model":o["selected_model"],
                                  "ready":o.get("glb_import_ready_structure",False),
                                  "channels":{k:v["channels"] for k,v in o.get("gltf",{}).get("tracks",{}).items()},
-                                 "error":o.get("error")}
+                                 "hands":o.get("hand_glb_valid",False),
+                                 "hand_error":o.get("hand_error"),"error":o.get("error")}
                               for g,o in r["guns"].items()}}))
