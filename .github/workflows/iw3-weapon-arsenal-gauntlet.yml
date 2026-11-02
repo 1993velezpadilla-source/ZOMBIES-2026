@@ -144,7 +144,7 @@ jobs:
           "$BIN" --headless --path _iw3_private/godot_sandbox \
             --script res://import_probe.gd
           cp _iw3_private/godot_sandbox/godot-import-gate.json _iw3_reports/godot-import-gate.json
-          "$BIN" --headless --path _iw3_private/godot_sandbox \\
+          "$BIN" --headless --path _iw3_private/godot_sandbox \
             --script res://pose_probe.gd
           cp _iw3_private/godot_sandbox/godot-pose-gate.json _iw3_reports/godot-pose-gate.json
 
