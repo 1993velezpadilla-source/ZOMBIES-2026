@@ -16,6 +16,7 @@
 #include "r_android_vertex_stream.h"
 #include "r_android_initial_state.h"
 #include "r_android_render_state.h"
+#include "r_android_blend.h"
 #endif
 
 //float const *const shadowmapClearColor 820ebb50     gfx_d3d : r_state.obj
@@ -1113,6 +1114,15 @@ void __cdecl R_HW_SetPolygonMode(IDirect3DDevice9 *device, signed int stateBits0
 
 void __cdecl R_HW_DisableBlend(IDirect3DDevice9 *device)
 {
+#if defined(__ANDROID__)
+    (void)device;
+    if (!R_AndroidGlesDisableBlend())
+    {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android: original blend disable GLES3 translation failed");
+    }
+    return;
+#else
     const char *v1; // eax
     int hr; // [esp+0h] [ebp-4h]
 
@@ -1135,6 +1145,7 @@ void __cdecl R_HW_DisableBlend(IDirect3DDevice9 *device)
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl R_HW_SetBlend(
@@ -1143,6 +1154,19 @@ void __cdecl R_HW_SetBlend(
     uint32_t changedBits,
     uint32_t stateBits0)
 {
+#if defined(__ANDROID__)
+    (void)device;
+    (void)blendWasEnabled;
+    (void)changedBits;
+    // R_ChangeState_0 has already normalized alpha state bits to RGB
+    // where the original material omitted a separate alpha equation.
+    if (!R_AndroidGlesSetBlend(stateBits0))
+    {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android: original RGB/alpha blend GLES3 translation failed");
+    }
+    return;
+#else
     const char *v4; // eax
     const char *v5; // eax
     const char *v6; // eax
@@ -1330,6 +1354,7 @@ void __cdecl R_HW_SetBlend(
             }
         } while (alwaysfails);
     }
+#endif
 }
 
 void __cdecl R_SetAlphaTestFunction(GfxCmdBufState *state, __int16 stateBits0)
