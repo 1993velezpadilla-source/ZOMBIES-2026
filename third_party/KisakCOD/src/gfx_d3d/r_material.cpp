@@ -295,7 +295,6 @@ void __cdecl Load_CreateMaterialPixelShader(GfxPixelShaderLoadDef *loadDef, Mate
     iassert( loadDef == &mtlShader->prog.loadDef );
     if (r_loadForRenderer->current.enabled && loadDef->loadForRenderer == r_rendererInUse->current.integer)
     {
-        ProfLoad_Begin("Create pixel shader");
 #if defined(__ANDROID__)
         // Original asset contains D3D9 bytecode, NOT GLSL. Never hand it to
         // GLES or silently replace it with an unrelated synthetic shader.
@@ -312,9 +311,10 @@ void __cdecl Load_CreateMaterialPixelShader(GfxPixelShaderLoadDef *loadDef, Mate
         Com_Error(ERR_FATAL, "IW3 Android shader bytecode needs GLES3 translation (pixel)");
         return;
 #else
+        ProfLoad_Begin("Create pixel shader");
         dx.device->CreatePixelShader((DWORD*)loadDef->program, (IDirect3DPixelShader9 **)&mtlShader->prog);
-#endif
         ProfLoad_End();
+#endif
     }
     else
     {
@@ -327,7 +327,6 @@ void __cdecl Load_CreateMaterialVertexShader(GfxVertexShaderLoadDef *loadDef, Ma
     iassert( loadDef == &mtlShader->prog.loadDef );
     if (r_loadForRenderer->current.enabled && loadDef->loadForRenderer == r_rendererInUse->current.integer)
     {
-        ProfLoad_Begin("Create vertex shader");
 #if defined(__ANDROID__)
         mtlShader->prog.vs = nullptr;
         IW3AndroidShaderEnvelope envelope{};
@@ -342,9 +341,10 @@ void __cdecl Load_CreateMaterialVertexShader(GfxVertexShaderLoadDef *loadDef, Ma
         Com_Error(ERR_FATAL, "IW3 Android shader bytecode needs GLES3 translation (vertex)");
         return;
 #else
+        ProfLoad_Begin("Create vertex shader");
         dx.device->CreateVertexShader((DWORD*)loadDef->program, (IDirect3DVertexShader9 **)&mtlShader->prog);
-#endif
         ProfLoad_End();
+#endif
     }
     else
     {
