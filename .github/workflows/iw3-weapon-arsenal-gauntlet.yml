@@ -8,8 +8,10 @@ on:
       - '.github/workflows/iw3-weapon-arsenal-gauntlet.yml'
       - 'tools/iw3_weapon_probe.py'
       - 'tools/iw3_arsenal_detail.py'
+      - 'tools/iw3_anim_rig_gate.py'
       - 'tests/test_iw3_weapon_probe.py'
       - 'tests/test_iw3_arsenal_detail.py'
+      - 'tests/test_iw3_anim_rig_gate.py'
       - 'docs/audit/IW3_WEAPON_ARSENAL_GATE.md'
   workflow_dispatch:
 
@@ -34,6 +36,7 @@ jobs:
           python3 -m py_compile tools/iw3_weapon_probe.py tools/iw3_arsenal_detail.py tests/test_iw3_weapon_probe.py tests/test_iw3_arsenal_detail.py
           python3 -m unittest discover -s tests -p 'test_iw3_weapon_probe.py' -v
           python3 -m unittest discover -s tests -p 'test_iw3_arsenal_detail.py' -v
+          python3 -m unittest discover -s tests -p 'test_iw3_anim_rig_gate.py' -v
 
   real-archive-smoke:
     needs: unit-tests
@@ -88,6 +91,7 @@ jobs:
           set -euo pipefail
           python3 tools/iw3_weapon_probe.py probe --unlinker "$UNLINKER"
           python3 tools/iw3_arsenal_detail.py _iw3_private/dumps _iw3_reports/arsenal-detail.json
+          python3 tools/iw3_anim_rig_gate.py _iw3_private/dumps _iw3_reports/animation-gate.json
 
       - name: Archive ONLY metadata and safe audit results (no extracted game files)
         if: always()
@@ -98,6 +102,7 @@ jobs:
             _iw3_reports/staging.json
             _iw3_reports/results.json
             _iw3_reports/arsenal-detail.json
+            _iw3_reports/animation-gate.json
           retention-days: 14
           if-no-files-found: warn
 
