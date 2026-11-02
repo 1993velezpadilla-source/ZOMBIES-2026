@@ -19,14 +19,27 @@ EGLDisplay eglGetCurrentDisplay();
 EGLContext eglGetCurrentContext();
 """
 GLES = """#pragma once
-using GLenum=unsigned int; using GLboolean=unsigned char;
+using GLenum=unsigned int; using GLboolean=unsigned char; using GLint=int;
 #define GL_NO_ERROR 0
 #define GL_FALSE 0
 #define GL_TRUE 1
 #define GL_COLOR_WRITEMASK 0x0C23
+#define GL_CULL_FACE 0x0B44
+#define GL_CULL_FACE_MODE 0x0B45
+#define GL_FRONT_FACE 0x0B46
+#define GL_CW 0x0900
+#define GL_CCW 0x0901
+#define GL_FRONT 0x0404
+#define GL_BACK 0x0405
 GLenum glGetError();
 void glGetBooleanv(GLenum, GLboolean*);
 void glColorMask(GLboolean, GLboolean, GLboolean, GLboolean);
+GLboolean glIsEnabled(GLenum);
+void glGetIntegerv(GLenum, GLint*);
+void glFrontFace(GLenum);
+void glCullFace(GLenum);
+void glEnable(GLenum);
+void glDisable(GLenum);
 """
 HARNESS = r"""
 #include <cassert>
@@ -49,6 +62,14 @@ void glColorMask(GLboolean r,GLboolean g,GLboolean b,GLboolean a){
     if(failMask){failMask=false;error=0x502;return;}
     mask[0]=r;mask[1]=g;mask[2]=b;mask[3]=a;
 }
+// Existing alpha/color regression also links the expanded cull/polygon
+// provider. Stub the new GL entry points without exercising them here.
+GLboolean glIsEnabled(GLenum){return GL_FALSE;}
+void glGetIntegerv(GLenum,GLint *v){*v=GL_BACK;}
+void glFrontFace(GLenum){}
+void glCullFace(GLenum){}
+void glEnable(GLenum){}
+void glDisable(GLenum){}
 void expect(GLboolean r,GLboolean g,GLboolean b,GLboolean a){
     assert(mask[0]==r&&mask[1]==g&&mask[2]==b&&mask[3]==a);
 }
