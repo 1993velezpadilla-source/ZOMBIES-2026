@@ -17,6 +17,7 @@ var mount: BoneAttachment3D
 var hands_player: AnimationPlayer
 var weapon_player: AnimationPlayer
 var configured: bool = false
+var initial_local_position: Vector3 = Vector3.ZERO
 
 func _find_skeleton(node: Node) -> Skeleton3D:
     if node is Skeleton3D:
@@ -63,6 +64,7 @@ func configure(hands_scene: PackedScene, weapon_scene: PackedScene) -> bool:
     mount.override_pose = false
     mount.add_child(weapon_root)
     weapon_root.transform = Transform3D.IDENTITY
+    initial_local_position = position
     configured = mount.bone_idx >= 0
     if not configured:
         push_error("BoneAttachment3D could not attach tag_weapon.")
@@ -132,3 +134,52 @@ func diagnostic_camera_to_weapon_distance() -> float:
         return -1.0
     var camera_pose: Transform3D = hands_skeleton.global_transform * hands_skeleton.get_bone_global_pose(camera_bone)
     return camera_pose.origin.distance_to(weapon_root.global_position)
+
+# Original COD4's procedural ADS gun offsets are not yet reproduced. This
+# optional correction solves screen-centering from tag_iron_sight rather than
+# storing hand-written XYZ offsets per weapon. It preserves the hand/weapon
+# hierarchy by moving the whole viewmodel rig. NOT an exact COD4 simulation.
+func aim_tag_info() -> Dictionary:
+    if not configured:
+        return {"name": "", "reason": "not_configured"}
+    if weapon_skeleton.find_bone("tag_iron_sight") >= 0:
+        return {"name": "tag_iron_sight", "source": "original_iron_sight_tag"}
+    if weapon_skeleton.find_bone("tag_reflex_sight") >= 0:
+        return {"name": "tag_reflex_sight", "source": "optic_mount_approximation"}
+    return {"name": "", "reason": "missing_sight_tag"}
+
+func reset_procedural_ads() -> void:
+    position = initial_local_position
+
+func apply_procedural_ads_alignment(camera: Camera3D, alpha: float) -> Dictionary:
+    reset_procedural_ads()
+    if camera == null or not configured:
+        return {"success": false, "reason": "camera_or_mount_missing"}
+    var candidate: Dictionary = aim_tag_info()
+    var tag: String = candidate.get("name", "")
+    if tag.is_empty():
+        return {"success": false, "reason": candidate.get("reason", "no_sight_tag")}
+    var index: int = weapon_skeleton.find_bone(tag)
+    hands_skeleton.force_update_all_bone_transforms()
+    weapon_skeleton.force_update_all_bone_transforms()
+    mount.on_skeleton_update()
+    var point: Vector3 = (weapon_skeleton.global_transform *
+        weapon_skeleton.get_bone_global_pose(index)).origin
+    if camera.is_position_behind(point):
+        return {"success": false, "reason": "sight_tag_behind_camera", "tag": tag}
+    var camera_space: Vector3 = camera.global_transform.affine_inverse() * point
+    if camera_space.z > -camera.near:
+        return {"success": false, "reason": "sight_tag_on_near_plane", "tag": tag}
+    var displacement: Vector3 = camera.global_transform.basis * Vector3(
+        -camera_space.x, -camera_space.y, 0.0)
+    var factor: float = clampf(alpha, 0.0, 1.0)
+    global_position += displacement * factor
+    hands_skeleton.force_update_all_bone_transforms()
+    weapon_skeleton.force_update_all_bone_transforms()
+    mount.on_skeleton_update()
+    return {
+        "success": true, "tag": tag, "source": candidate.get("source", "unknown"),
+        "blend": factor, "translation_m": snappedf((displacement * factor).length(), 0.00001),
+        "attachment_error": anchor_error()["anchor_position_error"],
+        "visual_alignment_certified": false
+    }
