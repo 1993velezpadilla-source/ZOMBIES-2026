@@ -1,0 +1,66 @@
+name: IW3 Godot pose evaluation summary (metadata only)
+on:
+  push:
+    branches: [feature/iw3-arsenal-extraction-audit-20261102]
+    paths: ['.github/workflows/iw3-pose-report.yml']
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: 'Completed IW3 Godot probe run'
+        required: true
+        default: '41450209184'
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  analyze-saved-json:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Retrieve NO game content (metadata JSON only)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN: ${{ inputs.source_run_id || '41450209184' }}
+        run: |
+          set -euo pipefail
+          mkdir -p _meta
+          gh run download "$SOURCE_RUN" --repo "$GITHUB_REPOSITORY" \
+            --name iw3-cod4-weapon-probe-metadata --dir _meta
+          test -f _meta/godot-pose-gate.json
+          test -f _meta/png-materials.json
+
+      - name: Verify measured animation movement without exaggerating visual accuracy
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("_meta/godot-pose-gate.json").read_text())
+          png=json.loads(Path("_meta/png-materials.json").read_text())
+          print("POSE_GATE_RAN:",r["all_actions_evaluated"])
+          print("TEXTURE_PNG_RECOVERY:",png["converted"],"/",png["required"])
+          print("TEXTURE_CONVERSION_FAILURES:",len(png["conversion_failures"]))
+          for gun,actors in r["guns"].items():
+              for kind,item in actors.items():
+                  if not item.get("success"):
+                      print("POSE_ERROR:",gun,kind,item.get("error"))
+                      continue
+                  print("MODEL:",gun,kind,"bones",item.get("bone_count"))
+                  for action,info in item["actions"].items():
+                      samples=info.get("sampled",[])
+                      results=[x.get("relative_to_import_rest",{}) for x in samples]
+                      movements=[x.get("changed_bones",0) for x in results]
+                      displacements=[x.get("max_position_displacement",0) for x in results]
+                      rotations=[x.get("max_rotation_radians",0) for x in results]
+                      print("ACTION:",gun,kind,action,
+                            "duration",info.get("duration_seconds"),
+                            "tracks",info.get("track_count"),
+                            "changed",movements,
+                            "max_pos",displacements,
+                            "max_rot_rad",rotations,
+                            "error",any("error" in x for x in samples))
+          print("RIG_ORIENTATION_VISUALLY_APPROVED:",False)
+          print("RELOAD_ADS_VISUALLY_APPROVED:",False)
+          PY
