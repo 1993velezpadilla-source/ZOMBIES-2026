@@ -15,6 +15,7 @@ on:
       - 'tools/iw3_build_animated_previews.py'
       - 'tools/iw3_stage_weapon_textures.py'
       - 'tools/godot_iw3_import_probe.gd'
+      - 'tools/godot_iw3_pose_probe.gd'
       - 'tests/test_iw3_weapon_probe.py'
       - 'tests/test_iw3_arsenal_detail.py'
       - 'tests/test_iw3_anim_rig_gate.py'
@@ -122,6 +123,7 @@ jobs:
           test "$(find _iw3_private/animated_preview -maxdepth 1 -name '*_animated_experimental.glb' | wc -l)" -eq 6
           cp _iw3_private/animated_preview/*_animated_experimental.glb _iw3_private/godot_sandbox/weapons/
           cp tools/godot_iw3_import_probe.gd _iw3_private/godot_sandbox/import_probe.gd
+          cp tools/godot_iw3_pose_probe.gd _iw3_private/godot_sandbox/pose_probe.gd
           cat > _iw3_private/godot_sandbox/project.godot <<'INI'
           config_version=5
           [application]
@@ -142,6 +144,9 @@ jobs:
           "$BIN" --headless --path _iw3_private/godot_sandbox \
             --script res://import_probe.gd
           cp _iw3_private/godot_sandbox/godot-import-gate.json _iw3_reports/godot-import-gate.json
+          "$BIN" --headless --path _iw3_private/godot_sandbox \\
+            --script res://pose_probe.gd
+          cp _iw3_private/godot_sandbox/godot-pose-gate.json _iw3_reports/godot-pose-gate.json
 
       - name: Archive ONLY metadata and safe audit results (no extracted game files)
         if: always()
@@ -156,6 +161,7 @@ jobs:
             _iw3_reports/bone-correlation.json
             _iw3_reports/animated-glb-gate.json
             _iw3_reports/godot-import-gate.json
+            _iw3_reports/godot-pose-gate.json
             _iw3_reports/texture-gate.json
           retention-days: 14
           if-no-files-found: warn
