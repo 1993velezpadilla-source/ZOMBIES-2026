@@ -12,6 +12,7 @@
 #if defined(__ANDROID__)
 #include "r_android_target.h"
 #include "r_android_hw_viewport.h"
+#include "r_android_indexed_draw.h"
 #endif
 
 //float const *const shadowmapClearColor 820ebb50     gfx_d3d : r_state.obj
@@ -44,6 +45,14 @@ void __cdecl R_ChangeIndices(GfxCmdBufPrimState *state, IDirect3DIndexBuffer9 *i
 
     iassert( ib != state->indexBuffer );
     state->indexBuffer = ib;
+#if defined(__ANDROID__)
+    if (!R_AndroidGlesBindIndexBuffer(ib))
+    {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android: original index buffer has no valid GLES3 resource binding");
+    }
+    return;
+#else
     device = state->device;
     iassert( device );
     do
@@ -69,6 +78,7 @@ void __cdecl R_ChangeIndices(GfxCmdBufPrimState *state, IDirect3DIndexBuffer9 *i
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl R_ChangeStreamSource(
@@ -802,9 +812,19 @@ void __cdecl R_DrawIndexedPrimitive(GfxCmdBufPrimState *state, const GfxDrawPrim
     {
         if (r_skipDrawTris->current.enabled)
             triCount = 1;
+        // Original IW3 draw accounting is preserved on both platforms.
+#if !defined(__ANDROID__)
         device = state->device;
         iassert( device );
+#endif
         RB_TrackDrawPrimCall(triCount);
+#if defined(__ANDROID__)
+        if (!R_AndroidGlesDrawIndexed(args->baseIndex, triCount, args->vertexCount))
+        {
+            ++g_disableRendering;
+            Com_Error(ERR_FATAL, "IW3 Android: original indexed draw lacks valid GLES3 indices, VAO, shader or vertex stream");
+        }
+#else
         do
         {
             if (r_logFile && r_logFile->current.integer)
@@ -825,6 +845,7 @@ void __cdecl R_DrawIndexedPrimitive(GfxCmdBufPrimState *state, const GfxDrawPrim
                 } while (alwaysfails);
             }
         } while (alwaysfails);
+#endif
     }
 }
 
