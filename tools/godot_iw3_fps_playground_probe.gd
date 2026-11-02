@@ -35,46 +35,61 @@ func _run() -> void:
             _fail(errors,"scene ready/3D viewmodel/7 touch buttons not initialized")
 
         var spawn: Vector3 = game.body.global_position
+        var screen_size: Vector2 = game.get_viewport().get_visible_rect().size
+        var move_start: Vector2 = Vector2(maxf(2.0,screen_size.x*0.15),maxf(100.0,screen_size.y*0.75))
         var touch_start: InputEventScreenTouch = InputEventScreenTouch.new()
         touch_start.index = 1
         touch_start.pressed = true
-        touch_start.position = Vector2(110, 440)
+        touch_start.position = move_start
         game._unhandled_input(touch_start)
         var touch_move: InputEventScreenDrag = InputEventScreenDrag.new()
         touch_move.index = 1
-        touch_move.position = Vector2(110, 355) # left thumb UP -> walk forward
+        touch_move.position = move_start + Vector2(0,-85)
         game._unhandled_input(touch_move)
+
+        # Keep MOVE held while a second finger starts aiming.
+        var before_yaw: float = game.yaw_degrees
+        var right_down: InputEventScreenTouch = InputEventScreenTouch.new()
+        right_down.index = 2
+        right_down.pressed = true
+        right_down.position = Vector2(screen_size.x*0.74,screen_size.y*0.27)
+        game._unhandled_input(right_down)
+        var right_drag: InputEventScreenDrag = InputEventScreenDrag.new()
+        right_drag.index = 2
+        right_drag.position = right_down.position + Vector2(25,6)
+        game._unhandled_input(right_drag)
+        var both_active: bool = game.touch_move_id == 1 and game.touch_look_id == 2
+        var input_magnitude: float = game.touch_move_vector.length()
         for _frame in range(16):
             await physics_frame
-        var walked: float = game.body.global_position.distance_to(spawn)
+        var moved: Vector3 = game.body.global_position - spawn
+        var horizontal_distance: float = Vector2(moved.x,moved.z).length()
+        report["movement_works"] = horizontal_distance > 0.15 and input_magnitude > 0.8
+        report["aim_works"] = absf(game.yaw_degrees - before_yaw) > 1.0
+        report["touch_multifinger"] = both_active
+
         var touch_up: InputEventScreenTouch = InputEventScreenTouch.new()
         touch_up.index = 1
         touch_up.position = touch_move.position
         touch_up.pressed = false
         game._unhandled_input(touch_up)
-        report["movement_works"] = walked > 0.15 and game.touch_move_id == -1
-        if not report["movement_works"]:
-            _fail(errors,"joystick forward movement did not displace collision body")
-
-        var before_yaw: float = game.yaw_degrees
-        var right_down: InputEventScreenTouch = InputEventScreenTouch.new()
-        right_down.index = 2
-        right_down.pressed = true
-        right_down.position = Vector2(620, 180)
-        game._unhandled_input(right_down)
-        var right_drag: InputEventScreenDrag = InputEventScreenDrag.new()
-        right_drag.index = 2
-        right_drag.position = Vector2(645, 186)
-        game._unhandled_input(right_drag)
-        report["aim_works"] = absf(game.yaw_degrees - before_yaw) > 1.0
         var right_up: InputEventScreenTouch = InputEventScreenTouch.new()
         right_up.index = 2
         right_up.pressed = false
         right_up.position = right_drag.position
         game._unhandled_input(right_up)
-        report["touch_multifinger"] = game.touch_move_id == -1 and game.touch_look_id == -1
+        report["input_diagnostics"] = {
+            "viewport": [screen_size.x,screen_size.y],
+            "move_vector_magnitude": input_magnitude,
+            "horizontal_motion_m": snappedf(horizontal_distance,0.00001),
+            "velocity_after_16_physics_frames": [game.body.velocity.x,game.body.velocity.y,game.body.velocity.z],
+            "left_and_right_fingers_simultaneous": both_active,
+            "fingers_released": game.touch_move_id == -1 and game.touch_look_id == -1}
+        report["touch_multifinger"] = report["touch_multifinger"] and report["input_diagnostics"]["fingers_released"]
+        if not report["movement_works"]:
+            _fail(errors,"joystick did not move collision body; see input_diagnostics")
         if not report["aim_works"] or not report["touch_multifinger"]:
-            _fail(errors,"independent simultaneous touch look/joystick state failed")
+            _fail(errors,"two simultaneous touch pointers not independently handled")
 
         # Restore centre +X aim at target for raycast.
         game.yaw_degrees = 0.0
@@ -148,7 +163,7 @@ func _run() -> void:
         "reload_interrupt": report["reload_cancel_on_fire"],
         "reload_completion": report["reload_completion"],
         "3_gun_swap": report["three_weapon_swap"],
-        "errors": errors, "android_device_verified": false}))
+        "errors": errors, "touch_input": report.get("input_diagnostics", {}), "android_device_verified": false}))
     quit(0 if report["all_checks"] else 1)
 
 func _initialize() -> void:
