@@ -19,7 +19,8 @@ Date: 2026-11-02. **Port incomplete — NOT A GAME.**
 
 ## Evidence and limitations
 - Local host mock ASan/UBSan regression executed **3 times successfully** before pushing.
-- GitHub Actions renderer run for the new code: https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41438686579 (check final job statuses and the authentic full `r_state.cpp` negative compile probe).
+- **Verified GitHub Actions:** https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41438686579 — both jobs **success**, 45/45 renderer host tests (including the new ASan/UBSan unbind regression), and NDK ELF64/AArch64 provider linked against real EGL/GLESv3 with `-Wl,--no-undefined` and exported `R_AndroidGlesDisableSamplerTexture` (`IW3_ORIGINAL_TEXTURE_UNBIND_GLES3_AARCH64_LINKED=true`).
+- **Negative authentic engine probe preserved:** full original `r_state.cpp` ARM64 compile still **fails** (`IW3_ORIGINAL_R_STATE_AARCH64_COMPILED=false`, compiler exit 1), but its first error moved from line 2446 `SetTexture` to **line 2725 `device->Clear`**. Subsequent errors remain at lines 2800/2825 (D3D9 depth-bias states) and 3000 (adaptive tessellation). The workflow's green status only certifies its partial tests and evidence collection, NOT a linked renderer.
 - The provider is not a texture **upload/register/bind** path. Authentic `GfxImage` resource creation and shader/material binding remain unimplemented. Other original D3D9 calls remain, including `device->Clear`, depth bias and adaptive tessellation.
 - Host EGL/GLES functions are mocked. An AArch64 provider link does not prove execution on an ARM64 phone.
 
