@@ -301,7 +301,7 @@ func _physics_process(delta: float) -> void:
         return
     var axis: Vector2 = touch_move_vector if touch_move_id >= 0 else _keyboard_move()
     var camera_basis: Basis = camera.global_transform.basis
-    var desired: Vector3 = camera_basis.x * axis.x - camera_basis.z * axis.y
+    var desired: Vector3 = camera_basis.x * axis.x + camera_basis.z * axis.y
     desired.y = 0.0
     desired = desired.normalized() if desired.length() > 0.01 else Vector3.ZERO
     var running: bool = run_down or Input.is_key_pressed(KEY_SHIFT)
