@@ -1,0 +1,14 @@
+# Proprietary game binaries and extracted assets must never be committed.
+_release_assets/
+_iw3_private/
+_iw3_reports/
+_oat/
+*.ff
+*.iwd
+*.iwi
+*.xanim_bin
+*.xmodel_bin
+*.xmodel_export
+*.glb
+*.gltf
+*.dds
