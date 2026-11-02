@@ -241,6 +241,8 @@ func _input(event: InputEvent) -> void:
                 next_weapon()
             KEY_C:
                 crouch_down = not crouch_down
+            KEY_G:
+                Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
             KEY_ESCAPE:
                 Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
     if event is InputEventMouseButton and event.pressed:
