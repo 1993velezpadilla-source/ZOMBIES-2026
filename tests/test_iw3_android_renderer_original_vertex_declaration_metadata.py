@@ -30,7 +30,8 @@ int main() {
   layout[1].usage=0;assert(!R_AndroidCreateVertexDeclaration(layout,4));
   layout[1].usage=10;layout[1].type=17;assert(!R_AndroidCreateVertexDeclaration(layout,4));
   layout[1].type=4;layout[1].stream=2;assert(!R_AndroidCreateVertexDeclaration(layout,4));
-  layout[1].stream=0;layout[1].usageIndex=1;assert(!R_AndroidCreateVertexDeclaration(layout,4));
+  layout[1].stream=0;layout[1].usageIndex=2;assert(!R_AndroidCreateVertexDeclaration(layout,4));
+  layout[1].usageIndex=1;assert(R_AndroidCreateVertexDeclaration(layout,4));
   assert(R_AndroidReleaseVertexDeclaration(d));
   assert(R_AndroidCurrentVertexDeclaration()==nullptr);
   assert(!R_AndroidReleaseVertexDeclaration(d));
