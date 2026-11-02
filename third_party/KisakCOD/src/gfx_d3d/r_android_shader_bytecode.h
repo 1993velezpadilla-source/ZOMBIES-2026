@@ -12,11 +12,14 @@ struct IW3AndroidShaderEnvelope {
     std::uint32_t dwordCount;
     std::uint32_t instructionCount;
     std::uint32_t commentCount;
+    std::uint32_t predicatedInstructionCount;
 };
 // programSize is the serialized Gfx*ShaderLoadDef byte length, not a token count.
 // Walks bounded D3D9 SM2/SM3 instruction lengths and COMMENT payloads, requiring
 // a terminal END at an instruction boundary. This is structural validation,
-// NOT opcode/register/semantic verification and NOT GLSL translation.
+// NOT full opcode/register/semantic verification and NOT GLSL translation.
+// For MOV/ADD, the instruction length includes a predicate token when bit 28
+// is set; this preflight counts such instructions but does not execute them.
 bool R_AndroidInspectD3D9Shader(const void *program, std::size_t programBytes,
                                IW3AndroidShaderStage stage,
                                IW3AndroidShaderEnvelope *out);
