@@ -79,6 +79,14 @@ class OriginalBufferHandleLifecycle(unittest.TestCase):
         self.assertGreaterEqual(source.count("R_AndroidCreateBufferHandle("),4)
         self.assertGreaterEqual(source.count("R_AndroidUnlockBufferHandle("),4)
         self.assertIn("dx.device->CreateVertexBuffer",source) # Windows preserved
+        load=source.split("void __cdecl Load_VertexBuffer(",1)[1].split(
+            "void __cdecl R_InitDynamicVertexBufferState(",1)[0]
+        self.assertNotIn("#if defined(__ANDROID__)",load)
+        self.assertIn("R_FinishStaticVertexBuffer(*vb);",load)
+        finish=source.split("void __cdecl R_FinishStaticVertexBuffer(",1)[1].split(
+            "void __cdecl R_UnlockVertexBuffer(",1)[0]
+        self.assertIn("#if defined(__ANDROID__)",finish)
+        self.assertIn("R_AndroidUnlockBufferHandle(vb)",finish)
 
     def test_original_handle_staging_and_real_gles3_storage(self):
         with tempfile.TemporaryDirectory() as td:
