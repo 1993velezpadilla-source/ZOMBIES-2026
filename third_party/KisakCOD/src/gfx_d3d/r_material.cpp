@@ -438,10 +438,22 @@ IDirect3DVertexDeclaration9 *__cdecl Material_BuildVertexDecl(
     // This records metadata; GLES3 VAO/shader mapping remains pending.
     static_assert(sizeof(_D3DVERTEXELEMENT9) == sizeof(IW3AndroidVertexElement),
                   "D3D9 vertex declaration ABI mismatch");
+    if (elemIndex <= 0 || elemIndex > 16) {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "Android original vertex declaration exceeds 16 streams");
+        return nullptr;
+    }
+    IW3AndroidVertexElement androidElements[16] = {};
+    for (int i = 0; i < elemIndex; ++i) {
+        // Copy fields, not a reinterpret_cast across unrelated C++ structs.
+        // Preserves original D3D9 layout without strict-aliasing UB.
+        androidElements[i] = {elemTable[i].Stream, elemTable[i].Offset,
+                              elemTable[i].Type, elemTable[i].Method,
+                              elemTable[i].Usage, elemTable[i].UsageIndex};
+    }
     decl = reinterpret_cast<IDirect3DVertexDeclaration9 *>(
-        R_AndroidCreateVertexDeclaration(
-            reinterpret_cast<const IW3AndroidVertexElement *>(elemTable),
-            static_cast<std::size_t>(elemIndex)));
+        R_AndroidCreateVertexDeclaration(androidElements,
+                                         static_cast<std::size_t>(elemIndex)));
     if (!decl) {
         ++g_disableRendering;
         Com_Error(ERR_FATAL, "Android original vertex declaration metadata invalid");
