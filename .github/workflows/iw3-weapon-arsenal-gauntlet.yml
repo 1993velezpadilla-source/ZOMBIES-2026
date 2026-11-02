@@ -28,6 +28,7 @@ on:
       - 'tools/iw3_fps_playground.gd'
       - 'tools/iw3_fps_playground.tscn'
       - 'tools/godot_iw3_fps_playground_probe.gd'
+      - 'tools/iw3_make_private_godot_lab.py'
       - 'tests/test_iw3_weapon_probe.py'
       - 'tests/test_iw3_arsenal_detail.py'
       - 'tests/test_iw3_anim_rig_gate.py'
@@ -192,6 +193,11 @@ jobs:
           "$BIN" --headless --path _iw3_private/godot_sandbox \
             --script res://playground_probe.gd
           cp _iw3_private/godot_sandbox/godot-fps-playground-gate.json _iw3_reports/godot-fps-playground-gate.json
+          python3 tools/iw3_make_private_godot_lab.py --private-root _iw3_private --output _iw3_private/fps_lab --scripts tools
+          "$BIN" --headless --editor --path _iw3_private/fps_lab --import
+          xvfb-run -a -s '-screen 0 1280x720x24' "$BIN" --rendering-driver opengl3 \
+            --path _iw3_private/fps_lab --quit-after 100
+          echo 'Private Godot FPS lab main scene launched; no copyrighted assets published.'
           xvfb-run -a -s '-screen 0 1024x768x24' "$BIN" --rendering-driver opengl3 \
             --path _iw3_private/godot_sandbox --script res://render_probe.gd
           cp _iw3_private/godot_sandbox/godot-render-gate.json _iw3_reports/godot-render-gate.json
