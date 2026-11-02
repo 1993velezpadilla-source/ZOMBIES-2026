@@ -42,4 +42,36 @@ bool R_AndroidVisitD3D9Shader(const void *program, std::size_t programBytes,
 bool R_AndroidInspectD3D9Shader(const void *program, std::size_t programBytes,
                                IW3AndroidShaderStage stage,
                                IW3AndroidShaderEnvelope *out);
+// Decoded D3D9 register fields for a narrow arithmetic instruction subset.
+// These are ORIGINAL bytecode metadata, not validated GLSL bindings.
+struct IW3AndroidShaderRegister {
+    std::uint16_t number;
+    std::uint8_t type;
+    std::uint8_t writeMask;       // Destination only, bits 16..19.
+    std::uint8_t swizzle;         // Source only, bits 16..23 (0xE4 = xyzw).
+    std::uint8_t modifier;        // Destination bits 20..23; source bits 24..27.
+    std::uint8_t destinationShift; // Destination bits 24..27.
+    bool relativeAddressing;      // Relative addressing needs extra decoding.
+};
+struct IW3AndroidShaderArithmetic {
+    std::uint32_t tokenOffset;
+    std::uint16_t opcode;        // 1 = MOV, 2 = ADD.
+    std::uint8_t sourceCount;
+    IW3AndroidShaderRegister destination;
+    IW3AndroidShaderRegister sources[2];
+};
+using IW3AndroidShaderArithmeticVisitor = bool (*)(const IW3AndroidShaderArithmetic &, void *);
+// Decodes register field layout, including the SPLIT D3D9 register-type bits.
+// Rejects malformed register tokens and reserved modifiers; it does not map
+// register types to GLSL, resolve relative addressing or validate shader IO.
+bool R_AndroidDecodeD3D9Register(std::uint32_t token, bool destination,
+                                 IW3AndroidShaderRegister *out);
+// Fully prevalidates a limited non-predicated, non-relative MOV/ADD/NOP stream
+// before any callback. DCL and all other instructions FAIL CLOSED, as do
+// unsupported addressing and malformed operands. NOP produces no callback.
+// This is NOT a D3D9-to-GLSL translator and creates no GPU shader.
+bool R_AndroidVisitD3D9Arithmetic(const void *program, std::size_t programBytes,
+                                  IW3AndroidShaderStage stage,
+                                  IW3AndroidShaderArithmeticVisitor visitor, void *user);
+
 #endif
