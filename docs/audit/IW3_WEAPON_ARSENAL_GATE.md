@@ -43,3 +43,7 @@ Referencias: OpenAssetTools `Unlinker`, opciones `--list`, `--model-format`, `--
 ## Hallazgo de ingeniería inversa (2 noviembre 2026)
 
 El primer pase remoto pasó sobre dos fastfiles y **exportó 1,894 GLB válidos**, con 1,240 GLB con `skins` y 263 nombres base de `viewmodel` (incluidas variaciones/attachments: **no son 263 armas distintas**). Aparecen modelos de M4, AK-47, MP5 y `viewhands` con esqueletos. **0 animaciones incluidas en GLB**. La inspección del código de OAT identificó un bug en nuestro primer comando: el filtro usaba los nombres C++ `xanimparts,weapondef,gfximage`, pero IW3 exige las cadenas de tipo `xanim,weapon,image` según `src/Common/Game/IW3/GameIW3.cpp`. Se corrigió y se repite el pase para comprobar XANIM reales. La corrección no garantiza aún enlazar las animaciones en Godot.
+
+## Segundo pase real: XANIM
+
+El filtro corregido `--include-assets xmodel,xanim,weapon,image,material` también finalizó en **GREEN**. En los dos fastfiles elegidos quedaron **1,125 ficheros en carpetas `xanim/`** (1,124 de `common_mp` y 1 de `mp_crash`), además de 409 texturas `.dds` y 1,894 GLB. Se observaron nombres de animación de arma como `viewmodel_m14_reload`, `viewmodel_ak47_grenadier_pullout` y `viewmodel_m60_acog_ads_down`. Es importante: **los XANIM están en binarios separados y los GLB todavía muestran 0 animaciones embebidas**. El siguiente pase verifica cabeceras del formato v17 y presencia de idle/ADS/fire/reload para M4, AK-47 y MP5. Aún falta asociar keyframes y joints a la misma jerarquía y probarlo en Godot.
