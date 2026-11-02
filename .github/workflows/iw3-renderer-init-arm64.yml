@@ -36,6 +36,9 @@ on:
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_vertex_stream.cpp'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_vertex_stream.h'
       - 'tests/test_iw3_android_renderer_original_vertex_stream_gles3.py'
+      - 'third_party/KisakCOD/src/gfx_d3d/r_android_initial_state.cpp'
+      - 'third_party/KisakCOD/src/gfx_d3d/r_android_initial_state.h'
+      - 'tests/test_iw3_android_renderer_original_initial_state_gles3.py'
       - 'tests/test_iw3_android_renderer_original_indexed_draw_gles3.py'
       - 'tests/test_iw3_android_renderer_hw_viewport_depth_gles3.py'
       - 'third_party/KisakCOD/src/gfx_d3d/r_state.cpp'
@@ -89,6 +92,9 @@ on:
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_vertex_stream.cpp'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_vertex_stream.h'
       - 'tests/test_iw3_android_renderer_original_vertex_stream_gles3.py'
+      - 'third_party/KisakCOD/src/gfx_d3d/r_android_initial_state.cpp'
+      - 'third_party/KisakCOD/src/gfx_d3d/r_android_initial_state.h'
+      - 'tests/test_iw3_android_renderer_original_initial_state_gles3.py'
       - 'tests/test_iw3_android_renderer_original_indexed_draw_gles3.py'
       - 'tests/test_iw3_android_renderer_hw_viewport_depth_gles3.py'
       - 'third_party/KisakCOD/src/gfx_d3d/r_state.cpp'
@@ -589,6 +595,22 @@ jobs:
           echo 'IW3_ORIGINAL_R_STATE_AARCH64_COMPILED=false (separate diagnostic probe)'
           echo 'IW3_RENDERER_FRAME_PROVEN=false'
           echo 'IW3_PLAYABLE_APK=false'
+      - name: Link original IW3 initial render-state GLES3 provider for ARM64 (NOT GAME)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          gfx="$GITHUB_WORKSPACE/third_party/KisakCOD/src/gfx_d3d"
+          out="$RUNNER_TEMP/libiw3-original-initial-state-gles3-arm64.so"
+          "$ndk/aarch64-linux-android26-clang++" -std=c++20 -O2 -fPIC -shared \
+            -Wl,--no-undefined "$gfx/r_android_initial_state.cpp" \
+            -o "$out" -lEGL -lGLESv3
+          "$ndk/llvm-readelf" -h "$out" | grep -E 'Class:|Machine:'
+          "$ndk/llvm-nm" -C --defined-only "$out" | grep -F 'R_AndroidGlesSetInitialContextState('
+          echo 'IW3_ORIGINAL_INITIAL_STATE_GLES3_AARCH64_LINKED=true'
+          echo 'IW3_ORIGINAL_R_STATE_AARCH64_COMPILED=false (separate diagnostic probe)'
+          echo 'IW3_RENDERER_FRAME_PROVEN=false'
+          echo 'IW3_PLAYABLE_APK=false'
       - name: Probe full authentic R_HW_SetRenderTarget translation unit on ARM64 (NOT GAME)
         shell: bash
         run: |
@@ -655,6 +677,7 @@ jobs:
             ${{ runner.temp }}/libiw3-original-clear-gles3-arm64.so
             ${{ runner.temp }}/libiw3-original-viewport-gles3-arm64.so
             ${{ runner.temp }}/libiw3-original-target-gles3-arm64.so
+            ${{ runner.temp }}/libiw3-original-initial-state-gles3-arm64.so
             ${{ runner.temp }}/iw3-original-r-state-arm64-report.txt
             ${{ runner.temp }}/iw3-original-r-state-aarch64.o
             ${{ runner.temp }}/iw3-original-r-state-plus-target-aarch64.o
