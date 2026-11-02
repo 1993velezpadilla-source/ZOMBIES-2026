@@ -55,6 +55,27 @@ static bool CollectArithmetic(const IW3AndroidShaderArithmetic &ins, void *conte
     return !visits.reject;
 }
 
+
+struct DecodedVisits {
+    unsigned count = 0;
+    IW3AndroidShaderDecodedKind kinds[8]{};
+    std::uint32_t offsets[8]{};
+    bool reject = false;
+};
+static bool CollectDecoded(const IW3AndroidShaderDecodedInstruction &record,
+                           void *context) {
+    auto &visits = *static_cast<DecodedVisits *>(context);
+    assert(visits.count < 8);
+    visits.kinds[visits.count] = record.kind;
+    visits.offsets[visits.count] = record.tokenOffset;
+    if (record.kind == IW3AndroidShaderDecodedKind::Declaration)
+        assert(record.declaration.tokenOffset == record.tokenOffset);
+    else
+        assert(record.arithmetic.tokenOffset == record.tokenOffset);
+    ++visits.count;
+    return !visits.reject;
+}
+
 int main() {
     // Real D3D9 token framing: MOV has two operands, ADD has three.
     // A COMMENT payload is arbitrary data, including the END bit pattern.
@@ -342,6 +363,78 @@ int main() {
             sizeof(unsupportedOpcode), IW3AndroidShaderStage::Vertex,
             CollectDeclaration, &dv));
     assert(dv.count == 0);
+
+
+    // Unified original bytecode subset: DCL and arithmetic coexist and
+    // retain exact order. Neither old single-kind visitor can do this.
+    DecodedVisits uv{};
+    assert(R_AndroidVisitD3D9DecodedShader(declarations, sizeof(declarations),
+            IW3AndroidShaderStage::Vertex, CollectDecoded, &uv));
+    assert(uv.count == 4);
+    assert(uv.kinds[0] == IW3AndroidShaderDecodedKind::Declaration);
+    assert(uv.kinds[1] == IW3AndroidShaderDecodedKind::Declaration);
+    assert(uv.kinds[2] == IW3AndroidShaderDecodedKind::Declaration);
+    assert(uv.kinds[3] == IW3AndroidShaderDecodedKind::Arithmetic);
+    assert(uv.offsets[0] == 1 && uv.offsets[1] == 4);
+    assert(uv.offsets[2] == 7 && uv.offsets[3] == 10);
+    uv = {};
+    assert(R_AndroidVisitD3D9DecodedShader(arithmetic, sizeof(arithmetic),
+            IW3AndroidShaderStage::Vertex, CollectDecoded, &uv));
+    assert(uv.count == 2 && uv.kinds[0] == IW3AndroidShaderDecodedKind::Arithmetic);
+    // Late malformed arithmetic must produce zero callbacks despite a
+    // valid earlier declaration; relative addressing is not decoded yet.
+    const std::uint32_t dclThenBadMov[] = {
+        0xFFFE0300u,
+        0x0200001Fu, 0x00000005u, 0x900F0000u,
+        0x02000001u, 0x800F0000u, 0x90E42000u,
+        0x0000FFFFu
+    };
+    uv = {};
+    assert(!R_AndroidVisitD3D9DecodedShader(dclThenBadMov,
+            sizeof(dclThenBadMov), IW3AndroidShaderStage::Vertex,
+            CollectDecoded, &uv));
+    assert(uv.count == 0);
+    // DCL after arithmetic is invalid, and must not leak the earlier MOV.
+    const std::uint32_t lateDcl[] = {
+        0xFFFE0300u,
+        0x02000001u, 0x800F0000u, 0x90E40000u,
+        0x0200001Fu, 0x00000005u, 0x900F0000u,
+        0x0000FFFFu
+    };
+    uv = {};
+    assert(!R_AndroidVisitD3D9DecodedShader(lateDcl, sizeof(lateDcl),
+            IW3AndroidShaderStage::Vertex, CollectDecoded, &uv));
+    assert(uv.count == 0);
+    uv = {};
+    assert(!R_AndroidVisitD3D9DecodedShader(lateBadDeclaration,
+            sizeof(lateBadDeclaration), IW3AndroidShaderStage::Vertex,
+            CollectDecoded, &uv));
+    assert(uv.count == 0);
+    uv = {};
+    assert(!R_AndroidVisitD3D9DecodedShader(predMov, sizeof(predMov),
+            IW3AndroidShaderStage::Vertex, CollectDecoded, &uv));
+    assert(uv.count == 0);
+    uv = {};
+    assert(!R_AndroidVisitD3D9DecodedShader(unsupportedOpcode,
+            sizeof(unsupportedOpcode), IW3AndroidShaderStage::Vertex,
+            CollectDecoded, &uv));
+    assert(uv.count == 0);
+    uv = {};
+    uv.reject = true;
+    assert(!R_AndroidVisitD3D9DecodedShader(declarations,
+            sizeof(declarations), IW3AndroidShaderStage::Vertex,
+            CollectDecoded, &uv));
+    assert(uv.count == 1);
+    uv = {};
+    assert(!R_AndroidVisitD3D9DecodedShader(declarations,
+            sizeof(declarations), IW3AndroidShaderStage::Vertex,
+            nullptr, &uv));
+    unsigned char unalignedMixed[sizeof(declarations) + 1]{};
+    std::memcpy(unalignedMixed + 1, declarations, sizeof(declarations));
+    assert(R_AndroidVisitD3D9DecodedShader(unalignedMixed + 1,
+            sizeof(declarations), IW3AndroidShaderStage::Vertex,
+            CollectDecoded, &uv));
+    assert(uv.count == 4);
 
     std::puts("IW3_ORIGINAL_D3D9_SHADER_PREDICATION_PASS_NOT_TRANSLATED");
 }
