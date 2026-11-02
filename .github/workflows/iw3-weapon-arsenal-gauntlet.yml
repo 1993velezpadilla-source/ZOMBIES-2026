@@ -127,7 +127,6 @@ jobs:
             _iw3_private/godot_sandbox/images \
             _iw3_private/animated_preview \
             _iw3_reports/png-materials.json
-            _iw3_reports/keyframe-variation.json
 
       - name: Install official Godot 4.6.3 and import 3 temporary animated GLBs
         run: |
