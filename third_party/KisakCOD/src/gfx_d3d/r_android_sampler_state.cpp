@@ -54,6 +54,10 @@ bool R_AndroidGlesSetSamplerState(uint32_t unit, uint32_t state,
     const uint32_t mag = (state >> 12) & 15u;
     const uint32_t mip = (state >> 16) & 15u;
     const uint32_t aniso = state & 255u;
+    // D3D9 does not update MAXANISOTROPY when the requested value is 0/1.
+    // Preserve the previous value for anisotropic MIN/MAG filters.
+    const uint32_t effectiveAniso = (aniso <= 1 && (min == 3 || mag == 3))
+        ? (oldState & 255u) : aniso;
     const GLenum wrapS = Wrap((state >> 20) & 3u);
     const GLenum wrapT = Wrap((state >> 22) & 3u);
     const GLenum wrapR = Wrap((state >> 24) & 3u);
@@ -67,10 +71,10 @@ bool R_AndroidGlesSetSamplerState(uint32_t unit, uint32_t state,
                    : (linearMin ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST_MIPMAP_LINEAR);
     const GLenum magFilter = mag == 1 ? GL_NEAREST : GL_LINEAR;
     GLfloat maxAniso = 1.0f;
-    if (aniso > 1) {
+    if (effectiveAniso > 1) {
         if (!HasAnisotropy()) return false;
         glGetFloatv(kMaxTextureMaxAnisotropy, &maxAniso);
-        if (glGetError() != GL_NO_ERROR || maxAniso < static_cast<GLfloat>(aniso))
+        if (glGetError() != GL_NO_ERROR || maxAniso < static_cast<GLfloat>(effectiveAniso))
             return false; // never silently lower the original requested quality
     }
 
@@ -93,7 +97,7 @@ bool R_AndroidGlesSetSamplerState(uint32_t unit, uint32_t state,
     glSamplerParameteri(next, GL_TEXTURE_WRAP_S, static_cast<GLint>(wrapS));
     glSamplerParameteri(next, GL_TEXTURE_WRAP_T, static_cast<GLint>(wrapT));
     glSamplerParameteri(next, GL_TEXTURE_WRAP_R, static_cast<GLint>(wrapR));
-    if (aniso > 1) glSamplerParameterf(next, kTextureMaxAnisotropy, static_cast<GLfloat>(aniso));
+    if (effectiveAniso > 1) glSamplerParameterf(next, kTextureMaxAnisotropy, static_cast<GLfloat>(effectiveAniso));
     if (glGetError() == GL_NO_ERROR) {
         glBindSampler(unit, next);
         if (glGetError() == GL_NO_ERROR) {
