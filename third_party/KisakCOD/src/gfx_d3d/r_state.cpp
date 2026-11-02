@@ -11,6 +11,7 @@
 #include "r_reflection_probe.h"
 #if defined(__ANDROID__)
 #include "r_android_target.h"
+#include "r_android_hw_viewport.h"
 #endif
 
 //float const *const shadowmapClearColor 820ebb50     gfx_d3d : r_state.obj
@@ -551,7 +552,9 @@ void  R_GenerateWorldOutdoorLookupMatrix(
 
     MatrixMultiply44(worldMatrix.m, rgp.world->outdoorLookupMatrix, *(mat4x4*)outMatrix);
 
-    Vec4Add(&(*outMatrix)[12], worldOffset, &(*outMatrix)[12]);
+    // outMatrix points to four float[4] rows; index the fourth row,
+    // not 12 elements past the first row (undefined behavior under UBSan).
+    Vec4Add(outMatrix[3], worldOffset, outMatrix[3]);
 
     source->constVersions[86] = source->matrixVersions[7];
 }
@@ -702,6 +705,20 @@ void __cdecl R_ChangeDepthRange(GfxCmdBufState *state, GfxDepthRangeType depthRa
 
 void __cdecl R_HW_SetViewport(IDirect3DDevice9 *device, const GfxViewport *viewport, float nearValue, float farValue)
 {
+#if defined(__ANDROID__)
+    // Original IW3 hardware viewport path, not the RC_SET_VIEWPORT shortcut.
+    // Use the dimensions of the currently bound authentic IW3 render target.
+    (void)device;
+    if (!viewport || !R_AndroidGlesHardwareViewport(
+            viewport->x, viewport->y, viewport->width, viewport->height,
+            nearValue, farValue))
+    {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL,
+                  "IW3 Android: original R_HW_SetViewport GLES3 binding/depth range failed");
+    }
+#else
+
     const char *v4; // eax
     int hr; // [esp+10h] [ebp-1Ch]
     _D3DVIEWPORT9 d3dViewport; // [esp+14h] [ebp-18h] BYREF
@@ -739,6 +756,7 @@ void __cdecl R_HW_SetViewport(IDirect3DDevice9 *device, const GfxViewport *viewp
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 int __cdecl R_BeginMaterial(GfxCmdBufState *state, const Material *material, MaterialTechniqueType techType)
