@@ -3000,6 +3000,16 @@ void __cdecl R_UpdateCodeConstant(
 
 void __cdecl R_SetAlphaAntiAliasingState(IDirect3DDevice9 *device, __int16 stateBits0)
 {
+#if defined(__ANDROID__)
+    (void)device;
+    if (!r_aaAlpha || !R_AndroidGlesSetAlphaCoverage(static_cast<uint16_t>(stateBits0),
+                                                     r_aaAlpha->current.integer))
+    {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android: original alpha coverage state unsupported by GLES3");
+    }
+    return;
+#else
     const char *v2; // eax
     int hr; // [esp+0h] [ebp-Ch]
     _D3DFORMAT aaAlphaFormat; // [esp+4h] [ebp-8h]
@@ -3034,5 +3044,5 @@ void __cdecl R_SetAlphaAntiAliasingState(IDirect3DDevice9 *device, __int16 state
                     v2);
             } while (alwaysfails);
         }
-    } while (alwaysfails);
+    } while (alwaysfails);#endif
 }
