@@ -6,7 +6,7 @@ on:
         description: 'Source private-render audit run'
         required: true
         type: string
-        default: '41456974030'
+        default: '41457340423'
   push:
     branches: [feature/iw3-arsenal-extraction-audit-20261102]
     paths: ['.github/workflows/iw3-fps-camera-report.yml']
@@ -23,7 +23,7 @@ jobs:
       - name: Download only numeric camera metadata, never COD4 imagery
         env:
           GH_TOKEN: ${{ github.token }}
-          SOURCE_RUN: ${{ inputs.source_run_id || '41456974030' }}
+          SOURCE_RUN: ${{ inputs.source_run_id || '41457340423' }}
         run: |
           set -euo pipefail
           mkdir -p _reports
@@ -52,11 +52,14 @@ jobs:
                         'PIVOT_ADS',actions['ads']['weapon_pivot']['center_offset'],
                         'PIVOT_BEHIND',actions['ads']['weapon_pivot']['behind'],
                         'FIXED_EYE',actions['ads']['tag_camera_stationary'])
-                  for tag in ('tag_aim','tag_sight','tag_scope','tag_flash'):
-                      if tag in actions['ads']:
-                          print('ADS_TAG',gun,axis,tag,
-                                'OFFSET',actions['ads'][tag]['center_offset'],
-                                'BEHIND',actions['ads'][tag]['behind'],
-                                'VISIBLE',actions['ads'][tag]['in_frustum'])
+                  for tag in ('tag_flash','tag_iron_sight','tag_reflex_sight','tag_acog','hands_tag_ads'):
+                      hip=actions['idle'].get(tag)
+                      ads=actions['ads'].get(tag)
+                      if ads:
+                          print('AIM_TAG',gun,axis,tag,
+                                'ADS_OFFSET',ads['center_offset'],
+                                'HIP_OFFSET',hip['center_offset'] if hip else None,
+                                'ADS_VISIBLE',ads['in_frustum'],
+                                'ADS_BEHIND',ads['behind'])
               print('WARNING',gun,'no anatomical, iron-sight or distribution approval')
           PY
