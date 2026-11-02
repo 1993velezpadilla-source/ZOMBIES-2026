@@ -37,6 +37,9 @@ on:
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_vertex_stream.h'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_buffer_storage.cpp'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_buffer_storage.h'
+      - 'third_party/KisakCOD/src/gfx_d3d/r_android_buffer_handles.cpp'
+      - 'third_party/KisakCOD/src/gfx_d3d/r_android_buffer_handles.h'
+      - 'tests/test_iw3_android_renderer_original_buffer_handles_gles3.py'
       - 'tests/test_iw3_android_renderer_original_buffer_storage_gles3.py'
       - 'tests/test_iw3_android_renderer_original_vertex_stream_gles3.py'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_render_state.cpp'
@@ -119,6 +122,9 @@ on:
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_vertex_stream.h'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_buffer_storage.cpp'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_buffer_storage.h'
+      - 'third_party/KisakCOD/src/gfx_d3d/r_android_buffer_handles.cpp'
+      - 'third_party/KisakCOD/src/gfx_d3d/r_android_buffer_handles.h'
+      - 'tests/test_iw3_android_renderer_original_buffer_handles_gles3.py'
       - 'tests/test_iw3_android_renderer_original_buffer_storage_gles3.py'
       - 'tests/test_iw3_android_renderer_original_vertex_stream_gles3.py'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_render_state.cpp'
@@ -780,6 +786,7 @@ jobs:
           "$ndk/aarch64-linux-android26-clang++" -std=c++20 -O2 -fPIC -shared \
             -Wl,--no-undefined \
             "$gfx/r_android_buffer_storage.cpp" \
+            "$gfx/r_android_buffer_handles.cpp" \
             "$gfx/r_android_vertex_stream.cpp" \
             "$gfx/r_android_indexed_draw.cpp" \
             -o "$out" -lEGL -lGLESv3
@@ -788,8 +795,12 @@ jobs:
           "$ndk/llvm-nm" -C --defined-only "$out" | grep -F 'R_AndroidGlesCreateIndexStorage('
           "$ndk/llvm-nm" -C --defined-only "$out" | grep -F 'R_AndroidGlesUpdateBufferStorage('
           "$ndk/llvm-nm" -C --defined-only "$out" | grep -F 'R_AndroidGlesDestroyBufferStorage('
+          "$ndk/llvm-nm" -C --defined-only "$out" | grep -F 'R_AndroidCreateBufferHandle('
+          "$ndk/llvm-nm" -C --defined-only "$out" | grep -F 'R_AndroidLockBufferHandle('
+          "$ndk/llvm-nm" -C --defined-only "$out" | grep -F 'R_AndroidUnlockBufferHandle('
+          "$ndk/llvm-nm" -C --defined-only "$out" | grep -F 'R_AndroidReleaseBufferHandle('
           echo 'IW3_GLES3_ORIGINAL_HANDLE_BUFFER_STORAGE_AARCH64_LINKED=true'
-          echo 'IW3_ORIGINAL_R_BUFFERS_CALLSITES_WIRED=false'
+          echo 'IW3_ORIGINAL_R_BUFFERS_CALLSITES_SOURCE_WIRED=true (compile probe follows)'
           echo 'IW3_RENDERER_FRAME_PROVEN=false'
           echo 'IW3_PLAYABLE_APK=false'
       - name: Probe full authentic R_HW_SetRenderTarget translation unit on ARM64 (NOT GAME)
@@ -859,13 +870,14 @@ jobs:
           set -e
           if [ "$rc" -eq 0 ]; then
             echo 'IW3_ORIGINAL_R_BUFFERS_AARCH64_COMPILED=true' | tee -a "$report"
+            echo 'IW3_ORIGINAL_BUFFER_ALLOCATOR_SOURCE_WIRED=true' | tee -a "$report"
             "$ndk/llvm-readelf" -h "$obj" | grep -E 'Class:|Machine:' | tee -a "$report"
             "$ndk/llvm-nm" -C --defined-only "$obj" | grep -F 'R_AllocStaticVertexBuffer(' | tee -a "$report"
           else
             echo "IW3_ORIGINAL_R_BUFFERS_AARCH64_COMPILED=false (compiler_exit=$rc)" | tee -a "$report"
             sed -n '1,100p' "$report"
           fi
-          echo 'IW3_ORIGINAL_BUFFER_ALLOCATOR_GLES3_WIRED=false'
+          echo 'IW3_ORIGINAL_BUFFER_ALLOCATOR_GLES3_RUNTIME_PROVEN=false'
           echo 'IW3_RENDERER_FRAME_PROVEN=false'
           echo 'IW3_PLAYABLE_APK=false'
           # Diagnostic only until the genuine allocator and resource lifetime
