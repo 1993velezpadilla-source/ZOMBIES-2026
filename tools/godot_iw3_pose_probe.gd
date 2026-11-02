@@ -96,8 +96,10 @@ func _test_one(path: String) -> Dictionary:
         for fraction in TIMES:
             player.stop()
             player.play(action)
-            player.seek(length * fraction, true)
-            player.advance(0.0)
+            # Explicitly advance AnimationMixer while inside the SceneTree:
+            # importing channels alone previously caused a false "all green".
+            player.advance(maxf(0.001, length * fraction))
+            rig.force_update_all_bone_transforms()
             var pose := _snapshot(rig)
             if pose.has("error"):
                 output["success"] = false
@@ -131,8 +133,25 @@ func _initialize() -> void:
         return
     target.store_string(JSON.stringify(output))
     target.close()
+    var summaries := {}
+    for gun in output["guns"]:
+        summaries[gun] = {}
+        for kind in output["guns"][gun]:
+            var report: Dictionary = output["guns"][gun][kind]
+            var status := {}
+            for action in ACTIONS:
+                if not report.has("actions") or not report["actions"].has(action):
+                    continue
+                var samples: Array = report["actions"][action].get("sampled", [])
+                var changed: int = 0
+                for sample in samples:
+                    if sample.has("relative_to_import_rest"):
+                        changed = maxi(changed, int(sample["relative_to_import_rest"]["changed_bones"]))
+                status[action] = changed
+            summaries[gun][kind] = status
     print("IW3_GODOT_POSE_GATE: " + JSON.stringify({
         "all_actions_evaluated": output["all_actions_evaluated"],
+        "changed_bones_by_action": summaries,
         "engine": output["engine"],
         "gun_count": output["guns"].size(),
         "pose_visual_approval": false}))
