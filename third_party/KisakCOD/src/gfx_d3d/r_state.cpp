@@ -18,6 +18,7 @@
 #include "r_android_render_state.h"
 #include "r_android_blend.h"
 #include "r_android_depth_state.h"
+#include "r_android_stencil_state.h"
 #endif
 
 //float const *const shadowmapClearColor 820ebb50     gfx_d3d : r_state.obj
@@ -1628,6 +1629,11 @@ void __cdecl R_HW_SetDepthTestFunction(IDirect3DDevice9 *device, char stateBits1
 
 void __cdecl R_HW_EnableStencil(IDirect3DDevice9 *device)
 {
+#if defined(__ANDROID__)
+    (void)device;
+    if (!R_AndroidGlesEnableStencil(true)) { ++g_disableRendering; Com_Error(ERR_FATAL, "IW3 Android: GLES3 stencil enable failed"); }
+    return;
+#else
     const char *v1; // eax
     int hr; // [esp+0h] [ebp-4h]
 
@@ -1650,10 +1656,16 @@ void __cdecl R_HW_EnableStencil(IDirect3DDevice9 *device)
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl R_HW_DisableStencil(IDirect3DDevice9 *device)
 {
+#if defined(__ANDROID__)
+    (void)device;
+    if (!R_AndroidGlesEnableStencil(false)) { ++g_disableRendering; Com_Error(ERR_FATAL, "IW3 Android: GLES3 stencil disable failed"); }
+    return;
+#else
     const char *v1; // eax
     int hr; // [esp+0h] [ebp-4h]
 
@@ -1676,6 +1688,7 @@ void __cdecl R_HW_DisableStencil(IDirect3DDevice9 *device)
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl R_HW_SetFrontStencilOp(
@@ -1684,6 +1697,12 @@ void __cdecl R_HW_SetFrontStencilOp(
     uint32_t stencilOpFail,
     uint32_t stencilOpZFail)
 {
+#if defined(__ANDROID__)
+    (void)device;
+    if (!R_AndroidGlesSetStencilOp(false, stencilOpPass, stencilOpFail, stencilOpZFail))
+    { ++g_disableRendering; Com_Error(ERR_FATAL, "IW3 Android: GLES3 front stencil operation failed"); }
+    return;
+#else
     const char *v4; // eax
     const char *v5; // eax
     const char *v6; // eax
@@ -1751,6 +1770,7 @@ void __cdecl R_HW_SetFrontStencilOp(
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl R_HW_SetBackStencilOp(
@@ -1759,6 +1779,12 @@ void __cdecl R_HW_SetBackStencilOp(
     uint32_t stencilOpFail,
     uint32_t stencilOpZFail)
 {
+#if defined(__ANDROID__)
+    (void)device;
+    if (!R_AndroidGlesSetStencilOp(true, stencilOpPass, stencilOpFail, stencilOpZFail))
+    { ++g_disableRendering; Com_Error(ERR_FATAL, "IW3 Android: GLES3 back stencil operation failed"); }
+    return;
+#else
     const char *v4; // eax
     const char *v5; // eax
     const char *v6; // eax
@@ -1826,10 +1852,17 @@ void __cdecl R_HW_SetBackStencilOp(
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl R_HW_SetFrontStencilFunc(IDirect3DDevice9 *device, uint32_t stencilFunc)
 {
+#if defined(__ANDROID__)
+    (void)device;
+    if (!R_AndroidGlesSetStencilFunc(false, stencilFunc))
+    { ++g_disableRendering; Com_Error(ERR_FATAL, "IW3 Android: GLES3 front stencil comparison failed"); }
+    return;
+#else
     const char *v2; // eax
     int hr; // [esp+0h] [ebp-4h]
 
@@ -1853,10 +1886,17 @@ void __cdecl R_HW_SetFrontStencilFunc(IDirect3DDevice9 *device, uint32_t stencil
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl R_HW_SetBackStencilFunc(IDirect3DDevice9 *device, uint32_t stencilFunc)
 {
+#if defined(__ANDROID__)
+    (void)device;
+    if (!R_AndroidGlesSetStencilFunc(true, stencilFunc))
+    { ++g_disableRendering; Com_Error(ERR_FATAL, "IW3 Android: GLES3 back stencil comparison failed"); }
+    return;
+#else
     const char *v2; // eax
     int hr; // [esp+0h] [ebp-4h]
 
@@ -1880,6 +1920,7 @@ void __cdecl R_HW_SetBackStencilFunc(IDirect3DDevice9 *device, uint32_t stencilF
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl R_SetSampler(
