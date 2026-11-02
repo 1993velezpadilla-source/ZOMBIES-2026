@@ -14,6 +14,7 @@
 #include "r_android_hw_viewport.h"
 #include "r_android_indexed_draw.h"
 #include "r_android_vertex_stream.h"
+#include "r_android_initial_state.h"
 #endif
 
 //float const *const shadowmapClearColor 820ebb50     gfx_d3d : r_state.obj
@@ -281,6 +282,17 @@ void __cdecl R_SetTexFilter()
 
 void __cdecl R_SetInitialContextState(IDirect3DDevice9 *device)
 {
+#if defined(__ANDROID__)
+    // GLES3 exposes separate alpha blend and front/back stencil natively.
+    // The original D3D9 initialization also disables depth testing.
+    (void)device;
+    if (!R_AndroidGlesSetInitialContextState())
+    {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android: original initial context GLES3 state failed");
+    }
+    return;
+#else
     const char *v1; // eax
     const char *v2; // eax
     const char *v3; // eax
@@ -347,6 +359,7 @@ void __cdecl R_SetInitialContextState(IDirect3DDevice9 *device)
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl R_ChangeDepthHackNearClip(GfxCmdBufSourceState *source, uint32_t depthHackFlags)
