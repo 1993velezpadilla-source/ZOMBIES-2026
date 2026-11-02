@@ -17,23 +17,27 @@ func _initialize() -> void:
     var summary: Dictionary = {"engine": Engine.get_version_info().get("string", "unknown"), "guns": {}, "all_imported": false}
     var fatal: bool = false
     for gun in ["m4", "ak47", "mp5"]:
-        var path: String = "res://weapons/" + gun + "_animated_experimental.glb"
-        var scene: Resource = ResourceLoader.load(path)
-        if not (scene is PackedScene):
-            summary["guns"][gun] = {"imported": false, "reason": "no PackedScene from GLB"}
-            fatal = true
-            continue
-        var instance: Node = (scene as PackedScene).instantiate()
-        var names: Dictionary = {}
-        _collect_animations(instance, names)
-        var ok: bool = true
-        for expected_name in ["idle", "ads", "fire", "reload"]:
-            if not names.has(expected_name) or int(names[expected_name]) < 1:
-                ok = false
-        summary["guns"][gun] = {"imported": true, "animation_names": names, "four_named_actions": ok}
-        if not ok:
-            fatal = true
-        instance.free()
+        var gun_results: Dictionary = {}
+        for kind in ["weapon", "hands"]:
+            var suffix: String = "_animated_experimental.glb" if kind == "weapon" else "_hands_animated_experimental.glb"
+            var path: String = "res://weapons/" + gun + suffix
+            var scene: Resource = ResourceLoader.load(path)
+            if not (scene is PackedScene):
+                gun_results[kind] = {"imported": false, "reason": "no PackedScene from GLB"}
+                fatal = true
+                continue
+            var instance: Node = (scene as PackedScene).instantiate()
+            var names: Dictionary = {}
+            _collect_animations(instance, names)
+            var ok: bool = true
+            for expected_name in ["idle", "ads", "fire", "reload"]:
+                if not names.has(expected_name) or int(names[expected_name]) < 1:
+                    ok = false
+            gun_results[kind] = {"imported": true, "animation_names": names, "four_named_actions": ok}
+            if not ok:
+                fatal = true
+            instance.free()
+        summary["guns"][gun] = gun_results
     summary["all_imported"] = not fatal
     summary["rendered_pose_verified"] = false
     summary["gameplay_verified"] = false
