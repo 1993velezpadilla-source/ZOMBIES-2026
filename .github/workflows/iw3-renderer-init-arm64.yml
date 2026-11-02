@@ -882,6 +882,38 @@ jobs:
           echo 'IW3_PLAYABLE_APK=false'
           # Diagnostic only until the genuine allocator and resource lifetime
           # are ported. Do not fail unrelated renderer regressions.
+      - name: Relocatable-link authentic r_buffers and GLES3 storage providers (NOT GAME)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          gfx="$GITHUB_WORKSPACE/third_party/KisakCOD/src/gfx_d3d"
+          original="$RUNNER_TEMP/iw3-original-r-buffers-aarch64.o"
+          if [ ! -f "$original" ]; then
+            echo 'IW3_ORIGINAL_BUFFER_ALLOCATOR_RELOCATABLE_LINKED=false (original compile failed)'
+            exit 0
+          fi
+          objects=("$original")
+          for unit in r_android_buffer_handles r_android_buffer_storage r_android_vertex_stream r_android_indexed_draw; do
+            obj="$RUNNER_TEMP/iw3-$unit-aarch64.o"
+            "$ndk/aarch64-linux-android26-clang++" -std=c++20 -O2 -fPIC \
+              -c "$gfx/$unit.cpp" -o "$obj"
+            objects+=("$obj")
+          done
+          combined="$RUNNER_TEMP/iw3-original-r-buffers-plus-gles3-aarch64.o"
+          "$ndk/ld.lld" -r -o "$combined" "${objects[@]}"
+          "$ndk/llvm-readelf" -h "$combined" | grep -E 'Class:|Machine:'
+          "$ndk/llvm-nm" -C --defined-only "$combined" | grep -F 'R_AllocStaticVertexBuffer('
+          "$ndk/llvm-nm" -C --defined-only "$combined" | grep -F 'R_AndroidCreateBufferHandle('
+          "$ndk/llvm-nm" -C -u "$combined" > "$RUNNER_TEMP/iw3-original-r-buffers-plus-gles3-undefined.txt"
+          if grep -F 'R_Android' "$RUNNER_TEMP/iw3-original-r-buffers-plus-gles3-undefined.txt"; then
+            echo 'IW3_ORIGINAL_BUFFER_ALLOCATOR_RELOCATABLE_LINKED=false (unresolved Android bridge)'
+            exit 1
+          fi
+          echo 'IW3_ORIGINAL_BUFFER_ALLOCATOR_RELOCATABLE_LINKED=true'
+          echo 'IW3_FULL_RENDERER_LINKED=false'
+          echo 'IW3_RENDERER_FRAME_PROVEN=false'
+          echo 'IW3_PLAYABLE_APK=false'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -914,6 +946,8 @@ jobs:
             ${{ runner.temp }}/libiw3-original-buffer-storage-gles3-arm64.so
             ${{ runner.temp }}/iw3-original-r-buffers-arm64-report.txt
             ${{ runner.temp }}/iw3-original-r-buffers-aarch64.o
+            ${{ runner.temp }}/iw3-original-r-buffers-plus-gles3-aarch64.o
+            ${{ runner.temp }}/iw3-original-r-buffers-plus-gles3-undefined.txt
             ${{ runner.temp }}/iw3-original-r-state-arm64-report.txt
             ${{ runner.temp }}/iw3-original-r-state-aarch64.o
             ${{ runner.temp }}/iw3-original-r-state-plus-target-aarch64.o
