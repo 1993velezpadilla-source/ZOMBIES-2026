@@ -37,7 +37,8 @@ func _check(game: Node, action: String) -> Dictionary:
     var camera_up: Vector3 = cam_basis.y
     var forward_dot: float = source_forward.dot(camera_forward)
     var up_dot: float = source_top.dot(camera_up)
-    var right: Vector3 = model_basis * Vector3.DOWN
+    # With +90 roll, source +Y becomes screen-right (+Z world at camera yaw -90).
+    var right: Vector3 = model_basis * Vector3.UP
     var horizontal_dot: float = right.dot(cam_basis.x)
     var attachment: Dictionary = rig.anchor_error()
     return {
