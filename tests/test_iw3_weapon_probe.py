@@ -9,7 +9,7 @@ import tempfile
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
-from iw3_weapon_probe import glb_metadata, scan_output, stage_archive, zip_members_for
+from iw3_weapon_probe import glb_metadata, scan_output, stage_archive, zip_members_for, IW3_ASSET_TYPES
 
 
 def fake_glb(path: Path, meshes=1, skins=0, animations=0) -> None:
@@ -25,6 +25,10 @@ def fake_glb(path: Path, meshes=1, skins=0, animations=0) -> None:
 
 
 class WeaponProbeTests(unittest.TestCase):
+    def test_actual_iw3_asset_type_names(self):
+        # Native type names from OpenAssetTools GameIW3.cpp.
+        self.assertEqual(IW3_ASSET_TYPES, ("xmodel", "xanim", "weapon", "image", "material"))
+
     def test_fixed_allowlist(self):
         self.assertEqual(zip_members_for(["common_mp"], True),
                          ["zone/spanish/common_mp.ff", "main/iw_02.iwd", "main/iw_03.iwd"])
