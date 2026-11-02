@@ -12,6 +12,9 @@
 #include "r_dvars.h"
 #include "r_image.h"
 #include "r_shadowcookie.h"
+#if defined(__ANDROID__)
+#include "r_android_vertex_declaration.h"
+#endif
 
 #include <algorithm>
 #include <universal/com_files.h>
@@ -430,6 +433,21 @@ IDirect3DVertexDeclaration9 *__cdecl Material_BuildVertexDecl(
 
     elemTable[elemIndex] = declEnd;
 
+#if defined(__ANDROID__)
+    // Preserve original IW3 routing, including D3DCOLOR and two streams.
+    // This records metadata; GLES3 VAO/shader mapping remains pending.
+    static_assert(sizeof(_D3DVERTEXELEMENT9) == sizeof(IW3AndroidVertexElement),
+                  "D3D9 vertex declaration ABI mismatch");
+    decl = reinterpret_cast<IDirect3DVertexDeclaration9 *>(
+        R_AndroidCreateVertexDeclaration(
+            reinterpret_cast<const IW3AndroidVertexElement *>(elemTable),
+            static_cast<std::size_t>(elemIndex)));
+    if (!decl) {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "Android original vertex declaration metadata invalid");
+        return nullptr;
+    }
+#else
     do
     {
         if (r_logFile && r_logFile->current.integer)
@@ -448,6 +466,7 @@ IDirect3DVertexDeclaration9 *__cdecl Material_BuildVertexDecl(
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 
     iassert(decl);
     return decl;
@@ -781,6 +800,12 @@ void __cdecl Material_ReleasePassResources(MaterialPass *pass)
                         if (r_logFile->current.integer)
                             RB_LogPrint("pass->vertexDecl->routing.decl[declIndex]->Release()\n");
                     }
+#if defined(__ANDROID__)
+                    const void *identity = pass->vertexDecl->routing.decl[declIndex];
+                    if (!R_AndroidReleaseVertexDeclaration(identity))
+                        Com_Error(ERR_FATAL, "Android original vertex declaration release failed");
+                    pass->vertexDecl->routing.decl[declIndex] = nullptr;
+#else
                     v1 = (IDirect3DSurface9 *)pass->vertexDecl->routing.decl[declIndex];
                     pass->vertexDecl->routing.decl[declIndex] = 0;
                     R_ReleaseAndSetNULL<IDirect3DDevice9>(
@@ -788,6 +813,7 @@ void __cdecl Material_ReleasePassResources(MaterialPass *pass)
                         "pass->vertexDecl->routing.decl[declIndex]",
                         ".\\r_material.cpp",
                         948);
+#endif
                 } while (alwaysfails);
             }
         }
