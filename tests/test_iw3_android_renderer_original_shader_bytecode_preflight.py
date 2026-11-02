@@ -315,6 +315,21 @@ int main() {
     assert(!R_AndroidVisitD3D9Declarations(invalidPixelOutput,
             sizeof(invalidPixelOutput), IW3AndroidShaderStage::Pixel,
             CollectDeclaration, &dv));
+    // Shader-model constraints: VS2 has no vertex texture samplers and
+    // PS3 uses v# input declarations, not the old PS2 t# class.
+    const std::uint32_t vs2Sampler[] = {
+        0xFFFE0200u, 0x0200001Fu, 0x10000000u,
+        0xA00F0800u, 0x0000FFFFu
+    };
+    const std::uint32_t ps3Texcoord[] = {
+        0xFFFF0300u, 0x0200001Fu, 0x00000005u,
+        0xB00F0000u, 0x0000FFFFu
+    };
+    assert(!R_AndroidVisitD3D9Declarations(vs2Sampler, sizeof(vs2Sampler),
+            IW3AndroidShaderStage::Vertex, CollectDeclaration, &dv));
+    assert(!R_AndroidVisitD3D9Declarations(ps3Texcoord, sizeof(ps3Texcoord),
+            IW3AndroidShaderStage::Pixel, CollectDeclaration, &dv));
+    assert(dv.count == 0);
     dv = {};
     dv.reject = true;
     assert(!R_AndroidVisitD3D9Declarations(declarations, sizeof(declarations),
