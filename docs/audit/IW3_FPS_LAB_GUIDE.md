@@ -14,7 +14,7 @@ Estado: **escena FPS interactiva y control táctil implementados**, con pruebas 
 
 En Android o pantallas táctiles: **pulgar izquierdo** mueve; **pulgar derecho** gira la cámara; botones FIRE, ADS (toggle), RELOAD, JUMP, SWAP, SPRINT y CROUCH. Soporta movimiento y cámara a la vez mediante IDs independientes de multitouch. El diseño del laboratorio es landscape; esto todavía no es la GUI final ni tiene giroscopio.
 
-En computadora: WASD = movimiento, mouse capturado = mirar, botón derecho = ADS; F = disparar, R = recarga, Tab = cambiar arma, Shift = correr, Space = saltar y C = agacharse. El mouse puede requerir captura manual; la prioridad inicial son los controles táctiles.
+En computadora: WASD = movimiento, G = capturar mouse, mouse capturado = mirar, botón derecho = ADS; F = disparar, R = recarga, Tab = cambiar arma, Shift = correr, Space = saltar y C = agacharse. Esc = soltar mouse. El mouse requiere presionar G para capturarlo; la prioridad inicial son los controles táctiles.
 
 ## Cómo instalar la sala privada en tu computadora
 
