@@ -17,6 +17,7 @@ func _run() -> void:
     await process_frame
     await physics_frame
     await process_frame
+    game.set_process(false) # deterministic updates; headless runner frames can be <1ms
     var start: Dictionary = game.metrics()
     report["scene_loaded"]=start["scene_ready"] and start["gun_ready"] and          start["safe_primitives"] and start["primitive_parts"] >= 7 and          start["touch_controls"] >= 7
     var viewport: Vector2 = game.get_viewport().get_visible_rect().size
@@ -63,14 +64,14 @@ func _run() -> void:
     report["fire_hits"]=shot and game.metrics()["magazine"]==before-1 and game.impacts>=1
     report["ads"]=game.toggle_ads()
     for _i in range(18):
-        await process_frame
+        game._process(FRAME)
     report["ads"]=report["ads"] and game.demo_ads_blend > 0.9
     var reloading: bool = game.reload()
     var interrupt: bool = game.fire()
     report["reload_cancel"]=reloading and interrupt and game.demo_reload_cancel_count==1 and not game.demo_is_reloading
     var reload_started: bool=game.reload()
     for _i in range(80):
-        await process_frame
+        game._process(FRAME)
     report["reload_finishes"]=reload_started and game.metrics()["magazine"]==30 and not game.reload_pending
     var original_ammo: int=game.magazines["m4"]
     var one: bool=game.next_weapon()
