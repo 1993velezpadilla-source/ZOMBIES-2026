@@ -370,4 +370,102 @@ bool R_AndroidVisitD3D9DecodedShader(const void *program, std::size_t programByt
                                    WalkUnified, &state);
 }
 
+
+#if defined(__ANDROID__)
+namespace {
+struct PixelColorEmit {
+    std::string body;
+    bool declaredColor0 = false;
+    bool temp0Written = false;
+    bool color0Written = false;
+};
+bool EmitPixelColor(const IW3AndroidShaderDecodedInstruction &record, void *context)
+{
+    auto &state = *static_cast<PixelColorEmit *>(context);
+    if (record.kind == IW3AndroidShaderDecodedKind::Declaration) {
+        const auto &d = record.declaration;
+        // Only the authentic ps_3_0 COLOR0 input declaration v0 is mapped.
+        // Samplers, TEXCOORD and other inputs require their own bindings.
+        if (state.declaredColor0 || d.sampler || d.usage != 10 ||
+            d.usageIndex != 0 || d.registerOperand.type != 1 ||
+            d.registerOperand.number != 0 || d.registerOperand.writeMask != 15)
+            return false;
+        state.declaredColor0 = true;
+        return true;
+    }
+    const auto &a = record.arithmetic;
+    if ((a.opcode != 1 && a.opcode != 2) ||
+        a.sourceCount != (a.opcode == 1 ? 1 : 2))
+        return false;
+    std::string sources[2];
+    for (std::uint8_t i = 0; i < a.sourceCount; ++i) {
+        const auto &s = a.sources[i];
+        // D3D9 swizzle/modifier/relative semantics must never be discarded.
+        if (s.number != 0 || s.swizzle != 0xE4 || s.modifier != 0 ||
+            s.relativeAddressing)
+            return false;
+        if (s.type == 1 && state.declaredColor0)
+            sources[i] = "iw3_color_in0";
+        else if (s.type == 0 && state.temp0Written)
+            sources[i] = "iw3_r0";
+        else
+            return false; // undeclared input or read-before-write
+    }
+    const auto &d = a.destination;
+    if (d.number != 0 || d.writeMask != 15 || d.modifier != 0 ||
+        d.destinationShift != 0 || d.relativeAddressing)
+        return false;
+    const char *target = nullptr;
+    if (d.type == 0) {
+        target = "iw3_r0";
+        state.temp0Written = true;
+    } else if (d.type == 8) { // D3DSPR_COLOROUT, register oC0
+        target = "iw3_color_out0";
+        state.color0Written = true;
+    } else {
+        return false;
+    }
+    state.body += "  ";
+    state.body += target;
+    state.body += " = ";
+    state.body += sources[0];
+    if (a.opcode == 2) {
+        state.body += " + ";
+        state.body += sources[1];
+    }
+    state.body += ";\n";
+    return true;
+}
+} // namespace
+
+bool R_AndroidTranslateD3D9PixelColorSubsetToGLSL(
+    const void *program, std::size_t programBytes, std::string *outGLSL)
+{
+    if (!outGLSL) return false;
+    outGLSL->clear();
+    IW3AndroidShaderEnvelope envelope{};
+    if (!R_AndroidInspectD3D9Shader(program, programBytes,
+                                   IW3AndroidShaderStage::Pixel, &envelope) ||
+        envelope.major != 3 || envelope.minor != 0)
+        return false;
+    PixelColorEmit state{};
+    if (!R_AndroidVisitD3D9DecodedShader(
+            program, programBytes, IW3AndroidShaderStage::Pixel,
+            EmitPixelColor, &state) || !state.color0Written)
+        return false;
+    // Shader input and fragment output are genuine D3D9 registers, not
+    // synthetic geometry or a fallback shader. Vertex/pixel varying linkage
+    // and GLES3 compile/link still require separate verification.
+    *outGLSL =
+        "#version 300 es\n"
+        "precision highp float;\n"
+        "layout(location = 0) in vec4 iw3_color_in0;\n"
+        "layout(location = 0) out vec4 iw3_color_out0;\n"
+        "void main() {\n"
+        "  vec4 iw3_r0;\n" +
+        state.body + "}\n";
+    return true;
+}
+#endif
+
 #endif
