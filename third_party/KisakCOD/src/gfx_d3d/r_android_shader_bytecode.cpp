@@ -293,4 +293,81 @@ bool R_AndroidVisitD3D9Declarations(const void *program, std::size_t programByte
                                    WalkDeclarations, &state);
 }
 
+
+// A single semantic walk for interleaved original DCL and MOV/ADD records.
+// Keep decoding in WalkDeclarations/WalkArithmetic, so both the standalone
+// visitors and this combined visitor enforce IDENTICAL operand restrictions.
+namespace {
+struct UnifiedWalk {
+    const unsigned char *bytes;
+    IW3AndroidShaderStage stage;
+    std::uint8_t major;
+    IW3AndroidShaderDecodedVisitor visitor;
+    void *user;
+    bool validateOnly;
+    bool seenArithmetic;
+};
+
+bool ForwardDeclaration(const IW3AndroidShaderDeclaration &decl, void *context)
+{
+    auto &state = *static_cast<UnifiedWalk *>(context);
+    IW3AndroidShaderDecodedInstruction record{};
+    record.kind = IW3AndroidShaderDecodedKind::Declaration;
+    record.tokenOffset = decl.tokenOffset;
+    record.declaration = decl;
+    return state.visitor(record, state.user);
+}
+
+bool ForwardArithmetic(const IW3AndroidShaderArithmetic &arithmetic, void *context)
+{
+    auto &state = *static_cast<UnifiedWalk *>(context);
+    IW3AndroidShaderDecodedInstruction record{};
+    record.kind = IW3AndroidShaderDecodedKind::Arithmetic;
+    record.tokenOffset = arithmetic.tokenOffset;
+    record.arithmetic = arithmetic;
+    return state.visitor(record, state.user);
+}
+
+bool WalkUnified(const IW3AndroidShaderInstruction &ins, void *context)
+{
+    auto &state = *static_cast<UnifiedWalk *>(context);
+    if (ins.opcode == 31) {
+        // D3D9 declarations belong before executable instructions.
+        if (state.seenArithmetic) return false;
+        DeclarationWalk decl{state.bytes, state.stage, state.major,
+                             ForwardDeclaration, &state, state.validateOnly};
+        return WalkDeclarations(ins, &decl);
+    }
+    if (ins.opcode != 0 && ins.opcode != 1 && ins.opcode != 2)
+        return false;
+    if (ins.opcode != 0) state.seenArithmetic = true;
+    ArithmeticWalk arithmetic{state.bytes, ForwardArithmetic,
+                              &state, state.validateOnly};
+    return WalkArithmetic(ins, &arithmetic);
+}
+} // namespace
+
+bool R_AndroidVisitD3D9DecodedShader(const void *program, std::size_t programBytes,
+                                     IW3AndroidShaderStage stage,
+                                     IW3AndroidShaderDecodedVisitor visitor,
+                                     void *user)
+{
+    IW3AndroidShaderEnvelope envelope{};
+    if (!visitor || !R_AndroidInspectD3D9Shader(program, programBytes,
+                                               stage, &envelope))
+        return false;
+    UnifiedWalk state{static_cast<const unsigned char *>(program), stage,
+                      envelope.major, visitor, user, true, false};
+    // Pass 1: reject an invalid late DCL, malformed arithmetic register,
+    // predication, relative addressing, or unsupported opcode BEFORE the
+    // first callback. Pass 2: publish original order without altering tokens.
+    if (!R_AndroidVisitD3D9Shader(program, programBytes, stage,
+                                 WalkUnified, &state))
+        return false;
+    state.validateOnly = false;
+    state.seenArithmetic = false;
+    return R_AndroidVisitD3D9Shader(program, programBytes, stage,
+                                   WalkUnified, &state);
+}
+
 #endif
