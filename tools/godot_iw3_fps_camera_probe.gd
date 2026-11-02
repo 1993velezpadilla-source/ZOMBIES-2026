@@ -178,7 +178,7 @@ func _run() -> void:
                 values["attachment_position_error_m"] = rig.anchor_error()["anchor_position_error"]
                 for tag in ["tag_flash", "tag_aim", "tag_scope", "tag_sight", "tag_brass", "tag_clip"]:
                     if rig.weapon_skeleton.find_bone(tag) >= 0:
-                        values[tag] = _point_projection(camera, _bone_pose(rig.weapon_skeleton, tag), viewport)
+                        values[tag] = _point_projection(camera, _bone_pose(rig.weapon_skeleton, tag).origin, viewport)
                 actions[action] = values
             info["candidate_views"][hypothesis] = actions
         report["guns"][gun] = info
