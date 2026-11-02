@@ -58,7 +58,48 @@ int main() {
     };
     assert(R_AndroidInspectD3D9Shader(operandEnd, sizeof(operandEnd),
                                      IW3AndroidShaderStage::Vertex, &info));
-    std::puts("IW3_ORIGINAL_D3D9_SHADER_TOKEN_WALK_PASS_NOT_TRANSLATED");
+    // D3D9 SM2/SM3 bit 28 adds a predicate source token to the encoded
+    // instruction length. These are authentic token-frame shapes, not
+    // executable/translated shaders or register-semantic validation.
+    const std::uint32_t predMov[] = {
+        0xFFFE0300u, 0x13000001u, 0x800F0000u, 0x90E40000u,
+        0xB0E40000u, 0x0000FFFFu
+    };
+    const std::uint32_t predAdd[] = {
+        0xFFFF0300u, 0x14000002u, 0x800F0000u, 0x90E40000u,
+        0xA0E40000u, 0xB0E40000u, 0x0000FFFFu
+    };
+    const std::uint32_t missingPredMov[] = {
+        0xFFFE0300u, 0x12000001u, 0x800F0000u, 0x90E40000u,
+        0x0000FFFFu
+    };
+    const std::uint32_t missingPredAdd[] = {
+        0xFFFF0300u, 0x13000002u, 0x800F0000u, 0x90E40000u,
+        0xA0E40000u, 0x0000FFFFu
+    };
+    const std::uint32_t predNop[] = {
+        0xFFFE0300u, 0x11000000u, 0xB0E40000u, 0x0000FFFFu
+    };
+    const std::uint32_t predDcl[] = {
+        0xFFFE0300u, 0x1300001Fu, 0x00000005u, 0x900F0000u,
+        0xB0E40000u, 0x0000FFFFu
+    };
+    assert(R_AndroidInspectD3D9Shader(predMov, sizeof(predMov),
+                                     IW3AndroidShaderStage::Vertex, &info));
+    assert(info.predicatedInstructionCount == 1 && info.instructionCount == 1);
+    assert(R_AndroidInspectD3D9Shader(predAdd, sizeof(predAdd),
+                                     IW3AndroidShaderStage::Pixel, &info));
+    assert(info.predicatedInstructionCount == 1 && info.instructionCount == 1);
+    assert(!R_AndroidInspectD3D9Shader(missingPredMov, sizeof(missingPredMov),
+                                      IW3AndroidShaderStage::Vertex, &info));
+    assert(!R_AndroidInspectD3D9Shader(missingPredAdd, sizeof(missingPredAdd),
+                                      IW3AndroidShaderStage::Pixel, &info));
+    assert(!R_AndroidInspectD3D9Shader(predNop, sizeof(predNop),
+                                      IW3AndroidShaderStage::Vertex, &info));
+    assert(!R_AndroidInspectD3D9Shader(predDcl, sizeof(predDcl),
+                                      IW3AndroidShaderStage::Vertex, &info));
+    assert(info.predicatedInstructionCount == 0);
+    std::puts("IW3_ORIGINAL_D3D9_SHADER_PREDICATION_PASS_NOT_TRANSLATED");
 }
 '''
 
@@ -91,7 +132,7 @@ class OriginalShaderBytecodePreflight(unittest.TestCase):
             run = subprocess.run([str(binary)], capture_output=True, text=True,
                                  env=env, timeout=30)
             self.assertEqual(run.returncode, 0, run.stdout+run.stderr)
-            self.assertIn("IW3_ORIGINAL_D3D9_SHADER_TOKEN_WALK_PASS_NOT_TRANSLATED", run.stdout)
+            self.assertIn("IW3_ORIGINAL_D3D9_SHADER_PREDICATION_PASS_NOT_TRANSLATED", run.stdout)
 
 if __name__ == "__main__":
     unittest.main()
