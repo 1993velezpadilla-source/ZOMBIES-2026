@@ -103,4 +103,40 @@ bool R_AndroidGlesSetPolygonMode(uint32_t originalStateBits0)
     // mesh-edge rendering path exists.
     return (originalStateBits0 & 0x80000000u) == 0;
 }
+// D3D9 uses vendor FOURCC values ATOC (0x434f5441) and SSAA
+// (0x41415353) through D3DRS_ADAPTIVETESS_Y. GLES3 only guarantees
+// multisample alpha-to-coverage; never silently claim SSAA parity.
+bool R_AndroidGlesSetAlphaCoverage(uint16_t originalStateBits0, int aaAlphaMode)
+{
+    if (!HasCurrentContextAndNoError())
+        return false;
+
+    const bool requested = (originalStateBits0 & 0x0F00u) == 0;
+    if (requested && aaAlphaMode == 2)
+        return false; // SSAA vendor state has no GLES3 core equivalent.
+
+    const GLboolean previous = glIsEnabled(GL_SAMPLE_ALPHA_TO_COVERAGE);
+    if (glGetError() != GL_NO_ERROR)
+        return false;
+    if (requested)
+    {
+        GLint buffers = 0;
+        GLint samples = 0;
+        glGetIntegerv(GL_SAMPLE_BUFFERS, &buffers);
+        if (glGetError() != GL_NO_ERROR) return false;
+        glGetIntegerv(GL_SAMPLES, &samples);
+        if (glGetError() != GL_NO_ERROR || buffers < 1 || samples < 2)
+            return false; // No multisampled target: ATOC cannot work.
+    }
+
+    if (requested) glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+    else glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+    if (glGetError() == GL_NO_ERROR)
+        return true;
+
+    if (previous) glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+    else glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+    (void)glGetError();
+    return false;
+}
 #endif
