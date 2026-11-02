@@ -20,6 +20,7 @@
 #include "r_android_depth_state.h"
 #include "r_android_stencil_state.h"
 #include "r_android_sampler_state.h"
+#include "r_android_texture_unbind.h"
 #endif
 
 //float const *const shadowmapClearColor 820ebb50     gfx_d3d : r_state.obj
@@ -2435,6 +2436,17 @@ void __cdecl R_DisableSampler(GfxCmdBufState *state, uint32_t samplerIndex)
 
 void __cdecl R_HW_DisableSampler(IDirect3DDevice9 *device, uint32_t samplerIndex)
 {
+#if defined(__ANDROID__)
+    // Original R_DisableSampler has already cleared the CPU-side image slot.
+    // D3D9 SetTexture(unit, nullptr) unbinds the GPU resource, not its sampler
+    // filtering state. Preserve that distinction with the GLES3 bridge.
+    (void)device;
+    if (!R_AndroidGlesDisableSamplerTexture(samplerIndex))
+    {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android: original sampler texture unbind failed (unit %u)", samplerIndex);
+    }
+#else
     const char *v2; // eax
     int hr; // [esp+0h] [ebp-4h]
 
@@ -2459,6 +2471,7 @@ void __cdecl R_HW_DisableSampler(IDirect3DDevice9 *device, uint32_t samplerIndex
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl R_UnbindImage(GfxCmdBufState *state, const GfxImage *image)
