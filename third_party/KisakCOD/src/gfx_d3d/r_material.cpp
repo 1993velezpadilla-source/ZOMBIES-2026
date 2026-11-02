@@ -805,6 +805,13 @@ void __cdecl Material_ReleasePassResources(MaterialPass *pass)
     iassert( pass->pixelShader );
     if (pass->pixelShader->prog.ps)
     {
+#if defined(__ANDROID__)
+        // An Android material must never own a D3D9 COM shader. No
+        // translated GLES3 shader handle is available in this phase.
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android unexpected D3D9 pixel shader resource");
+        pass->pixelShader->prog.ps = nullptr;
+#else
         do
         {
             if (r_logFile && r_logFile->current.integer)
@@ -817,10 +824,18 @@ void __cdecl Material_ReleasePassResources(MaterialPass *pass)
                 ".\\r_material.cpp",
                 935);
         } while (alwaysfails);
+    #endif
     }
     iassert( pass->vertexShader );
     if (pass->vertexShader->prog.vs)
     {
+#if defined(__ANDROID__)
+        // An Android material must never own a D3D9 COM shader. No
+        // translated GLES3 shader handle is available in this phase.
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android unexpected D3D9 vertex shader resource");
+        pass->vertexShader->prog.vs = nullptr;
+#else
         do
         {
             if (r_logFile && r_logFile->current.integer)
@@ -829,6 +844,7 @@ void __cdecl Material_ReleasePassResources(MaterialPass *pass)
             pass->vertexShader->prog.vs = 0;
             R_ReleaseAndSetNULL<IDirect3DDevice9>(var, "pass->vertexShader->prog.vs", ".\\r_material.cpp", 939);
         } while (alwaysfails);
+    #endif
     }
     iassert( pass->vertexDecl );
     if (pass->vertexDecl->isLoaded)
