@@ -30,6 +30,19 @@ static bool Collect(const IW3AndroidShaderInstruction &ins, void *context) {
     return !visits.reject;
 }
 
+
+struct DeclarationVisits {
+    unsigned count = 0;
+    IW3AndroidShaderDeclaration records[8]{};
+    bool reject = false;
+};
+static bool CollectDeclaration(const IW3AndroidShaderDeclaration &decl, void *context) {
+    auto &visits = *static_cast<DeclarationVisits *>(context);
+    assert(visits.count < 8);
+    visits.records[visits.count++] = decl;
+    return !visits.reject;
+}
+
 struct ArithmeticVisits {
     unsigned count = 0;
     IW3AndroidShaderArithmetic records[4]{};
@@ -233,6 +246,87 @@ int main() {
     assert(!R_AndroidVisitD3D9Arithmetic(arithmetic, sizeof(arithmetic),
                                           IW3AndroidShaderStage::Vertex,
                                           nullptr, &av));
+
+
+    // D3D9 SM3 vertex DCL: input TEXCOORD0, output COLOR1,
+    // sampler 2D. This tests original metadata, not GLES VAOs/programs.
+    const std::uint32_t declarations[] = {
+        0xFFFE0300u,
+        0x0200001Fu, 0x00000005u, 0x900F0000u,
+        0x0200001Fu, 0x0001000Au, 0xE00F0001u,
+        0x0200001Fu, 0x10000000u, 0xA00F0800u,
+        0x02000001u, 0x800F0000u, 0x90E40000u,
+        0x0000FFFFu
+    };
+    DeclarationVisits dv{};
+    assert(R_AndroidVisitD3D9Declarations(declarations, sizeof(declarations),
+            IW3AndroidShaderStage::Vertex, CollectDeclaration, &dv));
+    assert(dv.count == 3 && dv.records[0].tokenOffset == 1);
+    assert(dv.records[0].usage == 5 && dv.records[0].usageIndex == 0);
+    assert(dv.records[0].registerOperand.type == 1);
+    assert(dv.records[1].usage == 10 && dv.records[1].usageIndex == 1);
+    assert(dv.records[1].registerOperand.type == 6);
+    assert(dv.records[2].sampler && dv.records[2].samplerTextureType == 2);
+    assert(dv.records[2].registerOperand.type == 10);
+    // Pixel SM2 texcoord input and cube sampler declaration.
+    const std::uint32_t pixelDeclarations[] = {
+        0xFFFF0200u,
+        0x0200001Fu, 0x00000005u, 0xB00F0000u,
+        0x0200001Fu, 0x18000000u, 0xA00F0801u,
+        0x0000FFFFu
+    };
+    dv = {};
+    assert(R_AndroidVisitD3D9Declarations(pixelDeclarations, sizeof(pixelDeclarations),
+            IW3AndroidShaderStage::Pixel, CollectDeclaration, &dv));
+    assert(dv.count == 2 && dv.records[1].sampler);
+    assert(dv.records[1].samplerTextureType == 3);
+    // A later invalid DCL must produce NO partial callback output.
+    const std::uint32_t lateBadDeclaration[] = {
+        0xFFFE0300u,
+        0x0200001Fu, 0x00000005u, 0x900F0000u,
+        0x0200001Fu, 0x0000000Eu, 0x900F0001u,
+        0x0000FFFFu
+    };
+    dv = {};
+    assert(!R_AndroidVisitD3D9Declarations(lateBadDeclaration,
+            sizeof(lateBadDeclaration), IW3AndroidShaderStage::Vertex,
+            CollectDeclaration, &dv));
+    assert(dv.count == 0);
+    const std::uint32_t invalidSampler[] = {
+        0xFFFE0300u, 0x0200001Fu, 0x08000000u,
+        0xA00F0800u, 0x0000FFFFu
+    };
+    dv = {};
+    assert(!R_AndroidVisitD3D9Declarations(invalidSampler, sizeof(invalidSampler),
+            IW3AndroidShaderStage::Vertex, CollectDeclaration, &dv));
+    assert(dv.count == 0);
+    const std::uint32_t relativeDeclaration[] = {
+        0xFFFE0300u, 0x0200001Fu, 0x00000005u,
+        0x900F2000u, 0x0000FFFFu
+    };
+    assert(!R_AndroidVisitD3D9Declarations(relativeDeclaration,
+            sizeof(relativeDeclaration), IW3AndroidShaderStage::Vertex,
+            CollectDeclaration, &dv));
+    // Vertex shader output DCL is not a pixel shader input declaration.
+    const std::uint32_t invalidPixelOutput[] = {
+        0xFFFF0300u, 0x0200001Fu, 0x0000000Au,
+        0xE00F0000u, 0x0000FFFFu
+    };
+    assert(!R_AndroidVisitD3D9Declarations(invalidPixelOutput,
+            sizeof(invalidPixelOutput), IW3AndroidShaderStage::Pixel,
+            CollectDeclaration, &dv));
+    dv = {};
+    dv.reject = true;
+    assert(!R_AndroidVisitD3D9Declarations(declarations, sizeof(declarations),
+            IW3AndroidShaderStage::Vertex, CollectDeclaration, &dv));
+    assert(dv.count == 1);
+    assert(!R_AndroidVisitD3D9Declarations(declarations, sizeof(declarations),
+            IW3AndroidShaderStage::Vertex, nullptr, &dv));
+    dv = {};
+    assert(!R_AndroidVisitD3D9Declarations(unsupportedOpcode,
+            sizeof(unsupportedOpcode), IW3AndroidShaderStage::Vertex,
+            CollectDeclaration, &dv));
+    assert(dv.count == 0);
 
     std::puts("IW3_ORIGINAL_D3D9_SHADER_PREDICATION_PASS_NOT_TRANSLATED");
 }
