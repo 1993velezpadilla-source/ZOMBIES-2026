@@ -14,7 +14,9 @@ Date: 2026-11-02. PR #4, branch `feature/iw3-native-android-arm64-20261025`. Kee
 ## Validation
 - Added `tests/test_iw3_android_renderer_original_cull_polygon_gles3.py`: host LP64 ASan/UBSan with mocked EGL/GLES, invalid bits/context/error/query, all three original cull modes, rollback on mutation failure, solid and wireframe behavior.
 - Renderer CI includes this test in discovery and asserts exported AArch64 GLES3 cull/polygon symbols in the provider link. Green workflow alone does not prove the full original renderer.
-- CI results to be recorded in PR #4 after workflow completes. No ARM64 phone runtime, map, frame, or gameplay evidence is claimed.
+- **Verified on final implementation head `48008edb098a389545b357f001732613da5bfc36`**: [renderer CI 41409499571](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41409499571) finished with **both jobs successful**. Host logs show **40/40 tests passing** (including alpha/color compatibility and the new cull/polygon ASan/UBSan regression). Android NDK linked the real EGL/GLESv3 AArch64 provider, exported both new symbols, and printed `IW3_ORIGINAL_CULL_POLYGON_GLES3_AARCH64_LINKED=true`.
+- **Negative result preserved:** the same NDK job reports `IW3_ORIGINAL_R_STATE_AARCH64_COMPILED=false (compiler_exit=1)`. The first remaining original error is `r_state.cpp:1123` (`SetRenderState(D3DRS_ALPHABLENDENABLE, 0)`); subsequent errors include D3D9 blend operations. The workflow is an intentionally non-blocking diagnostic probe for the incomplete full renderer.
+- No ARM64 phone runtime, map, frame, or gameplay evidence is claimed.
 
 ## Remaining gates
 - Full original `r_state.cpp` still requires D3D9 blending, depth/stencil and sampler translations; geometry buffers, materials, shaders, render targets and game-data loading remain incomplete.
