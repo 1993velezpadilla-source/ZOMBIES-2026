@@ -9,6 +9,9 @@
 #include "r_rendertarget.h"
 #include "r_utils.h"
 #include "r_reflection_probe.h"
+#if defined(__ANDROID__)
+#include "r_android_target.h"
+#endif
 
 //float const *const shadowmapClearColor 820ebb50     gfx_d3d : r_state.obj
 //BOOL g_renderTargetIsOverridden 85b5dd38     gfx_d3d : r_state.obj
@@ -2328,6 +2331,27 @@ void __cdecl R_SetRenderTarget(GfxCmdBufContext context, GfxRenderTargetId newTa
 
 void __cdecl R_HW_SetRenderTarget(GfxCmdBufState *state, GfxRenderTargetId newTargetId)
 {
+#if defined(__ANDROID__)
+    // Original IW3 target IDs and dimensions are authoritative. The GLES3
+    // bridge binds EGL's default framebuffer or an FBO registered by the
+    // genuine IW3 image backend. Unregistered offscreen targets fail closed.
+    if (!R_AndroidGlesBindTarget(static_cast<int>(newTargetId),
+                                 gfxRenderTargets[newTargetId].width,
+                                 gfxRenderTargets[newTargetId].height))
+    {
+        Com_Error(ERR_FATAL,
+                  "IW3 Android: original R_HW_SetRenderTarget GLES3 binding failed (target %d)\\n",
+                  static_cast<int>(newTargetId));
+        return;
+    }
+    state->viewport.x = 0;
+    state->viewport.y = 0;
+    state->viewport.width = gfxRenderTargets[newTargetId].width;
+    state->viewport.height = gfxRenderTargets[newTargetId].height;
+    state->depthRangeType = GFX_DEPTH_RANGE_FULL;
+    state->depthRangeNear = 0.0f;
+    state->depthRangeFar = 1.0f;
+#else
     int hr; // [esp+4h] [ebp-8h]
     IDirect3DDevice9 *device; // [esp+8h] [ebp-4h]
 
@@ -2387,7 +2411,7 @@ void __cdecl R_HW_SetRenderTarget(GfxCmdBufState *state, GfxRenderTargetId newTa
                 } while (alwaysfails);
             }
         } while (alwaysfails);
-    }
+    }#endif
 }
 
 void __cdecl R_UpdateStatsTarget(int newTargetId)
