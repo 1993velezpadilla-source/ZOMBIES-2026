@@ -41,8 +41,12 @@ func _run() -> void:
         "independent_live_android_device_test": false,
         "real_iron_sight_art_approved": false,
         "copyrighted_assets_uploaded": false}
+    var viewport: SubViewport = SubViewport.new()
+    viewport.size = Vector2i(int(WIDTH), int(HEIGHT))
+    viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+    root.add_child(viewport)
     var world: Node3D = Node3D.new()
-    root.add_child(world)
+    viewport.add_child(world)
     var camera: Camera3D = Camera3D.new()
     camera.near = 0.01
     camera.far = 75.0
