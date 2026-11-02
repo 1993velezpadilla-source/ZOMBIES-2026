@@ -1,4 +1,4 @@
-"""Original KisakCOD IW3 D3D9 shader envelope preflight: NOT GLSL/NOT GAME."""
+"""Bounded original KisakCOD IW3 D3D9 shader-token walk: NOT GLSL/NOT GAME."""
 import os
 from pathlib import Path
 import subprocess
@@ -13,14 +13,24 @@ HARNESS = r'''
 #include <cstdint>
 #include <cstdio>
 int main() {
-    const std::uint32_t vs[] = {0xFFFE0300u, 0x02000001u, 0x0000FFFFu};
-    const std::uint32_t ps[] = {0xFFFF0200u, 0x01000001u, 0x0000FFFFu};
+    // Real D3D9 token framing: MOV has two operands, ADD has three.
+    // A COMMENT payload is arbitrary data, including the END bit pattern.
+    const std::uint32_t vs[] = {
+        0xFFFE0300u, 0x02000001u, 0x800F0000u, 0x90E40000u,
+        0x0002FFFEu, 0x0000FFFFu, 0xDEADBEEFu, 0x0000FFFFu
+    };
+    const std::uint32_t ps[] = {
+        0xFFFF0200u, 0x03000002u, 0x800F0000u, 0x90E40000u,
+        0xA0E40000u, 0x0000FFFFu
+    };
     IW3AndroidShaderEnvelope info{};
     assert(R_AndroidInspectD3D9Shader(vs, sizeof(vs), IW3AndroidShaderStage::Vertex, &info));
-    assert(info.major == 3 && info.minor == 0 && info.dwordCount == 3);
+    assert(info.major == 3 && info.minor == 0 && info.dwordCount == 8);
+    assert(info.instructionCount == 1 && info.commentCount == 1);
     assert(R_AndroidInspectD3D9Shader(ps, sizeof(ps), IW3AndroidShaderStage::Pixel, &info));
-    assert(info.major == 2);
+    assert(info.major == 2 && info.instructionCount == 1 && info.commentCount == 0);
     assert(!R_AndroidInspectD3D9Shader(vs, sizeof(vs), IW3AndroidShaderStage::Pixel, &info));
+    assert(info.dwordCount == 0 && info.instructionCount == 0);
     assert(!R_AndroidInspectD3D9Shader(nullptr, sizeof(vs), IW3AndroidShaderStage::Vertex, &info));
     assert(!R_AndroidInspectD3D9Shader(vs, sizeof(vs), IW3AndroidShaderStage::Vertex, nullptr));
     assert(!R_AndroidInspectD3D9Shader(vs, 7, IW3AndroidShaderStage::Vertex, &info));
@@ -29,9 +39,26 @@ int main() {
     assert(!R_AndroidInspectD3D9Shader(early, sizeof(early), IW3AndroidShaderStage::Vertex, &info));
     const std::uint32_t invalid[] = {0xFFFE0400u, 0x00000001u, 0x0000FFFFu};
     assert(!R_AndroidInspectD3D9Shader(invalid, sizeof(invalid), IW3AndroidShaderStage::Vertex, &info));
-    const std::uint32_t badEnd[] = {0xFFFF0300u, 0x00000001u, 0x0000FFFEu};
+    const std::uint32_t badEnd[] = {0xFFFF0300u, 0x00000000u, 0x0000FFFEu};
     assert(!R_AndroidInspectD3D9Shader(badEnd, sizeof(badEnd), IW3AndroidShaderStage::Pixel, &info));
-    std::puts("IW3_ORIGINAL_D3D9_SHADER_ENVELOPE_PASS_NOT_TRANSLATED");
+    const std::uint32_t truncated[] = {0xFFFE0300u, 0x03000002u, 0x800F0000u, 0x0000FFFFu};
+    assert(!R_AndroidInspectD3D9Shader(truncated, sizeof(truncated), IW3AndroidShaderStage::Vertex, &info));
+    const std::uint32_t badComment[] = {0xFFFE0300u, 0x0003FFFEu, 0x0000FFFFu};
+    assert(!R_AndroidInspectD3D9Shader(badComment, sizeof(badComment), IW3AndroidShaderStage::Vertex, &info));
+    const std::uint32_t swallowedEnd[] = {0xFFFE0300u, 0x0001FFFEu, 0x0000FFFFu};
+    assert(!R_AndroidInspectD3D9Shader(swallowedEnd, sizeof(swallowedEnd), IW3AndroidShaderStage::Vertex, &info));
+    const std::uint32_t badMov[] = {0xFFFE0300u, 0x01000001u, 0x800F0000u, 0x0000FFFFu};
+    assert(!R_AndroidInspectD3D9Shader(badMov, sizeof(badMov), IW3AndroidShaderStage::Vertex, &info));
+    const std::uint32_t badDcl[] = {0xFFFE0300u, 0x0100001Fu, 0x800F0000u, 0x0000FFFFu};
+    assert(!R_AndroidInspectD3D9Shader(badDcl, sizeof(badDcl), IW3AndroidShaderStage::Vertex, &info));
+    // An operand equal to END must not terminate the instruction stream.
+    // This is token framing only; register semantics remain unvalidated.
+    const std::uint32_t operandEnd[] = {
+        0xFFFE0300u, 0x02000001u, 0x0000FFFFu, 0x90E40000u, 0x0000FFFFu
+    };
+    assert(R_AndroidInspectD3D9Shader(operandEnd, sizeof(operandEnd),
+                                     IW3AndroidShaderStage::Vertex, &info));
+    std::puts("IW3_ORIGINAL_D3D9_SHADER_TOKEN_WALK_PASS_NOT_TRANSLATED");
 }
 '''
 
@@ -47,7 +74,7 @@ class OriginalShaderBytecodePreflight(unittest.TestCase):
         self.assertIn("device->SetPixelShader(", shade)
         self.assertIn("device->SetVertexShader(", shade)
 
-    def test_sanitized_host_envelope_bounds(self):
+    def test_sanitized_host_token_framing(self):
         with tempfile.TemporaryDirectory() as td:
             tmp = Path(td)
             (tmp/"test.cpp").write_text(HARNESS)
@@ -64,7 +91,7 @@ class OriginalShaderBytecodePreflight(unittest.TestCase):
             run = subprocess.run([str(binary)], capture_output=True, text=True,
                                  env=env, timeout=30)
             self.assertEqual(run.returncode, 0, run.stdout+run.stderr)
-            self.assertIn("IW3_ORIGINAL_D3D9_SHADER_ENVELOPE_PASS_NOT_TRANSLATED", run.stdout)
+            self.assertIn("IW3_ORIGINAL_D3D9_SHADER_TOKEN_WALK_PASS_NOT_TRANSLATED", run.stdout)
 
 if __name__ == "__main__":
     unittest.main()
