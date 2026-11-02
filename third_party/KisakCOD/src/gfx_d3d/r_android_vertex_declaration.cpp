@@ -28,7 +28,8 @@ bool Valid(const IW3AndroidVertexElement &element)
     return element.stream < 2 && element.offset <= 4096
         && element.method == 0 && knownType && knownUsage
         && (element.usage == 5 ? element.usageIndex < 8
-                              : element.usageIndex == 0);
+            : element.usage == 10 ? element.usageIndex < 2
+                                  : element.usageIndex == 0);
 }
 }
 
