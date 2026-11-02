@@ -75,6 +75,8 @@ jobs:
           BIN="$(find _oat -type f -name Unlinker -print -quit)"
           test -n "$BIN"
           chmod +x "$BIN"
+          test -f _oat/ImageConverter
+          chmod +x _oat/ImageConverter
           file "$BIN"
           "$BIN" --version
           echo "UNLINKER=$PWD/$BIN" >> "$GITHUB_ENV"
