@@ -11,10 +11,13 @@ on:
       - 'tools/iw3_anim_rig_gate.py'
       - 'tools/iw3_xanim_v17.py'
       - 'tools/iw3_anim_correlation.py'
+      - 'tools/iw3_gltf_animation_bridge.py'
+      - 'tools/iw3_build_animated_previews.py'
       - 'tests/test_iw3_weapon_probe.py'
       - 'tests/test_iw3_arsenal_detail.py'
       - 'tests/test_iw3_anim_rig_gate.py'
       - 'tests/test_iw3_xanim_decoder.py'
+      - 'tests/test_iw3_gltf_animation_bridge.py'
       - 'docs/audit/IW3_WEAPON_ARSENAL_GATE.md'
   workflow_dispatch:
 
@@ -41,6 +44,7 @@ jobs:
           python3 -m unittest discover -s tests -p 'test_iw3_arsenal_detail.py' -v
           python3 -m unittest discover -s tests -p 'test_iw3_anim_rig_gate.py' -v
           python3 -m unittest discover -s tests -p 'test_iw3_xanim_decoder.py' -v
+          python3 -m unittest discover -s tests -p 'test_iw3_gltf_animation_bridge.py' -v
 
   real-archive-smoke:
     needs: unit-tests
@@ -97,6 +101,7 @@ jobs:
           python3 tools/iw3_arsenal_detail.py _iw3_private/dumps _iw3_reports/arsenal-detail.json
           python3 tools/iw3_anim_rig_gate.py _iw3_private/dumps _iw3_reports/animation-gate.json
           python3 tools/iw3_anim_correlation.py _iw3_private/dumps _iw3_reports/bone-correlation.json
+          python3 tools/iw3_build_animated_previews.py _iw3_private/dumps _iw3_private/animated_preview _iw3_reports/animated-glb-gate.json
 
       - name: Archive ONLY metadata and safe audit results (no extracted game files)
         if: always()
@@ -109,6 +114,7 @@ jobs:
             _iw3_reports/arsenal-detail.json
             _iw3_reports/animation-gate.json
             _iw3_reports/bone-correlation.json
+            _iw3_reports/animated-glb-gate.json
           retention-days: 14
           if-no-files-found: warn
 
