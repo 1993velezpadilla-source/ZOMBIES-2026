@@ -11,7 +11,7 @@ on:
         description: 'Completed IW3 extract probe workflow run ID'
         required: true
         type: string
-        default: '41404142328'
+        default: '41405005607'
 
 permissions:
   contents: read
@@ -25,13 +25,14 @@ jobs:
       - name: Download ONLY JSON evidence from earlier run
         env:
           GH_TOKEN: ${{ github.token }}
-          SOURCE_RUN: ${{ inputs.source_run_id || '41404142328' }}
+          SOURCE_RUN: ${{ inputs.source_run_id || '41405005607' }}
         run: |
           set -euo pipefail
           mkdir -p _evidence
           gh run download "$SOURCE_RUN" --repo "$GITHUB_REPOSITORY" \
             --name 'iw3-cod4-weapon-probe-metadata' --dir _evidence
           test -f _evidence/results.json
+          test -f _evidence/arsenal-detail.json
       - name: Display precise weapon and skeleton counts (no game binary)
         run: |
           python3 - <<'PY'
@@ -52,4 +53,10 @@ jobs:
               for weapon, hits in index['weapon_filename_matches'].items():
                   print('WEAPON:', weapon,'MATCHES:',len(hits),'EXAMPLES:',json.dumps(hits[:8]))
           print('VERIFIED_ANIMATED_WEAPONS:',data.get('all_weapon_animations_verified'))
+          detail=json.loads(Path('_evidence/arsenal-detail.json').read_text())
+          print('ALL_GLB_VALID:',detail['total_valid'],'SKINNED:',detail['total_skinned'],'EMBEDDED_ANIMATIONS:',detail['total_animated'])
+          print('UNIQUE_VIEWMODEL_NAMES_NOT_WEAPON_COUNT:',detail['unique_viewmodel_families'])
+          for name, info in detail['zones'].items():
+              print('ZONE_XANIM:',name,'COUNT:',info['xanim_named_file_count'],'SAMPLES:',json.dumps(info['xanim_named_file_samples'][:12]))
+          print('TARGET_WEAPON_MODELS:',json.dumps(detail['target_counts']))
           PY
