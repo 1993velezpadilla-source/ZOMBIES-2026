@@ -13,6 +13,7 @@
 #include "r_android_target.h"
 #include "r_android_hw_viewport.h"
 #include "r_android_indexed_draw.h"
+#include "r_android_vertex_stream.h"
 #endif
 
 //float const *const shadowmapClearColor 820ebb50     gfx_d3d : r_state.obj
@@ -96,6 +97,14 @@ void __cdecl R_ChangeStreamSource(
     state->streams[streamIndex].vb = vb;
     state->streams[streamIndex].offset = vertexOffset;
     state->streams[streamIndex].stride = vertexStride;
+#if defined(__ANDROID__)
+    if (!R_AndroidGlesChangeStreamSource(streamIndex, vb, vertexOffset, vertexStride))
+    {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android: original vertex stream lacks a registered GLES3 VBO");
+    }
+    return;
+#else
     device = state->device;
 
     iassert(device);
@@ -118,6 +127,7 @@ void __cdecl R_ChangeStreamSource(
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl R_SetTexFilter()
