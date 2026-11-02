@@ -93,7 +93,6 @@ bool R_AndroidInspectD3D9Shader(const void *program, std::size_t programBytes,
     out->predicatedInstructionCount = predicatedInstructions;
     return true;
 }
-#endif
 
 // Two-pass boundary walk: never expose a prefix of a malformed stream to a
 // translator. Original D3D9 operand words are deliberately NOT interpreted.
@@ -125,3 +124,4 @@ bool R_AndroidVisitD3D9Shader(const void *program, std::size_t programBytes,
     }
     return false;
 }
+#endif
