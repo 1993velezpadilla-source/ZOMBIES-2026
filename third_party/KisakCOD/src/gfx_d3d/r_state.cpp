@@ -1313,6 +1313,15 @@ void __cdecl R_HW_SetBlend(
 
 void __cdecl R_SetAlphaTestFunction(GfxCmdBufState *state, __int16 stateBits0)
 {
+#if defined(__ANDROID__)
+    // D3D9 ALPHAFUNC/ALPHAREF cannot be emulated by GLES3 fixed state.
+    // The original material fragment shader must implement discard first.
+    (void)state;
+    (void)stateBits0;
+    ++g_disableRendering;
+    Com_Error(ERR_FATAL, "IW3 Android: original alpha comparison shader discard not implemented");
+    return;
+#else
     const char *v2; // eax
     const char *v3; // eax
     int v4; // [esp+0h] [ebp-14h]
@@ -1387,6 +1396,7 @@ void __cdecl R_SetAlphaTestFunction(GfxCmdBufState *state, __int16 stateBits0)
         } while (alwaysfails);
         state->alphaRef = ref;
     }
+#endif
 }
 
 void __cdecl R_ChangeState_1(GfxCmdBufState *state, uint32_t stateBits1)
