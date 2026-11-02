@@ -27,6 +27,10 @@ on:
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_clear.h'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_viewport.cpp'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_viewport.h'
+      - 'third_party/KisakCOD/src/gfx_d3d/r_android_target.cpp'
+      - 'third_party/KisakCOD/src/gfx_d3d/r_android_target.h'
+      - 'third_party/KisakCOD/src/gfx_d3d/r_state.cpp'
+      - 'tests/test_iw3_android_renderer_original_target_gles3.py'
       - 'tests/test_iw3_android_renderer_original_viewport_gles3.py'
       - 'tests/test_iw3_android_renderer_original_clear_gles3.py'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_gpu_fence.cpp'
@@ -67,6 +71,10 @@ on:
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_clear.h'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_viewport.cpp'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_viewport.h'
+      - 'third_party/KisakCOD/src/gfx_d3d/r_android_target.cpp'
+      - 'third_party/KisakCOD/src/gfx_d3d/r_android_target.h'
+      - 'third_party/KisakCOD/src/gfx_d3d/r_state.cpp'
+      - 'tests/test_iw3_android_renderer_original_target_gles3.py'
       - 'tests/test_iw3_android_renderer_original_viewport_gles3.py'
       - 'tests/test_iw3_android_renderer_original_clear_gles3.py'
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_gpu_fence.cpp'
@@ -490,6 +498,66 @@ jobs:
           echo 'IW3_RENDERER_BACKEND_LINKED=false'
           echo 'IW3_RENDERER_FRAME_PROVEN=false'
           echo 'IW3_PLAYABLE_APK=false'
+      - name: Link authentic IW3 render-target GLES3 FBO provider on ARM64 (NOT FRAME)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          root="$GITHUB_WORKSPACE/third_party/KisakCOD/src"
+          out="$RUNNER_TEMP/libiw3-original-target-gles3-arm64.so"
+          "$ndk/aarch64-linux-android26-clang++" -std=c++20 -O2 -fPIC -shared \
+            -Wl,--no-undefined "$root/gfx_d3d/r_android_target.cpp" \
+            -o "$out" -lEGL -lGLESv3
+          "$ndk/llvm-readelf" -h "$out" | grep -E 'Class:|Machine:'
+          "$ndk/llvm-nm" -C --defined-only "$out" | grep -F 'R_AndroidGlesBindTarget('
+          "$ndk/llvm-nm" -C --defined-only "$out" | grep -F 'R_AndroidGlesRegisterTarget('
+          echo 'IW3_ORIGINAL_TARGET_FBO_GLES3_AARCH64_LINKED=true'
+          echo 'IW3_ORIGINAL_OFFSCREEN_TEXTURES_REGISTERED=false'
+          echo 'IW3_RENDERER_FRAME_PROVEN=false'
+          echo 'IW3_PLAYABLE_APK=false'
+      - name: Probe full authentic R_HW_SetRenderTarget translation unit on ARM64 (NOT GAME)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          root="$GITHUB_WORKSPACE/third_party/KisakCOD/src"
+          report="$RUNNER_TEMP/iw3-original-r-state-arm64-report.txt"
+          obj="$RUNNER_TEMP/iw3-original-r-state-aarch64.o"
+          set +e
+          "$ndk/aarch64-linux-android26-clang++" \
+            -std=c++20 -DKISAK_SP=1 -DKISAK_OPENAL=1 \
+            -DIW3_ANDROID_DISABLE_SCRIPT_DEBUGGER=1 \
+            -DIW3_ANDROID_COMMON_HEADER_ONLY_OPENAL=1 \
+            -fms-extensions -UNDEBUG -O2 -fsigned-char -frounding-math -fno-fast-math \
+            -ferror-limit=25 \
+            -I "$GITHUB_WORKSPACE/android/iw3-native/common_compat" \
+            -I "$GITHUB_WORKSPACE/android/iw3-native" \
+            -I "$root" -I "$GITHUB_WORKSPACE/third_party/KisakCOD/deps" \
+            -I "$RUNNER_TEMP/iw3-openal-headers" \
+            -c "$root/gfx_d3d/r_state.cpp" -o "$obj" >"$report" 2>&1
+          rc=$?
+          set -e
+          if [ "$rc" -eq 0 ]; then
+            echo 'IW3_ORIGINAL_R_STATE_AARCH64_COMPILED=true' | tee -a "$report"
+            "$ndk/llvm-nm" -C --defined-only "$obj" | grep -F 'R_HW_SetRenderTarget(' | tee -a "$report"
+            "$ndk/aarch64-linux-android26-clang++" -std=c++20 -O2 -c \
+              "$root/gfx_d3d/r_android_target.cpp" -o "$RUNNER_TEMP/iw3-android-target-aarch64.o"
+            "$ndk/ld.lld" -r -o "$RUNNER_TEMP/iw3-original-r-state-plus-target-aarch64.o" \
+              "$obj" "$RUNNER_TEMP/iw3-android-target-aarch64.o"
+            "$ndk/llvm-nm" -C -u "$RUNNER_TEMP/iw3-original-r-state-plus-target-aarch64.o" \
+              > "$RUNNER_TEMP/iw3-original-r-state-plus-target-undefined.txt"
+            if grep -F 'R_AndroidGlesBindTarget(' \
+              "$RUNNER_TEMP/iw3-original-r-state-plus-target-undefined.txt"; then
+              echo 'IW3_ORIGINAL_R_STATE_TARGET_BRIDGE_RESOLVED=false'
+              exit 1
+            fi
+            echo 'IW3_ORIGINAL_R_STATE_TARGET_BRIDGE_RESOLVED=true (relocatable only)'
+          else
+            echo "IW3_ORIGINAL_R_STATE_AARCH64_COMPILED=false (compiler_exit=$rc)" | tee -a "$report"
+            sed -n '1,110p' "$report"
+          fi
+          echo 'IW3_RENDERER_FRAME_PROVEN=false'
+          echo 'IW3_PLAYABLE_APK=false'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -512,6 +580,11 @@ jobs:
             ${{ runner.temp }}/libiw3-android-gpu-fence-arm64.so
             ${{ runner.temp }}/libiw3-original-clear-gles3-arm64.so
             ${{ runner.temp }}/libiw3-original-viewport-gles3-arm64.so
+            ${{ runner.temp }}/libiw3-original-target-gles3-arm64.so
+            ${{ runner.temp }}/iw3-original-r-state-arm64-report.txt
+            ${{ runner.temp }}/iw3-original-r-state-aarch64.o
+            ${{ runner.temp }}/iw3-original-r-state-plus-target-aarch64.o
+            ${{ runner.temp }}/iw3-original-r-state-plus-target-undefined.txt
             ${{ runner.temp }}/iw3-original-four-tu-gles3-commands-aarch64.o
             ${{ runner.temp }}/iw3-original-four-tu-gles3-commands-undefined.txt
             ${{ runner.temp }}/iw3-original-four-tu-gles3-fence-aarch64.o
