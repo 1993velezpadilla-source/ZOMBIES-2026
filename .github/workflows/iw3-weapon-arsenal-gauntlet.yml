@@ -95,7 +95,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 tools/iw3_weapon_probe.py prepare --with-iwds
-          rm -rf _release_assets
+          # Keep the original archive read-only until all needed textures are resolved.
           df -h .
 
       - name: Unlinker list and GLB export probe, M4 AK-47 MP5 and viewhands
@@ -111,6 +111,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 tools/iw3_stage_weapon_textures.py _iw3_private "$PWD/_oat/ImageConverter" _iw3_reports/texture-gate.json
+          rm -rf _release_assets
 
       - name: Install official Godot 4.6.3 and import 3 temporary animated GLBs
         run: |
