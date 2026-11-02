@@ -208,4 +208,82 @@ bool R_AndroidVisitD3D9Arithmetic(const void *program, std::size_t programBytes,
                                    WalkArithmetic, &state);
 }
 
+
+namespace {
+struct DeclarationWalk {
+    const unsigned char *bytes;
+    IW3AndroidShaderStage stage;
+    IW3AndroidShaderDeclarationVisitor visitor;
+    void *user;
+    bool validateOnly;
+};
+bool WalkDeclarations(const IW3AndroidShaderInstruction &ins, void *context)
+{
+    auto &state = *static_cast<DeclarationWalk *>(context);
+    // Only this deliberately bounded instruction subset is understood.
+    // Other opcodes must not be silently skipped in a future translator.
+    if (ins.opcode == 0 || ins.opcode == 1 || ins.opcode == 2)
+        return !ins.predicated; // Predicate register semantics not decoded.
+    if (ins.opcode != 31 || ins.predicated || ins.operandTokenCount != 2)
+        return false;
+    const auto *operands = state.bytes +
+        (ins.tokenOffset + 1u) * sizeof(std::uint32_t);
+    const std::uint32_t declaration = ReadDword(operands);
+    const std::uint32_t registerToken = ReadDword(operands + sizeof(std::uint32_t));
+    IW3AndroidShaderDeclaration decoded{};
+    decoded.tokenOffset = ins.tokenOffset;
+    decoded.declarationToken = declaration;
+    if (!R_AndroidDecodeD3D9Register(registerToken, true,
+                                     &decoded.registerOperand))
+        return false;
+    const auto &reg = decoded.registerOperand;
+    if (reg.relativeAddressing || reg.modifier || reg.destinationShift)
+        return false;
+    decoded.sampler = reg.type == 10; // D3DSPR_SAMPLER
+    decoded.usage = static_cast<std::uint8_t>(declaration & 15u);
+    decoded.usageIndex = static_cast<std::uint8_t>((declaration >> 16) & 15u);
+    decoded.samplerTextureType =
+        static_cast<std::uint8_t>((declaration >> 27) & 15u);
+    if (decoded.sampler) {
+        // D3D9 DCL sampler declaration carries a D3DSTT texture class,
+        // not a vertex semantic. Only defined D3D9 texture classes.
+        if ((declaration & ~0x78000000u) != 0
+            || decoded.samplerTextureType < 2
+            || decoded.samplerTextureType > 4
+            || reg.writeMask != 15)
+            return false;
+    } else {
+        // D3DDECLUSAGE values are 0..13. Vertex shaders may declare
+        // inputs/outputs, pixel shaders inputs (v# and SM2 t#).
+        const bool registerClassAllowed =
+            (state.stage == IW3AndroidShaderStage::Vertex
+                && (reg.type == 1 || reg.type == 6))
+            || (state.stage == IW3AndroidShaderStage::Pixel
+                && (reg.type == 1 || reg.type == 3));
+        if (!registerClassAllowed || decoded.usage > 13
+            || (declaration & ~0x000F000Fu) != 0)
+            return false;
+    }
+    return state.validateOnly || state.visitor(decoded, state.user);
+}
+} // namespace
+
+bool R_AndroidVisitD3D9Declarations(const void *program, std::size_t programBytes,
+                                    IW3AndroidShaderStage stage,
+                                    IW3AndroidShaderDeclarationVisitor visitor,
+                                    void *user)
+{
+    if (!visitor) return false;
+    // Prevalidate the whole original token stream and every DCL before
+    // publishing any declaration, even if a later declaration is invalid.
+    DeclarationWalk state{static_cast<const unsigned char *>(program),
+                          stage, visitor, user, true};
+    if (!R_AndroidVisitD3D9Shader(program, programBytes, stage,
+                                 WalkDeclarations, &state))
+        return false;
+    state.validateOnly = false;
+    return R_AndroidVisitD3D9Shader(program, programBytes, stage,
+                                   WalkDeclarations, &state);
+}
+
 #endif
