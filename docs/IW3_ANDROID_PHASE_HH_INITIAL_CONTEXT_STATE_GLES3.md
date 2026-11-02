@@ -16,11 +16,13 @@
 
 ## Validation status
 - Independent local host mock compiled with `g++ -std=c++17 -D__ANDROID__ -fsanitize=address,undefined` and printed `IW3_ORIGINAL_INITIAL_RENDER_STATE_GLES3_HOST_SANITIZER_PASS_NOT_FRAME`.
-- GitHub Actions for the new head was queued at the time this document was created; its result must be verified separately before claiming CI success.
-- The next full original `r_state.cpp` compiler error is **not yet verified**; do not assume this change makes the translation unit compile.
+- **Verified GitHub Actions [41396087438](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41396087438)** (head `343f8d55468efa75ae4df0ed93b35b7d3501e2e1`): both `renderer-tracking-host` and `original-renderer-compile-probe` jobs completed successfully on 2026-11-02.
+- Host renderer suite: **38/38 tests passed**; new test exercised mocked EGL/GLES under ASan/UBSan. Independent local mock also passed.
+- Android NDK: real EGL/GLESv3 provider linked as **ELF64/AArch64**, with `IW3_ORIGINAL_INITIAL_STATE_GLES3_AARCH64_LINKED=true` and `--no-undefined`. This is a provider shared object, not the full original engine.
+- Full original `r_state.cpp` still **does not compile**: `IW3_ORIGINAL_R_STATE_AARCH64_COMPILED=false (compiler_exit=1)`. The first observed new error is `r_state.cpp:957` D3D9 `SetRenderState` member access, then `D3DRS_ALPHATESTENABLE` at line 958. Subsequent D3D9 blockers include `D3DRS_COLORWRITEENABLE`, `D3DRS_CULLMODE`, `D3DRS_FILLMODE`, `D3DRS_ALPHABLENDENABLE`, `D3DRS_BLENDOP`, and `D3DRS_SRCBLEND`. No claim that the full translation unit is portable.
 
 ## Explicit gates
-- `IW3_ORIGINAL_INITIAL_STATE_GLES3_AARCH64_LINKED`: pending CI verification.
+- `IW3_ORIGINAL_INITIAL_STATE_GLES3_AARCH64_LINKED=true` (provider-only, verified).
 - `IW3_ORIGINAL_R_STATE_AARCH64_COMPILED=false` until proven otherwise.
 - `IW3_ORIGINAL_VERTEX_BUFFER_ALLOCATOR_WIRED=false`
 - `IW3_ORIGINAL_VERTEX_DECLARATION_VAO_WIRED=false`
