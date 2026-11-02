@@ -13,7 +13,8 @@ Reviewed current PR head `aafee76076d3878efb233f7dc6e9f47c5aae4d5f`, last render
 
 ## Verification
 - Locally compiled and ran the new standalone C++ mock harness with `g++ -std=c++17 -D__ANDROID__ -O1 -g -UNDEBUG -fsanitize=address,undefined -fno-omit-frame-pointer`; output: `IW3_ORIGINAL_BLEND_GLES3_ASAN_UBSAN_PASS_NOT_FRAME`. Checks missing context, invalid blend enums, RGB/alpha factors and equations, blend disable, query failure and state rollback. This uses mocked EGL/GLES.
-- Added `tests/test_iw3_android_renderer_original_blend_gles3.py` to host regression discovery and an NDK `--no-undefined` ELF64/AArch64 provider-link step to renderer workflow. **CI outcome and the next full `r_state.cpp` compiler diagnostic must be recorded after Actions runs**; do not claim the full renderer compiles on the basis of a provider link.
+- Added `tests/test_iw3_android_renderer_original_blend_gles3.py` to host regression discovery and an NDK `--no-undefined` ELF64/AArch64 provider-link step to renderer workflow.
+- **Verified [renderer CI 41420787487](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41420787487)** at implementation head `ad489758bbea232f5744881d0e13c6866b825662`: both jobs success, **41/41 host tests passed**; the new provider exported both original blend bridge functions as ELF64/AArch64 with genuine EGL/GLESv3 linking. The same CI's full original `r_state.cpp` AArch64 compile **failed** (`compiler_exit=1`), now first at line 1521, `SetRenderState(D3DRS_ZWRITEENABLE,...)`. No real frame or device gameplay was demonstrated.
 - Windows D3D9 source retained. No Godot or substitute engine.
 
 ## Remaining hard gates

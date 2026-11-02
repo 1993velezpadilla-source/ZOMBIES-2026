@@ -17,6 +17,7 @@
 #include "r_android_initial_state.h"
 #include "r_android_render_state.h"
 #include "r_android_blend.h"
+#include "r_android_depth_state.h"
 #endif
 
 //float const *const shadowmapClearColor 820ebb50     gfx_d3d : r_state.obj
@@ -1511,6 +1512,15 @@ void __cdecl R_ChangeState_1(GfxCmdBufState *state, uint32_t stateBits1)
 
 void __cdecl R_HW_SetDepthWriteEnable(IDirect3DDevice9 *device, char stateBits1)
 {
+#if defined(__ANDROID__)
+    (void)device;
+    if (!R_AndroidGlesSetDepthWrite(static_cast<uint8_t>(stateBits1)))
+    {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android: original depth write GLES3 state failed");
+    }
+    return;
+#else
     const char *v2; // eax
     int hr; // [esp+0h] [ebp-4h]
 
@@ -1536,10 +1546,20 @@ void __cdecl R_HW_SetDepthWriteEnable(IDirect3DDevice9 *device, char stateBits1)
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl R_HW_SetDepthTestEnable(IDirect3DDevice9 *device, char stateBits1)
 {
+#if defined(__ANDROID__)
+    (void)device;
+    if (!R_AndroidGlesSetDepthTest(static_cast<uint8_t>(stateBits1)))
+    {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android: original depth test GLES3 state failed");
+    }
+    return;
+#else
     const char *v2; // eax
     int hr; // [esp+0h] [ebp-4h]
 
@@ -1565,10 +1585,20 @@ void __cdecl R_HW_SetDepthTestEnable(IDirect3DDevice9 *device, char stateBits1)
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl R_HW_SetDepthTestFunction(IDirect3DDevice9 *device, char stateBits1)
 {
+#if defined(__ANDROID__)
+    (void)device;
+    if (!R_AndroidGlesSetDepthFunc(static_cast<uint8_t>(stateBits1)))
+    {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android: original depth comparison GLES3 state failed");
+    }
+    return;
+#else
     const char *v2; // eax
     int hr; // [esp+0h] [ebp-4h]
 
@@ -1593,6 +1623,7 @@ void __cdecl R_HW_SetDepthTestFunction(IDirect3DDevice9 *device, char stateBits1
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl R_HW_EnableStencil(IDirect3DDevice9 *device)
