@@ -18,6 +18,7 @@
 #if defined(__ANDROID__)
 #include "r_android_gpu_fence.h"
 #include "r_android_clear.h"
+#include "r_android_viewport.h"
 #endif
 #include <win32/win_local.h>
 #include "rb_pixelcost.h"
@@ -1598,6 +1599,19 @@ void __cdecl RB_SetViewportCmd(GfxRenderCommandExecState *execState)
         RB_EndTessSurface();
 
     R_SetViewportStruct(&gfxCmdBufSourceState, &cmd->viewport);
+#if defined(__ANDROID__)
+    // Consume the original RC_SET_VIEWPORT payload. IW3 coordinates are
+    // top-left, while GLES3 expects bottom-left relative to the current
+    // render target (which need not match the Android window size).
+    if (!R_AndroidGlesSetViewport(cmd->viewport.x, cmd->viewport.y,
+                                  cmd->viewport.width, cmd->viewport.height,
+                                  gfxCmdBufSourceState.renderTargetWidth,
+                                  gfxCmdBufSourceState.renderTargetHeight))
+    {
+        Com_Error(ERR_FATAL, "IW3 Android: original viewport command GLES3 failed");
+        return;
+    }
+#endif
 
     execState->cmd = (char *)execState->cmd + cmd->header.byteCount;
 }
