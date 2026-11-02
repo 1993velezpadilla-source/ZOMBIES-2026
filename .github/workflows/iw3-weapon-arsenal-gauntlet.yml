@@ -13,6 +13,7 @@ on:
       - 'tools/iw3_anim_correlation.py'
       - 'tools/iw3_gltf_animation_bridge.py'
       - 'tools/iw3_build_animated_previews.py'
+      - 'tools/iw3_stage_weapon_textures.py'
       - 'tools/godot_iw3_import_probe.gd'
       - 'tests/test_iw3_weapon_probe.py'
       - 'tests/test_iw3_arsenal_detail.py'
@@ -104,6 +105,11 @@ jobs:
           python3 tools/iw3_anim_correlation.py _iw3_private/dumps _iw3_reports/bone-correlation.json
           python3 tools/iw3_build_animated_previews.py _iw3_private/dumps _iw3_private/animated_preview _iw3_reports/animated-glb-gate.json
 
+      - name: Restore temporary weapon textures (IWD/IWI -> DDS) for material imports
+        run: |
+          set -euo pipefail
+          python3 tools/iw3_stage_weapon_textures.py _iw3_private "$PWD/_oat/ImageConverter" _iw3_reports/texture-gate.json
+
       - name: Install official Godot 4.6.3 and import 3 temporary animated GLBs
         run: |
           set -euo pipefail
@@ -145,6 +151,7 @@ jobs:
             _iw3_reports/bone-correlation.json
             _iw3_reports/animated-glb-gate.json
             _iw3_reports/godot-import-gate.json
+            _iw3_reports/texture-gate.json
           retention-days: 14
           if-no-files-found: warn
 
