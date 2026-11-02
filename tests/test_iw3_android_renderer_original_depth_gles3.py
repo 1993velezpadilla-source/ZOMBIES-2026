@@ -14,13 +14,17 @@ using EGLDisplay=void*; using EGLContext=void*;
 EGLDisplay eglGetCurrentDisplay(); EGLContext eglGetCurrentContext();
 """
 GLES = """#pragma once
-using GLenum=unsigned int;using GLint=int;using GLboolean=unsigned char;
+using GLenum=unsigned int;using GLint=int;using GLboolean=unsigned char;using GLfloat=float;
 #define GL_NO_ERROR 0
 #define GL_FALSE 0
 #define GL_TRUE 1
 #define GL_DEPTH_TEST 0x0B71
 #define GL_DEPTH_WRITEMASK 0x0B72
 #define GL_DEPTH_FUNC 0x0B74
+#define GL_DEPTH_BITS 0x0D56
+#define GL_POLYGON_OFFSET_FACTOR 0x8038
+#define GL_POLYGON_OFFSET_UNITS 0x2A00
+#define GL_POLYGON_OFFSET_FILL 0x8037
 #define GL_ALWAYS 0x0207
 #define GL_LESS 0x0201
 #define GL_EQUAL 0x0202
@@ -28,6 +32,7 @@ using GLenum=unsigned int;using GLint=int;using GLboolean=unsigned char;
 GLenum glGetError();GLboolean glIsEnabled(GLenum);void glGetIntegerv(GLenum,GLint*);
 void glGetBooleanv(GLenum,GLboolean*);void glDepthMask(GLboolean);void glDepthFunc(GLenum);
 void glEnable(GLenum);void glDisable(GLenum);
+void glGetFloatv(GLenum,GLfloat*);void glPolygonOffset(GLfloat,GLfloat);
 """
 HARNESS = r"""
 #include <cassert>
@@ -50,6 +55,8 @@ void glDepthMask(GLboolean b){if(!fail())write=b;}
 void glEnable(GLenum e){assert(e==GL_DEPTH_TEST);if(!fail())enabled=true;}
 void glDisable(GLenum e){assert(e==GL_DEPTH_TEST);if(!fail())enabled=false;}
 void glDepthFunc(GLenum e){if(!fail())function=e;}
+void glGetFloatv(GLenum,GLfloat*){}
+void glPolygonOffset(GLfloat,GLfloat){}
 int main(){
 static_assert(sizeof(void*)==8,"LP64");
 context=false;assert(!R_AndroidGlesSetDepthWrite(0));assert(!R_AndroidGlesSetDepthTest(0));assert(!R_AndroidGlesSetDepthFunc(0));
