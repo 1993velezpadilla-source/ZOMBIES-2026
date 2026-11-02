@@ -21,6 +21,7 @@
 #include "r_android_stencil_state.h"
 #include "r_android_sampler_state.h"
 #include "r_android_texture_unbind.h"
+#include "r_android_clear.h"
 #endif
 
 //float const *const shadowmapClearColor 820ebb50     gfx_d3d : r_state.obj
@@ -2688,6 +2689,17 @@ void __cdecl R_ClearScreenInternal(
     int hr; // [esp+9Ch] [ebp-8h]
     GfxColor nativeColor; // [esp+A0h] [ebp-4h] BYREF
 
+#if defined(__ANDROID__)
+    // Genuine IW3 direct clear path. The Android renderer has no D3D9 device;
+    // GLES3 clears the active framebuffer, restricted to the current viewport.
+    // The original implementation only accepts a null explicit viewport.
+    if (viewport || !R_AndroidGlesClear(whichToClear, color, depth, stencil))
+    {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android: original R_ClearScreenInternal GLES3 clear failed");
+    }
+    return;
+#else
     iassert( device );
     if (r_logFile->current.integer)
     {
@@ -2737,6 +2749,7 @@ void __cdecl R_ClearScreenInternal(
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl R_ClearScreen(
