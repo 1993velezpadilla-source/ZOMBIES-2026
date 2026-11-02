@@ -13,6 +13,8 @@ HARNESS = r'''
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <string>
+#include <vector>
 struct Visits {
     unsigned count = 0;
     std::uint32_t offsets[8]{};
@@ -436,7 +438,86 @@ int main() {
             CollectDecoded, &uv));
     assert(uv.count == 4);
 
-    std::puts("IW3_ORIGINAL_D3D9_SHADER_PREDICATION_PASS_NOT_TRANSLATED");
+
+    // First faithful D3D9 ps_3_0 -> GLSL ES 3.0 source emission.
+    // This is NOT a GPU program, renderer, map or playable APK.
+    const std::uint32_t ps3Color[] = {
+        0xFFFF0300u,
+        0x0200001Fu, 0x0000000Au, 0x900F0000u, // dcl_color0 v0
+        0x02000001u, 0x800F0000u, 0x90E40000u, // mov r0, v0
+        0x03000002u, 0x800F0800u, 0x80E40000u,
+                     0x90E40000u, // add oC0, r0, v0
+        0x0000FFFFu
+    };
+    std::string glsl = "must-clear";
+    assert(R_AndroidTranslateD3D9PixelColorSubsetToGLSL(
+        ps3Color, sizeof(ps3Color), &glsl));
+    assert(glsl.find("#version 300 es") != std::string::npos);
+    assert(glsl.find("iw3_r0 = iw3_color_in0;") != std::string::npos);
+    assert(glsl.find("iw3_color_out0 = iw3_r0 + iw3_color_in0;") != std::string::npos);
+    assert(!R_AndroidTranslateD3D9PixelColorSubsetToGLSL(
+        ps3Color, sizeof(ps3Color), nullptr));
+    // No implicit shader input, no uninitialized temp, no silently dropped
+    // swizzle, modifier or partial component write.
+    const std::uint32_t missingDcl[] = {
+        0xFFFF0300u, 0x02000001u, 0x800F0800u, 0x90E40000u, 0x0000FFFFu
+    };
+    const std::uint32_t readBeforeWrite[] = {
+        0xFFFF0300u, 0x0200001Fu, 0x0000000Au, 0x900F0000u,
+        0x03000002u, 0x800F0800u, 0x80E40000u, 0x90E40000u,
+        0x0000FFFFu
+    };
+    const std::uint32_t noColorOutput[] = {
+        0xFFFF0300u, 0x0200001Fu, 0x0000000Au, 0x900F0000u,
+        0x02000001u, 0x800F0000u, 0x90E40000u, 0x0000FFFFu
+    };
+    const std::uint32_t partialColor[] = {
+        0xFFFF0300u, 0x0200001Fu, 0x0000000Au, 0x900F0000u,
+        0x02000001u, 0x80070800u, 0x90E40000u, 0x0000FFFFu
+    };
+    const std::uint32_t swizzledInput[] = {
+        0xFFFF0300u, 0x0200001Fu, 0x0000000Au, 0x900F0000u,
+        0x02000001u, 0x800F0800u, 0x90000000u, 0x0000FFFFu
+    };
+    const std::uint32_t modifiedInput[] = {
+        0xFFFF0300u, 0x0200001Fu, 0x0000000Au, 0x900F0000u,
+        0x02000001u, 0x800F0800u, 0x91E40000u, 0x0000FFFFu
+    };
+    const std::uint32_t lateUnsupported[] = {
+        0xFFFF0300u, 0x0200001Fu, 0x0000000Au, 0x900F0000u,
+        0x02000001u, 0x800F0800u, 0x90E40000u,
+        0x01000003u, 0x800F0000u, 0x0000FFFFu
+    };
+    const std::uint32_t *badShaders[] = {
+        missingDcl, readBeforeWrite, noColorOutput, partialColor,
+        swizzledInput, modifiedInput, lateUnsupported
+    };
+    const std::size_t badSizes[] = {
+        sizeof(missingDcl), sizeof(readBeforeWrite), sizeof(noColorOutput),
+        sizeof(partialColor), sizeof(swizzledInput), sizeof(modifiedInput),
+        sizeof(lateUnsupported)
+    };
+    for (std::size_t i = 0; i < sizeof(badShaders)/sizeof(badShaders[0]); ++i) {
+        glsl = "must-clear";
+        assert(!R_AndroidTranslateD3D9PixelColorSubsetToGLSL(
+            badShaders[i], badSizes[i], &glsl));
+        assert(glsl.empty());
+    }
+    glsl = "must-clear";
+    assert(!R_AndroidTranslateD3D9PixelColorSubsetToGLSL(
+        ps3Color, sizeof(ps3Color) - 4, &glsl));
+    assert(glsl.empty());
+    // No accidental stage/version acceptance: vs_3_0 and ps_2_0 fail.
+    auto stageMismatch = std::vector<std::uint32_t>(
+        ps3Color, ps3Color + sizeof(ps3Color)/sizeof(ps3Color[0]));
+    stageMismatch[0] = 0xFFFE0300u;
+    assert(!R_AndroidTranslateD3D9PixelColorSubsetToGLSL(
+        stageMismatch.data(), stageMismatch.size()*4, &glsl));
+    stageMismatch[0] = 0xFFFF0200u;
+    assert(!R_AndroidTranslateD3D9PixelColorSubsetToGLSL(
+        stageMismatch.data(), stageMismatch.size()*4, &glsl));
+
+    std::puts("IW3_ORIGINAL_D3D9_SHADER_COLOR0_GLSL_SUBSET_PASS_NOT_GPU");
 }
 '''
 
