@@ -25,6 +25,9 @@ on:
       - 'tools/godot_iw3_ads_calibration_probe.gd'
       - 'tools/iw3_fps_weapon_controller.gd'
       - 'tools/godot_iw3_mobile_controller_probe.gd'
+      - 'tools/iw3_fps_playground.gd'
+      - 'tools/iw3_fps_playground.tscn'
+      - 'tools/godot_iw3_fps_playground_probe.gd'
       - 'tests/test_iw3_weapon_probe.py'
       - 'tests/test_iw3_arsenal_detail.py'
       - 'tests/test_iw3_anim_rig_gate.py'
@@ -150,10 +153,14 @@ jobs:
           cp tools/godot_iw3_ads_calibration_probe.gd _iw3_private/godot_sandbox/ads_calibration_probe.gd
           cp tools/iw3_fps_weapon_controller.gd _iw3_private/godot_sandbox/fps_controller.gd
           cp tools/godot_iw3_mobile_controller_probe.gd _iw3_private/godot_sandbox/mobile_controller_probe.gd
+          cp tools/iw3_fps_playground.gd _iw3_private/godot_sandbox/playground.gd
+          cp tools/iw3_fps_playground.tscn _iw3_private/godot_sandbox/playground.tscn
+          cp tools/godot_iw3_fps_playground_probe.gd _iw3_private/godot_sandbox/playground_probe.gd
           cat > _iw3_private/godot_sandbox/project.godot <<'INI'
           config_version=5
           [application]
           config/name="COD4 IW3 Animated GLB Import Gate"
+          run/main_scene="res://playground.tscn"
           [rendering]
           renderer/rendering_method="gl_compatibility"
           renderer/rendering_method.mobile="gl_compatibility"
@@ -182,6 +189,9 @@ jobs:
           "$BIN" --headless --path _iw3_private/godot_sandbox \
             --script res://mobile_controller_probe.gd
           cp _iw3_private/godot_sandbox/godot-mobile-controller-gate.json _iw3_reports/godot-mobile-controller-gate.json
+          "$BIN" --headless --path _iw3_private/godot_sandbox \
+            --script res://playground_probe.gd
+          cp _iw3_private/godot_sandbox/godot-fps-playground-gate.json _iw3_reports/godot-fps-playground-gate.json
           xvfb-run -a -s '-screen 0 1024x768x24' "$BIN" --rendering-driver opengl3 \
             --path _iw3_private/godot_sandbox --script res://render_probe.gd
           cp _iw3_private/godot_sandbox/godot-render-gate.json _iw3_reports/godot-render-gate.json
@@ -208,6 +218,7 @@ jobs:
             _iw3_reports/godot-fps-camera-gate.json
             _iw3_reports/godot-ads-solver-gate.json
             _iw3_reports/godot-mobile-controller-gate.json
+            _iw3_reports/godot-fps-playground-gate.json
             _iw3_reports/png-materials.json
             _iw3_reports/texture-gate.json
           retention-days: 14
