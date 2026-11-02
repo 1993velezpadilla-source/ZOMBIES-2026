@@ -4,6 +4,7 @@
 #if defined(__ANDROID__)
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 enum class IW3AndroidShaderStage : std::uint8_t { Vertex, Pixel };
 struct IW3AndroidShaderEnvelope {
@@ -121,4 +122,15 @@ bool R_AndroidVisitD3D9DecodedShader(const void *program, std::size_t programByt
                                      IW3AndroidShaderDecodedVisitor visitor,
                                      void *user);
 
+#endif
+
+#if defined(__ANDROID__)
+// Faithful GLSL ES 3.0 translation for an intentionally TINY authentic D3D9
+// ps_3_0 subset: COLOR0 v0 declaration, MOV/ADD, r0 and oC0. Full-vector,
+// identity-swizzle, unmodified operands only. All other tokens FAIL CLOSED.
+// Produces SOURCE TEXT only; it does not compile/link a GPU program, map a
+// vertex varying, or make the Android game renderer operational.
+// On failure outGLSL is cleared, never a partially translated shader.
+bool R_AndroidTranslateD3D9PixelColorSubsetToGLSL(
+    const void *program, std::size_t programBytes, std::string *outGLSL);
 #endif
