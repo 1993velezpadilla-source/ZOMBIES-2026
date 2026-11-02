@@ -24,6 +24,9 @@ using GLenum=unsigned int; using GLint=int; using GLboolean=unsigned char;
 #define GL_FALSE 0
 #define GL_TRUE 1
 #define GL_COLOR_WRITEMASK 0x0C23
+#define GL_SAMPLE_ALPHA_TO_COVERAGE 0x809E
+#define GL_SAMPLE_BUFFERS 0x80A8
+#define GL_SAMPLES 0x80A9
 #define GL_CULL_FACE 0x0B44
 #define GL_CULL_FACE_MODE 0x0B45
 #define GL_FRONT_FACE 0x0B46
