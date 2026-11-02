@@ -8,7 +8,7 @@ on:
       source_run_id:
         description: 'Completed IW3 Godot probe run'
         required: true
-        default: '41450209184'
+        default: '41451455913'
         type: string
 
 permissions:
@@ -23,7 +23,7 @@ jobs:
       - name: Retrieve NO game content (metadata JSON only)
         env:
           GH_TOKEN: ${{ github.token }}
-          SOURCE_RUN: ${{ inputs.source_run_id || '41450209184' }}
+          SOURCE_RUN: ${{ inputs.source_run_id || '41451455913' }}
         run: |
           set -euo pipefail
           mkdir -p _meta
@@ -48,6 +48,12 @@ jobs:
                       print("POSE_ERROR:",gun,kind,item.get("error"))
                       continue
                   print("MODEL:",gun,kind,"bones",item.get("bone_count"))
+                  print("PLAYER_ROOT:",gun,kind,item.get("animation_player_root_path"))
+                  print("PLAYER_ROOT_RESOLVED:",gun,kind,item.get("animation_player_root_resolves"))
+                  for action,info in item.get("actions",{}).items():
+                      print("TRACK_TARGETS:",gun,kind,action,
+                            "resolved",info.get("track_node_resolution_count",0),
+                            "examples",json.dumps(info.get("track_path_samples",[])[:5]))
                   for action,info in item["actions"].items():
                       samples=info.get("sampled",[])
                       results=[x.get("relative_to_import_rest",{}) for x in samples]
