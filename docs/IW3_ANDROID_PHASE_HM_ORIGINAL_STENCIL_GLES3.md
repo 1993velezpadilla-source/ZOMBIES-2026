@@ -16,3 +16,10 @@ Previous HL run [41421138124](https://github.com/1993velezpadilla-source/ZOMBIES
 Implementation commits: `788192e2` (original functions), `65fcbec8` and `b5ebd3a4` (GLES3 provider), `a6d8a462` (sanitizer regression), `3a1b53ae` (CI wiring). The associated renderer workflow is [41422923776](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41422923776). **Its final outcome must be inspected before declaring any test passed.**
 
 Still missing: complete original renderer compilation/link, original buffer allocator/VAO/shaders/materials and sampler paths, real map load, live touch consumption by the genuine IW3 client, and observed Android ARM64 gameplay. The JNI APK is diagnostic only. `IW3_RENDERER_FRAME_PROVEN=false`; `IW3_REAL_MAP_LOADED=false`; `IW3_GAMEPLAY_PROVEN=false`; `IW3_PLAYABLE_APK=false`.
+
+## Verified CI result — final HEAD before documentation update
+[Renderer run 41422972010](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41422972010) completed on 2026-11-02 with **both jobs successful** at source commit `7fbd7cd8b5150fd98c979f1ea136b1ba4e721239`.
+- Host: **43/43 renderer tests passed**, including `test_original_iw3_stencil_gles3` using mocked EGL/GLES under AddressSanitizer/UndefinedBehaviorSanitizer. This is not device rendering.
+- NDK: `IW3_ORIGINAL_STENCIL_GLES3_AARCH64_LINKED=true`, ELF64/AArch64 provider linked against actual EGL/GLESv3 using `--no-undefined`. It is only a standalone provider, not the engine executable.
+- **Negative full-engine compile probe:** `IW3_ORIGINAL_R_STATE_AARCH64_COMPILED=false (compiler_exit=1)`. First observed error moved to `r_state.cpp:1990`: `IDirect3DDevice9::SetSamplerState` on `D3DSAMP_MINFILTER`; additional Direct3D9 sampler errors remain for MAGFILTER, MAXANISOTROPY, MIPFILTER, ADDRESSU/V/W, plus later device operations at lines 2432 and 2698. These are the next authentic port blockers.
+- No genuine GLES3 scene, loaded IW3 map, touch-driven weapon/actor gameplay or verified playable ARM64 APK. Do not treat the diagnostic JNI APK as a game.
