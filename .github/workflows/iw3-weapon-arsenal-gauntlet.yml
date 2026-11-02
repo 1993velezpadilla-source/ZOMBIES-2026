@@ -28,6 +28,7 @@ on:
       - 'tools/iw3_fps_playground.gd'
       - 'tools/iw3_fps_playground.tscn'
       - 'tools/godot_iw3_fps_playground_probe.gd'
+      - 'tools/godot_iw3_roll_orientation_probe.gd'
       - 'tools/iw3_make_private_godot_lab.py'
       - 'tools/iw3_private_apk_crypt.py'
       - 'tools/iw3_private_transfer_public.pem'
@@ -161,6 +162,7 @@ jobs:
           cp tools/iw3_fps_playground.gd _iw3_private/godot_sandbox/playground.gd
           cp tools/iw3_fps_playground.tscn _iw3_private/godot_sandbox/playground.tscn
           cp tools/godot_iw3_fps_playground_probe.gd _iw3_private/godot_sandbox/playground_probe.gd
+          cp tools/godot_iw3_roll_orientation_probe.gd _iw3_private/godot_sandbox/roll_probe.gd
           cat > _iw3_private/godot_sandbox/project.godot <<'INI'
           config_version=5
           [application]
@@ -197,6 +199,9 @@ jobs:
           "$BIN" --headless --path _iw3_private/godot_sandbox \
             --script res://playground_probe.gd
           cp _iw3_private/godot_sandbox/godot-fps-playground-gate.json _iw3_reports/godot-fps-playground-gate.json
+          "$BIN" --headless --path _iw3_private/godot_sandbox \
+            --script res://roll_probe.gd
+          cp _iw3_private/godot_sandbox/godot-viewmodel-roll-gate.json _iw3_reports/godot-viewmodel-roll-gate.json
           python3 tools/iw3_make_private_godot_lab.py --private-root _iw3_private --output _iw3_private/fps_lab --scripts tools
           "$BIN" --headless --editor --path _iw3_private/fps_lab --import
           xvfb-run -a -s '-screen 0 1280x720x24' "$BIN" --rendering-driver opengl3 \
@@ -319,6 +324,7 @@ jobs:
             _iw3_reports/godot-ads-solver-gate.json
             _iw3_reports/godot-mobile-controller-gate.json
             _iw3_reports/godot-fps-playground-gate.json
+            _iw3_reports/godot-viewmodel-roll-gate.json
             _iw3_reports/png-materials.json
             _iw3_reports/texture-gate.json
           retention-days: 14
