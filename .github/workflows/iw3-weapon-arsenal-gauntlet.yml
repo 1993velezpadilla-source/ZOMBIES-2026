@@ -22,6 +22,7 @@ on:
       - 'tools/godot_iw3_mount_probe.gd'
       - 'tools/godot_iw3_render_probe.gd'
       - 'tools/godot_iw3_fps_camera_probe.gd'
+      - 'tools/godot_iw3_ads_calibration_probe.gd'
       - 'tests/test_iw3_weapon_probe.py'
       - 'tests/test_iw3_arsenal_detail.py'
       - 'tests/test_iw3_anim_rig_gate.py'
@@ -144,6 +145,7 @@ jobs:
           cp tools/godot_iw3_mount_probe.gd _iw3_private/godot_sandbox/mount_probe.gd
           cp tools/godot_iw3_render_probe.gd _iw3_private/godot_sandbox/render_probe.gd
           cp tools/godot_iw3_fps_camera_probe.gd _iw3_private/godot_sandbox/fps_camera_probe.gd
+          cp tools/godot_iw3_ads_calibration_probe.gd _iw3_private/godot_sandbox/ads_calibration_probe.gd
           cat > _iw3_private/godot_sandbox/project.godot <<'INI'
           config_version=5
           [application]
@@ -170,6 +172,9 @@ jobs:
           "$BIN" --headless --path _iw3_private/godot_sandbox \
             --script res://mount_probe.gd
           cp _iw3_private/godot_sandbox/godot-mount-gate.json _iw3_reports/godot-mount-gate.json
+          "$BIN" --headless --path _iw3_private/godot_sandbox \
+            --script res://ads_calibration_probe.gd
+          cp _iw3_private/godot_sandbox/godot-ads-solver-gate.json _iw3_reports/godot-ads-solver-gate.json
           xvfb-run -a -s '-screen 0 1024x768x24' "$BIN" --rendering-driver opengl3 \
             --path _iw3_private/godot_sandbox --script res://render_probe.gd
           cp _iw3_private/godot_sandbox/godot-render-gate.json _iw3_reports/godot-render-gate.json
@@ -194,6 +199,7 @@ jobs:
             _iw3_reports/godot-mount-gate.json
             _iw3_reports/godot-render-gate.json
             _iw3_reports/godot-fps-camera-gate.json
+            _iw3_reports/godot-ads-solver-gate.json
             _iw3_reports/png-materials.json
             _iw3_reports/texture-gate.json
           retention-days: 14
