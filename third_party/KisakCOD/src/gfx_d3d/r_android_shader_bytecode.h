@@ -1,6 +1,6 @@
 #pragma once
 // Bounded inspection of ORIGINAL IW3 D3D9 shader token streams.
-// This is NOT a bytecode-to-GLSL translator and never creates a GLES shader.
+// The bounded inspector and visitors are separate from the narrow GLSL source translators below; none creates a GLES GPU shader.
 #if defined(__ANDROID__)
 #include <cstddef>
 #include <cstdint>
