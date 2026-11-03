@@ -559,21 +559,18 @@ int main() {
     badVertex[8] = 0x00000005u; // Unsupported TEXCOORD semantic on o0.
     expectBadVertex(badVertex);
     badVertex[8] = 0x00000000u;
-    badVertex[17] = 0x90000000u; // Nonidentity swizzle on position input.
+    badVertex[15] = 0x90000000u; // Nonidentity swizzle on position input.
     expectBadVertex(badVertex);
-    badVertex[17] = 0x90E40000u;
-    badVertex[19] = 0xE0070001u; // Partial color output mask.
+    badVertex[15] = 0x90E40000u;
+    badVertex[17] = 0xE0070001u; // Partial color output mask.
     expectBadVertex(badVertex);
-    badVertex[19] = 0xE00F0001u;
-    badVertex[18] = 0x03000002u; // Unsupported ADD, must fail closed.
+    badVertex[17] = 0xE00F0001u;
+    badVertex[16] = 0x03000002u; // Unsupported ADD, must fail closed.
     expectBadVertex(badVertex);
-    badVertex[18] = 0x02000001u;
-    badVertex[20] = 0x90E40000u; // Wrong input for COLOR0.
+    badVertex[16] = 0x02000001u;
+    badVertex[18] = 0x90E40000u; // Wrong input for COLOR0.
     expectBadVertex(badVertex);
-    badVertex[20] = 0x90E40001u;
-    badVertex[18] = 0x02000001u;
-    badVertex[20] = 0x90E40001u;
-    badVertex[19] = 0xE00F0001u;
+    badVertex[18] = 0x90E40001u;
     badVertex[4] = 0x02000001u; // Late malformed DCL => no GLSL.
     expectBadVertex(badVertex);
     vertexGLSL = "must-clear";
