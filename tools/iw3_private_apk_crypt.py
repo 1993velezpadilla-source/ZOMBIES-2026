@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Encrypt a PRIVATE, user-supplied IW3 Android APK before any GitHub artifact.
+"""Encrypt a PRIVATE IW3 Android APK or internal rendered-preview archive.
 
 The CI runner uses a recipient public RSA key to encrypt a random AES-256-GCM
 file key. Only the matching private RSA key, NEVER in GitHub, can decrypt it.
-Upload ONLY the sealed .iw3sealed file, not a ZIP or plaintext .apk.
+Upload ONLY a sealed .iw3sealed file, never plaintext .apk or owner-only screenshots.
 
 Format (v1): magic UTF-8 | u32big header length | JSON header |
              AES-256-GCM ciphertext | 16-byte GCM tag.
@@ -42,13 +42,28 @@ def digest_file(path: Path) -> tuple[int,str]:
 
 
 def seal(path: Path, output: Path, recipient_pub: Path) -> dict:
-    if path.suffix.lower()!=".apk" or not path.is_file():
-        raise ValueError("only an existing Android APK may be sealed")
+    if not path.is_file():
+        raise ValueError("source file missing")
+    if path.suffix.lower()==".zip":
+        # Proprietary previews are allowed ONLY in this specifically named
+        # private archive, which is sealed before the upload-artifact step.
+        from zipfile import ZipFile
+        if path.name != "IW3_PRIVATE_VISUAL_AUDIT.zip":
+            raise ValueError("unsupported private preview archive filename")
+        with ZipFile(path) as images:
+            files=[n for n in images.namelist() if not n.endswith("/")]
+            if len(files)<6 or len(files)>64 or any(
+                n.startswith("/") or ".." in n.split("/") or
+                not n.lower().endswith((".png",".json")) for n in files
+            ):
+                raise ValueError("unexpected contents in visual audit archive")
+    elif path.suffix.lower() != ".apk":
+        raise ValueError("expected an owner-only Android APK or private screenshot ZIP")
     if output.exists():
         raise FileExistsError("encrypted output already exists: "+str(output))
     size,digest=digest_file(path)
-    if size<100000:
-        raise ValueError("APK suspiciously small")
+    if size<10000:
+        raise ValueError("encrypted source file suspiciously small")
     public_key=serialization.load_pem_public_key(recipient_pub.read_bytes())
     aes_key=secrets.token_bytes(32)
     nonce=secrets.token_bytes(12)
