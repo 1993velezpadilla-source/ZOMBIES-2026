@@ -18,7 +18,7 @@ The implementation deliberately fails closed for missing/duplicate declarations,
 
 Expanded `tests/test_iw3_android_renderer_original_shader_bytecode_preflight.py` with genuine D3D9 token fixtures for the vertex+pixel source pair and negative cases. The harness is compiled with `-D__ANDROID__ -fsanitize=address,undefined -fno-omit-frame-pointer`. The regression checks name-matched varyings, vertex clip-depth conversion, the removal of the illegal fragment input location qualifier, fail-closed behavior and absence of partial output.
 
-**Verification must be evaluated on the CI run associated with the final test commit, not earlier green runs.** This pass does not claim successful GLSL GPU compilation or linked execution until demonstrated. The renderer workflow is the "IW3 authentic renderer LP64 tracking and AArch64 compile probe (NOT GAME)" workflow.
+**Verified final code commit:** `130e91071b88747e2cbb9b82ee4a26e008b9f46c` passed [GitHub Actions 41553282716](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/41553282716): both jobs successful, 54/54 host renderer tests including the new VS/PS source-pair regression under ASan/UBSan, and the Android NDK AArch64 compile/link probe. Earlier runs failed on a malformed test fixture insertion (literal `\\n` tokens); this was corrected before the green run. The final verification is **source translation and AArch64 compilation only**, not a real GLES3 GPU program or scene. The renderer workflow is the "IW3 authentic renderer LP64 tracking and AArch64 compile probe (NOT GAME)" workflow.
 
 ## Unmet playable-APK gates
 
