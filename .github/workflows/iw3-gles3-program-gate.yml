@@ -13,6 +13,7 @@ on:
     paths:
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_gl_program.*'
       - '.github/workflows/iw3-gles3-program-gate.yml'
+      - 'android/iw3-native/tests/iw3_gles3_egl_host_smoke.cpp'
   workflow_dispatch:
 jobs:
   host-gles3-syntax:
@@ -36,7 +37,8 @@ jobs:
             android/iw3-native/tests/iw3_gles3_egl_host_smoke.cpp \
             third_party/KisakCOD/src/gfx_d3d/r_android_gl_program.cpp \
             -lEGL -lGLESv2 -o "$RUNNER_TEMP/iw3-gles3-egl-smoke"
-          "$RUNNER_TEMP/iw3-gles3-egl-smoke"
+          "$RUNNER_TEMP/iw3-gles3-egl-smoke" | tee "$RUNNER_TEMP/iw3-gles3-egl-smoke.log"
+          grep -Fxq IW3_GLES3_REAL_EGL_HOST_DRAW_READBACK_PASS_NOT_GAME "$RUNNER_TEMP/iw3-gles3-egl-smoke.log"
           echo IW3_GLES3_REAL_EGL_HOST_ONLY=true
           echo IW3_GLES3_ANDROID_DEVICE_TESTED=false
           echo IW3_PLAYABLE_APK=false
