@@ -83,7 +83,9 @@ def assemble(root: Path, output: Path, tools: Path) -> dict:
     export_preset=(BASE_ANDROID_EXPORT
         .replace("org.xziellabs.zombiesfpssafe","org.xziellabs.zombiesiw3private")
         .replace("ZOMBIES FPS LAB SAFE","ZOMBIES IW3 PRIVATE LAB")
-        .replace("ZOMBIES_FPS_LAB_SAFE_ARM64.apk","ZOMBIES_IW3_ORIGINAL_ARM64.apk"))
+        .replace("ZOMBIES_FPS_LAB_SAFE_ARM64.apk","ZOMBIES_IW3_ORIGINAL_ARM64.apk")
+        .replace("version/code=1","version/code=4")
+        .replace('version/name="0.1.0-test"','version/name="0.4.0-live-roll-v4"'))
     (output/"export_presets.cfg").write_text(export_preset)
     (output/"build").mkdir(exist_ok=True)
     report={"offline_private_project":str(output.resolve()),
