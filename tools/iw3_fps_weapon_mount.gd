@@ -187,21 +187,39 @@ func apply_procedural_ads_alignment(camera: Camera3D, alpha: float) -> Dictionar
     mount.on_skeleton_update()
     var point: Vector3 = (weapon_skeleton.global_transform *
         weapon_skeleton.get_bone_global_pose(index)).origin
-    if camera.is_position_behind(point):
-        return {"success": false, "reason": "sight_tag_behind_camera", "tag": tag}
-    var camera_space: Vector3 = camera.global_transform.affine_inverse() * point
-    if camera_space.z > -camera.near:
-        return {"success": false, "reason": "sight_tag_on_near_plane", "tag": tag}
-    var displacement: Vector3 = camera.global_transform.basis * Vector3(
-        -camera_space.x, -camera_space.y, 0.0)
+    # Pixel Fold visual reports showed true ADS catastrophic camera/hand
+    # clipping. Centering only X/Y left the sight 0.10-0.30 m from the camera,
+    # and source ADS animations can bring the hands THROUGH the near plane.
+    # Align the ORIGINAL sight tag in all THREE camera-space coordinates.
+    # This is a viewmodel-placement correction, not a fabricated animation.
+    var camera_space: Vector3 = camera.to_local(point)
+    if not camera_space.is_finite():
+        return {"success": false, "reason": "nonfinite_sight_pose", "tag": tag}
+    # Keep target at a safe 60 cm in FRONT of the camera. ADS takes camera
+    # aim through the real sight tag, while avoiding camera being inside
+    # the viewhands/receiver as seen in real screenshots.
+    var target_camera_space: Vector3 = Vector3(0.0, 0.0, -0.60)
+    var difference: Vector3 = target_camera_space - camera_space
+    # Reject grossly corrupted skeleton poses instead of hiding them.
+    if not difference.is_finite() or difference.length() > 5.0:
+        return {"success": false, "reason": "corrupt_sight_transform", "tag": tag}
+    var displacement: Vector3 = camera.global_transform.basis.orthonormalized() * difference
     var factor: float = clampf(alpha, 0.0, 1.0)
     global_position += displacement * factor
     hands_skeleton.force_update_all_bone_transforms()
     weapon_skeleton.force_update_all_bone_transforms()
     mount.on_skeleton_update()
+    var compensated: Vector3 = camera.to_local((weapon_skeleton.global_transform *
+        weapon_skeleton.get_bone_global_pose(index)).origin)
+    var corrected: bool = compensated.is_finite() and compensated.z < -camera.near
     return {
-        "success": true, "tag": tag, "source": candidate.get("source", "unknown"),
-        "blend": factor, "translation_m": snappedf((displacement * factor).length(), 0.00001),
+        "success": corrected, "tag": tag, "source": candidate.get("source", "unknown"),
+        "blend": factor,
+        "translation_m": snappedf((displacement * factor).length(), 0.00001),
+        "sight_camera_depth_m": snappedf(-compensated.z, 0.00001),
+        "intended_ads_depth_m": 0.60,
+        "sight_camera_xy_m": [
+            snappedf(compensated.x, 0.00001), snappedf(compensated.y, 0.00001)],
         "attachment_error": anchor_error()["anchor_position_error"],
         "visual_alignment_certified": false
     }
