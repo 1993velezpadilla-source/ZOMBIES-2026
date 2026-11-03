@@ -90,8 +90,28 @@ func _run() -> void:
             reports.append(ads)
             if not ads["save_ok"]:
                 no_error=false
+        # V5: capture what the actual Android playable scene renders, not a
+        # custom 4-angle reprobe that bypasses HIP calibration. These two
+        # frames make any hand/receiver camera clipping plain to inspect.
+        if not stage.equip(weapon_i):
+            no_error=false
+            continue
+        stage.controller.set_process(false)
+        await process_frame
+        var v5_hip: Dictionary=await _snapshot(stage,gun_name+"_v5",90.0,"hip")
+        reports.append(v5_hip)
+        if not v5_hip["save_ok"]:
+            no_error=false
+        if not stage.toggle_ads():
+            no_error=false
+        for _frame in range(25):
+            stage.controller.tick(1.0/60.0)
+        var v5_ads: Dictionary=await _snapshot(stage,gun_name+"_v5",90.0,"ads")
+        reports.append(v5_ads)
+        if not v5_ads["save_ok"]:
+            no_error=false
     var metadata: Dictionary={"samples":reports,
-        "all_images_saved":no_error and reports.size()==GUNS.size()*ROLLS.size()*2,
+        "all_images_saved":no_error and reports.size()==GUNS.size()*(ROLLS.size()*2+2),
         "private_images_only":true,
         "device_visual_approved":false,
         "original_owner_assets":true,
