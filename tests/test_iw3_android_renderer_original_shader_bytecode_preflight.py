@@ -538,7 +538,7 @@ int main() {
     assert(vertexGLSL.find("iw3_color_in0 = iw3_vertex_color_in0;") != std::string::npos);
     assert(vertexGLSL.find("2.0 * iw3_clip_position.z - iw3_clip_position.w") != std::string::npos);
     assert(vertexGLSL.find("out vec4 iw3_color_in0;") != std::string::npos);
-    assert(glsl.find("in vec4 iw3_color_in0;") != std::string::npos);
+    assert(R_AndroidTranslateD3D9PixelColorSubsetToGLSL(\n        ps3Color, sizeof(ps3Color), &glsl));\n    assert(glsl.find("in vec4 iw3_color_in0;") != std::string::npos);
     assert(glsl.find("layout(location = 0) in vec4") == std::string::npos);
     assert(!R_AndroidTranslateD3D9VertexPositionColorSubsetToGLSL(
         vs3PositionColor, sizeof(vs3PositionColor), nullptr));
