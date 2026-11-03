@@ -53,6 +53,33 @@ func _snapshot(stage: Node3D, gun: String, roll: float, action: String) -> Dicti
         "width":img.get_width(),"height":img.get_height(),
         "roll_degrees":roll,"action":action,"sight":sight}
 
+func _hands_surface_inventory(node: Node) -> Array[Dictionary]:
+    var output: Array[Dictionary]=[]
+    var pending: Array[Node]=[node]
+    while not pending.is_empty():
+        var element: Node=pending.pop_back()
+        for child in element.get_children():
+            pending.append(child)
+        if not element is MeshInstance3D:
+            continue
+        var instance: MeshInstance3D=element as MeshInstance3D
+        if instance.mesh == null:
+            continue
+        var surfaces: Array[Dictionary]=[]
+        for index in range(instance.mesh.get_surface_count()):
+            var mat: Material=instance.get_active_material(index)
+            surfaces.append({"surface":index,
+                "surface_name":instance.mesh.surface_get_name(index),
+                "material_name":mat.resource_name if mat != null else "none",
+                "material_class":mat.get_class() if mat != null else "none"})
+        output.append({"node_name":str(instance.name),
+            "parent":str(instance.get_parent().name),
+            "aabb_position":str(instance.get_aabb().position),
+            "aabb_size":str(instance.get_aabb().size),
+            "surface_count":surfaces.size(),
+            "surfaces":surfaces})
+    return output
+
 func _run() -> void:
     root.size=Vector2i(1280,720)
     var output: String=ProjectSettings.globalize_path("res://private_frames")
@@ -64,6 +91,7 @@ func _run() -> void:
     await process_frame
     stage.set_process(false)
     var reports: Array[Dictionary]=[]
+    var hands_inventory: Dictionary={}
     var no_error: bool=true
     for weapon_i in range(GUNS.size()):
         var gun_name: String=GUNS[weapon_i]
@@ -72,6 +100,9 @@ func _run() -> void:
             no_error=false
             continue
         stage.controller.set_process(false)
+        hands_inventory[gun_name]=_hands_surface_inventory(stage.controller.mount.hands_root)
+        print("IW3_HANDS_ACTUAL_MESH_SURFACES: "+JSON.stringify({
+            "gun":gun_name,"meshes":hands_inventory[gun_name]}))
         await process_frame
         for roll in ROLLS:
             _reposition_source_viewmodel(stage,roll)
@@ -111,6 +142,7 @@ func _run() -> void:
         if not v5_ads["save_ok"]:
             no_error=false
     var metadata: Dictionary={"samples":reports,
+        "original_hand_surface_inventory":hands_inventory,
         "all_images_saved":no_error and reports.size()==GUNS.size()*(ROLLS.size()*2+2),
         "private_images_only":true,
         "device_visual_approved":false,
