@@ -6,6 +6,7 @@ on:
     paths:
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_gl_program.*'
       - '.github/workflows/iw3-gles3-program-gate.yml'
+      - 'android/iw3-native/tests/iw3_gles3_egl_host_smoke.cpp'
   pull_request:
     branches:
       - feature/zombies-offline-sp-weapons-20261024
@@ -19,11 +20,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install GLES3 development headers
-        run: sudo apt-get update && sudo apt-get install -y libgles2-mesa-dev
+        run: sudo apt-get update && sudo apt-get install -y libgles2-mesa-dev libegl1-mesa-dev libgl1-mesa-dri
       - name: Compile genuine GLES3 program provider with Android branch enabled
         run: |
           g++ -std=c++17 -D__ANDROID__ -Wall -Wextra -Werror -fsyntax-only third_party/KisakCOD/src/gfx_d3d/r_android_gl_program.cpp
           echo IW3_GLES3_PROGRAM_PROVIDER_HOST_SYNTAX_PASS_NOT_GAME
+      - name: Execute original IW3 shader provider on real host surfaceless EGL GLES3
+        env:
+          EGL_PLATFORM: surfaceless
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: |
+          set -euo pipefail
+          g++ -std=c++17 -D__ANDROID__ -Wall -Wextra -Werror \
+            -Ithird_party/KisakCOD/src/gfx_d3d \
+            android/iw3-native/tests/iw3_gles3_egl_host_smoke.cpp \
+            third_party/KisakCOD/src/gfx_d3d/r_android_gl_program.cpp \
+            -lEGL -lGLESv2 -o "$RUNNER_TEMP/iw3-gles3-egl-smoke"
+          "$RUNNER_TEMP/iw3-gles3-egl-smoke"
+          echo IW3_GLES3_REAL_EGL_HOST_ONLY=true
+          echo IW3_GLES3_ANDROID_DEVICE_TESTED=false
+          echo IW3_PLAYABLE_APK=false
 
   android-arm64-provider-object:
     runs-on: ubuntu-24.04
