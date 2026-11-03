@@ -1,9 +1,17 @@
 #if defined(__ANDROID__)
 #include "r_android_gl_program.h"
 #include <vector>
+#include <limits>
 namespace {
 GLuint Compile(GLenum stage, const std::string &source, std::string *error) {
     if (source.empty()) { if (error) *error = "empty shader source"; return 0; }
+    // glShaderSource consumes a GLsizei count. Reject oversized source before
+    // narrowing size_t to GLint, otherwise a wrapped negative length can
+    // cause an out-of-bounds driver read or silent truncation.
+    if (source.size() > static_cast<size_t>(std::numeric_limits<GLint>::max())) {
+        if (error) *error = "shader source exceeds GLsizei length";
+        return 0;
+    }
     GLuint shader = glCreateShader(stage);
     if (!shader) { if (error) *error = "glCreateShader failed"; return 0; }
     const GLchar *text = source.c_str();
