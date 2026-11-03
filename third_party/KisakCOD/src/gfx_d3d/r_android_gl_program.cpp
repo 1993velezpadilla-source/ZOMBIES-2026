@@ -96,6 +96,12 @@ bool R_AndroidLinkTranslatedIW3Program(const std::string &vertexGLSL,
         glDeleteShader(vs); glDeleteShader(ps); return false;
     }
     glAttachShader(program, vs); glAttachShader(program, ps);
+    // D3D9 POSITION0/COLOR0 have fixed input slots in the original IW3
+    // vertex declaration. GLSL ES shaders without layout qualifiers would
+    // otherwise receive driver-assigned locations and fail validation below.
+    // Bind the semantic slots before linking (never after glLinkProgram).
+    glBindAttribLocation(program, 0, "iw3_position_in0");
+    glBindAttribLocation(program, 1, "iw3_vertex_color_in0");
     glLinkProgram(program);
     GLint linked = GL_FALSE;
     glGetProgramiv(program, GL_LINK_STATUS, &linked);
