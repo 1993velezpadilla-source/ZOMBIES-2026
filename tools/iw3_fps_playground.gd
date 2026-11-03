@@ -20,7 +20,7 @@ const ARM_SCALE: float = 0.0254 # hypothesis IW3 inch -> Godot metre
 # Pixel Fold screenshots resembling -90 suggest wrong/stale APK. Show an
 # unmistakable version/roll HUD + live touch adjustment to resolve this.
 const DEFAULT_VIEWMODEL_ROLL_DEGREES: float = 90.0
-const ORIENTATION_BUILD_ID: String = "IW3 V5 REAL GUNS / HIP + ADS DEPTH"
+const ORIENTATION_BUILD_ID: String = "IW3 V6 ORIGINAL GUNS / CAMERA + SLEEVE FIX"
 # Observed authentic GLB sight depths were only 0.20-0.30 m at hip,
 # while 4 AABB corners were inside/behind camera, per Pixel Fold audit.
 # Recenter the actual optical tag at a safe hip-fire screen position.
@@ -62,6 +62,13 @@ var scene_ready: bool = false
 var gun_ready: bool = false
 var viewmodel_roll_degrees: float = DEFAULT_VIEWMODEL_ROLL_DEGREES
 var orientation_controls: HBoxContainer
+# Original Marine sleeves are a separate skinned MeshInstance3D surface.
+# In our camera conversion they point into the FPS camera and block the
+# sight/gun. Toggle their *visibility only*, keeping original gloves,
+# original arms animations, weapon GLB, and tag_weapon skeleton intact.
+var sleeves_hidden: bool = true
+var sleeve_meshes: Array[MeshInstance3D] = []
+var sleeve_toggle_button: Button
 
 func _ready() -> void:
     for gun in GUNS:
@@ -252,23 +259,30 @@ func _build_hud() -> void:
     orientation_controls.name = "IW3_V4_Live_Roll_Touch"
     orientation_controls.anchor_left = 1.0
     orientation_controls.anchor_right = 1.0
-    orientation_controls.offset_left = -310
+    orientation_controls.offset_left = -410
     orientation_controls.offset_right = -12
     orientation_controls.offset_top = 12
     orientation_controls.offset_bottom = 68
     layout.add_child(orientation_controls)
     var rotate_left: Button = Button.new()
     rotate_left.text = "ROLL -90"
-    rotate_left.custom_minimum_size = Vector2(142, 55)
+    rotate_left.custom_minimum_size = Vector2(128, 55)
     rotate_left.focus_mode = Control.FOCUS_NONE
     orientation_controls.add_child(rotate_left)
     rotate_left.pressed.connect(func() -> void: shift_viewmodel_roll(-90.0))
     var rotate_right: Button = Button.new()
     rotate_right.text = "ROLL +90"
-    rotate_right.custom_minimum_size = Vector2(142, 55)
+    rotate_right.custom_minimum_size = Vector2(128, 55)
     rotate_right.focus_mode = Control.FOCUS_NONE
     orientation_controls.add_child(rotate_right)
     rotate_right.pressed.connect(func() -> void: shift_viewmodel_roll(90.0))
+    sleeve_toggle_button = Button.new()
+    sleeve_toggle_button.text = "SLEEVES ON"
+    sleeve_toggle_button.name = "ToggleOriginalSleeveGeometry"
+    sleeve_toggle_button.custom_minimum_size = Vector2(130, 55)
+    sleeve_toggle_button.focus_mode = Control.FOCUS_NONE
+    orientation_controls.add_child(sleeve_toggle_button)
+    sleeve_toggle_button.pressed.connect(toggle_original_sleeves)
     _refresh_status()
 
 func _input(event: InputEvent) -> void:
@@ -406,6 +420,11 @@ func equip(index: int) -> bool:
         controller.queue_free()
         controller = null
         return false
+    # Hide ONLY the malformed camera-facing Marine cloth surface, not the
+    # gloves or weapons. Tests confirm the actual imported GLBs have two
+    # distinct materials: 'mtl_marine_glove' and 'mtl_marine_glovesleeve'.
+    _index_original_sleeve_meshes()
+    _set_original_sleeves_visible(not sleeves_hidden)
     # Derive original eye/tag_camera offset from exported skeleton, instead of
     # manually positioning the gun on screen for each model.
     var bone_idx: int = controller.mount.hands_skeleton.find_bone("tag_camera")
@@ -420,6 +439,47 @@ func equip(index: int) -> bool:
     gun_ready = true
     message_label.text = ORIENTATION_BUILD_ID + " | " + name.to_upper() + " | " + str(viewmodel_roll_degrees) + " deg"
     return true
+
+func _index_original_sleeve_meshes() -> void:
+    sleeve_meshes.clear()
+    if not is_instance_valid(controller) or not is_instance_valid(controller.mount):
+        return
+    var rig: Node3D = controller.mount
+    var pending: Array[Node] = [rig.hands_root]
+    while not pending.is_empty():
+        var node: Node = pending.pop_back()
+        # Weapon GLB is parented under the hand skeleton's tag_weapon. Do
+        # not alter or hide ANY of the actual gun submeshes.
+        if node == rig.weapon_root:
+            continue
+        for child in node.get_children():
+            pending.append(child)
+        if not node is MeshInstance3D:
+            continue
+        var mesh_instance: MeshInstance3D = node as MeshInstance3D
+        if mesh_instance.mesh == null:
+            continue
+        var has_cloth_surface: bool = false
+        for i in range(mesh_instance.mesh.get_surface_count()):
+            var material: Material = mesh_instance.get_active_material(i)
+            if material != null and material.resource_name.contains("mtl_marine_glovesleeve"):
+                has_cloth_surface = true
+        if has_cloth_surface:
+            sleeve_meshes.append(mesh_instance)
+
+func _set_original_sleeves_visible(should_show: bool) -> void:
+    for sleeve in sleeve_meshes:
+        if is_instance_valid(sleeve):
+            sleeve.visible = should_show
+    if is_instance_valid(sleeve_toggle_button):
+        sleeve_toggle_button.text = "SLEEVES OFF" if should_show else "SLEEVES ON"
+
+func toggle_original_sleeves() -> void:
+    sleeves_hidden = not sleeves_hidden
+    _set_original_sleeves_visible(not sleeves_hidden)
+    if is_instance_valid(message_label):
+        message_label.text = ORIENTATION_BUILD_ID + " | " + (
+            "SLEEVES HIDDEN" if sleeves_hidden else "ORIGINAL SLEEVES VISIBLE")
 
 func _apply_viewmodel_roll_and_center(roll_degrees: float) -> bool:
     if not is_instance_valid(controller) or not is_instance_valid(camera):
@@ -543,7 +603,7 @@ func _refresh_status() -> void:
     var state: String = "NO ASSETS"
     if gun_ready and is_instance_valid(controller):
         state = controller.status()["state"] + "  ADS " + str(snappedf(controller.ads_blend * 100.0, 1.0)) + "%"
-    status_label.text = gun + "  " + str(magazines[GUNS[weapon_index]]) + "/" + str(reserves[GUNS[weapon_index]]) + " | " + state + " | Hits " + str(impacts) + " | V5 ROLL " + str(viewmodel_roll_degrees)
+    status_label.text = gun + "  " + str(magazines[GUNS[weapon_index]]) + "/" + str(reserves[GUNS[weapon_index]]) + " | " + state + " | Hits " + str(impacts) + " | V6 ROLL " + str(viewmodel_roll_degrees)
 
 func metrics() -> Dictionary:
     return {"scene_ready": scene_ready, "gun_ready": gun_ready, "weapon": GUNS[weapon_index],
@@ -558,4 +618,6 @@ func metrics() -> Dictionary:
         "orientation_build_id": ORIENTATION_BUILD_ID,
         "hip_sight_target_camera_m": [HIP_SIGHT_IN_CAMERA_METRES.x,
             HIP_SIGHT_IN_CAMERA_METRES.y, HIP_SIGHT_IN_CAMERA_METRES.z],
-        "live_roll_calibration_buttons": orientation_controls != null}
+        "live_roll_calibration_buttons": orientation_controls != null,
+        "sleeve_meshes_identified": sleeve_meshes.size(),
+        "original_sleeves_hidden": sleeves_hidden}
