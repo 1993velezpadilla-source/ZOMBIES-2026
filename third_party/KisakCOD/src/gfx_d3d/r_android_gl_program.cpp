@@ -1,6 +1,7 @@
 #if defined(__ANDROID__)
 #include "r_android_gl_program.h"
 #include <vector>
+#include <cstring>
 #include <limits>
 namespace {
 GLuint Compile(GLenum stage, const std::string &source, std::string *error) {
@@ -39,13 +40,24 @@ bool R_AndroidLinkTranslatedIW3Program(const std::string &vertexGLSL,
                                        IW3AndroidGLProgram *out,
                                        std::string *error) {
     if (!out) return false;
-    *out = {};
     if (error) error->clear();
+    // Do not orphan a previously linked GL program on repeated calls.
+    if (out->handle) {
+        if (error) *error = "output already owns a GL program; delete it before relinking";
+        return false;
+    }
+    *out = {};
     // Shader creation requires a current GLES3 context. A successful host
     // syntax audit cannot establish that Android has created one.
     const GLubyte *version = glGetString(GL_VERSION);
     if (!version) {
         if (error) *error = "no current OpenGL ES context";
+        return false;
+    }
+    // Desktop GL contexts may also expose GL_MAJOR_VERSION >= 3, but are
+    // not an Android GLES3 rendering context.
+    if (std::strncmp(reinterpret_cast<const char *>(version), "OpenGL ES ", 10) != 0) {
+        if (error) *error = "OpenGL ES context required (desktop GL rejected)";
         return false;
     }
     GLint major = 0;
