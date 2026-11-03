@@ -5,6 +5,7 @@
 #include <EGL/eglext.h>
 #include <GLES3/gl3.h>
 #include <cstdio>
+#include <cstddef>
 #include <string>
 int main() {
     auto getPlatform = reinterpret_cast<PFNEGLGETPLATFORMDISPLAYEXTPROC>(
@@ -38,12 +39,50 @@ int main() {
         std::fprintf(stderr, "GLES3 program failure: %s\n", error.c_str());
         return 16;
     }
+    // Real GLES3 draw/readback on the host: exercises the linked provider's
+    // attribute bindings, not IW3 map geometry or an Android device.
+    const float vertices[] = {
+        -1.f, -1.f, 0.f, 1.f, 0.f, 0.f, 1.f,
+         3.f, -1.f, 0.f, 1.f, 0.f, 0.f, 1.f,
+        -1.f,  3.f, 0.f, 1.f, 0.f, 0.f, 1.f
+    };
+    GLuint vao = 0, vbo = 0;
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), nullptr);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 7 * sizeof(float),
+                          reinterpret_cast<const void*>(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+    glViewport(0, 0, 8, 8);
+    glClearColor(0.f, 0.f, 0.f, 1.f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glUseProgram(program.handle);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+    glFinish();
+    unsigned char pixel[4] = {};
+    glReadPixels(4, 4, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixel);
+    const GLenum glError = glGetError();
+    glUseProgram(0);
+    glBindVertexArray(0);
+    glDeleteBuffers(1, &vbo);
+    glDeleteVertexArrays(1, &vao);
+    if (glError != GL_NO_ERROR || pixel[0] < 240 || pixel[1] > 15 ||
+        pixel[2] > 15 || pixel[3] < 240) {
+        std::fprintf(stderr, "GLES3 draw/readback failed: GL=0x%x RGBA=%u,%u,%u,%u\\n",
+                     static_cast<unsigned>(glError), pixel[0], pixel[1], pixel[2], pixel[3]);
+        R_AndroidDeleteTranslatedIW3Program(&program);
+        return 18;
+    }
     R_AndroidDeleteTranslatedIW3Program(&program);
     if (program.handle) return 17;
     eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
     eglDestroyContext(display, context);
     eglDestroySurface(display, surface);
     eglTerminate(display);
-    std::puts("IW3_GLES3_REAL_EGL_HOST_PROGRAM_LINK_PASS_NOT_GAME");
+    std::puts("IW3_GLES3_REAL_EGL_HOST_DRAW_READBACK_PASS_NOT_GAME");
     return 0;
 }
