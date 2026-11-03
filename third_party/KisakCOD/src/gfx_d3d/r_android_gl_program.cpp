@@ -41,6 +41,19 @@ bool R_AndroidLinkTranslatedIW3Program(const std::string &vertexGLSL,
     if (!out) return false;
     *out = {};
     if (error) error->clear();
+    // Shader creation requires a current GLES3 context. A successful host
+    // syntax audit cannot establish that Android has created one.
+    const GLubyte *version = glGetString(GL_VERSION);
+    if (!version) {
+        if (error) *error = "no current OpenGL ES context";
+        return false;
+    }
+    GLint major = 0;
+    glGetIntegerv(GL_MAJOR_VERSION, &major);
+    if (major < 3) {
+        if (error) *error = "OpenGL ES 3.0 or newer is required";
+        return false;
+    }
     const GLuint vs = Compile(GL_VERTEX_SHADER, vertexGLSL, error);
     if (!vs) return false;
     const GLuint ps = Compile(GL_FRAGMENT_SHADER, pixelGLSL, error);
