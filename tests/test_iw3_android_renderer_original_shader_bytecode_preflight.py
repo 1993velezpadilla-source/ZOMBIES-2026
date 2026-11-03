@@ -517,6 +517,71 @@ int main() {
     assert(!R_AndroidTranslateD3D9PixelColorSubsetToGLSL(
         stageMismatch.data(), stageMismatch.size()*4, &glsl));
 
+
+    // Original vs_3_0 DCL/MOV stream. The two GLSL stages share a
+    // name-matched varying, not a forbidden ES3 fragment-input location.
+    const std::uint32_t vs3PositionColor[] = {
+        0xFFFE0300u,
+        0x0200001Fu, 0x00000000u, 0x900F0000u, // dcl_position0 v0
+        0x0200001Fu, 0x0000000Au, 0x900F0001u, // dcl_color0 v1
+        0x0200001Fu, 0x00000000u, 0xE00F0000u, // dcl_position0 o0
+        0x0200001Fu, 0x0000000Au, 0xE00F0001u, // dcl_color0 o1
+        0x02000001u, 0xE00F0000u, 0x90E40000u, // mov o0, v0
+        0x02000001u, 0xE00F0001u, 0x90E40001u, // mov o1, v1
+        0x0000FFFFu
+    };
+    std::string vertexGLSL = "must-clear";
+    assert(R_AndroidTranslateD3D9VertexPositionColorSubsetToGLSL(
+        vs3PositionColor, sizeof(vs3PositionColor), &vertexGLSL));
+    assert(vertexGLSL.find("#version 300 es") != std::string::npos);
+    assert(vertexGLSL.find("iw3_clip_position = iw3_position_in0;") != std::string::npos);
+    assert(vertexGLSL.find("iw3_color_in0 = iw3_vertex_color_in0;") != std::string::npos);
+    assert(vertexGLSL.find("2.0 * iw3_clip_position.z - iw3_clip_position.w") != std::string::npos);
+    assert(vertexGLSL.find("out vec4 iw3_color_in0;") != std::string::npos);
+    assert(glsl.find("in vec4 iw3_color_in0;") != std::string::npos);
+    assert(glsl.find("layout(location = 0) in vec4") == std::string::npos);
+    assert(!R_AndroidTranslateD3D9VertexPositionColorSubsetToGLSL(
+        vs3PositionColor, sizeof(vs3PositionColor), nullptr));
+    auto badVertex = std::vector<std::uint32_t>(
+        vs3PositionColor,
+        vs3PositionColor + sizeof(vs3PositionColor)/sizeof(vs3PositionColor[0]));
+    const auto expectBadVertex = [&](const std::vector<std::uint32_t> &tokens) {
+        vertexGLSL = "must-clear";
+        assert(!R_AndroidTranslateD3D9VertexPositionColorSubsetToGLSL(
+            tokens.data(), tokens.size()*sizeof(std::uint32_t), &vertexGLSL));
+        assert(vertexGLSL.empty());
+    };
+    badVertex[0] = 0xFFFF0300u; // Pixel-stage token stream is not a VS.
+    expectBadVertex(badVertex);
+    badVertex[0] = 0xFFFE0200u; // SM2 not silently treated as SM3.
+    expectBadVertex(badVertex);
+    badVertex[0] = 0xFFFE0300u;
+    badVertex[8] = 0x00000005u; // Unsupported TEXCOORD semantic on o0.
+    expectBadVertex(badVertex);
+    badVertex[8] = 0x00000000u;
+    badVertex[17] = 0x90000000u; // Nonidentity swizzle on position input.
+    expectBadVertex(badVertex);
+    badVertex[17] = 0x90E40000u;
+    badVertex[19] = 0xE0070001u; // Partial color output mask.
+    expectBadVertex(badVertex);
+    badVertex[19] = 0xE00F0001u;
+    badVertex[18] = 0x03000002u; // Unsupported ADD, must fail closed.
+    expectBadVertex(badVertex);
+    badVertex[18] = 0x02000001u;
+    badVertex[20] = 0x90E40000u; // Wrong input for COLOR0.
+    expectBadVertex(badVertex);
+    badVertex[20] = 0x90E40001u;
+    badVertex[18] = 0x02000001u;
+    badVertex[20] = 0x90E40001u;
+    badVertex[19] = 0xE00F0001u;
+    badVertex[4] = 0x02000001u; // Late malformed DCL => no GLSL.
+    expectBadVertex(badVertex);
+    vertexGLSL = "must-clear";
+    assert(!R_AndroidTranslateD3D9VertexPositionColorSubsetToGLSL(
+        vs3PositionColor, sizeof(vs3PositionColor) - 4, &vertexGLSL));
+    assert(vertexGLSL.empty());
+    std::puts("IW3_ORIGINAL_D3D9_VS3_PS3_GLSL_SOURCE_PAIR_PASS_NOT_GPU");
+
     std::puts("IW3_ORIGINAL_D3D9_SHADER_COLOR0_GLSL_SUBSET_PASS_NOT_GPU");
 }
 '''
