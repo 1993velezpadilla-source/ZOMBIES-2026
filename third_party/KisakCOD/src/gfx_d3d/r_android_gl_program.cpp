@@ -4,7 +4,13 @@
 #include <algorithm>
 #include <cstring>
 #include <limits>
+#include <cstddef>
 namespace {
+// Driver-provided log lengths are untrusted; bound diagnostic allocation.
+constexpr GLint kMaxGLLogBytes = 64 * 1024;
+GLsizei SafeLogCapacity(GLint reported) {
+    return static_cast<GLsizei>(std::max<GLint>(1, std::min(reported, kMaxGLLogBytes)));
+}
 GLuint Compile(GLenum stage, const std::string &source, std::string *error) {
     if (source.empty()) { if (error) *error = "empty shader source"; return 0; }
     // glShaderSource consumes a GLsizei count. Reject oversized source before
@@ -25,7 +31,7 @@ GLuint Compile(GLenum stage, const std::string &source, std::string *error) {
     if (ok != GL_TRUE) {
         GLint n = 0; glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &n);
         if (error) {
-            std::vector<GLchar> log(n > 1 ? n : 1, 0);
+            std::vector<GLchar> log(static_cast<size_t>(SafeLogCapacity(n)), 0);
             GLsizei written = 0;
             glGetShaderInfoLog(shader, static_cast<GLsizei>(log.size()), &written, log.data());
             *error = std::string(log.data(), written > 0 ? std::min(static_cast<size_t>(written), log.size() - 1) : 0);
@@ -85,7 +91,7 @@ bool R_AndroidLinkTranslatedIW3Program(const std::string &vertexGLSL,
     if (linked != GL_TRUE) {
         GLint n = 0; glGetProgramiv(program, GL_INFO_LOG_LENGTH, &n);
         if (error) {
-            std::vector<GLchar> log(n > 1 ? n : 1, 0);
+            std::vector<GLchar> log(static_cast<size_t>(SafeLogCapacity(n)), 0);
             GLsizei written = 0;
             glGetProgramInfoLog(program, static_cast<GLsizei>(log.size()), &written, log.data());
             *error = std::string(log.data(), written > 0 ? std::min(static_cast<size_t>(written), log.size() - 1) : 0);
