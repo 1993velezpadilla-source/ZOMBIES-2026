@@ -233,7 +233,7 @@ jobs:
           test -x "$BIN"
           xvfb-run -a -s '-screen 0 1280x720x24' "$BIN" --rendering-driver opengl3 \
             --path _iw3_private/godot_sandbox --script res://private_capture.gd
-          test "$(find _iw3_private/godot_sandbox/private_frames -name '*.png' | wc -l)" -eq 24
+          test "$(find _iw3_private/godot_sandbox/private_frames -name '*.png' | wc -l)" -eq 30
           mkdir -p _iw3_secure_handoff
           python3 - <<'PY'
           from pathlib import Path
