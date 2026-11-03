@@ -1,0 +1,92 @@
+extends SceneTree
+
+# Regression against actual owner-supplied IW3 rigs, not fake test shapes.
+# Real visual capture proved +90 keeps blue optic ABOVE magazine; prior
+# -90 Android screenshots put magazine above optic and failed. Proves the
+# *visible V4 indicator* and LIVE roll switches, plus original tag attachment.
+const Stage = preload("res://playground.tscn")
+const GUNS: Array[String] = ["m4","ak47","mp5"]
+
+func _real_sight_to_mag(game: Node3D) -> Dictionary:
+    var rig: Node3D = game.controller.mount
+    var skeleton: Skeleton3D = rig.weapon_skeleton
+    var sight_idx: int = skeleton.find_bone("tag_iron_sight")
+    if sight_idx < 0:
+        sight_idx = skeleton.find_bone("tag_reflex_sight")
+    var clip_idx: int = skeleton.find_bone("tag_clip")
+    if sight_idx < 0 or clip_idx < 0:
+        return {"ok":false,"reason":"original gun sight / magazine tags missing"}
+    skeleton.force_update_all_bone_transforms()
+    var sight: Vector3 = (skeleton.global_transform *
+        skeleton.get_bone_global_pose(sight_idx)).origin
+    var clip: Vector3 = (skeleton.global_transform *
+        skeleton.get_bone_global_pose(clip_idx)).origin
+    var difference: Vector3 = game.camera.to_local(sight) - game.camera.to_local(clip)
+    return {"ok": difference.y > 0.035 and absf(difference.x) < 0.016,
+        "optic_above_mag_m":snappedf(difference.y,0.00001),
+        "optic_side_offset_m":snappedf(difference.x,0.00001)}
+
+func _run() -> void:
+    var report: Dictionary = {"v4_real_gun_roll_gate":false,"guns":{},
+        "fails":[],"user_pixel_fold_visual_confirmation":false,
+        "real_models":true}
+    var game: Node3D=Stage.instantiate()
+    root.add_child(game)
+    await process_frame
+    await physics_frame
+    game.set_process(false)
+    var count: int=0
+    for name in GUNS:
+        var loaded: bool=game.equip(GUNS.find(name))
+        if not loaded:
+            report["fails"].append("equip "+name)
+            continue
+        var message: String=game.message_label.text
+        var controls: HBoxContainer=game.orientation_controls
+        var ui_ok: bool=controls!=null and controls.get_child_count()==2 and \
+            message.contains("IW3 V4 REAL GUNS") and message.contains("90")
+        var beginning: Dictionary=_real_sight_to_mag(game)
+        var original_anchor: Dictionary=game.controller.mount.anchor_error()
+        var input_before: float=game.viewmodel_roll_degrees
+        # Trigger actual touch-button signal, not a direct helper shortcut.
+        var left: Button=controls.get_child(0) as Button
+        left.emit_signal("pressed")
+        var roll_zero: bool=absf(game.viewmodel_roll_degrees)<0.1
+        var right: Button=controls.get_child(1) as Button
+        right.emit_signal("pressed")
+        var back_to_upright: bool=absf(game.viewmodel_roll_degrees-90.0)<0.1
+        var after: Dictionary=_real_sight_to_mag(game)
+        var next_anchor: Dictionary=game.controller.mount.anchor_error()
+        var tag_camera_idx: int=game.controller.mount.hands_skeleton.find_bone("tag_camera")
+        var eye: Vector3=(game.controller.mount.hands_skeleton.global_transform *
+            game.controller.mount.hands_skeleton.get_bone_global_pose(tag_camera_idx)).origin
+        var eye_error: float=eye.distance_to(game.camera.global_position)
+        var pass: bool=ui_ok and absf(input_before-90.0)<0.1 and \
+            beginning.get("ok",false) and after.get("ok",false) and roll_zero and \
+            back_to_upright and eye_error<0.005 and \
+            original_anchor.get("anchor_position_error",999.0)<0.0002 and \
+            next_anchor.get("anchor_position_error",999.0)<0.0002
+        report["guns"][name]={"pass":pass,"ui_correct":ui_ok,"initial_roll":input_before,
+            "button_to_zero":roll_zero,"button_back_to_90":back_to_upright,
+            "optical_landmark_before":beginning,"optical_landmark_after":after,
+            "tag_camera_offset_m":snappedf(eye_error,0.000001),
+            "gun_attachment_m":next_anchor.get("anchor_position_error",-1)}
+        if not pass:
+            report["fails"].append(name)
+        count += int(pass)
+    report["v4_real_gun_roll_gate"]=count==3
+    var file: FileAccess=FileAccess.open("res://godot-live-roll-v4-gate.json",FileAccess.WRITE)
+    if file == null:
+        printerr("Cannot write live-roll gate")
+        quit(2)
+        return
+    file.store_string(JSON.stringify(report))
+    file.close()
+    print("IW3_REAL_ANDROID_LIVE_ROLL_V4_GATE: "+
+        JSON.stringify({"passed":count,"guns":3,
+            "real_optic_above_mag_proven":count==3,"user_visual_test_outstanding":true}))
+    game.queue_free()
+    quit(0 if count==3 else 1)
+
+func _initialize() -> void:
+    call_deferred("_run")
