@@ -93,7 +93,7 @@ func _test_roll(game: Node3D, roll: float) -> Dictionary:
         var index: int = rig.hands_skeleton.find_bone(tag)
         if index>=0:
             out["tags"]["hands_"+tag]=projected(camera,bone_world(rig.hands_skeleton,tag).origin)
-    for tag in ["tag_flash","tag_iron_sight","tag_reflex_sight","tag_acog","tag_brass"]:
+    for tag in ["tag_flash","tag_iron_sight","tag_reflex_sight","tag_acog","tag_brass","tag_clip","tag_g36_scope"]:
         var index: int = rig.weapon_skeleton.find_bone(tag)
         if index>=0:
             out["tags"]["weapon_"+tag]=projected(camera,bone_world(rig.weapon_skeleton,tag).origin)
@@ -103,6 +103,15 @@ func _test_roll(game: Node3D, roll: float) -> Dictionary:
     var muzzle: Dictionary = out["tags"].get("weapon_tag_flash",{})
     var sight: Dictionary = out["tags"].get("weapon_tag_iron_sight",
         out["tags"].get("weapon_tag_reflex_sight",{}))
+    var clip: Dictionary = out["tags"].get("weapon_tag_clip",{})
+    var sight_space: Array = sight.get("camera_space_m",[])
+    var clip_space: Array = clip.get("camera_space_m",[])
+    if sight_space.size()==3 and clip_space.size()==3:
+        out["sight_above_magazine_m"] = snappedf(float(sight_space[1])-float(clip_space[1]),0.00001)
+        out["sight_right_of_magazine_m"] = snappedf(float(sight_space[0])-float(clip_space[0]),0.00001)
+        out["sight_clip_lateral_separation_m"] = snappedf(
+            Vector2(float(sight_space[0])-float(clip_space[0]),
+                float(sight_space[1])-float(clip_space[1])).length(),0.00001)
     var front: Array = muzzle.get("camera_space_m",[])
     var rear: Array = sight.get("camera_space_m",[])
     if front.size()==3 and rear.size()==3:
@@ -138,6 +147,9 @@ func _run() -> void:
                 "sight":sight.get("screen_uv",null),
                 "flash":flash.get("screen_uv",null),
                 "front_forward":row.get("front_farther_into_screen_than_sight",false),
+                "optic_above_mag_m":row.get("sight_above_magazine_m",null),
+                "optic_right_of_mag_m":row.get("sight_right_of_magazine_m",null),
+                "sight_clip_lateral_distance_m":row.get("sight_clip_lateral_separation_m",null),
                 "gun_camera_intersections":row["gun_mesh_aabb"]["corners_behind_or_inside_camera"],
                 "hands_camera_intersections":row["hands_mesh_aabb"]["corners_behind_or_inside_camera"]})
         print("IW3_REAL_GEOMETRY_AXIS_SWEEP: " +
