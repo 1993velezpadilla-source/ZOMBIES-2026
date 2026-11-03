@@ -67,7 +67,7 @@ jobs:
           set -euo pipefail
           sdk="$RUNNER_TEMP/iw3-android-sdk"
           mkdir -p "$sdk/cmdline-tools/latest"
-          curl -fLsS --retry 3 -o "$RUNNER_TEMP/android-cli.zip" \
+          curl --http1.1 -fLsS --retry 5 --retry-all-errors --retry-delay 2 -o "$RUNNER_TEMP/android-cli.zip" \
             'https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip'
           unzip -qo "$RUNNER_TEMP/android-cli.zip" -d "$RUNNER_TEMP/iw3-cli"
           mv "$RUNNER_TEMP/iw3-cli/cmdline-tools/"* "$sdk/cmdline-tools/latest/"
