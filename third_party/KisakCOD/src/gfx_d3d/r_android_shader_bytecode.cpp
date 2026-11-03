@@ -459,13 +459,106 @@ bool R_AndroidTranslateD3D9PixelColorSubsetToGLSL(
     *outGLSL =
         "#version 300 es\n"
         "precision highp float;\n"
-        "layout(location = 0) in vec4 iw3_color_in0;\n"
+        "in vec4 iw3_color_in0;\n"
         "layout(location = 0) out vec4 iw3_color_out0;\n"
         "void main() {\n"
         "  vec4 iw3_r0;\n" +
         state.body + "}\n";
     return true;
 }
+
+// Source-only companion to the original ps_3_0 COLOR0 subset. No fake geometry
+// or fallback shaders: only authentic D3D9 vs_3_0 DCL/MOV tokens are accepted.
+namespace {
+struct VertexColorEmit {
+    bool inputPosition = false, inputColor = false;
+    bool outputPosition = false, outputColor = false;
+    bool wrotePosition = false, wroteColor = false;
+    std::string body;
+};
+bool EmitVertexColor(const IW3AndroidShaderDecodedInstruction &record, void *user)
+{
+    auto &state = *static_cast<VertexColorEmit *>(user);
+    if (record.kind == IW3AndroidShaderDecodedKind::Declaration) {
+        const auto &d = record.declaration;
+        const auto &r = d.registerOperand;
+        if (d.sampler || d.usageIndex || r.writeMask != 15 ||
+            r.modifier || r.destinationShift || r.relativeAddressing)
+            return false;
+        if (r.type == 1 && r.number == 0 && d.usage == 0 && !state.inputPosition) {
+            state.inputPosition = true; return true;
+        }
+        if (r.type == 1 && r.number == 1 && d.usage == 10 && !state.inputColor) {
+            state.inputColor = true; return true;
+        }
+        if (r.type == 6 && r.number == 0 && d.usage == 0 && !state.outputPosition) {
+            state.outputPosition = true; return true;
+        }
+        if (r.type == 6 && r.number == 1 && d.usage == 10 && !state.outputColor) {
+            state.outputColor = true; return true;
+        }
+        return false;
+    }
+    const auto &a = record.arithmetic;
+    if (a.opcode != 1 || a.sourceCount != 1) return false; // MOV only
+    const auto &s = a.sources[0];
+    const auto &d = a.destination;
+    if (s.swizzle != 0xE4 || s.modifier || s.relativeAddressing ||
+        d.writeMask != 15 || d.modifier || d.destinationShift ||
+        d.relativeAddressing)
+        return false;
+    if (s.type == 1 && s.number == 0 && d.type == 6 && d.number == 0 &&
+        state.inputPosition && state.outputPosition) {
+        state.body += "  iw3_clip_position = iw3_position_in0;\n";
+        state.wrotePosition = true;
+        return true;
+    }
+    if (s.type == 1 && s.number == 1 && d.type == 6 && d.number == 1 &&
+        state.inputColor && state.outputColor) {
+        state.body += "  iw3_color_in0 = iw3_vertex_color_in0;\n";
+        state.wroteColor = true;
+        return true;
+    }
+    return false; // other registers, temp, swizzle or arithmetic unsupported
+}
+} // namespace
+
+bool R_AndroidTranslateD3D9VertexPositionColorSubsetToGLSL(
+    const void *program, std::size_t programBytes, std::string *outGLSL)
+{
+    if (!outGLSL) return false;
+    outGLSL->clear();
+    IW3AndroidShaderEnvelope envelope{};
+    if (!R_AndroidInspectD3D9Shader(program, programBytes,
+                                   IW3AndroidShaderStage::Vertex, &envelope) ||
+        envelope.major != 3 || envelope.minor != 0)
+        return false;
+    VertexColorEmit state{};
+    if (!R_AndroidVisitD3D9DecodedShader(
+            program, programBytes, IW3AndroidShaderStage::Vertex,
+            EmitVertexColor, &state) ||
+        !state.inputPosition || !state.inputColor ||
+        !state.outputPosition || !state.outputColor ||
+        !state.wrotePosition || !state.wroteColor)
+        return false;
+    // D3D clip-space z is [0,w]; GLES clip-space z is [-w,w].
+    // ES 3.00 fragment inputs use name-matched varyings, NOT layout(location).
+    *outGLSL =
+        "#version 300 es\n"
+        "precision highp float;\n"
+        "layout(location = 0) in vec4 iw3_position_in0;\n"
+        "layout(location = 1) in vec4 iw3_vertex_color_in0;\n"
+        "out vec4 iw3_color_in0;\n"
+        "void main() {\n"
+        "  vec4 iw3_clip_position;\n" +
+        state.body +
+        "  gl_Position = vec4(iw3_clip_position.xy, "
+        "2.0 * iw3_clip_position.z - iw3_clip_position.w, "
+        "iw3_clip_position.w);\n"
+        "}\n";
+    return true;
+}
+
 #endif
 
 #endif
