@@ -1,0 +1,20 @@
+name: IW3 original shader GLES3 program compile gate
+on:
+  push:
+    branches:
+      - feature/iw3-native-android-arm64-20261025
+    paths:
+      - 'third_party/KisakCOD/src/gfx_d3d/r_android_gl_program.*'
+      - '.github/workflows/iw3-gles3-program-gate.yml'
+  workflow_dispatch:
+jobs:
+  host-gles3-syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install GLES3 development headers
+        run: sudo apt-get update && sudo apt-get install -y libgles2-mesa-dev
+      - name: Compile genuine GLES3 program provider with Android branch enabled
+        run: |
+          g++ -std=c++17 -D__ANDROID__ -Wall -Wextra -Werror -fsyntax-only third_party/KisakCOD/src/gfx_d3d/r_android_gl_program.cpp
+          echo IW3_GLES3_PROGRAM_PROVIDER_HOST_SYNTAX_PASS_NOT_GAME
