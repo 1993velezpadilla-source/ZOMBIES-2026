@@ -133,4 +133,12 @@ bool R_AndroidVisitD3D9DecodedShader(const void *program, std::size_t programByt
 // On failure outGLSL is cleared, never a partially translated shader.
 bool R_AndroidTranslateD3D9PixelColorSubsetToGLSL(
     const void *program, std::size_t programBytes, std::string *outGLSL);
+
+// Genuine vs_3_0 POSITION0 v0 / COLOR0 v1 -> POSITION0 o0 / COLOR0 o1
+// companion for the tiny ps_3_0 COLOR0 subset. Supports full-vector MOV
+// only and validates declarations/operands before emitting any source.
+// This is source-only; no GPU compilation, linking, map or gameplay.
+bool R_AndroidTranslateD3D9VertexPositionColorSubsetToGLSL(
+    const void *program, std::size_t programBytes, std::string *outGLSL);
+
 #endif
