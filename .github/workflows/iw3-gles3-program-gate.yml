@@ -58,6 +58,17 @@ jobs:
           "$bin/llvm-nm" -C --defined-only "$out" | grep -F 'R_AndroidLinkTranslatedIW3Program('
           "$bin/llvm-nm" -C --defined-only "$out" | grep -F 'R_AndroidDeleteTranslatedIW3Program('
           "$bin/llvm-nm" -C -u "$out" > "$RUNNER_TEMP/iw3-gles3-undefined-symbols.txt"
+          # Link the genuine provider as an Android ARM64 shared object against
+          # the platform GLESv3 ABI; reject unresolved symbols at link time.
+          so="$RUNNER_TEMP/libiw3_gles3_provider_aarch64.so"
+          "$bin/aarch64-linux-android26-clang++" -shared -fPIC \
+            -Wl,--no-undefined "$out" -lGLESv3 -o "$so"
+          "$bin/llvm-readelf" -h "$so" | grep -q 'AArch64'
+          "$bin/llvm-readelf" -d "$so" | tee "$RUNNER_TEMP/iw3-gles3-dynamic.txt"
+          grep -q 'libGLESv3.so' "$RUNNER_TEMP/iw3-gles3-dynamic.txt"
+          "$bin/llvm-nm" -D -C --defined-only "$so" | grep -F 'R_AndroidLinkTranslatedIW3Program('
+          echo 'IW3_GLES3_PROGRAM_AARCH64_PLATFORM_LINK=true'
+          echo 'IW3_GLES3_PROGRAM_EGL_CONTEXT_TESTED=false'
           echo 'IW3_GLES3_PROGRAM_AARCH64_OBJECT=true'
           echo 'IW3_GLES3_PROGRAM_LINKED_TO_RENDERER=false'
           echo 'IW3_REAL_MAP_RENDERED=false'
@@ -69,4 +80,5 @@ jobs:
           path: |
             ${{ runner.temp }}/iw3-gles3-elf-header.txt
             ${{ runner.temp }}/iw3-gles3-undefined-symbols.txt
+            ${{ runner.temp }}/iw3-gles3-dynamic.txt
           if-no-files-found: ignore
