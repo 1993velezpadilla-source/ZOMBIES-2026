@@ -20,6 +20,12 @@ GLuint Compile(GLenum stage, const std::string &source, std::string *error) {
         if (error) *error = "shader source exceeds GLsizei length";
         return 0;
     }
+    // A translated GLSL shader must be text, not a binary blob.
+    // Reject embedded NULs instead of letting the driver compile ambiguous input.
+    if (source.find('\0') != std::string::npos) {
+        if (error) *error = "shader source contains embedded NUL";
+        return 0;
+    }
     GLuint shader = glCreateShader(stage);
     if (!shader) { if (error) *error = "glCreateShader failed"; return 0; }
     const GLchar *text = source.c_str();
