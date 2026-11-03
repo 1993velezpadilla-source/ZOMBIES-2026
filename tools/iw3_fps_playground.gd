@@ -20,7 +20,11 @@ const ARM_SCALE: float = 0.0254 # hypothesis IW3 inch -> Godot metre
 # Pixel Fold screenshots resembling -90 suggest wrong/stale APK. Show an
 # unmistakable version/roll HUD + live touch adjustment to resolve this.
 const DEFAULT_VIEWMODEL_ROLL_DEGREES: float = 90.0
-const ORIENTATION_BUILD_ID: String = "IW3 V4 REAL GUNS / LIVE ROLL"
+const ORIENTATION_BUILD_ID: String = "IW3 V5 REAL GUNS / HIP + ADS DEPTH"
+# Observed authentic GLB sight depths were only 0.20-0.30 m at hip,
+# while 4 AABB corners were inside/behind camera, per Pixel Fold audit.
+# Recenter the actual optical tag at a safe hip-fire screen position.
+const HIP_SIGHT_IN_CAMERA_METRES: Vector3 = Vector3(0.12, -0.12, -0.55)
 const GUNS: Array[String] = ["m4", "ak47", "mp5"]
 const MAG_CAPACITY: int = 30
 
@@ -440,6 +444,27 @@ func _apply_viewmodel_roll_and_center(roll_degrees: float) -> bool:
         rig.hands_skeleton.get_bone_global_pose(index)).origin
     var eye_local: Vector3 = rig.to_local(eye_global)
     rig.position -= eye_local
+    # SOURCE tag_camera is only a rig landmark, not a guarantee the optics,
+    # weapon stock or animated arms stay in front of Godot's near plane.
+    # After authentic tag_camera alignment, position the ORIGINAL sight tag
+    # at the chosen HIP screen position and safe 55cm depth. This is one
+    # geometry-derived calibration shared by all weapons; no fake meshes or
+    # per-gun guessed XYZ are introduced. Keep tag_weapon hierarchy intact.
+    var sight_info: Dictionary = rig.aim_tag_info()
+    var sight_bone: String = sight_info.get("name", "")
+    var sight_idx: int = rig.weapon_skeleton.find_bone(sight_bone)
+    if sight_idx < 0:
+        return false
+    rig.weapon_skeleton.force_update_all_bone_transforms()
+    var sight_world: Vector3 = (rig.weapon_skeleton.global_transform *
+        rig.weapon_skeleton.get_bone_global_pose(sight_idx)).origin
+    var sight_space: Vector3 = camera.to_local(sight_world)
+    if not sight_space.is_finite():
+        return false
+    var camera_displacement: Vector3 = HIP_SIGHT_IN_CAMERA_METRES - sight_space
+    if not camera_displacement.is_finite() or camera_displacement.length() > 5.0:
+        return false
+    rig.global_position += camera.global_transform.basis.orthonormalized() * camera_displacement
     rig.initial_local_position = rig.position
     viewmodel_roll_degrees = wrapf(roll_degrees,-180.0,180.0)
     return true
@@ -518,7 +543,7 @@ func _refresh_status() -> void:
     var state: String = "NO ASSETS"
     if gun_ready and is_instance_valid(controller):
         state = controller.status()["state"] + "  ADS " + str(snappedf(controller.ads_blend * 100.0, 1.0)) + "%"
-    status_label.text = gun + "  " + str(magazines[GUNS[weapon_index]]) + "/" + str(reserves[GUNS[weapon_index]]) + " | " + state + " | Hits " + str(impacts) + " | V4 ROLL " + str(viewmodel_roll_degrees)
+    status_label.text = gun + "  " + str(magazines[GUNS[weapon_index]]) + "/" + str(reserves[GUNS[weapon_index]]) + " | " + state + " | Hits " + str(impacts) + " | V5 ROLL " + str(viewmodel_roll_degrees)
 
 func metrics() -> Dictionary:
     return {"scene_ready": scene_ready, "gun_ready": gun_ready, "weapon": GUNS[weapon_index],
@@ -531,4 +556,6 @@ func metrics() -> Dictionary:
         "weapon_status": controller.status() if gun_ready else {},
         "viewmodel_roll_degrees": viewmodel_roll_degrees,
         "orientation_build_id": ORIENTATION_BUILD_ID,
+        "hip_sight_target_camera_m": [HIP_SIGHT_IN_CAMERA_METRES.x,
+            HIP_SIGHT_IN_CAMERA_METRES.y, HIP_SIGHT_IN_CAMERA_METRES.z],
         "live_roll_calibration_buttons": orientation_controls != null}
