@@ -16,7 +16,11 @@ const ARM_SCALE: float = 0.0254 # hypothesis IW3 inch -> Godot metre
 #   corrected +90 deg: original mesh top (-Z, NOT +Z) maps to camera +Y.
 # Rotate the WHOLE first-person rig, NOT the weapon alone, so tag_weapon and
 # hands retain their original shared hierarchy. Android visual retest required.
-const VIEWMODEL_ROLL_RADIANS: float = PI / 2.0
+# +90 is verified *visually* in private OpenGL frames: sight up, magazine down.
+# Pixel Fold screenshots resembling -90 suggest wrong/stale APK. Show an
+# unmistakable version/roll HUD + live touch adjustment to resolve this.
+const DEFAULT_VIEWMODEL_ROLL_DEGREES: float = 90.0
+const ORIENTATION_BUILD_ID: String = "IW3 V4 REAL GUNS / LIVE ROLL"
 const GUNS: Array[String] = ["m4", "ak47", "mp5"]
 const MAG_CAPACITY: int = 30
 
@@ -52,6 +56,8 @@ var button_instances: Dictionary = {}
 var targets: Array[StaticBody3D] = []
 var scene_ready: bool = false
 var gun_ready: bool = false
+var viewmodel_roll_degrees: float = DEFAULT_VIEWMODEL_ROLL_DEGREES
+var orientation_controls: HBoxContainer
 
 func _ready() -> void:
     for gun in GUNS:
@@ -235,6 +241,30 @@ func _build_hud() -> void:
     button_instances["SPRINT"].button_down.connect(func() -> void: run_down = true)
     button_instances["SPRINT"].button_up.connect(func() -> void: run_down = false)
     button_instances["CROUCH"].pressed.connect(func() -> void: crouch_down = not crouch_down)
+    # Dedicated build-identifiable, Android-touch live roll calibration.
+    # Allows verifying the *real rendered weapon* without uploading another
+    # ~36 MB APK for each 90-degree sign hypothesis.
+    orientation_controls = HBoxContainer.new()
+    orientation_controls.name = "IW3_V4_Live_Roll_Touch"
+    orientation_controls.anchor_left = 1.0
+    orientation_controls.anchor_right = 1.0
+    orientation_controls.offset_left = -310
+    orientation_controls.offset_right = -12
+    orientation_controls.offset_top = 12
+    orientation_controls.offset_bottom = 68
+    layout.add_child(orientation_controls)
+    var rotate_left: Button = Button.new()
+    rotate_left.text = "ROLL -90"
+    rotate_left.custom_minimum_size = Vector2(142, 55)
+    rotate_left.focus_mode = Control.FOCUS_NONE
+    orientation_controls.add_child(rotate_left)
+    rotate_left.pressed.connect(func() -> void: shift_viewmodel_roll(-90.0))
+    var rotate_right: Button = Button.new()
+    rotate_right.text = "ROLL +90"
+    rotate_right.custom_minimum_size = Vector2(142, 55)
+    rotate_right.focus_mode = Control.FOCUS_NONE
+    orientation_controls.add_child(rotate_right)
+    rotate_right.pressed.connect(func() -> void: shift_viewmodel_roll(90.0))
     _refresh_status()
 
 func _input(event: InputEvent) -> void:
@@ -362,14 +392,10 @@ func equip(index: int) -> bool:
         return false
     controller = GunController.new()
     controller.name = name + "_FPS"
-    # Source IW3 uses +X forward, while Godot camera sees -Z as forward.
-    # Camera is already yawed -90 degrees to face world +X. The +90 yaw here
-    # cancels that transform; then apply +90 roll in SOURCE +X space.
-    # Put roll on the combined hands+gun container; rolling ONLY the gun
-    # would break its skeleton's attachment to the original hand rig.
-    var source_to_camera: Basis = Basis(Vector3.UP, PI / 2.0) * \
-        Basis(Vector3.RIGHT, VIEWMODEL_ROLL_RADIANS)
-    controller.transform = Transform3D(source_to_camera.scaled(Vector3.ONE * ARM_SCALE), Vector3.ZERO)
+    # All three real GLB guns + original hands are rotated together.
+    # Default +90 is a tested hypothesis, with direct V4 touch controls to
+    # verify actual visual output on hardware. Do not infer it from a basis
+    # vector alone; see the private original-mesh capture CI.
     camera.add_child(controller)
     controller.set_process(false)
     if not controller.configure(camera, hand_scene as PackedScene, gun_scene as PackedScene):
@@ -383,13 +409,51 @@ func equip(index: int) -> bool:
         controller.queue_free()
         controller = null
         return false
-    var eye_global: Vector3 = controller.mount.hands_skeleton.global_transform * controller.mount.hands_skeleton.get_bone_global_pose(bone_idx).origin
-    var origin_local: Vector3 = controller.mount.to_local(eye_global)
-    controller.mount.position -= origin_local
-    controller.mount.initial_local_position = controller.mount.position
+    if not _apply_viewmodel_roll_and_center(viewmodel_roll_degrees):
+        controller.queue_free()
+        controller = null
+        return false
     gun_ready = true
-    message_label.text = name.to_upper() + " / FPS LAB"
+    message_label.text = ORIENTATION_BUILD_ID + " | " + name.to_upper() + " | " + str(viewmodel_roll_degrees) + " deg"
     return true
+
+func _apply_viewmodel_roll_and_center(roll_degrees: float) -> bool:
+    if not is_instance_valid(controller) or not is_instance_valid(camera):
+        return false
+    var rig: Node3D = controller.mount
+    if not is_instance_valid(rig):
+        return false
+    controller.reset_viewmodel()
+    rig.position = Vector3.ZERO
+    rig.initial_local_position = Vector3.ZERO
+    var source_to_camera: Basis = Basis(Vector3.UP,PI/2.0) * \
+        Basis(Vector3.RIGHT,deg_to_rad(roll_degrees))
+    controller.transform = Transform3D(source_to_camera.scaled(
+        Vector3.ONE * ARM_SCALE),Vector3.ZERO)
+    if not rig.set_timed_action("idle",0.0):
+        return false
+    var index: int = rig.hands_skeleton.find_bone("tag_camera")
+    if index < 0:
+        return false
+    rig.hands_skeleton.force_update_all_bone_transforms()
+    var eye_global: Vector3 = (rig.hands_skeleton.global_transform *
+        rig.hands_skeleton.get_bone_global_pose(index)).origin
+    var eye_local: Vector3 = rig.to_local(eye_global)
+    rig.position -= eye_local
+    rig.initial_local_position = rig.position
+    viewmodel_roll_degrees = wrapf(roll_degrees,-180.0,180.0)
+    return true
+
+func shift_viewmodel_roll(delta_degrees: float) -> bool:
+    if not gun_ready:
+        return false
+    var result: bool = _apply_viewmodel_roll_and_center(
+        viewmodel_roll_degrees + delta_degrees)
+    if result:
+        message_label.text = ORIENTATION_BUILD_ID + " | " + \
+            GUNS[weapon_index].to_upper() + " | " + str(viewmodel_roll_degrees) + " deg"
+        _refresh_status()
+    return result
 
 func next_weapon() -> bool:
     return equip(weapon_index + 1)
@@ -454,7 +518,7 @@ func _refresh_status() -> void:
     var state: String = "NO ASSETS"
     if gun_ready and is_instance_valid(controller):
         state = controller.status()["state"] + "  ADS " + str(snappedf(controller.ads_blend * 100.0, 1.0)) + "%"
-    status_label.text = gun + "  " + str(magazines[GUNS[weapon_index]]) + "/" + str(reserves[GUNS[weapon_index]]) + " | " + state + " | Hits " + str(impacts)
+    status_label.text = gun + "  " + str(magazines[GUNS[weapon_index]]) + "/" + str(reserves[GUNS[weapon_index]]) + " | " + state + " | Hits " + str(impacts) + " | V4 ROLL " + str(viewmodel_roll_degrees)
 
 func metrics() -> Dictionary:
     return {"scene_ready": scene_ready, "gun_ready": gun_ready, "weapon": GUNS[weapon_index],
@@ -465,4 +529,6 @@ func metrics() -> Dictionary:
         "touch_controls": button_instances.size(),
         "reload_pending": reload_pending,
         "weapon_status": controller.status() if gun_ready else {},
-        "viewmodel_roll_degrees": rad_to_deg(VIEWMODEL_ROLL_RADIANS)}
+        "viewmodel_roll_degrees": viewmodel_roll_degrees,
+        "orientation_build_id": ORIENTATION_BUILD_ID,
+        "live_roll_calibration_buttons": orientation_controls != null}
