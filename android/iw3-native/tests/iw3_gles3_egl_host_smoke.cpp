@@ -39,6 +39,35 @@ int main() {
         std::fprintf(stderr, "GLES3 program failure: %s\n", error.c_str());
         return 16;
     }
+    // Exercise the authentic provider's failure and ownership paths on the
+    // same real EGL context. A failed relink must preserve the live program.
+    const GLuint originalHandle = program.handle;
+    std::string rejectedError;
+    if (R_AndroidLinkTranslatedIW3Program(vs, fs, &program, &rejectedError) ||
+        program.handle != originalHandle || rejectedError.empty()) {
+        std::fprintf(stderr, "GLES3 occupied-output regression: %s\\n", rejectedError.c_str());
+        return 19;
+    }
+    IW3AndroidGLProgram invalidProgram{};
+    rejectedError.clear();
+    if (R_AndroidLinkTranslatedIW3Program(vs, "#version 300 es\\ninvalid shader", 
+                                          &invalidProgram, &rejectedError) ||
+        invalidProgram.handle != 0 || rejectedError.empty()) {
+        std::fprintf(stderr, "GLES3 invalid-fragment regression: %s\\n", rejectedError.c_str());
+        return 20;
+    }
+    rejectedError.clear();
+    if (R_AndroidLinkTranslatedIW3Program(vs, std::string("a\\0b", 3),
+                                          &invalidProgram, &rejectedError) ||
+        invalidProgram.handle != 0 ||
+        rejectedError != "shader source contains embedded NUL") {
+        std::fprintf(stderr, "GLES3 embedded-NUL regression: %s\\n", rejectedError.c_str());
+        return 21;
+    }
+    if (!glIsProgram(originalHandle) || glGetError() != GL_NO_ERROR) {
+        std::fputs("GLES3 failure path damaged the live program\\n", stderr);
+        return 22;
+    }
     // Real GLES3 draw/readback on the host: exercises the linked provider's
     // attribute bindings, not IW3 map geometry or an Android device.
     const float vertices[] = {
