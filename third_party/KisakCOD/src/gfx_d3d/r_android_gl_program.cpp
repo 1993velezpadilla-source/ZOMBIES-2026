@@ -1,6 +1,7 @@
 #if defined(__ANDROID__)
 #include "r_android_gl_program.h"
 #include <vector>
+#include <algorithm>
 #include <cstring>
 #include <limits>
 namespace {
@@ -27,7 +28,7 @@ GLuint Compile(GLenum stage, const std::string &source, std::string *error) {
             std::vector<GLchar> log(n > 1 ? n : 1, 0);
             GLsizei written = 0;
             glGetShaderInfoLog(shader, static_cast<GLsizei>(log.size()), &written, log.data());
-            *error = std::string(log.data(), written > 0 ? static_cast<size_t>(written) : 0);
+            *error = std::string(log.data(), written > 0 ? std::min(static_cast<size_t>(written), log.size() - 1) : 0);
         }
         glDeleteShader(shader);
         return 0;
@@ -87,7 +88,7 @@ bool R_AndroidLinkTranslatedIW3Program(const std::string &vertexGLSL,
             std::vector<GLchar> log(n > 1 ? n : 1, 0);
             GLsizei written = 0;
             glGetProgramInfoLog(program, static_cast<GLsizei>(log.size()), &written, log.data());
-            *error = std::string(log.data(), written > 0 ? static_cast<size_t>(written) : 0);
+            *error = std::string(log.data(), written > 0 ? std::min(static_cast<size_t>(written), log.size() - 1) : 0);
         }
         glDeleteProgram(program);
         return false;
