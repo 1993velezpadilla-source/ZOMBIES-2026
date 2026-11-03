@@ -1,4 +1,4 @@
-"""Bounded original KisakCOD IW3 D3D9 shader-token walk: NOT GLSL/NOT GAME."""
+"""Authentic IW3 D3D9 shader token decoding and narrow GLSL source tests: NOT GPU/NOT GAME."""
 import os
 from pathlib import Path
 import subprocess
