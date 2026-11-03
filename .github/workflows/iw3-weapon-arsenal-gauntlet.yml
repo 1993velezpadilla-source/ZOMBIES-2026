@@ -30,6 +30,7 @@ on:
       - 'tools/godot_iw3_fps_playground_probe.gd'
       - 'tools/godot_iw3_roll_orientation_probe.gd'
       - 'tools/godot_iw3_real_geometry_axis_probe.gd'
+      - 'tools/godot_iw3_private_visual_capture.gd'
       - 'tools/iw3_make_private_godot_lab.py'
       - 'tools/iw3_private_apk_crypt.py'
       - 'tools/iw3_private_transfer_public.pem'
@@ -218,6 +219,46 @@ jobs:
           xvfb-run -a -s '-screen 0 1024x768x24' "$BIN" --rendering-driver opengl3 \
             --path _iw3_private/godot_sandbox --script res://fps_camera_probe.gd
           cp _iw3_private/godot_sandbox/godot-fps-camera-gate.json _iw3_reports/godot-fps-camera-gate.json
+
+      - name: PRIVATE real-COD4 render screenshots in Xvfb, then encrypt before artifact upload
+        run: |
+          set -euo pipefail
+          cp tools/godot_iw3_private_visual_capture.gd _iw3_private/godot_sandbox/private_capture.gd
+          BIN="$(find _iw3_private/godot_bin -type f -name 'Godot*' -print -quit)"
+          test -x "$BIN"
+          xvfb-run -a -s '-screen 0 1280x720x24' "$BIN" --rendering-driver opengl3 \
+            --path _iw3_private/godot_sandbox --script res://private_capture.gd
+          test "$(find _iw3_private/godot_sandbox/private_frames -name '*.png' | wc -l)" -eq 24
+          mkdir -p _iw3_secure_handoff
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile, ZIP_DEFLATED
+          base=Path("_iw3_private/godot_sandbox/private_frames")
+          target=Path("_iw3_private/IW3_PRIVATE_VISUAL_AUDIT.zip")
+          with ZipFile(target,"x",compression=ZIP_DEFLATED) as z:
+              for file in sorted(base.iterdir()):
+                  if file.is_file() and file.suffix.lower() in {".png",".json"}:
+                      z.write(file,arcname=file.name)
+          assert target.stat().st_size > 10000, "Private screenshots absent"
+          print("PRIVATE_COD4_VISUAL_ZIP_CREATED=1; plaintext will NOT upload")
+          PY
+          python3 -m pip install --disable-pip-version-check --quiet --target _iw3_private/cryptodeps cryptography==46.0.3
+          PYTHONPATH="$PWD/_iw3_private/cryptodeps" python3 tools/iw3_private_apk_crypt.py seal \
+            _iw3_private/IW3_PRIVATE_VISUAL_AUDIT.zip \
+            _iw3_secure_handoff/IW3_PRIVATE_VISUAL_AUDIT.iw3sealed \
+            tools/iw3_private_transfer_public.pem
+          test -s _iw3_secure_handoff/IW3_PRIVATE_VISUAL_AUDIT.iw3sealed
+          rm -rf _iw3_private/godot_sandbox/private_frames _iw3_private/IW3_PRIVATE_VISUAL_AUDIT.zip
+          echo 'PRIVATE_VISUALS_ENCRYPTED; no raw screenshots in public artifacts'
+
+      - name: Upload only encrypted real-weapon visual diagnostic (NO raw PNG/ZIP)
+        uses: actions/upload-artifact@v4
+        with:
+          name: IW3_REAL_WEAPONS_PRIVATE_VISUAL_AUDIT_ENCRYPTED
+          path: _iw3_secure_handoff/IW3_PRIVATE_VISUAL_AUDIT.iw3sealed
+          compression-level: 0
+          retention-days: 2
+          if-no-files-found: error
 
       - name: Set up Java 17 for private Android debug export
         uses: actions/setup-java@v4
