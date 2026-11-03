@@ -66,7 +66,7 @@ func _run() -> void:
         var optic_point: Vector3=(mount.weapon_skeleton.global_transform *
             mount.weapon_skeleton.get_bone_global_pose(optic_index)).origin
         var hip_local: Vector3=game.camera.to_local(optic_point)
-        var expected: Vector3=game.HIP_SIGHT_IN_CAMERA_METRES
+        var expected: Vector3=Vector3(0.12,-0.12,-0.55)
         var hip_ok: bool=hip_local.distance_to(expected)<0.0005
         # In ADS the real tag must be 60 cm in front of camera and centered.
         var ads_on: bool=game.toggle_ads()
