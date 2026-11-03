@@ -81,11 +81,11 @@ def assemble(root: Path, output: Path, tools: Path) -> dict:
     # The only differences are private application ID/name and output path.
     # Never commit/upload the generated project or original game assets.
     export_preset=(BASE_ANDROID_EXPORT
-         .replace("org.xziellabs.zombiesfpssafe","org.xziellabs.zombiesiw3v5")
-        .replace("ZOMBIES FPS LAB SAFE","ZOMBIES IW3 V5 REAL GUNS")
+         .replace("org.xziellabs.zombiesfpssafe","org.xziellabs.zombiesiw3v6")
+        .replace("ZOMBIES FPS LAB SAFE","ZOMBIES IW3 V6 REAL GUNS")
         .replace("ZOMBIES_FPS_LAB_SAFE_ARM64.apk","ZOMBIES_IW3_ORIGINAL_ARM64.apk")
-        .replace("version/code=1","version/code=5")
-        .replace('version/name="0.1.0-test"','version/name="0.5.0-hip-ads-depth-v5"'))
+        .replace("version/code=1","version/code=6")
+        .replace('version/name="0.1.0-test"','version/name="0.6.0-real-gun-sleeves-v6"'))
     (output/"export_presets.cfg").write_text(export_preset)
     (output/"build").mkdir(exist_ok=True)
     report={"offline_private_project":str(output.resolve()),
