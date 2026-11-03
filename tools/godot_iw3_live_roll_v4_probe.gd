@@ -61,19 +61,19 @@ func _run() -> void:
         var eye: Vector3=(game.controller.mount.hands_skeleton.global_transform *
             game.controller.mount.hands_skeleton.get_bone_global_pose(tag_camera_idx)).origin
         var eye_error: float=eye.distance_to(game.camera.global_position)
-        var pass: bool=ui_ok and absf(input_before-90.0)<0.1 and \
+        var valid: bool=ui_ok and absf(input_before-90.0)<0.1 and \
             beginning.get("ok",false) and after.get("ok",false) and roll_zero and \
             back_to_upright and eye_error<0.005 and \
             original_anchor.get("anchor_position_error",999.0)<0.0002 and \
             next_anchor.get("anchor_position_error",999.0)<0.0002
-        report["guns"][name]={"pass":pass,"ui_correct":ui_ok,"initial_roll":input_before,
+        report["guns"][name]={"pass":valid,"ui_correct":ui_ok,"initial_roll":input_before,
             "button_to_zero":roll_zero,"button_back_to_90":back_to_upright,
             "optical_landmark_before":beginning,"optical_landmark_after":after,
             "tag_camera_offset_m":snappedf(eye_error,0.000001),
             "gun_attachment_m":next_anchor.get("anchor_position_error",-1)}
-        if not pass:
+        if not valid:
             report["fails"].append(name)
-        count += int(pass)
+        count += int(valid)
     report["v4_real_gun_roll_gate"]=count==3
     var file: FileAccess=FileAccess.open("res://godot-live-roll-v4-gate.json",FileAccess.WRITE)
     if file == null:
