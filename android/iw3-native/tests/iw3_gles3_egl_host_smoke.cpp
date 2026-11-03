@@ -57,7 +57,7 @@ int main() {
         return 20;
     }
     rejectedError.clear();
-    if (R_AndroidLinkTranslatedIW3Program(vs, std::string("a\\0b", 3),
+    if (R_AndroidLinkTranslatedIW3Program(vs, std::string("a\0b", 3),
                                           &invalidProgram, &rejectedError) ||
         invalidProgram.handle != 0 ||
         rejectedError != "shader source contains embedded NUL") {
