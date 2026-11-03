@@ -100,6 +100,17 @@ bool R_AndroidLinkTranslatedIW3Program(const std::string &vertexGLSL,
     // vertex declaration. GLSL ES shaders without layout qualifiers would
     // otherwise receive driver-assigned locations and fail validation below.
     // Bind the semantic slots before linking (never after glLinkProgram).
+    // A context with fewer than two vertex attribute slots cannot preserve
+    // the original POSITION0/COLOR0 vertex declaration. Fail before linking.
+    GLint maxVertexAttribs = 0;
+    glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &maxVertexAttribs);
+    if (maxVertexAttribs < 2) {
+        if (error) *error = "GLES context exposes fewer than two vertex attributes";
+        glDetachShader(program, vs); glDetachShader(program, ps);
+        glDeleteShader(vs); glDeleteShader(ps);
+        glDeleteProgram(program);
+        return false;
+    }
     glBindAttribLocation(program, 0, "iw3_position_in0");
     glBindAttribLocation(program, 1, "iw3_vertex_color_in0");
     glLinkProgram(program);
