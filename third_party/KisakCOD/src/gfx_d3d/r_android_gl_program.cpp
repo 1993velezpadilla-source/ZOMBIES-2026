@@ -11,7 +11,7 @@ constexpr GLint kMaxGLLogBytes = 64 * 1024;
 GLsizei SafeLogCapacity(GLint reported) {
     return static_cast<GLsizei>(std::max<GLint>(1, std::min(reported, kMaxGLLogBytes)));
 }
-GLuint Compile(GLenum stage, const std::string &source, std::string *error) {
+bool ValidateSource(const std::string &source, std::string *error) {
     if (source.empty()) { if (error) *error = "empty shader source"; return 0; }
     // glShaderSource consumes a GLsizei count. Reject oversized source before
     // narrowing size_t to GLint, otherwise a wrapped negative length can
@@ -26,6 +26,9 @@ GLuint Compile(GLenum stage, const std::string &source, std::string *error) {
         if (error) *error = "shader source contains embedded NUL";
         return 0;
     }
+    return true;
+}
+GLuint Compile(GLenum stage, const std::string &source, std::string *error) {
     GLuint shader = glCreateShader(stage);
     if (!shader) { if (error) *error = "glCreateShader failed"; return 0; }
     const GLchar *text = source.c_str();
@@ -79,7 +82,7 @@ bool R_AndroidLinkTranslatedIW3Program(const std::string &vertexGLSL,
         if (error) *error = "OpenGL ES 3.0 or newer is required";
         return false;
     }
-    const GLuint vs = Compile(GL_VERTEX_SHADER, vertexGLSL, error);
+    // Validate both stages before creating any GPU objects. In particular, an\n    // invalid fragment source must not trigger vertex shader compilation.\n    if (!ValidateSource(vertexGLSL, error) || !ValidateSource(pixelGLSL, error))\n        return false;\n    const GLuint vs = Compile(GL_VERTEX_SHADER, vertexGLSL, error);
     if (!vs) return false;
     const GLuint ps = Compile(GL_FRAGMENT_SHADER, pixelGLSL, error);
     if (!ps) { glDeleteShader(vs); return false; }
