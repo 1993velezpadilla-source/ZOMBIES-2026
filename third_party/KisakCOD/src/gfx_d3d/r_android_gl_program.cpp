@@ -82,7 +82,11 @@ bool R_AndroidLinkTranslatedIW3Program(const std::string &vertexGLSL,
         if (error) *error = "OpenGL ES 3.0 or newer is required";
         return false;
     }
-    // Validate both stages before creating any GPU objects. In particular, an\n    // invalid fragment source must not trigger vertex shader compilation.\n    if (!ValidateSource(vertexGLSL, error) || !ValidateSource(pixelGLSL, error))\n        return false;\n    const GLuint vs = Compile(GL_VERTEX_SHADER, vertexGLSL, error);
+    // Validate both stages before creating any GPU objects. In particular, an
+    // invalid fragment source must not trigger vertex shader compilation.
+    if (!ValidateSource(vertexGLSL, error) || !ValidateSource(pixelGLSL, error))
+        return false;
+    const GLuint vs = Compile(GL_VERTEX_SHADER, vertexGLSL, error);
     if (!vs) return false;
     const GLuint ps = Compile(GL_FRAGMENT_SHADER, pixelGLSL, error);
     if (!ps) { glDeleteShader(vs); return false; }
