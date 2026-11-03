@@ -100,6 +100,9 @@ func _run() -> void:
             no_error=false
             continue
         stage.controller.set_process(false)
+        # Preserve previously broken original sleeves in the four-roll
+        # diagnostic frames for direct comparison with V6 cleaned capture.
+        stage._set_original_sleeves_visible(true)
         hands_inventory[gun_name]=_hands_surface_inventory(stage.controller.mount.hands_root)
         print("IW3_HANDS_ACTUAL_MESH_SURFACES: "+JSON.stringify({
             "gun":gun_name,"meshes":hands_inventory[gun_name]}))
@@ -121,7 +124,7 @@ func _run() -> void:
             reports.append(ads)
             if not ads["save_ok"]:
                 no_error=false
-        # V5: capture what the actual Android playable scene renders, not a
+        # V6: capture what the actual Android playable scene renders, not a
         # custom 4-angle reprobe that bypasses HIP calibration. These two
         # frames make any hand/receiver camera clipping plain to inspect.
         if not stage.equip(weapon_i):
@@ -129,7 +132,7 @@ func _run() -> void:
             continue
         stage.controller.set_process(false)
         await process_frame
-        var v5_hip: Dictionary=await _snapshot(stage,gun_name+"_v5",90.0,"hip")
+        var v5_hip: Dictionary=await _snapshot(stage,gun_name+"_v6",90.0,"hip")
         reports.append(v5_hip)
         if not v5_hip["save_ok"]:
             no_error=false
@@ -137,7 +140,7 @@ func _run() -> void:
             no_error=false
         for _frame in range(25):
             stage.controller.tick(1.0/60.0)
-        var v5_ads: Dictionary=await _snapshot(stage,gun_name+"_v5",90.0,"ads")
+        var v5_ads: Dictionary=await _snapshot(stage,gun_name+"_v6",90.0,"ads")
         reports.append(v5_ads)
         if not v5_ads["save_ok"]:
             no_error=false
