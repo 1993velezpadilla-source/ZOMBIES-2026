@@ -129,16 +129,19 @@ func _run() -> void:
         for roll in ROLLS:
             shots.append(await _test_roll(stage,roll))
         report["geometry_candidates"][GUNS[i]]=shots
-        print("IW3_REAL_GEOMETRY_AXIS_SWEEP: "+JSON.stringify({
-            "weapon":GUNS[i],
-            "candidates":shots.map(func(row:Dictionary)->Dictionary:
-                return {"roll":row["roll_degrees"],
-                    "sight":row["tags"].get("weapon_tag_iron_sight",
-                        row["tags"].get("weapon_tag_reflex_sight",{})).get("screen_uv",null),
-                    "flash":row["tags"].get("weapon_tag_flash",{}).get("screen_uv",null),
-                    "front_forward":row.get("front_farther_into_screen_than_sight",false),
-                    "gun_camera_intersections":row["gun_mesh_aabb"]["corners_behind_or_inside_camera"],
-                    "hands_camera_intersections":row["hands_mesh_aabb"]["corners_behind_or_inside_camera"]}))
+        var condensed: Array[Dictionary] = []
+        for row in shots:
+            var sight: Dictionary = row["tags"].get("weapon_tag_iron_sight",
+                row["tags"].get("weapon_tag_reflex_sight", {}))
+            var flash: Dictionary = row["tags"].get("weapon_tag_flash", {})
+            condensed.append({"roll":row["roll_degrees"],
+                "sight":sight.get("screen_uv",null),
+                "flash":flash.get("screen_uv",null),
+                "front_forward":row.get("front_farther_into_screen_than_sight",false),
+                "gun_camera_intersections":row["gun_mesh_aabb"]["corners_behind_or_inside_camera"],
+                "hands_camera_intersections":row["hands_mesh_aabb"]["corners_behind_or_inside_camera"]})
+        print("IW3_REAL_GEOMETRY_AXIS_SWEEP: " +
+            JSON.stringify({"weapon":GUNS[i], "candidates":condensed}))
     var file: FileAccess=FileAccess.open("res://godot-geometry-axis-sweep.json",FileAccess.WRITE)
     if file==null:
         printerr("Axis sweep report cannot be written")
