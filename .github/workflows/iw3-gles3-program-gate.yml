@@ -6,6 +6,12 @@ on:
     paths:
       - 'third_party/KisakCOD/src/gfx_d3d/r_android_gl_program.*'
       - '.github/workflows/iw3-gles3-program-gate.yml'
+  pull_request:
+    branches:
+      - feature/zombies-offline-sp-weapons-20261024
+    paths:
+      - 'third_party/KisakCOD/src/gfx_d3d/r_android_gl_program.*'
+      - '.github/workflows/iw3-gles3-program-gate.yml'
   workflow_dispatch:
 jobs:
   host-gles3-syntax:
