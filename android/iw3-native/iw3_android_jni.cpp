@@ -6,6 +6,7 @@
 
 #include <jni.h>
 #include <android/log.h>
+#include <android/native_window_jni.h>
 #include <cstdio>
 #include <atomic>
 #include <mutex>
@@ -39,6 +40,8 @@ constexpr int kAndroidPointerIdCount = 32;
 // Imported-IWD validation mutates original FS globals and file handles. Serialize
 // it with the startup diagnostic until a real engine-owned FS thread exists.
 std::mutex g_engine_diagnostic_mutex;
+std::mutex g_surface_mutex;
+ANativeWindow *g_surface_window = nullptr;
 }
 
 #define IW3_JNI_EXPORT extern "C" JNIEXPORT
@@ -342,4 +345,40 @@ IW3_JNI_EXPORT jint JNICALL
 Java_org_z2026_iw3nativeprobe_EngineBridge_nativeLifecycleState(
         JNIEnv *, jclass) {
     return g_lifecycle_state.load(std::memory_order_acquire);
+}
+
+// Android surface ownership boundary. The genuine IW3 renderer must consume
+// this window on its future dedicated graphics thread; this does NOT draw.
+IW3_JNI_EXPORT jint JNICALL
+Java_org_z2026_iw3nativeprobe_EngineBridge_nativeSurfaceAttach(
+        JNIEnv *env, jclass, jobject surface) {
+    if (!surface) return -1;
+    ANativeWindow *incoming = ANativeWindow_fromSurface(env, surface);
+    if (!incoming) return -1;
+    std::lock_guard<std::mutex> lock(g_surface_mutex);
+    if (g_surface_window) ANativeWindow_release(g_surface_window);
+    g_surface_window = incoming;
+    __android_log_print(ANDROID_LOG_INFO, "IW3NativeGate",
+                        "IW3_NATIVE_WINDOW_ATTACHED_NOT_RENDERING width=%d height=%d",
+                        ANativeWindow_getWidth(incoming), ANativeWindow_getHeight(incoming));
+    return 0;
+}
+
+IW3_JNI_EXPORT void JNICALL
+Java_org_z2026_iw3nativeprobe_EngineBridge_nativeSurfaceDetach(
+        JNIEnv *, jclass) {
+    std::lock_guard<std::mutex> lock(g_surface_mutex);
+    if (g_surface_window) {
+        ANativeWindow_release(g_surface_window);
+        g_surface_window = nullptr;
+    }
+    __android_log_print(ANDROID_LOG_INFO, "IW3NativeGate",
+                        "IW3_NATIVE_WINDOW_DETACHED_NOT_RENDERING");
+}
+
+IW3_JNI_EXPORT jint JNICALL
+Java_org_z2026_iw3nativeprobe_EngineBridge_nativeSurfaceWidth(
+        JNIEnv *, jclass) {
+    std::lock_guard<std::mutex> lock(g_surface_mutex);
+    return g_surface_window ? ANativeWindow_getWidth(g_surface_window) : -1;
 }
