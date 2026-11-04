@@ -90,7 +90,8 @@ public final class MainActivity extends Activity {
         nativeSurface.setContentDescription("IW3 renderer surface (not connected)");
         nativeSurface.getHolder().addCallback(new SurfaceHolder.Callback() {
             @Override public void surfaceCreated(SurfaceHolder holder) {
-                Log.i(TAG, "IW3_ANDROID_SURFACE_CREATED_NOT_RENDERING");
+                int rc = EngineBridge.nativeSurfaceAttach(holder.getSurface());
+                Log.i(TAG, "IW3_ANDROID_SURFACE_CREATED_NOT_RENDERING nativeWindowRc=" + rc);
             }
             @Override public void surfaceChanged(SurfaceHolder holder, int format,
                                                   int width, int height) {
@@ -98,6 +99,7 @@ public final class MainActivity extends Activity {
                         + " height=" + height + " format=" + format + " NOT_RENDERING");
             }
             @Override public void surfaceDestroyed(SurfaceHolder holder) {
+                EngineBridge.nativeSurfaceDetach();
                 Log.i(TAG, "IW3_ANDROID_SURFACE_DESTROYED_NOT_RENDERING");
             }
         });
