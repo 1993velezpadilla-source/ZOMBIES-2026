@@ -104,6 +104,7 @@ static EGLDisplay currentDisplay=EGL_NO_DISPLAY;
 static int surfaceWidth=1080, surfaceHeight=2400;
 static EGLContext currentContext=EGL_NO_CONTEXT;
 static EGLSurface currentSurface=EGL_NO_SURFACE;
+static EGLSurface forcedReadSurface=EGL_NO_SURFACE;
 static EGLDisplay goodDisplay=reinterpret_cast<void *>(0x10);
 static EGLSurface goodSurface=reinterpret_cast<void *>(0x20);
 static EGLSurface replacementSurface=reinterpret_cast<void *>(0x21);
@@ -174,7 +175,9 @@ EGLBoolean eglQuerySurface(EGLDisplay, EGLSurface surf, EGLint what, EGLint *out
 EGLDisplay eglGetCurrentDisplay() { return currentDisplay; }
 EGLContext eglGetCurrentContext() { return currentContext; }
 EGLSurface eglGetCurrentSurface(EGLint which) {
-    assert(which==EGL_DRAW || which==EGL_READ); return currentSurface;
+    assert(which==EGL_DRAW || which==EGL_READ);
+    return which==EGL_READ && forcedReadSurface!=EGL_NO_SURFACE
+        ? forcedReadSurface : currentSurface;
 }
 EGLBoolean eglSwapBuffers(EGLDisplay, EGLSurface) { ++swapCalls; return failAt==10 ? EGL_FALSE : EGL_TRUE; }
 EGLBoolean eglDestroyContext(EGLDisplay, EGLContext) { ++destroyedContexts; return failAt==21 ? EGL_FALSE : EGL_TRUE; }
@@ -212,6 +215,13 @@ int main() {
     assert(!R_AndroidEglCreate(&ctx, &window)); // no overwrite/leak
     assert(R_AndroidEglPresent(&ctx));
     assert(swapCalls==1);
+    // A mismatched READ binding is not a valid IW3 render-thread pair.
+    forcedReadSurface=reinterpret_cast<void *>(0x77);
+    assert(!R_AndroidEglPresent(&ctx));
+    assert(swapCalls==1);
+    forcedReadSurface=EGL_NO_SURFACE;
+    assert(R_AndroidEglPresent(&ctx));
+    assert(swapCalls==2);
     currentContext=EGL_NO_CONTEXT;
     assert(!R_AndroidEglPresent(&ctx)); // wrong thread/current context
     currentContext=goodContext;
