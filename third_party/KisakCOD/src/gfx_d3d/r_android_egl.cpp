@@ -42,6 +42,17 @@ bool R_AndroidEglDestroy(IW3AndroidEglContext *state)
     // EGL resources and original IW3 GLsync belong to the render thread.
     if (state->ownerThreadValid && !R_AndroidEglIsOwnerThread(state))
         return false;
+    // The fence bridge deletes genuine IW3 GLsync objects. A different EGL
+    // context may be current on this thread after an external rebind; never
+    // delete our sync objects in that context or discard their ownership.
+    // Detached windows have already released the bridge and may have no
+    // current context, so this guard applies only while the bridge is bound.
+    if (state->gpuFenceBound
+        && (eglGetCurrentDisplay() != state->display
+            || eglGetCurrentContext() != state->context
+            || eglGetCurrentSurface(EGL_DRAW) != state->surface
+            || eglGetCurrentSurface(EGL_READ) != state->surface))
+        return false;
     if (!R_AndroidEglReleaseOriginalFence(state))
         return false;
 
