@@ -138,11 +138,14 @@ adb shell input touchscreen swipe "$attack_x" "$attack_y" "$attack_x" "$attack_y
 sleep 1
 adb logcat -d -s IW3NativeGate:I AndroidRuntime:E DEBUG:E '*:S' \
     > "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
-grep -F 'IW3_JNI_USERCMD attack=1' "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
-grep -E 'IW3_JNI_USERCMD attack=0 buttons=2 ' "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
-echo 'IW3_JNI_SPRINT_USERCMD_PASS'
-grep -E 'IW3_JNI_USERCMD attack=0 buttons=514 ' "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
-echo 'IW3_JNI_SLIDE_CHORD_USERCMD_PASS'
+# Confirm real ADB gestures reached JNI without consuming pending usercmd
+# from the Activity. Only the authentic client frame should consume it.
+grep -F 'IW3_JNI_TOUCH id=' "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"
+if grep -F 'IW3_JNI_USERCMD attack=' "$RUNNER_TEMP/iw3-emulator-native-logcat.txt"; then
+    echo 'Diagnostic Activity unexpectedly consumed usercmd on touch' >&2
+    exit 1
+fi
+echo 'IW3_JNI_TOUCH_WITHOUT_PREMATURE_USERCMD_CONSUMPTION_PASS'
 adb exec-out screencap -p > "$proof_dir/screen-after-touch.png"
 adb shell input keyevent KEYCODE_HOME
 sleep 2
