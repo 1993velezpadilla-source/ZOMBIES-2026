@@ -1,0 +1,97 @@
+name: Real COD4 MP5 and original hands Blender hipfire ADS screenshots
+on:
+  push:
+    branches:
+      - art/iw3-cod4-blender-viewmodel-proof-20261104
+    paths:
+      - '.github/workflows/iw3-blender-mp5-source-screenshots.yml'
+      - 'tools/blender_iw3_cod4_fps.py'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  source-frames:
+    runs-on: ubuntu-latest
+    timeout-minutes: 115
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Install genuine asset extraction and Blender prerequisites
+        shell: bash
+        run: |
+          set -euxo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends libc6-i386 lib32stdc++6 xvfb libgl1-mesa-dri libglx-mesa0 blender python3-numpy
+          mkdir -p _oat
+          curl -fL --retry 3 https://github.com/Laupetin/OpenAssetTools/releases/download/v0.34.0/oat-linux.tar.gz -o /tmp/oat-linux.tar.gz
+          tar -xzf /tmp/oat-linux.tar.gz -C _oat
+          BIN=$(find _oat -type f -name Unlinker -print -quit)
+          chmod +x "$BIN" _oat/ImageConverter
+          "$BIN" --version
+          echo "UNLINKER=$PWD/$BIN" >> "$GITHUB_ENV"
+          blender --version | head -2
+      - name: Privately reconstruct source from user's original COD4 release (do not publish game archive)
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p _release_assets/c4
+          gh release download gofile-p2DdQHsz --repo "$GITHUB_REPOSITORY" --pattern 'C4-Mocs.zip.part-*' --dir _release_assets/c4
+          check=$(cat _release_assets/c4/C4-Mocs.zip.part-* | sha256sum | cut -d' ' -f1)
+          test "$check" = '6787f2082b39ee76445db7fca92892256bfb97e62bbdebfe63f6ee11de6a8d99'
+          python3 tools/iw3_weapon_probe.py prepare --with-iwds
+      - name: Export original COD4 MP5 and skeleton animations to private GLBs
+        shell: bash
+        run: |
+          set -euxo pipefail
+          python3 tools/iw3_weapon_probe.py probe --unlinker "$UNLINKER"
+          python3 tools/iw3_build_animated_previews.py _iw3_private/dumps _iw3_private/animated_preview _iw3_reports/animated-glb-gate.json
+          test -s _iw3_private/animated_preview/mp5_animated_experimental.glb
+          test -s _iw3_private/animated_preview/mp5_hands_animated_experimental.glb
+      - name: Restore COD4 weapon textures without uploading assets
+        shell: bash
+        run: |
+          set -euxo pipefail
+          python3 tools/iw3_stage_weapon_textures.py _iw3_private "$PWD/_oat/ImageConverter" _iw3_reports/texture-gate.json
+          rm -rf _release_assets
+          python3 -m pip install --disable-pip-version-check --quiet --target _iw3_private/python_deps Pillow==12.0.0
+          PYTHONPATH="$PWD/_iw3_private/python_deps" python3 tools/iw3_png_materials.py _iw3_private/godot_sandbox/images _iw3_private/animated_preview _iw3_reports/png-materials.json
+      - name: Produce two REAL Blender renders using original COD4 MP5 plus hands
+        shell: bash
+        run: |
+          set -euxo pipefail
+          xvfb-run -a -s '-screen 0 1280x720x24' blender -b -t 2 --python tools/blender_iw3_cod4_fps.py 2>&1 | tee _iw3_reports/blender-mp5.log
+          grep -q 'COD4_MP5_REAL_BLENDER_SCREENSHOTS_GREEN' _iw3_reports/blender-mp5.log
+          test -s _iw3_private/blender_proof/COD4_MP5_HIPFIRE_BLENDER.png
+          test -s _iw3_private/blender_proof/COD4_MP5_ADS_BLENDER.png
+      - name: Commit ONLY reference screenshots, never original COD4 binaries
+        if: success()
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p docs/blender-cod4-mp5
+          cp _iw3_private/blender_proof/*.png docs/blender-cod4-mp5/
+          cp _iw3_private/blender_proof/audit.json docs/blender-cod4-mp5/audit.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/blender-cod4-mp5
+          if ! git diff --cached --quiet; then
+            git commit -m 'Add Blender screenshot evidence: real COD4 MP5 hipfire and ADS'
+            git push
+          fi
+      - name: Upload only PNG and JSON proof, no original game assets
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: IW3_COD4_MP5_REAL_BLENDER_2_SCREENSHOTS
+          path: |
+            _iw3_private/blender_proof/*.png
+            _iw3_private/blender_proof/audit.json
+            _iw3_reports/blender-mp5.log
+          retention-days: 3
+          if-no-files-found: warn
+      - name: Destroy proprietary source and original mesh after screenshot-only artifact
+        if: always()
+        run: rm -rf _release_assets _iw3_private _oat
