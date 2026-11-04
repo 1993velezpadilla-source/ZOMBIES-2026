@@ -241,6 +241,16 @@ int main() {
     assert(acquired==1 && released==0 && destroyedContexts==0
            && destroyedSurfaces==0 && terminated==0);
     assert(ctx.ownerThreadValid && ctx.window==&window);
+    // Never delete original IW3 GLsync while a foreign EGL context or READ
+    // drawable is current. Failed teardown must retain every owned handle.
+    currentContext=reinterpret_cast<void *>(0x88);
+    assert(!R_AndroidEglDestroy(&ctx));
+    assert(fenceDeleted==0 && ctx.gpuFenceBound && ctx.context==goodContext);
+    currentContext=goodContext;
+    forcedReadSurface=reinterpret_cast<void *>(0x77);
+    assert(!R_AndroidEglDestroy(&ctx));
+    assert(fenceDeleted==0 && ctx.window==&window && ctx.gpuFenceBound);
+    forcedReadSurface=EGL_NO_SURFACE;
     assert(R_AndroidEglDestroy(&ctx));
     assert(fenceDeleted==1 && !ctx.gpuFenceBound);
     assert(acquired==released && destroyedContexts==1 && destroyedSurfaces==1 && terminated==1);
