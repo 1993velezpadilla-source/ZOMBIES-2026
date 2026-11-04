@@ -5,14 +5,16 @@
   "modes": {
     "HIPFIRE": {
       "original_action": "idle",
-      "centimeter_scale_applied": true
+      "preview_yaw_deg": 100
     },
     "ADS": {
+      "original_action": "ads",
+      "preview_yaw_deg": 90,
       "original_sight_tag": "tag_iron_sight",
       "measured_sight_xyz": [
-        0.11677970737218857,
-        -0.03578338027000427,
-        -0.026924867182970047
+        0.035783372819423676,
+        0.7967796921730042,
+        -0.06192487105727196
       ]
     }
   },
