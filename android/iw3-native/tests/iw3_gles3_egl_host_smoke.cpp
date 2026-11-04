@@ -151,8 +151,23 @@ int main() {
         R_AndroidDeleteTranslatedIW3Program(&program);
         return 18;
     }
+    // Simulate Android Surface pause: deleting without a current EGL context
+    // must preserve the real GPU handle for cleanup after context recovery.
+    if (!eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT))
+        return 27;
     R_AndroidDeleteTranslatedIW3Program(&program);
-    if (program.handle) return 17;
+    if (program.handle != originalHandle) {
+        std::fputs("GLES3 context-loss cleanup discarded owned program\\n", stderr);
+        return 28;
+    }
+    if (!eglMakeCurrent(display, surface, surface, context))
+        return 29;
+    if (!glIsProgram(originalHandle)) {
+        std::fputs("GLES3 context recovery lost original program\\n", stderr);
+        return 30;
+    }
+    R_AndroidDeleteTranslatedIW3Program(&program);
+    if (program.handle || glIsProgram(originalHandle)) return 17;
     eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
     eglDestroyContext(display, context);
     eglDestroySurface(display, surface);
