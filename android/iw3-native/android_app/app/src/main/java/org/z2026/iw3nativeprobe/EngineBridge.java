@@ -33,4 +33,5 @@ public final class EngineBridge {
     public static native int nativeSurfaceAttach(android.view.Surface surface);
     public static native void nativeSurfaceDetach();
     public static native int nativeSurfaceWidth();
+    public static native int nativeSurfaceHeight();
 }
