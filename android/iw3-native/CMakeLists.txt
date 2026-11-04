@@ -982,7 +982,7 @@ if(ANDROID)
     # IW3 native C++ library; not a gameplay stand-in or second engine.
     target_sources(iw3_sp_math PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/iw3_android_jni.cpp")
-    target_link_libraries(iw3_sp_math PRIVATE log)
+    target_link_libraries(iw3_sp_math PRIVATE log android)
     if(ANDROID_ABI STREQUAL "arm64-v8a")
         message(STATUS "IW3 original source -> Android ARM64 shared library")
     elseif(ANDROID_ABI STREQUAL "x86_64" AND IW3_EMULATOR_DIAGNOSTIC_ONLY)
