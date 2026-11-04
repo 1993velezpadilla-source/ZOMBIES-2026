@@ -53,9 +53,11 @@ def setaction(objects,term):
         print("ACTION_UNAVAILABLE",term,[a.name for a in acts]);return False
     for o in objects:
         if o.type=="ARMATURE":
+            matching=[a for a in options if o.name.lower() in a.name.lower()]
+            action=matching[0] if matching else options[0]
             o.animation_data_create()
-            o.animation_data.action=options[0]
-            print("ACTION_APPLIED",o.name,options[0].name)
+            o.animation_data.action=action
+            print("ACTION_APPLIED",o.name,action.name)
     return True
 
 def bone_world(arm,name):
@@ -86,7 +88,7 @@ camera=bpy.data.objects.new("COD4 FPS reference",camera_data);scene.collection.o
 scene.camera=camera
 camera.location=(0,0,0)
 camera.rotation_euler=Vector((0,1,0)).to_track_quat("-Z","Y").to_euler()
-camera_data.lens=25
+camera_data.lens=27
 camera_data.clip_start=.005
 # Camera-only calibration based on true tags and viewmodel bounds. Do not invent source meshes.
 summary={"model":"COD4 MP5", "source":"privately extracted user-owned IW3 game data", "hands":"COD4 viewmodel_base_viewhands", "modes":{}, "original_animations":[]}
@@ -100,26 +102,34 @@ for mode in ["HIPFIRE","ADS"]:
     mounter()
     vmin,vmax=scene_bounds(mesh_gun+mesh_hand)
     print("IW3_SOURCE_BOUNDS",mode,vmin,vmax)
-    # Align ADS using the weapon's source-authored iron-sight tag, without estimating offsets.
-    if mode=="ADS":
-        sight=bone_world(gunarm,"tag_iron_sight")
-        if sight:
-            point=sight.translation
-            righ.location+=Vector((-point.x,0.65-point.y,-point.z))
-            bpy.context.view_layer.update()
-            mounter()
-            summary["modes"][mode]={"original_sight_tag":"tag_iron_sight","measured_sight_xyz":list(point)}
-        else: summary["modes"][mode]={"original_sight_tag":"MISSING"}
-    else:
-        # Native weapon low-right first-person position comes from original XANIM rig.
-        summary["modes"][mode]={"original_action":"idle"}
-    # Imported COD4 viewmodel mesh may be centimeters. Confirm scale by bounds.
+    # Original XMODEL and XANIM units are centimeters: normalize one time
+    # and preserve the matching original rig and weapon proportions.
     size=max(vmax[i]-vmin[i] for i in range(3))
     if size>6:
         righ.scale=(.01,)*3
-        bpy.context.view_layer.update()
-        mounter()
-        summary["modes"][mode]["centimeter_scale_applied"]=True
+    if mode=="HIPFIRE":
+        # 3D presentation camera: convert original +X barrel axis to +Y forward.
+        righ.rotation_euler=(0,0,__import__('math').radians(100))
+        righ.location=(.16,.68,-.15)
+        summary["modes"][mode]={"original_action":"idle","preview_yaw_deg":100}
+    else:
+        righ.rotation_euler=(0,0,__import__('math').radians(90))
+        righ.location=(0,.68,-.035)
+        summary["modes"][mode]={"original_action":"ads","preview_yaw_deg":90}
+    bpy.context.view_layer.update()
+    mounter()
+    if mode=="ADS":
+        sight=bone_world(gunarm,"tag_iron_sight")
+        if sight:
+            pos=sight.translation
+            # Sight center from REAL source-authored tag, not guessed eye offsets.
+            righ.location+=Vector((-pos.x,.65-pos.y,-pos.z))
+            bpy.context.view_layer.update()
+            mounter()
+            summary["modes"][mode]["original_sight_tag"]="tag_iron_sight"
+            summary["modes"][mode]["measured_sight_xyz"]=list(pos)
+        else:
+            summary["modes"][mode]["original_sight_tag"]="MISSING"
     scene.render.filepath=str(out/f"COD4_MP5_{mode}_BLENDER.png")
     bpy.ops.render.render(write_still=True)
     print("REAL_IW3_BLENDER_RENDER",mode,scene.render.filepath,os.path.getsize(scene.render.filepath))
