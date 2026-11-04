@@ -8,6 +8,21 @@
 #include <cstddef>
 #include <string>
 int main() {
+    // The Android bootstrap must make EGL current before asking the genuine
+    // IW3 shader provider to allocate GPU resources. Verify the missing-
+    // context path explicitly, not just successful host rendering.
+    IW3AndroidGLProgram noContextProgram{};
+    std::string noContextError;
+    if (R_AndroidLinkTranslatedIW3Program(
+            "#version 300 es\\nvoid main(){gl_Position=vec4(0.0);}",
+            "#version 300 es\\nprecision mediump float; out vec4 c; void main(){c=vec4(1.0);}",
+            &noContextProgram, &noContextError) ||
+        noContextProgram.handle != 0 ||
+        noContextError != "no current OpenGL ES context") {
+        std::fprintf(stderr, "GLES3 missing-context regression: %s\\n",
+                     noContextError.c_str());
+        return 23;
+    }
     auto getPlatform = reinterpret_cast<PFNEGLGETPLATFORMDISPLAYEXTPROC>(
         eglGetProcAddress("eglGetPlatformDisplayEXT"));
     if (!getPlatform) return 10;
