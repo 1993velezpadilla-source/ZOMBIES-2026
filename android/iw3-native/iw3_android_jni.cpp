@@ -382,3 +382,14 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeSurfaceWidth(
     std::lock_guard<std::mutex> lock(g_surface_mutex);
     return g_surface_window ? ANativeWindow_getWidth(g_surface_window) : -1;
 }
+
+
+// EGL integration prerequisite: expose the native window's current height,
+// not the Java layout's requested height. A SurfaceView can be resized by
+// Android independently of its containing View.
+IW3_JNI_EXPORT jint JNICALL
+Java_org_z2026_iw3nativeprobe_EngineBridge_nativeSurfaceHeight(
+        JNIEnv *, jclass) {
+    std::lock_guard<std::mutex> lock(g_surface_mutex);
+    return g_surface_window ? ANativeWindow_getHeight(g_surface_window) : -1;
+}
