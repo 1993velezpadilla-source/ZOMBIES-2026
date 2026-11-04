@@ -217,6 +217,8 @@ int main() {
     assert(swapCalls==1);
     // A mismatched READ binding is not a valid IW3 render-thread pair.
     forcedReadSurface=reinterpret_cast<void *>(0x77);
+    assert(!R_AndroidEglRefreshSize(&ctx));
+    assert(ctx.width==2400 && ctx.height==1080); // preserve viewport on invalid READ
     assert(!R_AndroidEglPresent(&ctx));
     assert(swapCalls==1);
     forcedReadSurface=EGL_NO_SURFACE;
