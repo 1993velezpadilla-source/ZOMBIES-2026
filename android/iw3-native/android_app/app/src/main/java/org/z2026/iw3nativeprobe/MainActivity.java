@@ -274,7 +274,9 @@ public final class MainActivity extends Activity {
         int state = EngineBridge.nativeTouchSnapshot(id, observed);
         Log.i(TAG, "IW3_JNI_TOUCH id=" + id + " pressed=" + state
                 + " coords=" + observed[0] + "," + observed[1]);
-        // Do not consume pending look deltas here: only the original client frame\n        // may build a gameplay usercmd. This Activity remains diagnostic.\n
+        // Do not consume pending look deltas here: only the original client frame
+        // may build a gameplay usercmd. This Activity remains diagnostic.
+
     }
 
     @Override public boolean onTouchEvent(MotionEvent event) {
