@@ -57,3 +57,14 @@ Capturas **del APK Android con las armas reales** confirman que el programa abre
 En `tools/iw3_fps_playground.gd` se introdujo una corrección de orientación en el **nodo común que contiene manos y arma**, no sobre la malla del arma. El sistema mantiene el eje original +X de IW3 como forward y aplica una rotación de -90° alrededor de ese eje antes de proyectarse en la cámara FPS. Matemáticamente, `Basis(Vector3.RIGHT,-PI/2) * Vector3.BACK` da `Vector3.UP`: la parte superior queda a las **12 en punto**, sin mover ni romper el `tag_weapon` entre arma/manos. Se utiliza el mismo cálculo para los tres modelos; no se adivinan tres offsets diferentes.
 
 `tools/godot_iw3_roll_orientation_probe.gd` comprueba con GLB auténticos que +X source sigue al frente de la cámara y que source +Z queda alineado con screen-up tanto en idle como ADS, fire y reload, con error cero en el attachment. **El pase matemático no sustituye el test de orientación visual y tamaño real en el Pixel Fold.** La rotación puede revelar problemas adicionales en el rest-pose / retargeting XANIM y calibración del ADS; esos deben corregirse independientemente.
+
+
+## V7: HIP/ADS en directo sobre el arma auténtica (4 noviembre de 2026)
+
+La V6 dejó de ocultar la óptica detrás de la manga, pero aún **no está validada la imagen en Pixel Fold**. Por eso la V7 permite corregir el encuadre sobre el dispositivo sin recompilar una APK por cada offset. No utiliza armas de mentira ni sustituye las animaciones importadas.
+
+La segunda fila de botones en la esquina superior derecha contiene **HIP X / HIP Y / HIP DEPTH / ADS DEPTH**, un selector que avanza de parámetro al tocar el nombre, controles **−**/**+**, y **SAVE**/**RESET**. Los valores de fábrica siguen siendo HIP (X=0.12 m, Y=−0.12 m, profundidad 0.55 m) y ADS con mira a 0.60 m. Hay límites finitos de seguridad para no colocar el marcador dentro de la cámara. Cada M4, AK-47 y MP5 conserva su propio perfil; SAVE escribe solo valores numéricos locales en \`user://iw3_private_viewmodel_v7.cfg\`; RESET restaura los valores originales del arma actual sin guardarlos.
+
+Cambiar HIP durante ADS conserva el estado y la transición de apuntado; los ajustes mueven conjuntamente manos y arma, preservando el anclaje \`tag_weapon\`. El HUD identifica **IW3 V7 ORIGINAL GUNS**, y el instalador privado usa un ID Android distinto (\`org.xziellabs.zombiesiw3v7\`) para distinguir versiones y evitar atribuir capturas de V3/V6 a V7.
+
+El gate de CI ejercita con las **tres escenas GLB auténticas** la pulsación lógica de + y − para HIP X y exige el retorno a la posición previa. **Una validación numérica o APK compilada NO demuestran que las miras, guantes, recargas o rendimiento sean correctos en el Pixel Fold.** Se necesitan capturas de V7 con versión visible y evaluación en dispositivo. No publicar el paquete propietario.
