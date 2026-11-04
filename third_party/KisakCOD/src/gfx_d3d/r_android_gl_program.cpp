@@ -141,6 +141,12 @@ bool R_AndroidLinkTranslatedIW3Program(const std::string &vertexGLSL,
 }
 void R_AndroidDeleteTranslatedIW3Program(IW3AndroidGLProgram *program) {
     if (!program) return;
+    // Android can detach EGL during Activity pause. Without a current
+    // context glDeleteProgram cannot release the object; clearing the handle
+    // would permanently lose ownership and leak the original IW3 GPU resource.
+    // Retain it for deletion after the render thread restores its context.
+    if (program->handle && !glGetString(GL_VERSION))
+        return;
     if (program->handle) glDeleteProgram(program->handle);
     *program = {};
 }
