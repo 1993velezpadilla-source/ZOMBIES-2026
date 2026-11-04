@@ -44,9 +44,17 @@ func _run() -> void:
         var message: String=game.message_label.text
         var controls: HBoxContainer=game.orientation_controls
         var ui_ok: bool=controls!=null and controls.get_child_count()==3 and \
-            message.contains("IW3 V6 ORIGINAL GUNS") and message.contains("90")
+            message.contains("IW3 V7 ORIGINAL GUNS") and message.contains("90")
         var original_sleeves_clean: bool=game.sleeve_meshes.size()==1 and \
             not game.sleeve_meshes[0].visible
+        # V7: change camera-space HIP X and move it back in ONE build.
+        var calibration_present: bool=game.calibration_controls != null and game.calibration_controls.get_child_count()==5
+        var default_hip: Vector3=game.current_hip_camera_target()
+        var increased: bool=game.adjust_current_calibration(1.0)
+        var nudged_hip: Vector3=game.current_hip_camera_target()
+        var decreased: bool=game.adjust_current_calibration(-1.0)
+        var restored_hip: Vector3=game.current_hip_camera_target()
+        var calibration_roundtrip: bool=increased and decreased and absf(nudged_hip.x-default_hip.x-0.025)<0.001 and restored_hip.distance_to(default_hip)<0.001
         var beginning: Dictionary=_real_sight_to_mag(game)
         var original_anchor: Dictionary=game.controller.mount.anchor_error()
         var input_before: float=game.viewmodel_roll_degrees
@@ -83,13 +91,15 @@ func _run() -> void:
             ads_local.distance_to(Vector3(0.0,0.0,-0.60))<0.005 and \
             game.controller.ads_blend>0.99 and \
             game.controller.failed_alignment_frames==0
-        var valid: bool=ui_ok and original_sleeves_clean and absf(input_before-90.0)<0.1 and \
+        var valid: bool=ui_ok and original_sleeves_clean and calibration_present and calibration_roundtrip and absf(input_before-90.0)<0.1 and \
             beginning.get("ok",false) and after.get("ok",false) and roll_zero and \
             back_to_upright and hip_ok and ads_ok and \
             original_anchor.get("anchor_position_error",999.0)<0.0002 and \
             next_anchor.get("anchor_position_error",999.0)<0.0002
         report["guns"][name]={"pass":valid,"ui_correct":ui_ok,
             "sleeves_hidden_without_hiding_original_gloves":original_sleeves_clean,
+            "v7_calibration_controls_present":calibration_present,
+            "v7_hip_camera_increment_and_return":calibration_roundtrip,
             "initial_roll":input_before,
             "button_to_zero":roll_zero,"button_back_to_90":back_to_upright,
             "optical_landmark_before":beginning,"optical_landmark_after":after,
@@ -108,7 +118,7 @@ func _run() -> void:
         return
     file.store_string(JSON.stringify(report))
     file.close()
-    print("IW3_REAL_ANDROID_HIP_ADS_DEPTH_V6_GATE: "+
+    print("IW3_REAL_ANDROID_HIP_ADS_DEPTH_V7_GATE: "+
         JSON.stringify({"passed":count,"guns":3,
             "real_optic_above_mag_and_ads_safe_depth_proven":count==3,"user_visual_test_outstanding":true}))
     game.queue_free()
