@@ -53,15 +53,18 @@ class OriginalClientInputAbiTests(unittest.TestCase):
         self.assertEqual(positions, sorted(positions))
         self.assertIn("#if defined(__ANDROID__)", body)
 
-    def test_emulator_probe_observes_usercmd_snapshot_from_jni_touch(self):
+    def test_touch_does_not_consume_usercmd_and_snapshot_is_explicit(self):
         jni = (ROOT / "android/iw3-native/iw3_android_jni.cpp").read_text(encoding="utf-8")
         probe = (ROOT / "tools/iw3_android/run_emulator_probe.sh").read_text(encoding="utf-8")
         self.assertIn('#include "iw3_android_usercmd_compat.h"', jni)
-        self.assertIn("z2026_platform_usercmd_snapshot(0, fields, 10)", jni)
-        self.assertIn('"IW3_JNI_USERCMD attack=%d buttons=%d touch_result=%d"', jni)
-        self.assertIn("grep -F 'IW3_JNI_USERCMD attack=1'", probe)
-        self.assertIn("grep -E 'IW3_JNI_USERCMD attack=0 buttons=2 '", probe)
-        self.assertIn("grep -E 'IW3_JNI_USERCMD attack=0 buttons=514 '", probe)
+        self.assertIn("z2026_platform_usercmd_snapshot(serverTime, fields, 10)", jni)
+        touch = function_body(jni, "Java_org_z2026_iw3nativeprobe_EngineBridge_nativeTouch(")
+        self.assertIn("z2026_platform_touch_event(", touch)
+        self.assertNotIn("z2026_platform_usercmd_snapshot(", touch)
+        self.assertIn('"IW3_JNI_TOUCH_EVENT result=%d"', jni)
+        self.assertIn("IW3_JNI_TOUCH_EVENT result=0", probe)
+        self.assertNotIn("grep -E 'IW3_JNI_USERCMD attack=0 buttons=2 '", probe)
+        self.assertNotIn("grep -E 'IW3_JNI_USERCMD attack=0 buttons=514 '", probe)
         self.assertIn("NOT a game engine", jni)
 
     def test_win32_sdk_headers_are_excluded_from_android_client_input(self):
