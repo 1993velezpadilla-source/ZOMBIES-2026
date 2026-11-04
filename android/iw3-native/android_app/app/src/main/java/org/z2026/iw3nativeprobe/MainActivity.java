@@ -223,6 +223,11 @@ public final class MainActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        // SurfaceHolder callbacks are normally responsible for releasing the
+        // ANativeWindow, but Activity teardown must also be safe if a surface
+        // destruction callback is skipped or delayed. Native detach is idempotent.
+        try { EngineBridge.nativeSurfaceDetach(); }
+        catch (Throwable failure) { Log.e(TAG, "JNI_SURFACE_TEARDOWN_FAILED", failure); }
         try { EngineBridge.nativeLifecycle(4); }
         catch (Throwable failure) { Log.e(TAG, "JNI_DESTROY_FAILED", failure); }
         super.onDestroy();
