@@ -92,25 +92,10 @@ def verify(log: str) -> dict:
             raise ValueError("Native touch release without matching press")
     if not completed or downs:
         raise ValueError("Native touch must return both DOWN and UP for the same pointer")
-    attack_command_observed = False
-    sprint_command_observed = False
-    slide_chord_command_observed = False
-    for command in USERCMD.finditer(log, resumed, paused):
-        attack, buttons = int(command[1]), int(command[2])
-        if attack not in (0, 1):
-            raise ValueError("Invalid native usercmd attack flag")
-        if attack == 1 and (buttons & 1):
-            attack_command_observed = True
-        if attack == 0 and (buttons & (1 << 1)) and not (buttons & (1 << 9)):
-            sprint_command_observed = True
-        if attack == 0 and (buttons & ((1 << 1) | (1 << 9))) == ((1 << 1) | (1 << 9)):
-            slide_chord_command_observed = True
-    if not attack_command_observed:
-        raise ValueError("Real Android attack touch did not reach the original IW3 usercmd_s button layout")
-    if not sprint_command_observed:
-        raise ValueError("Real Android sprint touch did not set the original IW3 BUTTON_SPRINT bit")
-    if not slide_chord_command_observed:
-        raise ValueError("Real Android slide touch did not set the original IW3 sprint+crouch command chord")
+    # The diagnostic Activity must not drain look deltas by requesting a
+    # usercmd for every MotionEvent. This does not prove original CL_CreateCmd.
+    if USERCMD.search(log, resumed, paused):
+        raise ValueError("Diagnostic Activity consumed usercmd during touch dispatch")
     return {
         "android_jni_components_executed": True,
         "original_iw3_zip32_stored_and_deflate_parser_executed": True,
@@ -131,9 +116,9 @@ def verify(log: str) -> dict:
         "touch_down_and_up_read_back_from_native": True,
         # These are adapter observations only. The running Activity does not
         # call original CL_CreateCmd or the live client/frame loop.
-        "touch_translated_to_diagnostic_usercmd_s_adapter": True,
-        "sprint_touch_reached_diagnostic_usercmd_s_adapter": True,
-        "slide_chord_touch_reached_diagnostic_usercmd_s_adapter": True,
+        "touch_translated_to_diagnostic_usercmd_s_adapter": False,
+        "sprint_touch_reached_diagnostic_usercmd_s_adapter": False,
+        "slide_chord_touch_reached_diagnostic_usercmd_s_adapter": False,
         "original_cl_createcmd_touch_consumption_proven": False,
         "original_client_runtime_linked": False,
         "real_map_loaded": False,
