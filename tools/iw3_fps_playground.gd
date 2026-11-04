@@ -20,7 +20,9 @@ const ARM_SCALE: float = 0.0254 # hypothesis IW3 inch -> Godot metre
 # Pixel Fold screenshots resembling -90 suggest wrong/stale APK. Show an
 # unmistakable version/roll HUD + live touch adjustment to resolve this.
 const DEFAULT_VIEWMODEL_ROLL_DEGREES: float = 90.0
-const ORIENTATION_BUILD_ID: String = "IW3 V6 ORIGINAL GUNS / CAMERA + SLEEVE FIX"
+const ORIENTATION_BUILD_ID: String = "IW3 V7 ORIGINAL GUNS / LIVE CALIBRATION"
+const CAL_PATH: String = "user://iw3_private_viewmodel_v7.cfg"
+const CAL_AXES: Array[String] = ["hip_x", "hip_y", "hip_depth", "ads_depth"]
 # Observed authentic GLB sight depths were only 0.20-0.30 m at hip,
 # while 4 AABB corners were inside/behind camera, per Pixel Fold audit.
 # Recenter the actual optical tag at a safe hip-fire screen position.
@@ -69,6 +71,10 @@ var orientation_controls: HBoxContainer
 var sleeves_hidden: bool = true
 var sleeve_meshes: Array[MeshInstance3D] = []
 var sleeve_toggle_button: Button
+var calibration_profiles: Dictionary = {}
+var calibration_axis_index: int = 0
+var calibration_controls: HBoxContainer
+var calibration_axis_button: Button
 
 func _ready() -> void:
     for gun in GUNS:
@@ -425,6 +431,7 @@ func equip(index: int) -> bool:
     # distinct materials: 'mtl_marine_glove' and 'mtl_marine_glovesleeve'.
     _index_original_sleeve_meshes()
     _set_original_sleeves_visible(not sleeves_hidden)
+    controller.mount.ads_target_camera_depth_metres = float(_calibration_for(name)["ads_depth"])
     # Derive original eye/tag_camera offset from exported skeleton, instead of
     # manually positioning the gun on screen for each model.
     var bone_idx: int = controller.mount.hands_skeleton.find_bone("tag_camera")
@@ -437,6 +444,7 @@ func equip(index: int) -> bool:
         controller = null
         return false
     gun_ready = true
+    _refresh_calibration_button()
     message_label.text = ORIENTATION_BUILD_ID + " | " + name.to_upper() + " | " + str(viewmodel_roll_degrees) + " deg"
     return true
 
@@ -481,12 +489,104 @@ func toggle_original_sleeves() -> void:
         message_label.text = ORIENTATION_BUILD_ID + " | " + (
             "SLEEVES HIDDEN" if sleeves_hidden else "ORIGINAL SLEEVES VISIBLE")
 
+# Camera-space parameters are scoped per real weapon and stored ONLY on device.
+# No copyrighted model, texture, skeleton or screen capture goes into ConfigFile.
+func _calibration_for(name: String) -> Dictionary:
+    if calibration_profiles.has(name):
+        return calibration_profiles[name]
+    var values: Dictionary = {"hip_x": 0.12, "hip_y": -0.12, "hip_depth": 0.55, "ads_depth": 0.60}
+    var disk: ConfigFile = ConfigFile.new()
+    if disk.load(CAL_PATH) == OK:
+        for axis in CAL_AXES:
+            var candidate: Variant = disk.get_value(name, axis, values[axis])
+            if candidate is float or candidate is int:
+                var amount: float = float(candidate)
+                if is_finite(amount):
+                    var bounds: Vector2 = _calibration_limits(axis)
+                    values[axis] = clampf(amount, bounds.x, bounds.y)
+    calibration_profiles[name] = values
+    return values
+
+func _calibration_limits(axis: String) -> Vector2:
+    match axis:
+        "hip_x": return Vector2(-0.30, 0.35)
+        "hip_y": return Vector2(-0.32, 0.20)
+        "hip_depth": return Vector2(0.35, 1.10)
+        "ads_depth": return Vector2(0.35, 1.20)
+    return Vector2(0.0, 0.0)
+
+func current_hip_camera_target() -> Vector3:
+    var data: Dictionary = _calibration_for(GUNS[weapon_index])
+    return Vector3(float(data["hip_x"]), float(data["hip_y"]), -float(data["hip_depth"]))
+
+func _refresh_calibration_button() -> void:
+    if not is_instance_valid(calibration_axis_button):
+        return
+    var axis: String = CAL_AXES[calibration_axis_index]
+    var amount: float = float(_calibration_for(GUNS[weapon_index])[axis])
+    calibration_axis_button.text = axis.to_upper().replace("_", " ") + " %.3f" % amount
+
+func cycle_calibration_axis() -> void:
+    calibration_axis_index = (calibration_axis_index + 1) % CAL_AXES.size()
+    _refresh_calibration_button()
+
+func adjust_current_calibration(direction: float) -> bool:
+    if not gun_ready or not is_finite(direction) or is_zero_approx(direction):
+        return false
+    var axis: String = CAL_AXES[calibration_axis_index]
+    var data: Dictionary = _calibration_for(GUNS[weapon_index])
+    var previous: float = float(data[axis])
+    var step_size: float = 0.025 if axis == "hip_x" or axis == "hip_y" else 0.05
+    var bounds: Vector2 = _calibration_limits(axis)
+    var value: float = snappedf(clampf(previous + signf(direction) * step_size, bounds.x, bounds.y), 0.001)
+    if is_equal_approx(previous, value):
+        return false
+    data[axis] = value
+    var success: bool = true
+    if axis == "ads_depth":
+        controller.mount.ads_target_camera_depth_metres = value
+        success = controller.tick(0.0).get("ok", false)
+    else:
+        success = _apply_viewmodel_roll_and_center(viewmodel_roll_degrees)
+    if not success:
+        data[axis] = previous
+        controller.mount.ads_target_camera_depth_metres = float(data["ads_depth"])
+        _apply_viewmodel_roll_and_center(viewmodel_roll_degrees)
+        return false
+    _refresh_calibration_button()
+    message_label.text = ORIENTATION_BUILD_ID + " | " + axis.to_upper() + " %.3f" % value + " UNSAVED"
+    return true
+
+func reset_current_calibration() -> bool:
+    if not gun_ready:
+        return false
+    calibration_profiles[GUNS[weapon_index]] = {"hip_x": 0.12, "hip_y": -0.12, "hip_depth": 0.55, "ads_depth": 0.60}
+    controller.mount.ads_target_camera_depth_metres = 0.60
+    var succeeded: bool = _apply_viewmodel_roll_and_center(viewmodel_roll_degrees)
+    _refresh_calibration_button()
+    message_label.text = ORIENTATION_BUILD_ID + " | DEFAULTS RESTORED (UNSAVED)"
+    return succeeded
+
+func save_camera_calibration() -> bool:
+    if not gun_ready:
+        return false
+    var data: ConfigFile = ConfigFile.new()
+    for gun in GUNS:
+        var profile: Dictionary = _calibration_for(gun)
+        for axis in CAL_AXES:
+            data.set_value(gun, axis, profile[axis])
+    var saved: bool = data.save(CAL_PATH) == OK
+    message_label.text = ORIENTATION_BUILD_ID + (" | SAVED LOCALLY" if saved else " | SAVE FAILED")
+    return saved
+
 func _apply_viewmodel_roll_and_center(roll_degrees: float) -> bool:
     if not is_instance_valid(controller) or not is_instance_valid(camera):
         return false
     var rig: Node3D = controller.mount
     if not is_instance_valid(rig):
         return false
+    var prior_ads_wanted: bool = controller.ads_wanted
+    var prior_ads_blend: float = controller.ads_blend
     controller.reset_viewmodel()
     rig.position = Vector3.ZERO
     rig.initial_local_position = Vector3.ZERO
@@ -521,11 +621,16 @@ func _apply_viewmodel_roll_and_center(roll_degrees: float) -> bool:
     var sight_space: Vector3 = camera.to_local(sight_world)
     if not sight_space.is_finite():
         return false
-    var camera_displacement: Vector3 = HIP_SIGHT_IN_CAMERA_METRES - sight_space
+    var camera_displacement: Vector3 = current_hip_camera_target() - sight_space
     if not camera_displacement.is_finite() or camera_displacement.length() > 5.0:
         return false
     rig.global_position += camera.global_transform.basis.orthonormalized() * camera_displacement
     rig.initial_local_position = rig.position
+    # Keep current ADS when changing a calibration slider or roll mid-aim.
+    controller.ads_wanted = prior_ads_wanted
+    controller.ads_blend = prior_ads_blend
+    if not controller.tick(0.0).get("ok", false):
+        return false
     viewmodel_roll_degrees = wrapf(roll_degrees,-180.0,180.0)
     return true
 
@@ -603,7 +708,7 @@ func _refresh_status() -> void:
     var state: String = "NO ASSETS"
     if gun_ready and is_instance_valid(controller):
         state = controller.status()["state"] + "  ADS " + str(snappedf(controller.ads_blend * 100.0, 1.0)) + "%"
-    status_label.text = gun + "  " + str(magazines[GUNS[weapon_index]]) + "/" + str(reserves[GUNS[weapon_index]]) + " | " + state + " | Hits " + str(impacts) + " | V6 ROLL " + str(viewmodel_roll_degrees)
+    status_label.text = gun + "  " + str(magazines[GUNS[weapon_index]]) + "/" + str(reserves[GUNS[weapon_index]]) + " | " + state + " | Hits " + str(impacts) + " | V7 ROLL " + str(viewmodel_roll_degrees)
 
 func metrics() -> Dictionary:
     return {"scene_ready": scene_ready, "gun_ready": gun_ready, "weapon": GUNS[weapon_index],
@@ -616,8 +721,9 @@ func metrics() -> Dictionary:
         "weapon_status": controller.status() if gun_ready else {},
         "viewmodel_roll_degrees": viewmodel_roll_degrees,
         "orientation_build_id": ORIENTATION_BUILD_ID,
-        "hip_sight_target_camera_m": [HIP_SIGHT_IN_CAMERA_METRES.x,
-            HIP_SIGHT_IN_CAMERA_METRES.y, HIP_SIGHT_IN_CAMERA_METRES.z],
+        "hip_sight_target_camera_m": [current_hip_camera_target().x, current_hip_camera_target().y, current_hip_camera_target().z],
+        "ads_target_depth_m": float(_calibration_for(GUNS[weapon_index])["ads_depth"]),
+        "calibration_controls_available": calibration_controls != null,
         "live_roll_calibration_buttons": orientation_controls != null,
         "sleeve_meshes_identified": sleeve_meshes.size(),
         "original_sleeves_hidden": sleeves_hidden}
