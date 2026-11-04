@@ -14,8 +14,8 @@ int main() {
     IW3AndroidGLProgram noContextProgram{};
     std::string noContextError;
     if (R_AndroidLinkTranslatedIW3Program(
-            "#version 300 es\\nvoid main(){gl_Position=vec4(0.0);}",
-            "#version 300 es\\nprecision mediump float; out vec4 c; void main(){c=vec4(1.0);}",
+            "#version 300 es\nvoid main(){gl_Position=vec4(0.0);}",
+            "#version 300 es\nprecision mediump float; out vec4 c; void main(){c=vec4(1.0);}",
             &noContextProgram, &noContextError) ||
         noContextProgram.handle != 0 ||
         noContextError != "no current OpenGL ES context") {
@@ -65,7 +65,7 @@ int main() {
     }
     IW3AndroidGLProgram invalidProgram{};
     rejectedError.clear();
-    if (R_AndroidLinkTranslatedIW3Program(vs, "#version 300 es\\ninvalid shader", 
+    if (R_AndroidLinkTranslatedIW3Program(vs, "#version 300 es\ninvalid shader", 
                                           &invalidProgram, &rejectedError) ||
         invalidProgram.handle != 0 || rejectedError.empty()) {
         std::fprintf(stderr, "GLES3 invalid-fragment regression: %s\\n", rejectedError.c_str());
