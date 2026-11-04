@@ -95,8 +95,13 @@ public final class MainActivity extends Activity {
             }
             @Override public void surfaceChanged(SurfaceHolder holder, int format,
                                                   int width, int height) {
+                int nativeWidth = EngineBridge.nativeSurfaceWidth();
+                int nativeHeight = EngineBridge.nativeSurfaceHeight();
+                boolean nativeSizeReady = nativeWidth > 0 && nativeHeight > 0;
                 Log.i(TAG, "IW3_ANDROID_SURFACE_CHANGED width=" + width
-                        + " height=" + height + " format=" + format + " NOT_RENDERING");
+                        + " height=" + height + " format=" + format
+                        + " nativeWidth=" + nativeWidth + " nativeHeight=" + nativeHeight
+                        + " nativeSizeReady=" + nativeSizeReady + " NOT_RENDERING");
             }
             @Override public void surfaceDestroyed(SurfaceHolder holder) {
                 EngineBridge.nativeSurfaceDetach();
