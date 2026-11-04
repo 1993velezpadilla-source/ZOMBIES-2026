@@ -29,6 +29,9 @@ public final class MainActivity extends Activity {
     private static final int REQUEST_IMPORT_GAME_DATA = 7013;
     private TextView label;
     private SurfaceView nativeSurface;
+    // Prevent a late SurfaceHolder callback from resurrecting a native window
+    // after Activity teardown. All callbacks run on the Activity UI thread.
+    private boolean activityDestroyed;
 
     private static float clamp01(float value) {
         return Math.max(0.0f, Math.min(1.0f, value));
@@ -90,11 +93,16 @@ public final class MainActivity extends Activity {
         nativeSurface.setContentDescription("IW3 renderer surface (not connected)");
         nativeSurface.getHolder().addCallback(new SurfaceHolder.Callback() {
             @Override public void surfaceCreated(SurfaceHolder holder) {
+                if (activityDestroyed) {
+                    Log.w(TAG, "IW3_ANDROID_SURFACE_CREATED_AFTER_DESTROY_IGNORED");
+                    return;
+                }
                 int rc = EngineBridge.nativeSurfaceAttach(holder.getSurface());
                 Log.i(TAG, "IW3_ANDROID_SURFACE_CREATED_NOT_RENDERING nativeWindowRc=" + rc);
             }
             @Override public void surfaceChanged(SurfaceHolder holder, int format,
                                                   int width, int height) {
+                if (activityDestroyed) return;
                 int nativeWidth = EngineBridge.nativeSurfaceWidth();
                 int nativeHeight = EngineBridge.nativeSurfaceHeight();
                 boolean nativeSizeReady = nativeWidth > 0 && nativeHeight > 0;
@@ -223,6 +231,7 @@ public final class MainActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        activityDestroyed = true;
         // SurfaceHolder callbacks are normally responsible for releasing the
         // ANativeWindow, but Activity teardown must also be safe if a surface
         // destruction callback is skipped or delayed. Native detach is idempotent.
