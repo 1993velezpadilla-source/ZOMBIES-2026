@@ -253,7 +253,7 @@ int main() {
     std::thread foreign([&] { assert(!R_AndroidEglReplaceWindow(&ctx, &newWindow)); });
     foreign.join();
     const int baselineAcquired=acquired, baselineReleased=released;
-    for (int failure : {14, 15, 16, 17, 20}) {
+    for (int failure : {14, 15, 16, 17, 19, 20}) {
         failAt=failure;
         assert(!R_AndroidEglReplaceWindow(&ctx, &newWindow));
         assert(ctx.window==&window && ctx.surface==goodSurface);
@@ -261,7 +261,7 @@ int main() {
         assert(acquired-released==1); // no leaked references on failed replacement
         failAt=0;
     }
-    assert(acquired==baselineAcquired+5 && released==baselineReleased+5);
+    assert(acquired==baselineAcquired+6 && released==baselineReleased+6);
     surfaceWidth=720; surfaceHeight=1280;
     assert(R_AndroidEglReplaceWindow(&ctx, &newWindow));
     assert(ctx.window==&newWindow && ctx.surface==replacementSurface);
