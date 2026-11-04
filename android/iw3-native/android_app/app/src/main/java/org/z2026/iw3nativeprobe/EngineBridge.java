@@ -29,4 +29,8 @@ public final class EngineBridge {
     public static native void nativeTouchReset();
     public static native void nativeLifecycle(int event);
     public static native int nativeLifecycleState();
+    // Owns a reference to the Android ANativeWindow; no renderer is started.
+    public static native int nativeSurfaceAttach(android.view.Surface surface);
+    public static native void nativeSurfaceDetach();
+    public static native int nativeSurfaceWidth();
 }
