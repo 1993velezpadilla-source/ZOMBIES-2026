@@ -101,7 +101,8 @@ bool R_AndroidEglRefreshSize(IW3AndroidEglContext *state)
         || state->context == EGL_NO_CONTEXT
         || eglGetCurrentDisplay() != state->display
         || eglGetCurrentContext() != state->context
-        || eglGetCurrentSurface(EGL_DRAW) != state->surface)
+        || eglGetCurrentSurface(EGL_DRAW) != state->surface
+        || eglGetCurrentSurface(EGL_READ) != state->surface)
         return false;
 
     EGLint width = 0;
