@@ -305,12 +305,22 @@ bool R_AndroidEglReplaceWindow(IW3AndroidEglContext *state, ANativeWindow *newWi
     }
     EGLSurface oldSurface = state->surface;
     ANativeWindow *oldWindow = state->window;
+    // A driver may reject destruction of the previous drawable. Do not
+    // silently discard its handle or release its ANativeWindow: that would
+    // leak an EGLSurface and make a later retry impossible. Roll back to the
+    // old drawable before publishing the replacement.
+    if (oldSurface != EGL_NO_SURFACE
+        && !eglDestroySurface(state->display, oldSurface))
+    {
+        eglMakeCurrent(state->display, oldSurface, oldSurface, state->context);
+        eglDestroySurface(state->display, replacement);
+        ANativeWindow_release(newWindow);
+        return false;
+    }
     state->surface = replacement;
     state->window = newWindow;
     state->width = width;
     state->height = height;
-    if (oldSurface != EGL_NO_SURFACE)
-        eglDestroySurface(state->display, oldSurface);
     if (oldWindow)
         ANativeWindow_release(oldWindow);
     return true;
