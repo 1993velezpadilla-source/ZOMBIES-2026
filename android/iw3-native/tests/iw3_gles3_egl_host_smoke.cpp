@@ -75,7 +75,7 @@ int main() {
     // poison the active GLES context or the previously linked IW3 program.
     rejectedError.clear();
     if (R_AndroidLinkTranslatedIW3Program(
-            "#version 300 es\\nthis is not valid GLSL", fs,
+            "#version 300 es\nthis is not valid GLSL", fs,
             &invalidProgram, &rejectedError) ||
         invalidProgram.handle != 0 || rejectedError.empty() ||
         !glIsProgram(originalHandle)) {
