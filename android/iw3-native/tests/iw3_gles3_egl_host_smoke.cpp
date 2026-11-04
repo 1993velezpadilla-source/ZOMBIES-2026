@@ -71,6 +71,18 @@ int main() {
         std::fprintf(stderr, "GLES3 invalid-fragment regression: %s\\n", rejectedError.c_str());
         return 20;
     }
+    // A rejected vertex shader must leave the output empty and must not
+    // poison the active GLES context or the previously linked IW3 program.
+    rejectedError.clear();
+    if (R_AndroidLinkTranslatedIW3Program(
+            "#version 300 es\\nthis is not valid GLSL", fs,
+            &invalidProgram, &rejectedError) ||
+        invalidProgram.handle != 0 || rejectedError.empty() ||
+        !glIsProgram(originalHandle)) {
+        std::fprintf(stderr, "GLES3 invalid-vertex regression: %s\\n",
+                     rejectedError.c_str());
+        return 24;
+    }
     rejectedError.clear();
     if (R_AndroidLinkTranslatedIW3Program(vs, std::string("a\0b", 3),
                                           &invalidProgram, &rejectedError) ||
