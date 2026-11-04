@@ -91,6 +91,24 @@ int main() {
         std::fprintf(stderr, "GLES3 embedded-NUL regression: %s\\n", rejectedError.c_str());
         return 21;
     }
+    // A failed shader compilation must not leave stale GL error state or
+    // prevent the original IW3 shader provider from linking a fresh program.
+    IW3AndroidGLProgram recoveredProgram{};
+    std::string recoveredError;
+    if (!R_AndroidLinkTranslatedIW3Program(vs, fs, &recoveredProgram,
+                                           &recoveredError) ||
+        !recoveredProgram.handle ||
+        recoveredProgram.handle == originalHandle ||
+        !glIsProgram(recoveredProgram.handle)) {
+        std::fprintf(stderr, "GLES3 post-failure recovery regression: %s\\n",
+                     recoveredError.c_str());
+        return 25;
+    }
+    R_AndroidDeleteTranslatedIW3Program(&recoveredProgram);
+    if (recoveredProgram.handle != 0 || !glIsProgram(originalHandle)) {
+        std::fputs("GLES3 recovery cleanup damaged original program\\n", stderr);
+        return 26;
+    }
     if (!glIsProgram(originalHandle) || glGetError() != GL_NO_ERROR) {
         std::fputs("GLES3 failure path damaged the live program\\n", stderr);
         return 22;
