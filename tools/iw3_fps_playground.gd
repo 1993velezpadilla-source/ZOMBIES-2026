@@ -289,6 +289,47 @@ func _build_hud() -> void:
     sleeve_toggle_button.focus_mode = Control.FOCUS_NONE
     orientation_controls.add_child(sleeve_toggle_button)
     sleeve_toggle_button.pressed.connect(toggle_original_sleeves)
+    # Touch-friendly second toolbar: original mesh placement in the same APK.
+    calibration_controls = HBoxContainer.new()
+    calibration_controls.name = "IW3_V7_Gun_Camera_Calibration"
+    calibration_controls.anchor_left = 1.0
+    calibration_controls.anchor_right = 1.0
+    calibration_controls.offset_left = -410
+    calibration_controls.offset_right = -12
+    calibration_controls.offset_top = 74
+    calibration_controls.offset_bottom = 127
+    layout.add_child(calibration_controls)
+    calibration_axis_button = Button.new()
+    calibration_axis_button.name = "SelectCalibrationAxis"
+    calibration_axis_button.custom_minimum_size = Vector2(122, 48)
+    calibration_axis_button.focus_mode = Control.FOCUS_NONE
+    calibration_controls.add_child(calibration_axis_button)
+    calibration_axis_button.pressed.connect(cycle_calibration_axis)
+    var decrease: Button = Button.new()
+    decrease.text = "-"
+    decrease.custom_minimum_size = Vector2(54, 48)
+    decrease.focus_mode = Control.FOCUS_NONE
+    calibration_controls.add_child(decrease)
+    decrease.pressed.connect(func() -> void: adjust_current_calibration(-1.0))
+    var increase: Button = Button.new()
+    increase.text = "+"
+    increase.custom_minimum_size = Vector2(54, 48)
+    increase.focus_mode = Control.FOCUS_NONE
+    calibration_controls.add_child(increase)
+    increase.pressed.connect(func() -> void: adjust_current_calibration(1.0))
+    var save_button: Button = Button.new()
+    save_button.text = "SAVE"
+    save_button.custom_minimum_size = Vector2(70, 48)
+    save_button.focus_mode = Control.FOCUS_NONE
+    calibration_controls.add_child(save_button)
+    save_button.pressed.connect(func() -> void: save_camera_calibration())
+    var reset_button: Button = Button.new()
+    reset_button.text = "RESET"
+    reset_button.custom_minimum_size = Vector2(70, 48)
+    reset_button.focus_mode = Control.FOCUS_NONE
+    calibration_controls.add_child(reset_button)
+    reset_button.pressed.connect(func() -> void: reset_current_calibration())
+    _refresh_calibration_button()
     _refresh_status()
 
 func _input(event: InputEvent) -> void:
