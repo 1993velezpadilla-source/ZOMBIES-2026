@@ -1,0 +1,20 @@
+{
+  "model": "COD4 MP5",
+  "source": "privately extracted user-owned IW3 game data",
+  "hands": "COD4 viewmodel_base_viewhands",
+  "modes": {
+    "HIPFIRE": {
+      "original_action": "idle",
+      "centimeter_scale_applied": true
+    },
+    "ADS": {
+      "original_sight_tag": "tag_iron_sight",
+      "measured_sight_xyz": [
+        0.11677970737218857,
+        -0.03578338027000427,
+        -0.026924867182970047
+      ]
+    }
+  },
+  "original_animations": []
+}
