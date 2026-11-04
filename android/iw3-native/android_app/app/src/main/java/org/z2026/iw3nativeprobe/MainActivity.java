@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.SystemClock;
 import android.graphics.Color;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -275,18 +274,7 @@ public final class MainActivity extends Activity {
         int state = EngineBridge.nativeTouchSnapshot(id, observed);
         Log.i(TAG, "IW3_JNI_TOUCH id=" + id + " pressed=" + state
                 + " coords=" + observed[0] + "," + observed[1]);
-        int[] command = new int[10];
-        int commandStatus = EngineBridge.nativeUsercmdSnapshot(
-                (int)(SystemClock.uptimeMillis() & 0x7fffffff), command);
-        if (commandStatus != 0) {
-            Log.e(TAG, "IW3_JNI_USERCMD_SNAPSHOT_FAILED");
-        } else {
-            int buttons = command[1];
-            Log.i(TAG, "IW3_JNI_USERCMD attack=" + ((buttons & 1) != 0 ? 1 : 0)
-                    + " buttons=" + buttons + " forward=" + command[5]
-                    + " right=" + command[6] + " pitch=" + command[2]
-                    + " yaw=" + command[3]);
-        }
+        // Do not consume pending look deltas here: only the original client frame\n        // may build a gameplay usercmd. This Activity remains diagnostic.\n
     }
 
     @Override public boolean onTouchEvent(MotionEvent event) {
