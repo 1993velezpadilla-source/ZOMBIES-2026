@@ -9,6 +9,9 @@ import android.graphics.Color;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
+import android.widget.FrameLayout;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -25,6 +28,7 @@ public final class MainActivity extends Activity {
     private static final int MAX_ANDROID_POINTER_ID_COUNT = 32;
     private static final int REQUEST_IMPORT_GAME_DATA = 7013;
     private TextView label;
+    private SurfaceView nativeSurface;
 
     private static float clamp01(float value) {
         return Math.max(0.0f, Math.min(1.0f, value));
@@ -80,7 +84,32 @@ public final class MainActivity extends Activity {
         layout.addView(importButton, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT));
-        layout.addView(label, new LinearLayout.LayoutParams(
+        // Android window lifecycle prerequisite; no EGL or game frame yet.
+        FrameLayout viewport = new FrameLayout(this);
+        nativeSurface = new SurfaceView(this);
+        nativeSurface.setContentDescription("IW3 renderer surface (not connected)");
+        nativeSurface.getHolder().addCallback(new SurfaceHolder.Callback() {
+            @Override public void surfaceCreated(SurfaceHolder holder) {
+                Log.i(TAG, "IW3_ANDROID_SURFACE_CREATED_NOT_RENDERING");
+            }
+            @Override public void surfaceChanged(SurfaceHolder holder, int format,
+                                                  int width, int height) {
+                Log.i(TAG, "IW3_ANDROID_SURFACE_CHANGED width=" + width
+                        + " height=" + height + " format=" + format + " NOT_RENDERING");
+            }
+            @Override public void surfaceDestroyed(SurfaceHolder holder) {
+                Log.i(TAG, "IW3_ANDROID_SURFACE_DESTROYED_NOT_RENDERING");
+            }
+        });
+        viewport.addView(nativeSurface, new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT));
+        // Retain existing emulator diagnostic touch tests until the original
+        // CL_CreateCmd and native EGL render thread are connected.
+        viewport.addView(label, new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT));
+        layout.addView(viewport, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, 0, 1.0f));
         setContentView(layout);
         try {
