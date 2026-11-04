@@ -18,6 +18,7 @@ var hands_player: AnimationPlayer
 var weapon_player: AnimationPlayer
 var configured: bool = false
 var initial_local_position: Vector3 = Vector3.ZERO
+var ads_target_camera_depth_metres: float = 0.60
 var active_action: String = ""
 
 func _find_skeleton(node: Node) -> Skeleton3D:
@@ -198,7 +199,8 @@ func apply_procedural_ads_alignment(camera: Camera3D, alpha: float) -> Dictionar
     # Keep target at a safe 60 cm in FRONT of the camera. ADS takes camera
     # aim through the real sight tag, while avoiding camera being inside
     # the viewhands/receiver as seen in real screenshots.
-    var target_camera_space: Vector3 = Vector3(0.0, 0.0, -0.60)
+    var target_depth: float = clampf(ads_target_camera_depth_metres, 0.35, 1.20)
+    var target_camera_space: Vector3 = Vector3(0.0, 0.0, -target_depth)
     var difference: Vector3 = target_camera_space - camera_space
     # Reject grossly corrupted skeleton poses instead of hiding them.
     if not difference.is_finite() or difference.length() > 5.0:
@@ -217,7 +219,7 @@ func apply_procedural_ads_alignment(camera: Camera3D, alpha: float) -> Dictionar
         "blend": factor,
         "translation_m": snappedf((displacement * factor).length(), 0.00001),
         "sight_camera_depth_m": snappedf(-compensated.z, 0.00001),
-        "intended_ads_depth_m": 0.60,
+        "intended_ads_depth_m": target_depth,
         "sight_camera_xy_m": [
             snappedf(compensated.x, 0.00001), snappedf(compensated.y, 0.00001)],
         "attachment_error": anchor_error()["anchor_position_error"],
