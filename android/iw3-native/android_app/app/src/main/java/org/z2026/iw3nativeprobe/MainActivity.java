@@ -29,6 +29,7 @@ public final class MainActivity extends Activity {
     private static final int REQUEST_IMPORT_GAME_DATA = 7013;
     private TextView label;
     private SurfaceView nativeSurface;
+    private boolean diagnosticOverlayVisible = true;
     // Prevent a late SurfaceHolder callback from resurrecting a native window
     // after Activity teardown. All callbacks run on the Activity UI thread.
     private boolean activityDestroyed;
@@ -87,10 +88,28 @@ public final class MainActivity extends Activity {
         layout.addView(importButton, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT));
+        // The diagnostic TextView previously permanently occluded the native
+        // SurfaceView. Keep it visible by default for existing JNI/emulator tests,
+        // but permit an unobstructed Android surface and direct touch dispatch.
+        Button overlayButton = new Button(this);
+        overlayButton.setText("Show native surface (no renderer yet)");
+        overlayButton.setOnClickListener(view -> {
+            diagnosticOverlayVisible = !diagnosticOverlayVisible;
+            label.setVisibility(diagnosticOverlayVisible ? View.VISIBLE : View.GONE);
+            overlayButton.setText(diagnosticOverlayVisible
+                    ? "Show native surface (no renderer yet)"
+                    : "Show JNI diagnostics");
+            Log.i(TAG, "IW3_ANDROID_SURFACE_UNCOVERED_NOT_RENDERING="
+                    + (!diagnosticOverlayVisible));
+        });
+        layout.addView(overlayButton, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT));
         // Android window lifecycle prerequisite; no EGL or game frame yet.
         FrameLayout viewport = new FrameLayout(this);
         nativeSurface = new SurfaceView(this);
         nativeSurface.setContentDescription("IW3 renderer surface (not connected)");
+        nativeSurface.setOnTouchListener((view, motion) -> onTouchEvent(motion));
         nativeSurface.getHolder().addCallback(new SurfaceHolder.Callback() {
             @Override public void surfaceCreated(SurfaceHolder holder) {
                 if (activityDestroyed) {
@@ -247,8 +266,9 @@ public final class MainActivity extends Activity {
         // Android pointer IDs are sparse identifiers (0..31), not indexes
         // into the ten simultaneously active touch slots.
         if (id < 0 || id >= MAX_ANDROID_POINTER_ID_COUNT) return;
-        float x = clamp01(event.getX(pointerIndex) / Math.max(1f, label.getWidth()));
-        float y = clamp01(event.getY(pointerIndex) / Math.max(1f, label.getHeight()));
+        View touchViewport = diagnosticOverlayVisible ? label : nativeSurface;
+        float x = clamp01(event.getX(pointerIndex) / Math.max(1f, touchViewport.getWidth()));
+        float y = clamp01(event.getY(pointerIndex) / Math.max(1f, touchViewport.getHeight()));
         int rc = EngineBridge.nativeTouch(id, x, y, down);
         if (rc != 0) Log.e(TAG, "TOUCH_NATIVE_REJECTED id=" + id);
         float[] observed = new float[2];
