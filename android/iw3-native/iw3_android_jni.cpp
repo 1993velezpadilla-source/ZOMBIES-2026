@@ -274,25 +274,11 @@ Java_org_z2026_iw3nativeprobe_EngineBridge_nativeTouch(
         JNIEnv *, jclass, jint id, jfloat x, jfloat y, jboolean pressed) {
     const int touch_result =
         z2026_platform_touch_event(static_cast<int>(id), x, y, pressed ? 1 : 0);
-    int fields[10]{};
-    const int snapshot_result = z2026_platform_usercmd_snapshot(0, fields, 10);
-    if (touch_result == 0 && snapshot_result == 0) {
-        const int buttons = fields[1];
-        __android_log_print(
-            ANDROID_LOG_INFO,
-            "IW3NativeGate",
-            "IW3_JNI_USERCMD attack=%d buttons=%d touch_result=%d",
-            (buttons & BUTTON_ATTACK) != 0 ? 1 : 0,
-            buttons,
-            touch_result);
-    } else {
-        __android_log_print(
-            ANDROID_LOG_WARN,
-            "IW3NativeGate",
-            "IW3_JNI_USERCMD_SNAPSHOT_FAILED touch_result=%d snapshot_result=%d",
-            touch_result,
-            snapshot_result);
-    }
+    // Touch injection must not consume pending view-angle deltas. The
+    // original CL_CreateCmd will own command creation once the full client
+    // is linked. A diagnostic snapshot is explicitly requested separately.
+    __android_log_print(touch_result == 0 ? ANDROID_LOG_INFO : ANDROID_LOG_WARN,
+                        "IW3NativeGate", "IW3_JNI_TOUCH_EVENT result=%d", touch_result);
     return touch_result;
 }
 
