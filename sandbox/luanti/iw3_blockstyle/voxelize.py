@@ -34,7 +34,7 @@ COMPONENT = {
 WIDTH = {"SCALAR": 1, "VEC2": 2, "VEC3": 3, "VEC4": 4, "MAT4": 16}
 MODEL = re.compile(r"^viewmodel_ak47(?:_|$)", re.I)
 KINDS = ("idle", "ads", "fire", "reload", "pullout", "putaway", "sprint", "other")
-MAX_POINTS = 650_000
+MAX_POINTS = 1_500_000
 MAX_CUBES = 4000
 MAX_CLIPS = 128
 
@@ -136,6 +136,41 @@ def triangles(doc: dict, binary: bytes, primitive: dict):
         yield xyz, bone
 
 
+
+# Procedural materials are independently drawn color choices, not COD4 textures.
+# Decorative ACOG / reflex variants are omitted from the iron-sight AK view.
+ACCESSORY_LABELS = ("acog", "reflex", "reticle", "lens", "holo", "red_dot")
+
+def allowed_primitive(source: dict, primitive: dict, mode: str) -> bool:
+    if mode != "rifle":
+        return True
+    mid = primitive.get("material", 0)
+    mats = source.get("materials", [])
+    name = mats[mid].get("name", "").lower() if mid < len(mats) else ""
+    return not any(word in name for word in ACCESSORY_LABELS)
+
+def procedural_color(center: tuple, bone: int, pitch: float, context: dict) -> tuple:
+    kind = context["kind"]
+    if kind == "hands":
+        base = (0.73, 0.52, 0.40)  # adult cartoon skin, not COD4 material
+    else:
+        lo, hi, major = context["lo"], context["hi"], context["major"]
+        f = (center[major] - lo[major]) / max(1e-9, hi[major] - lo[major])
+        material = context["material"]
+        if "misc" in material:
+            base = (0.49, 0.53, 0.56)      # selector/machined steel
+        elif f < .245:
+            base = (0.56, 0.29, 0.15)      # original walnut palette: stock
+        elif .51 < f < .745:
+            base = (0.62, 0.34, 0.18)      # handguard
+        elif f > .76:
+            base = (0.37, 0.42, 0.45)      # barrel and muzzle
+        else:
+            base = (0.29, 0.34, 0.38)      # receiver/magazine
+    ix, iy, iz = (int(round(x / max(pitch, .001))) for x in center)
+    shade = (((ix * 3 + iy * 5 + iz * 11 + bone * 13) % 9) - 4) * .013
+    return tuple(max(.12, min(.9, v + shade)) for v in base) + (1.0,)
+
 def surface_cells(tris: list, pitch: float):
     cubes=set()
     sampled=0
@@ -177,7 +212,7 @@ def z_merge(cells):
     return out
 
 
-def emit_boxes(doc, raw, primitive, target_doc, dest_binary, pitch):
+def emit_boxes(doc, raw, primitive, target_doc, dest_binary, pitch, context):
     tri=list(triangles(doc,raw,primitive))
     if not tri:
         raise ValueError("mesh primitive has no triangles")
@@ -185,7 +220,7 @@ def emit_boxes(doc, raw, primitive, target_doc, dest_binary, pitch):
     boxes=z_merge(cells)
     if len(boxes)>MAX_CUBES:
         raise OverflowError("cuboid output budget exceeded")
-    positions=[]; normals=[]; tex=[]; joints=[]; weights=[]; indices=[]
+    positions=[]; normals=[]; tex=[]; joints=[]; weights=[]; colors=[]; indices=[]
     sides=[
       ((0,3,2,1),(0.,0.,-1.)), ((4,5,6,7),(0.,0.,1.)),
       ((0,4,7,3),(-1.,0.,0.)),((1,2,6,5),(1.,0.,0.)),
@@ -195,6 +230,8 @@ def emit_boxes(doc, raw, primitive, target_doc, dest_binary, pitch):
         x0=x*pitch; x1=(x+1)*pitch
         y0=y*pitch; y1=(y+1)*pitch
         a=z0*pitch; b=z1*pitch
+        center=((x0+x1)/2, (y0+y1)/2, (a+b)/2)
+        rgba=procedural_color(center,bone,pitch,context)
         corners=[
             (x0,y0,a),(x1,y0,a),(x1,y1,a),(x0,y1,a),
             (x0,y0,b),(x1,y0,b),(x1,y1,b),(x0,y1,b),
@@ -207,11 +244,13 @@ def emit_boxes(doc, raw, primitive, target_doc, dest_binary, pitch):
                 tex.append(((j==1 or j==2)*1.,(j>=2)*1.))
                 joints.append((bone,0,0,0))
                 weights.append((1.,0.,0.,0.))
+                colors.append(rgba)
             indices.extend((off,off+1,off+2,off,off+2,off+3))
     attrs={
         "POSITION":pack_new(target_doc,dest_binary,positions,"VEC3",target=34962),
         "NORMAL":pack_new(target_doc,dest_binary,normals,"VEC3",target=34962),
         "TEXCOORD_0":pack_new(target_doc,dest_binary,tex,"VEC2",target=34962),
+        "COLOR_0":pack_new(target_doc,dest_binary,colors,"VEC4",target=34962),
     }
     if "JOINTS_0" in primitive["attributes"] and "WEIGHTS_0" in primitive["attributes"]:
         attrs["JOINTS_0"]=pack_new(target_doc,dest_binary,joints,"VEC4",5123,34962)
@@ -222,9 +261,29 @@ def emit_boxes(doc, raw, primitive, target_doc, dest_binary, pitch):
     return result, len(boxes), len(cells)
 
 
-def voxelize(source: Path, target: Path, *, density=42):
+def voxelize(source: Path, target: Path, *, density=42, kind='rifle'):
     doc,original=read_glb(source)
     out=deepcopy(doc)
+    surviving=[]
+    mesh_mapping={}
+    for i,mesh in enumerate(doc.get("meshes",[])):
+        good=[p for p in mesh.get("primitives",[]) if allowed_primitive(doc,p,kind)]
+        if good:
+            mesh_mapping[i]=len(surviving)
+            surviving.append(good)
+    if not surviving:
+        raise ValueError("no base weapon geometry after accessory filtering")
+    for node in out.get("nodes",[]):
+        if "mesh" in node:
+            old_i=node["mesh"]
+            if old_i in mesh_mapping:
+                node["mesh"]=mesh_mapping[old_i]
+            else:
+                node.pop("mesh",None)
+                node.pop("skin",None)
+    out["meshes"]=[deepcopy(doc["meshes"][old]) for old in sorted(mesh_mapping)]
+    for mesh in out["meshes"]:
+        mesh["primitives"]=[p for p in mesh["primitives"] if allowed_primitive(doc,p,kind)]
     out["buffers"]=[{"byteLength":0}]
     out["accessors"]=[];out["bufferViews"]=[]
     out.pop("images",None);out.pop("textures",None);out.pop("samplers",None)
@@ -233,7 +292,7 @@ def voxelize(source: Path, target: Path, *, density=42):
     if not old_mats:
         old_mats=[{"name":"unspecified"}]
     out["materials"]=[{"name":"blockstyle_"+m.get("name",str(i)),
-       "pbrMetallicRoughness":{"baseColorFactor":color_for_material(m),
+       "pbrMetallicRoughness":{"baseColorFactor":[1.0,1.0,1.0,1.0],
                               "metallicFactor":0,"roughnessFactor":1},
        "doubleSided":True} for i,m in enumerate(old_mats)]
     binary=bytearray()
@@ -249,7 +308,7 @@ def voxelize(source: Path, target: Path, *, density=42):
             sampler["input"]=retain(sampler["input"])
             sampler["output"]=retain(sampler["output"])
     all_coords=[]
-    for mesh in doc.get("meshes",[]):
+    for mesh in out.get("meshes",[]):
         for prim in mesh.get("primitives",[]):
             all_coords.extend(read_accessor(doc,original,prim["attributes"]["POSITION"]))
     if not all_coords:
@@ -257,21 +316,25 @@ def voxelize(source: Path, target: Path, *, density=42):
     lo=[min(p[i] for p in all_coords) for i in range(3)]
     hi=[max(p[i] for p in all_coords) for i in range(3)]
     longest=max(hi[i]-lo[i] for i in range(3))
+    major=max(range(3),key=lambda i: hi[i]-lo[i])
     if longest <= 0:
         raise ValueError("degenerate model")
     best=None
     # Automatic LOD cap rather than exploding a mobile renderer into millions
     # of voxels. Source geometry is never shipped with the model.
-    for divisor in (density,32,24,18,12):
+    for divisor in [density]+[d for d in (72,64,56,48,42,32,24,18,12) if d<density]:
         pitch=longest/divisor
         attempt=deepcopy(out)
         blob=bytearray(binary)
         parts=[]; total=0; occupied=0
         try:
-            for mesh in doc["meshes"]:
+            for mesh in out["meshes"]:
                 target_primitives=[]
                 for prim in mesh["primitives"]:
-                    result,count,cells=emit_boxes(doc,original,prim,attempt,blob,pitch)
+                    mat_id=prim.get("material",0)
+                    mat_name=doc.get("materials",[])[mat_id].get("name","").lower() if mat_id<len(doc.get("materials",[])) else ""
+                    context={"kind":kind,"lo":lo,"hi":hi,"major":major,"material":mat_name}
+                    result,count,cells=emit_boxes(doc,original,prim,attempt,blob,pitch,context)
                     result["material"]=min(result["material"],len(out["materials"])-1)
                     target_primitives.append(result)
                     total+=count;occupied+=cells
@@ -296,6 +359,9 @@ def voxelize(source: Path, target: Path, *, density=42):
             "node_count":len(check.get("nodes",[])),
             "primitives":sum(len(m["primitives"]) for m in check["meshes"]),
             "source_triangles_retained":False,
+            "palette":"original procedural adult-cartoon vertex colors, not COD4 texture",
+            "render_mode":kind,
+            "accessory_meshes_removed":len(doc.get("meshes",[]))-len(out["meshes"]),
             "voxel_glb_bytes":target.stat().st_size}
 
 
@@ -369,14 +435,14 @@ def run(dumps: Path, target: Path):
     source_meshes=[m.get('name','unnamed') for m in source_doc.get('meshes',[])]
     target.mkdir(parents=True,exist_ok=True)
     rifle=target/"AK47_COD4_BLOCKSTYLE_PRIVATE.glb"
-    voxel=voxelize(chosen,rifle)
+    voxel=voxelize(chosen,rifle,density=76,kind='rifle')
     animated=target/"AK47_COD4_BLOCKSTYLE_ALL_XANIM_PRIVATE.glb"
     gun_clips=add_all_animations(rifle,animated,clips)
     hands_path=model_dir/"viewmodel_base_viewhands_lod0.glb"
     hands={}
     hands_voxel=None
     if hands_path.exists():
-        hands_voxel=voxelize(hands_path,target/"AK47_COD4_HANDS_BLOCKSTYLE_PRIVATE.glb")
+        hands_voxel=voxelize(hands_path,target/"AK47_COD4_HANDS_BLOCKSTYLE_PRIVATE.glb",density=42,kind="hands")
         hands=add_all_animations(
             target/"AK47_COD4_HANDS_BLOCKSTYLE_PRIVATE.glb",
             target/"AK47_COD4_HANDS_ALL_XANIM_PRIVATE.glb", clips)
