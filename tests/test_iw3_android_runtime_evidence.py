@@ -89,7 +89,7 @@ class NativeRuntimeEvidenceTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "consumed usercmd"):
             verify(real_format_fixture().replace(
                 "IW3_JNI_TOUCH id=0 pressed=0",
-                "IW3_JNI_USERCMD attack=1 buttons=1 forward=0 right=0 pitch=0 yaw=0\\n"
+                "IW3_JNI_USERCMD attack=1 buttons=1 forward=0 right=0 pitch=0 yaw=0\n"
                 "IW3_JNI_TOUCH id=0 pressed=0"))
 
     def test_missing_release_is_not_working_touch(self):
