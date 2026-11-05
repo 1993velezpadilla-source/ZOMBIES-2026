@@ -1,6 +1,12 @@
 name: IW3 authentic SP bootstrap aggregate ARM64 (NOT GAME)
 
 on:
+  pull_request:
+    branches: [feature/zombies-offline-sp-weapons-20261024]
+    paths:
+      - '.github/workflows/iw3-bootstrap-aggregate-arm64.yml'
+      - 'android/iw3-native/CMakeLists.txt'
+      - 'third_party/KisakCOD/src/**'
   push:
     branches: [feature/iw3-native-android-arm64-20261025]
     paths:
