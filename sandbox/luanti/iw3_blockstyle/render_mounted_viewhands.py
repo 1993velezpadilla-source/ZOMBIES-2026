@@ -42,34 +42,37 @@ def measure_proximity(rifle, hands):
     return float(np.median(np.min(d,axis=1)))
 
 
-def compose(rifle,viewhands,gunclip,handclip,t,rest_hand_tag,mode='relative_delta'):
+def compose(rifle,viewhands,gunclip,handclip,t,rest_hand_tag,mode='native_pair'):
     rifle_mesh, gunpoints, gunworld=rifle.poses(gunclip,t)
     hand_mesh, handpoints, handworld=viewhands.poses(handclip,t)
     hand_tag=viewhands.tag(handworld)
     if hand_tag is None:
         raise ValueError("source COD4 hand skeleton missing tag_weapon")
-    weapon_tag=rifle.tag(gunworld)
-    if weapon_tag is not None:
-        # Both tags are derived from actual imported bone trees, not guessed
-        # per-weapon offsets. The local rifle tag is the attachment pivot.
+    # The COD4 AK-47 skeleton has tag_ak47_mount, NOT tag_weapon. Earlier
+    # prototypes accidentally overlooked this named original IW3 attachment.
+    # Align BOTH original animated bone transforms, never an invented XYZ.
+    anchor_name=next((name for name in ("tag_ak47_mount","tag_weapon")
+                      if rifle.tag(gunworld,name) is not None),None)
+    weapon_tag=rifle.tag(gunworld,anchor_name) if anchor_name else None
+    if mode == "native_pair":
+        if weapon_tag is None:
+            raise ValueError("native_pair needs the original rifle tag_ak47_mount")
         matrix=hand_tag@np.linalg.inv(weapon_tag)
-        mode="original_tag_weapon_to_tag_weapon"
+        mode="original_tag_weapon_to_tag_ak47_mount"
         err=float(np.linalg.norm((matrix@weapon_tag-hand_tag)[:3,3]))
-    else:
-        if mode == "direct_tag":
-            # Mirrors Godot's BoneAttachment3D: weapon root transform is IDENTITY
-            # as a child of the original hands tag_weapon at every source frame.
-            matrix=hand_tag
-            strategy="original_hands_tag_weapon_direct_attachment"
-        elif mode == "relative_delta":
-            # Diagnosis: retain the rifle's imported rest location and follow
-            # the moving hands tag relative to its initial transform.
-            matrix=hand_tag@np.linalg.inv(rest_hand_tag)
-            strategy="original_hands_tag_weapon_delta_only_no_gun_tag"
-        else:
-            raise ValueError("unsupported attachment mode")
-        mode=strategy
+    elif mode == "direct_tag":
+        # Old Godot BoneAttachment3D path: assumes the rifle's root origin
+        # coincides with native grip anchor. This assumption was WRONG.
+        matrix=hand_tag
+        mode="original_hands_tag_weapon_direct_attachment"
         err=None
+    elif mode == "relative_delta":
+        # Previous scratch placement, only for explicit A/B diagnostics.
+        matrix=hand_tag@np.linalg.inv(rest_hand_tag)
+        mode="original_hands_tag_weapon_delta_only"
+        err=None
+    else:
+        raise ValueError("unsupported attachment mode")
     mounted=[]
     for xyz,ix,colors in rifle_mesh:
         mounted.append((transform_points(xyz,matrix),ix,colors))
@@ -80,6 +83,7 @@ def compose(rifle,viewhands,gunclip,handclip,t,rest_hand_tag,mode='relative_delt
     info={
       "mount_strategy":mode,
       "gun_anchor_present":weapon_tag is not None,
+      "gun_anchor_name":anchor_name,
       "hand_anchor_present":True,
       "tag_alignment_error":round(err,7) if err is not None else None,
       "hand_point_to_rifle_median_nearest_distance":round(d,4),
@@ -103,7 +107,7 @@ def build(rifle_path,hand_path,output):
     if rest_tag is None:
         raise ValueError("hands GLB missing tag_weapon; cannot mount physically")
     report={
-      "method":"skinned glTF XANIM on real COD4 voxel AK47 + source tag_weapon",
+      "method":"skinned glTF XANIM, source hands tag_weapon and original AK tag_ak47_mount",
       "gun_animations":len(rifle.animations),
       "hand_animations":len(hands.animations),
       "hands_attached_structurally":True,
@@ -137,10 +141,8 @@ def build(rifle_path,hand_path,output):
                     "image":name,**meta})
             except (ValueError,IndexError,np.linalg.LinAlgError) as e:
                 report["errors"][f"{action}:{frac}"]=str(e)[:200]
-    # If the original gun GLB lacks tag_weapon (as ours does), render both
-    # physically distinct candidate strategies; do not silently guess XYZ.
-    # Direct = same transform as Godot BoneAttachment3D, Delta = original
-    # viewmodel origin. Comparable screenshot grids expose alignment errors.
+    # Compare exact original dual-anchor tag pair against TWO older fallback
+    # strategies using identical camera and original XANIM timestamps.
     comparison=[]
     for action,fraction in (("idle",0.0),("reload",.5),("reload_empty",.5)):
         gunclip=closest_clip(rifle,action)
@@ -149,7 +151,7 @@ def build(rifle_path,hand_path,output):
             continue
         duration=min(rifle.duration(gunclip),hands.duration(handclip))
         t=duration*fraction
-        for strategy in ("relative_delta","direct_tag"):
+        for strategy in ("native_pair","relative_delta","direct_tag"):
             try:
                 combo,stat=compose(rifle,hands,gunclip,handclip,t,rest_tag,mode=strategy)
                 img=output/f"ak47_compare_{strategy}_{action}.png"
@@ -165,15 +167,15 @@ def build(rifle_path,hand_path,output):
     report["mount_candidates"]=comparison
     pairs=[]
     for action in ("idle","reload","reload_empty"):
-        for strategy in ("relative_delta","direct_tag"):
+        for strategy in ("native_pair","relative_delta","direct_tag"):
             name=output/f"ak47_compare_{strategy}_{action}.png"
             if name.exists():
                 with Image.open(name) as im:
                     pairs.append(ImageOps.pad(im.convert("RGB"),(825,488)))
     if pairs:
-        check=Image.new("RGB",(1650,488*math.ceil(len(pairs)/2)),(20,22,29))
+        check=Image.new("RGB",(2475,488*math.ceil(len(pairs)/3)),(20,22,29))
         for i,img in enumerate(pairs):
-            check.paste(img,((i%2)*825,(i//2)*488))
+            check.paste(img,((i%3)*825,(i//3)*488))
         check.save(output/"ak47_tag_strategy_comparison.png",optimize=True)
     if not report["frames"]:
         raise ValueError("no combined weapon+hand frames rendered")
