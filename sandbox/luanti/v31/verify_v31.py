@@ -10,7 +10,8 @@ def inspect_files(read):
     init=read("init.lua").decode("utf8")
     assert "minetest.register_node(AK,{" in init
     assert 'drawtype="mesh"' in init
-    assert ('mesh="ak47dev_static.obj"' in init or\n            'mesh="ak47dev_fp_static.obj"' in init)
+    assert ('mesh="ak47dev_static.obj"' in init or
+            'mesh="ak47dev_fp_static.obj"' in init)
     assert 'tiles={"ak47dev_atlas.png"}' in init
     assert "wield_image=" not in "\n".join(l for l in init.splitlines() if not l.lstrip().startswith("--"))
     assert "function make_viewmodel" in init
