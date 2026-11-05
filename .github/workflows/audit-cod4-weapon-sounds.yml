@@ -1,0 +1,27 @@
+name: Audit original COD4 weapon sound filenames
+on:
+  push:
+    branches: [audit/cod4-weapon-audio-inventory-20261105]
+    paths:
+      - tools/audit_cod4_weapon_sound_names.py
+      - .github/workflows/audit-cod4-weapon-sounds.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Audit verified prior inventory without extracting proprietary audio
+        run: |
+          python3 tools/audit_cod4_weapon_sound_names.py
+          echo '### First 90 report lines' >> "$GITHUB_STEP_SUMMARY"
+          sed -n '1,90p' docs/audit/COD4_WEAPON_AUDIO_NAMES_20261105.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Publish name-only report
+        uses: actions/upload-artifact@v4
+        with:
+          name: COD4-weapon-audio-filename-audit
+          path: docs/audit/COD4_WEAPON_AUDIO_NAMES_20261105.md
