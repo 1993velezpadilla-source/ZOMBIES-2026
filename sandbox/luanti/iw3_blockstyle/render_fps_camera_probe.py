@@ -24,7 +24,7 @@ NEAR = 0.25
 BG = (21, 24, 31)
 
 
-def projection_basis(sign=1, forward_override=None):
+def projection_basis(sign=1, forward_override=None, roll_degrees=0):
     # A tag_flash direction is stronger evidence than assuming world +X.
     # +X/-X are retained strictly for A/B coordinate system diagnostics.
     forward = (np.asarray(forward_override,dtype=float) if forward_override is not None
@@ -38,6 +38,10 @@ def projection_basis(sign=1, forward_override=None):
     right=np.cross(forward,up)
     right=right/max(1e-8,float(np.linalg.norm(right)))
     up=np.cross(right,forward)
+    if roll_degrees:
+        theta=math.radians(float(roll_degrees))
+        right,up=(right*math.cos(theta)+up*math.sin(theta),
+                  up*math.cos(theta)-right*math.sin(theta))
     return right, up, forward
 
 
@@ -66,8 +70,8 @@ def clip_against_near(poly, near):
     return out
 
 
-def render_perspective(geometry, camera, sign, label, outfile, fov=FOV, forward_override=None):
-    basis = projection_basis(sign,forward_override)
+def render_perspective(geometry, camera, sign, label, outfile, fov=FOV, forward_override=None, roll_degrees=0):
+    basis = projection_basis(sign,forward_override,roll_degrees)
     cx,cy = WIDTH/2, HEIGHT/2+15
     focal = (WIDTH/2)/math.tan(math.radians(fov/2))
     im=Image.new('RGB',(WIDTH,HEIGHT),BG)
@@ -116,7 +120,7 @@ def render_perspective(geometry, camera, sign, label, outfile, fov=FOV, forward_
     draw.rectangle((0,0,WIDTH,76),fill=(14,17,22))
     draw.text((18,16),label,fill=(233,238,246))
     direction="tag_flash→muzzle" if forward_override is not None else ('+X' if sign>0 else '-X')
-    draw.text((18,43),f"real original XANIM + voxel geometry  |  75deg FOV  |  {direction} forward",fill=(179,196,210))
+    draw.text((18,43),f"original XANIM voxel mesh | 75deg FOV | {direction} forward | roll {roll_degrees} deg",fill=(179,196,210))
     draw.rectangle((0,HEIGHT-50,WIDTH,HEIGHT),fill=(14,17,22))
     draw.text((18,HEIGHT-32),"PERSPECTIVE PROBE • NOT VERIFIED FPS ADS/RELOAD • NOT A GAME SCREENSHOT",fill=(237,186,109))
     outfile.parent.mkdir(parents=True,exist_ok=True)
@@ -124,7 +128,8 @@ def render_perspective(geometry, camera, sign, label, outfile, fov=FOV, forward_
     return {"source_faces":source_faces,"drawn_faces":rendered_faces,
             "source_vertices_in_front":near_front, "near":NEAR,
             "camera_origin":[round(float(v),4) for v in camera],
-            "camera_forward":'tag_flash→muzzle' if forward_override is not None else ('+X' if sign>0 else '-X')}
+            "camera_forward":'tag_flash→muzzle' if forward_override is not None else ('+X' if sign>0 else '-X'),
+            "camera_roll_degrees":float(roll_degrees)}
 
 
 def gather_source_camera(hands, clip):
@@ -228,6 +233,28 @@ def run(rifle_path, hands_path, output):
                        "fraction":fraction,
                        **report,"hand_proximity_normalized":meta.get("hand_proximity_normalized_by_rifle_extent"),
                        "visually_approved":False})
+    # Real viewmodel camera calibration: rotate the eye basis around the
+    # source-derived muzzle forward vector and compare three eye heights.
+    # Original model still uses its genuine animated arm and gun poses.
+    # NO camera candidate here is certified for hipfire/ADS yet.
+    sweep=[]
+    neutral,meta=compose(rifle,hands,gun_idle,hand_idle,0.,hand_rest,mode="native_pair")
+    spine=np.array([0.,0.,1.],dtype=float)
+    for above in (0.0,.12,.25):
+        eye=behind+spine*(span*above)
+        # Aim at the ORIGINAL model muzzle, not an invented iron sight tag.
+        aim=muzzle-eye
+        aim/=max(1e-8,float(np.linalg.norm(aim)))
+        for roll in (0,90,-90,180):
+            filename=f"ak47_native_fps_eyeheight_{int(above*100):02d}_roll_{roll:+04d}.png"
+            shot=render_perspective(neutral,eye,1,
+                  f"NATIVE SOURCE TAGS | CAMERA HEIGHT {above:.2f} of rifle | ROLL {roll:+d}",
+                  output/filename,forward_override=aim,roll_degrees=roll)
+            sweep.append({"filename":filename,"height_fraction":above,
+                         "roll_degrees":roll,**shot,
+                         "camera_pose_verified":False})
+    sweep_names=[i["filename"] for i in sweep]
+    make_grid(output,sweep_names,"ak47_native_fps_roll_and_height_sweep.png",3)
     output.mkdir(parents=True,exist_ok=True)
     # Each contact sheet compares idle/reload on two camera positions/directions.
     for strategy in ("native_pair","relative_delta","direct_tag"):
@@ -239,13 +266,16 @@ def run(rifle_path, hands_path, output):
            "original_mount_pair": ["hands:tag_weapon","rifle:tag_ak47_mount"],
            "muzzle_direction_from_original_tag_flash":[round(float(v),5) for v in muzzle_direction],
            "source_tags":source_tags,"camera_candidates":list(candidates),
-           "projections":results,"gameplay_verified":False,"camera_calibrated":False,
+           "projections":results,"fps_camera_roll_sweep":sweep,
+           "gameplay_verified":False,"camera_calibrated":False,
            "ads_verified":False,"hand_grip_verified":False,
            "private_original_geometry_exported":False}
     (output/"fps-camera-audit.json").write_text(json.dumps(audit,indent=2)+"\n")
     print(json.dumps({"frames":len(results),"tag_camera":camtag is not None,
       "camera_candidates":list(candidates),
       "source_tags":source_tags,
+      "source_roll_sweep":[{"height":x["height_fraction"],"roll":x["roll_degrees"],
+                       "faces":x["drawn_faces"]} for x in sweep],
       "results":[{"view":x["view"],"strategy":x["strategy"],"action":x["action"],
                   "forward":x["forward"],"faces":x["drawn_faces"]} for x in results]}))
     if not any(x["drawn_faces"]>40 for x in results):
