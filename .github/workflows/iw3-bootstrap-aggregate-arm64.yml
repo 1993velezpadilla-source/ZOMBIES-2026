@@ -38,14 +38,30 @@ jobs:
           yes | "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" --licenses >/dev/null || true
           "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" 'ndk;27.2.12479018'
           echo "ANDROID_NDK_HOME=$sdk/ndk/27.2.12479018" >> "$GITHUB_ENV"
+      - name: Prepare authentic KisakCOD math, surface and config registry sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/iw3-bootstrap-source"
+          python3 tools/iw3_android/prepare_real_engine_math.py \
+            --engine third_party/KisakCOD \
+            --output "$RUNNER_TEMP/iw3-bootstrap-source/com_math_anglevectors.cpp" \
+            --surface-output "$RUNNER_TEMP/iw3-bootstrap-source/surfaceflags.cpp" \
+            --constant-output "$RUNNER_TEMP/iw3-bootstrap-source/com_constantconfigstrings.cpp" \
+            --report "$RUNNER_TEMP/iw3-bootstrap-source/source-evidence.json"
       - name: Configure authentic Android ARM64 object targets
         shell: bash
         run: |
           set -euo pipefail
           cmake -S android/iw3-native -B "$RUNNER_TEMP/iw3-bootstrap-build" \
+            -DIW3_EXTRACTED_MATH="$RUNNER_TEMP/iw3-bootstrap-source/com_math_anglevectors.cpp" \
+            -DIW3_EXTRACTED_SURFACE="$RUNNER_TEMP/iw3-bootstrap-source/surfaceflags.cpp" \
+            -DIW3_EXTRACTED_CONSTANTS="$RUNNER_TEMP/iw3-bootstrap-source/com_constantconfigstrings.cpp" \
+            -DIW3_REAL_HEADER_ROOT="$GITHUB_WORKSPACE/third_party/KisakCOD/src/universal" \
             -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake" \
             -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-26 \
-            -DCMAKE_BUILD_TYPE=Release -DIW3_OPENAL_HEADERS_ROOT=/usr/include
+            -DCMAKE_BUILD_TYPE=Release -DIW3_OPENAL_HEADERS_ROOT=/usr/include \
+            2>&1 | tee "$RUNNER_TEMP/bootstrap-build.log"
       - name: Compile seven original translation units as one explicit dependency target
         shell: bash
         run: |
