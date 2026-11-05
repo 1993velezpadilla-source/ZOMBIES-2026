@@ -30,7 +30,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 -m pip install --quiet --user Pillow==12.0.0 numpy==2.3.4
-          python3 -m py_compile sandbox/luanti/iw3_blockstyle/voxelize.py sandbox/luanti/iw3_blockstyle/render_previews.py sandbox/luanti/iw3_blockstyle/render_pose_sequence.py
+          python3 -m py_compile sandbox/luanti/iw3_blockstyle/voxelize.py sandbox/luanti/iw3_blockstyle/render_previews.py sandbox/luanti/iw3_blockstyle/render_pose_sequence.py sandbox/luanti/iw3_blockstyle/render_mounted_viewhands.py
           python3 sandbox/luanti/v3/build_ak47_assets.py /tmp/original-ak-test
           PYTHONPATH="$PWD/_iw3_pipeline_src/tools" python3 - <<'PY'
           import importlib.util
@@ -62,6 +62,11 @@ jobs:
           pose_report=draw_pose(scene,clip,duration*.5,"SYNTHETIC POSE SMOKE",Path('/tmp/pose-test.png'))
           assert pose_report['faces']>100
           print('PASS animated rig pose smoke',clip,pose_report['faces'])
+          import numpy as np
+          from render_mounted_viewhands import transform_points
+          xyz=transform_points(np.array([[0.,0.,0.],[1.,2.,3.]]),np.eye(4))
+          assert np.allclose(xyz,[[0.,0.,0.],[1.,2.,3.]])
+          print('PASS tag-bone transform smoke')
           PY
 
   real-cod4-private:
@@ -164,6 +169,27 @@ jobs:
                  "max_hand_motion":max((f['hands_max_vertex_motion'] for f in v.get('frames',[])),default=0)}
               for k,v in data['actions'].items()})
           PY
+      - name: Mount original skinned COD4 hands and rifle on original tag_weapon during full reload
+        run: |
+          set -euo pipefail
+          PYTHONPATH="$PWD/_iw3_pipeline_src/tools" python3 \
+            sandbox/luanti/iw3_blockstyle/render_mounted_viewhands.py \
+            --rifle _iw3_private/blockstyle/AK47_COD4_BLOCKSTYLE_ALL_XANIM_PRIVATE.glb \
+            --hands _iw3_private/blockstyle/AK47_COD4_HANDS_ALL_XANIM_PRIVATE.glb \
+            --output _iw3_reports/mounted-frames
+          test -s _iw3_reports/mounted-frames/ak47_real_viewhands_mounted_contact_sheet.png
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          audit=json.loads(Path("_iw3_reports/mounted-frames/mount-audit.json").read_text())
+          assert len(audit["frames"])>=6,audit["errors"]
+          assert all(frame["hand_anchor_present"] for frame in audit["frames"])
+          assert any(frame["action"]=="reload" for frame in audit["frames"])
+          assert not audit["hand_grip_verified"],"Do not call a structural tag match a functional grip"
+          print("Real original COD4 hands+AK frames:",len(audit["frames"]))
+          print("Mount strategies:",sorted(set(f["mount_strategy"] for f in audit["frames"])))
+          print("Remaining visual errors:",audit["errors"])
+          PY
       - name: Upload static and truly animated pose screenshots from real COD4 geometry
         uses: actions/upload-artifact@v4
         with:
@@ -171,6 +197,7 @@ jobs:
           path: |
             _iw3_reports/real-renders/*.png
             _iw3_reports/pose-frames/*.png
+            _iw3_reports/mounted-frames/*.png
           if-no-files-found: error
           retention-days: 7
       - name: Destroy original archive and all private binary model outputs
@@ -185,5 +212,6 @@ jobs:
           path: |
             _iw3_reports/ak47-blockstyle.json
             _iw3_reports/pose-frames/pose-audit.json
+            _iw3_reports/mounted-frames/mount-audit.json
           if-no-files-found: warn
           retention-days: 14
