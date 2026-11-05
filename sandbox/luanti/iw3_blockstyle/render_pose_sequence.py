@@ -204,8 +204,15 @@ def camera_params(points,orientation=(28,25)):
     return (axis,vertical,side,yaw,elevation,cx,cy,scale)
 
 
-def draw_pose(scene,action,t,title,output,*,orientation=(28,25),camera=None):
-    geometry,points,world=scene.poses(action,t)
+def draw_pose(scene,action,t,title,output,*,orientation=(28,25),camera=None,geometry_override=None):
+    # Independent skinning/mount code may pass a physically composed scene.
+    # This renders the actual transformed vertices, never an artist mock-up.
+    if geometry_override is None:
+        geometry,points,world=scene.poses(action,t)
+    else:
+        geometry=geometry_override
+        points=np.vstack([item[0] for item in geometry])
+        world=scene.world(action,t)
     lo=points.min(axis=0);hi=points.max(axis=0)
     if camera is None:
         camera=camera_params(points,orientation)
