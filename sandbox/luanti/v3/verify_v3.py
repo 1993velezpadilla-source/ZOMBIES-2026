@@ -28,7 +28,7 @@ def validate_glb(binary):
     return gltf
 
 def inspect(mod):
-    m=mod.rstrip("/")+"/"
+    m=str(mod).rstrip("/")+"/"
     assert Path(m+"models/ak47dev_animated.glb").exists()
     validate_glb(Path(m+"models/ak47dev_animated.glb").read_bytes())
     for n in REQ_SOUNDS:
