@@ -29,7 +29,8 @@ jobs:
       - name: Syntax and executable cuboid conversion test
         run: |
           set -euo pipefail
-          python3 -m py_compile sandbox/luanti/iw3_blockstyle/voxelize.py
+          python3 -m pip install --quiet --user Pillow==12.0.0 numpy==2.3.4
+          python3 -m py_compile sandbox/luanti/iw3_blockstyle/voxelize.py sandbox/luanti/iw3_blockstyle/render_previews.py sandbox/luanti/iw3_blockstyle/render_pose_sequence.py
           python3 sandbox/luanti/v3/build_ak47_assets.py /tmp/original-ak-test
           PYTHONPATH="$PWD/_iw3_pipeline_src/tools" python3 - <<'PY'
           import importlib.util
@@ -51,6 +52,16 @@ jobs:
           assert new['meshes'][0]['primitives'][0]['attributes']['JOINTS_0']>=0
           assert all(m['pbrMetallicRoughness']['metallicFactor']==0 for m in new['materials'])
           print('PASS synthetic AK GLB voxelized',stats)
+          import sys
+          sys.path.insert(0,'sandbox/luanti/iw3_blockstyle')
+          from render_pose_sequence import PoseScene, draw_pose
+          scene=PoseScene(dest)
+          clip=scene.names()[0]
+          duration=scene.duration(clip)
+          assert duration>0 and len(scene.poses(clip,0)[1])>100
+          pose_report=draw_pose(scene,clip,duration*.5,"SYNTHETIC POSE SMOKE",Path('/tmp/pose-test.png'))
+          assert pose_report['faces']>100
+          print('PASS animated rig pose smoke',clip,pose_report['faces'])
           PY
 
   real-cod4-private:
@@ -133,9 +144,35 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ak47-cod4-blockstyle-actual-static-screenshots
-          path: _iw3_reports/real-renders/*.png
+          path: |
+            _iw3_reports/real-renders/*.png
+            _iw3_reports/pose-frames/*.png
           if-no-files-found: error
           retention-days: 7
+      - name: Verify animated glTF skinning on real COD4 reload / idle / fire / ADS
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet --user numpy==2.3.4
+          PYTHONPATH="$PWD/_iw3_pipeline_src/tools" python3 \
+            sandbox/luanti/iw3_blockstyle/render_pose_sequence.py \
+            --rifle _iw3_private/blockstyle/AK47_COD4_BLOCKSTYLE_ALL_XANIM_PRIVATE.glb \
+            --hands _iw3_private/blockstyle/AK47_COD4_HANDS_ALL_XANIM_PRIVATE.glb \
+            --output _iw3_reports/pose-frames
+          test -s _iw3_reports/pose-frames/ak47_animation_comparison.png
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          data=json.loads(Path('_iw3_reports/pose-frames/pose-audit.json').read_text())
+          assert 'reload' in data['actions']
+          assert data['actions']['reload'].get('frames'),data['actions']['reload']
+          assert data['rifle_clips'] >= 4
+          print('ACTUAL COD4 SKIN POSE CHECKS:', {
+              k:{"status":v.get('status','rendered'),
+                 "duration":v.get('duration_seconds'),
+                 "max_rifle_motion":max((f['rifle_max_vertex_motion'] for f in v.get('frames',[])),default=0),
+                 "max_hand_motion":max((f['hands_max_vertex_motion'] for f in v.get('frames',[])),default=0)}
+              for k,v in data['actions'].items()})
+          PY
       - name: Destroy original archive and all private binary model outputs
         if: always()
         run: |
@@ -145,6 +182,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: iw3-ak47-blockstyle-metadata-only
-          path: _iw3_reports/ak47-blockstyle.json
+          path: |
+            _iw3_reports/ak47-blockstyle.json
+            _iw3_reports/pose-frames/pose-audit.json
           if-no-files-found: warn
           retention-days: 14
