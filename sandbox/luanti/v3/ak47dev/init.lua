@@ -86,18 +86,18 @@ local function reload(player, s)
     animate(s, 1.0, 3.75)
     -- These are timed mechanical Foley events, aligned to magazine drop,
     -- magazine insertion, then bolt release in the glTF keyframe timeline.
-    play(s, "ak47dev_magout", player, 0.70)
+    play(s, "ak47dev_reload", player, 0.90)\n    play(s, "ak47dev_magout", player, 0.26)
     local name=player:get_player_name()
     minetest.after(1.20,function()
         if S[name]==s and minetest.get_player_by_name(name)
             and s.reload_end>0 then
-            play(s,"ak47dev_magin",player,0.82)
+            play(s,"ak47dev_magin",player,0.24)
         end
     end)
     minetest.after(2.20,function()
         if S[name]==s and minetest.get_player_by_name(name)
             and s.reload_end>0 then
-            play(s,"ak47dev_bolt",player,0.8)
+            play(s,"ak47dev_bolt",player,0.22)
         end
     end)
     hud_text(player,s)
@@ -151,7 +151,7 @@ local function set_ads(player,s,enabled)
     end
     -- ADS narrows field of view, restores cleanly when releasing the gun.
     if enabled then
-        player:set_fov(0.80, false, 0.15)
+        player:set_fov(0.80, true, 0.15)
     else
         player:set_fov(0, false, 0.15)
     end
