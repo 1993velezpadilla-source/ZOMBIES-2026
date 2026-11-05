@@ -135,6 +135,8 @@ jobs:
           x=json.loads(Path('_iw3_reports/ak47-blockstyle.json').read_text())
           assert x['rifle_animations_attached']>0
           assert x['rifle_geometry']['cuboids']>0
+          assert x['hands_tight_geometry']['cuboids']>=50
+          assert x['hands_tight_animations_attached']>20
           assert x['private_binary_outputs']
           print('AK47 conversions:',x['rifle_geometry']['cuboids'],
                 'All decoded:',x['xanim_decoded'],
@@ -200,6 +202,31 @@ jobs:
           print("Mount strategies:",sorted(set(f["mount_strategy"] for f in audit["frames"])))
           print("Remaining visual errors:",audit["errors"])
           PY
+      - name: Render first-person original AK with wrists and fingers ONLY (no giant forearms)
+        run: |
+          set -euo pipefail
+          PYTHONPATH="$PWD/_iw3_pipeline_src/tools" python3 \
+            sandbox/luanti/iw3_blockstyle/render_mounted_viewhands.py \
+            --rifle _iw3_private/blockstyle/AK47_COD4_BLOCKSTYLE_ALL_XANIM_PRIVATE.glb \
+            --hands _iw3_private/blockstyle/AK47_COD4_HANDSONLY_ALL_XANIM_PRIVATE.glb \
+            --output _iw3_reports/mounted-hands-only
+          test -s _iw3_reports/mounted-hands-only/ak47_real_viewhands_mounted_contact_sheet.png
+          PYTHONPATH="$PWD/_iw3_pipeline_src/tools" python3 \
+            sandbox/luanti/iw3_blockstyle/render_fps_camera_probe.py \
+            --rifle _iw3_private/blockstyle/AK47_COD4_BLOCKSTYLE_ALL_XANIM_PRIVATE.glb \
+            --hands _iw3_private/blockstyle/AK47_COD4_HANDSONLY_ALL_XANIM_PRIVATE.glb \
+            --output _iw3_reports/fps-hands-only
+          test -s _iw3_reports/fps-hands-only/ak47_native_fps_roll_and_height_sweep.png
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          old=json.loads(Path("_iw3_reports/mounted-frames/mount-audit.json").read_text())
+          new=json.loads(Path("_iw3_reports/mounted-hands-only/mount-audit.json").read_text())
+          assert new["frames"] and len(new["frames"])==len(old["frames"])
+          assert all(f["gun_anchor_name"]=="tag_ak47_mount" for f in new["frames"])
+          assert all(f["tag_alignment_error"]<.00001 for f in new["frames"])
+          print("HAND-ONLY AK SOURCE XANIM FRAMES:",len(new["frames"]))
+          PY
       - name: Probe actual first-person camera perspective from COD4 source tags
         run: |
           set -euo pipefail
@@ -238,6 +265,8 @@ jobs:
             _iw3_reports/pose-frames/*.png
             _iw3_reports/mounted-frames/*.png
             _iw3_reports/fps-cameras/*.png
+            _iw3_reports/mounted-hands-only/*.png
+            _iw3_reports/fps-hands-only/*.png
           if-no-files-found: error
           retention-days: 7
       - name: Destroy original archive and all private binary model outputs
@@ -254,5 +283,7 @@ jobs:
             _iw3_reports/pose-frames/pose-audit.json
             _iw3_reports/mounted-frames/mount-audit.json
             _iw3_reports/fps-cameras/fps-camera-audit.json
+            _iw3_reports/mounted-hands-only/mount-audit.json
+            _iw3_reports/fps-hands-only/fps-camera-audit.json
           if-no-files-found: warn
           retention-days: 14
