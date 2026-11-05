@@ -1,0 +1,88 @@
+name: Build Voxel Sandbox V3 AK-47 first gun Android APK
+on:
+  push:
+    branches:
+      - feature/voxel-v3-ak47-first-weapon-20261105
+    paths:
+      - sandbox/luanti/**
+      - .github/workflows/luanti-voxel-v3-ak47-android.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+
+jobs:
+  android-ak47:
+    name: V3 original AK-47 GLB plus CC0 gunshot and reload
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - name: Checkout independent AK-47 prototype branch
+        uses: actions/checkout@v4
+
+      - name: Install required gettext msgfmt and validate generated sources
+        run: |
+          sudo apt-get install -y --no-install-recommends gettext
+          command -v msgfmt
+          python3 -m py_compile sandbox/luanti/v3/build_ak47_assets.py sandbox/luanti/v3/patch_v3.py sandbox/luanti/v3/verify_v3.py
+          if command -v luac5.1 >/dev/null; then luac5.1 -p sandbox/luanti/v3/ak47dev/init.lua; fi
+
+      - name: Use Java 17 for Android build
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Download pinned Luanti and original VoxeLibre
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch 5.18.0 https://github.com/luanti-org/luanti.git "$RUNNER_TEMP/luanti"
+          git clone --depth 1 --branch master https://github.com/VoxeLibre/VoxeLibre.git "$RUNNER_TEMP/voxelibre"
+          test "$(git -C "$RUNNER_TEMP/voxelibre" rev-parse HEAD)" = "4492ce6ff8d856daa4567abe2ea689f4e7a39842"
+          mkdir -p "$RUNNER_TEMP/luanti/games"
+          mv "$RUNNER_TEMP/voxelibre" "$RUNNER_TEMP/luanti/games/voxelibre"
+          rm -rf "$RUNNER_TEMP/luanti/games/voxelibre/.git"
+          python3 "$GITHUB_WORKSPACE/sandbox/luanti/prepare.py" "$RUNNER_TEMP/luanti"
+          python3 "$GITHUB_WORKSPACE/sandbox/luanti/v2/patch_v2.py" "$RUNNER_TEMP/luanti"
+          python3 "$GITHUB_WORKSPACE/sandbox/luanti/v3/patch_v3.py" "$RUNNER_TEMP/luanti"
+          python3 "$GITHUB_WORKSPACE/sandbox/luanti/v3/verify_v3.py" "$RUNNER_TEMP/luanti/games/voxelibre/mods/ak47dev"
+          if command -v luac5.1 >/dev/null; then luac5.1 -p "$RUNNER_TEMP/luanti/games/voxelibre/mods/ak47dev/init.lua"; fi
+
+      - name: Compile dedicated V3 Android ARM64 app (V1 and V2 remain installed)
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/luanti/android"
+          chmod +x gradlew
+          ./gradlew :app:assembleDebug --no-daemon --stacktrace
+
+      - name: Verify real APK contents and package
+        run: |
+          set -euo pipefail
+          APK="$RUNNER_TEMP/luanti/android/app/build/outputs/apk/debug/app-arm64-v8a-debug.apk"
+          python3 sandbox/luanti/verify_apk.py "$APK"
+          python3 sandbox/luanti/v2/verify_v2.py "$APK"
+          python3 sandbox/luanti/v3/verify_v3.py "$APK"
+          AAPT="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)/aapt"
+          "$AAPT" dump badging "$APK" | grep -m1 "package:"
+          "$AAPT" dump badging "$APK" | grep -q "name='com.xziel.voxelsandbox.v3'"
+          mkdir -p "$RUNNER_TEMP/v3-dist"
+          cp "$APK" "$RUNNER_TEMP/v3-dist/Voxel-Sandbox-V3-AK47-ARM64.apk"
+          sha256sum "$RUNNER_TEMP/v3-dist/Voxel-Sandbox-V3-AK47-ARM64.apk"
+
+      - name: Upload installable test APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Voxel-Sandbox-V3-AK47-ARM64-APK
+          path: ${{ runner.temp }}/v3-dist/Voxel-Sandbox-V3-AK47-ARM64.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish direct test APK GitHub prerelease
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "voxel-sandbox-v3-ak47-${GITHUB_RUN_NUMBER}" \
+            "$RUNNER_TEMP/v3-dist/Voxel-Sandbox-V3-AK47-ARM64.apk" \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease \
+            --title "Voxel Sandbox V3 - First AK-47 prototype ${GITHUB_RUN_NUMBER}" \
+            --notes "Prototype: V1 and V2 preserved. Original 3D skinned GLB gun (body, curved magazine, bolt and hands), recoil and reload animations, AK-47 CC0 shot/reload/click from Deases/GunLib (Freesound CC0 sources), ADS, auto reload, 30 rounds; game uses VoxeLibre on Luanti. No Project Aether/ TaCZ copyrighted assets in APK. Requires real Android verification."
