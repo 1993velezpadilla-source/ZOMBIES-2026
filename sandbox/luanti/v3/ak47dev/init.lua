@@ -20,9 +20,25 @@ local function state(player)
     local name = player:get_player_name()
     if not S[name] then
         S[name] = {ammo=CAPACITY, reserve=210, next_fire=0, reload_end=0,
-            ads=false, ent=nil, hud=nil, rig_enabled=false, last_item=false}
+            ads=false, ent=nil, hud=nil, rig_enabled=false, last_item=false, visual_seq=0}
     end
     return S[name]
+end
+
+-- The native camera renderer reads these item-meta events each frame.
+-- This uses Luanti's existing server-to-client inventory replication; no
+-- extra network protocol, HUD-based timing or hidden global camera hacks.
+local function sync_camera(player, s, action)
+    local stack = player:get_wielded_item()
+    if stack:get_name() ~= AK then return end
+    local meta = stack:get_meta()
+    if action then
+        s.visual_seq = s.visual_seq + 1
+        meta:set_string("xz_ak_anim", action .. tostring(s.visual_seq))
+    end
+    meta:set_string("xz_ak_ads", s.ads and "1" or "0")
+    meta:set_string("xz_ak_view", s.model_view or "animated")
+    player:set_wielded_item(stack)
 end
 
 local function hud_text(p, s)
@@ -84,6 +100,7 @@ local function reload(player, s)
     if s.reload_end>0 or s.ammo>=CAPACITY or s.reserve==0 then return end
     s.reload_end=now+RELOAD_SECONDS
     s.ads=false
+    sync_camera(player,s,"R")
     animate(s, 1.0, 3.75)
     -- These are timed mechanical Foley events, aligned to magazine drop,
     -- magazine insertion, then bolt release in the glTF keyframe timeline.
@@ -134,6 +151,7 @@ local function fire(player, s)
     end
     s.next_fire=now+FIRE_PERIOD
     s.ammo=s.ammo-1
+    sync_camera(player,s,"F")
     animate(s,0.4,0.82)
     play(s,"ak47dev_fire",player,0.70)
     trace_shot(player)
@@ -144,6 +162,7 @@ end
 local function set_ads(player,s,enabled)
     if s.reload_end>0 then return end
     s.ads=enabled
+    sync_camera(player,s,nil)
     if s.ent and s.ent:is_valid() then
         -- Aim down sights: the rifle's receiver is aligned under the reticle.
         -- No double-hand 'steering wheel' animation.
@@ -187,7 +206,7 @@ minetest.register_node(AK,{
     tiles={"ak47dev_atlas.png"},
     inventory_image="ak47dev_icon.png",
     -- Do NOT set wield_image: Luanti must use the 3D mesh-node wield renderer.
-    wield_scale={x=1.0,y=1.0,z=1.0},
+    wield_scale={x=7.0,y=7.0,z=7.0},
     visual_scale=1.0,
     paramtype="light",
     paramtype2="facedir",
@@ -204,21 +223,21 @@ minetest.register_node(AK,{
         local s=state(player)
         if player:get_player_control().sneak then reload(player,s)
         else fire(player,s) end
-        return stack
+        return player:get_wielded_item()
     end,
     on_secondary_use=function(stack,player)
         if player then
             local s=state(player)
             set_ads(player,s,not s.ads)
         end
-        return stack
+        return player and player:get_wielded_item() or stack
     end,
     on_place=function(stack,player)
         if player then
             local s=state(player)
             set_ads(player,s,not s.ads)
         end
-        return stack
+        return player and player:get_wielded_item() or stack
     end,
 })
 
@@ -263,6 +282,23 @@ minetest.register_chatcommand("akdiag",{
     end
 })
 
+-- Optional real-time renderer A/B: native fallback vs animated GLB.
+minetest.register_chatcommand("akview",{
+    params="animated|native",
+    description="Toggle custom FPS AK renderer on your Android client",
+    func=function(name,param)
+        local player=minetest.get_player_by_name(name)
+        if not is_weapon(player) then return false, "Equip AK-47 first" end
+        if param~="native" and param~="animated" then
+            return true, "Use /akview animated or /akview native"
+        end
+        local s=state(player)
+        s.model_view=param
+        sync_camera(player,s,nil)
+        return true,"AK FPS renderer: "..param
+    end
+})
+
 minetest.register_chatcommand("akreload",{
     description="Reload the AK-47 prototype",
     func=function(name)
@@ -297,6 +333,7 @@ minetest.register_on_joinplayer(function(player)
             end
         end
         hud_text(p,state(p))
+        sync_camera(p,state(p),nil)
     end)
 end)
 minetest.register_on_leaveplayer(function(p)
@@ -323,6 +360,7 @@ minetest.register_globalstep(function(dt)
                 s.reserve=s.reserve-need
                 s.reload_end=0
                 animate(s,0,0.18)
+                sync_camera(p,s,nil)
                 hud_text(p,s)
             end
             local controls=p:get_player_control()
@@ -335,7 +373,10 @@ minetest.register_globalstep(function(dt)
                 set_ads(p,s,true)
             end
         elseif s.ads then
-            set_ads(p,s,false)
+            -- Reset FOV even if the AK was unequipped while aiming. The
+            -- client camera restores native wield rendering automatically.
+            s.ads=false
+            p:set_fov(0,false,0.15)
         end
     end
 end)
