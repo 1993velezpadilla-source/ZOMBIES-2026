@@ -93,6 +93,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: iw3-authentic-bootstrap-aggregate-compile-log-NOT-APK
-          path: |\n            ${{ runner.temp }}/bootstrap-build.log\n            ${{ runner.temp }}/bootstrap-prerequisites.log
+          path: |
+            ${{ runner.temp }}/bootstrap-build.log
+            ${{ runner.temp }}/bootstrap-prerequisites.log
           if-no-files-found: warn
           retention-days: 30
