@@ -19,8 +19,10 @@ jobs:
       - name: Checkout independent AK-47 prototype branch
         uses: actions/checkout@v4
 
-      - name: Validate Python and Lua where installed (no apt network)
+      - name: Install required gettext msgfmt and validate generated sources
         run: |
+          sudo apt-get install -y --no-install-recommends gettext
+          command -v msgfmt
           python3 -m py_compile sandbox/luanti/v3/build_ak47_assets.py sandbox/luanti/v3/patch_v3.py sandbox/luanti/v3/verify_v3.py
           if command -v luac5.1 >/dev/null; then luac5.1 -p sandbox/luanti/v3/ak47dev/init.lua; fi
 
