@@ -96,6 +96,8 @@ def main():
     print("TOP_AUDIO_FOLDERS",json.dumps(sample_dir.most_common(25),ensure_ascii=False))
     print("WEAPON_MATCHES",json.dumps({k:{a:b for a,b in v.items() if a!="samples"} for k,v in checks.items()},ensure_ascii=False))
     print("SAMPLE_WEAPON_AUDIO_FILENAMES",json.dumps(hints[:40],ensure_ascii=False))
+    print("EXPLICIT_WEAPON_DIR_FILES",json.dumps([r["path"] for r in weapons_dir[:20]],ensure_ascii=False))
+    print("GUN_SAMPLE_MATCHES",json.dumps({k:v["samples"] for k,v in checks.items() if v["total"]},ensure_ascii=False))
     print(f"Markdown report: {OUT}")
 
 if __name__=="__main__":
