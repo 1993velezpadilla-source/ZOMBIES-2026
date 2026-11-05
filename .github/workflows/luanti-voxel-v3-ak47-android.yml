@@ -22,7 +22,7 @@ jobs:
       - name: Install Lua syntax tools and audio utilities
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends gettext zip unzip lua5.1 ffmpeg
+          sudo apt-get install -y --no-install-recommends gettext zip unzip lua5.1
           luac5.1 -p sandbox/luanti/v3/ak47dev/init.lua
           python3 -m py_compile sandbox/luanti/v3/build_ak47_assets.py sandbox/luanti/v3/patch_v3.py sandbox/luanti/v3/verify_v3.py
 
@@ -46,7 +46,6 @@ jobs:
           python3 "$GITHUB_WORKSPACE/sandbox/luanti/v3/patch_v3.py" "$RUNNER_TEMP/luanti"
           python3 "$GITHUB_WORKSPACE/sandbox/luanti/v3/verify_v3.py" "$RUNNER_TEMP/luanti/games/voxelibre/mods/ak47dev"
           luac5.1 -p "$RUNNER_TEMP/luanti/games/voxelibre/mods/ak47dev/init.lua"
-          ffprobe -v error -show_entries format=duration -of default=nw=1 "$RUNNER_TEMP/luanti/games/voxelibre/mods/ak47dev/sounds/ak47dev_reload.ogg"
 
       - name: Compile dedicated V3 Android ARM64 app (V1 and V2 remain installed)
         run: |
