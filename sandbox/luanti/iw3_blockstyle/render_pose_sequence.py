@@ -251,13 +251,16 @@ def run(rifle_path,hands_path,outdir):
             audit["actions"][key]={"status":"missing_matching_animation"}
             continue
         duration=min(a.duration(name),b.duration(hand))
-        if duration<=0:
-            audit["actions"][key]={"status":"zero_duration"}
+        # A single-frame idle XANIM is a valid zero-second bind pose.
+        if duration<0:
+            audit["actions"][key]={"status":"negative_duration"}
             continue
-        info={"duration_seconds":round(duration,4),"clip":name,"frames":[]}
+        info={"duration_seconds":round(duration,4),"clip":name,
+              "static_one_frame":duration==0,"frames":[]}
         rifle_start=a.poses(name,0)[1]
         hands_start=b.poses(hand,0)[1]
-        for fraction in FRACS:
+        source_span=max(.001,float(np.max(np.ptp(rifle_start,axis=0))))
+        for fraction in ((0.,) if duration==0 else FRACS):
             t=duration*fraction
             gun=a.poses(name,t)[1]
             hand_points=b.poses(hand,t)[1]
@@ -269,6 +272,9 @@ def run(rifle_path,hands_path,outdir):
               "fraction":fraction,"image":fname.name,
               "rifle_mean_vertex_motion":round(float(dr.mean()),6),
               "rifle_max_vertex_motion":round(float(dr.max()),6),
+              "rifle_motion_vs_rifle_extent":round(float(dr.max())/source_span,4),
+              "suspiciously_large_rifle_motion":bool(float(dr.max())>source_span*.9),
+              "hands_tag_weapon_present":b.tag(b.world(hand,t)) is not None,
               "hands_mean_vertex_motion":round(float(dh.mean()),6),
               "hands_max_vertex_motion":round(float(dh.max()),6),
               "frame":shot})
