@@ -24,12 +24,20 @@ NEAR = 0.25
 BG = (21, 24, 31)
 
 
-def projection_basis(sign=1):
-    # IW3 X-model axes documented by original source probe: +X = model
-    # forward, +Z = up. -X is a diagnostic alternative, NOT a claim.
-    forward = np.array([float(sign), 0., 0.])
-    up = np.array([0., 0., 1.])
-    right = np.cross(forward, up)
+def projection_basis(sign=1, forward_override=None):
+    # A tag_flash direction is stronger evidence than assuming world +X.
+    # +X/-X are retained strictly for A/B coordinate system diagnostics.
+    forward = (np.asarray(forward_override,dtype=float) if forward_override is not None
+               else np.array([float(sign),0.,0.]))
+    length=float(np.linalg.norm(forward))
+    if length<1e-8:raise ValueError("degenerate original muzzle direction")
+    forward=forward/length
+    up=np.array([0.,0.,1.])
+    if abs(float(np.dot(forward,up)))>.95:
+        up=np.array([0.,1.,0.])
+    right=np.cross(forward,up)
+    right=right/max(1e-8,float(np.linalg.norm(right)))
+    up=np.cross(right,forward)
     return right, up, forward
 
 
@@ -58,8 +66,8 @@ def clip_against_near(poly, near):
     return out
 
 
-def render_perspective(geometry, camera, sign, label, outfile, fov=FOV):
-    basis = projection_basis(sign)
+def render_perspective(geometry, camera, sign, label, outfile, fov=FOV, forward_override=None):
+    basis = projection_basis(sign,forward_override)
     cx,cy = WIDTH/2, HEIGHT/2+15
     focal = (WIDTH/2)/math.tan(math.radians(fov/2))
     im=Image.new('RGB',(WIDTH,HEIGHT),BG)
@@ -107,7 +115,8 @@ def render_perspective(geometry, camera, sign, label, outfile, fov=FOV):
         rendered_faces+=1
     draw.rectangle((0,0,WIDTH,76),fill=(14,17,22))
     draw.text((18,16),label,fill=(233,238,246))
-    draw.text((18,43),f"real original XANIM + voxel geometry  |  75deg FOV  |  {'+X' if sign>0 else '-X'} forward",fill=(179,196,210))
+    direction="tag_flash→muzzle" if forward_override is not None else ('+X' if sign>0 else '-X')
+    draw.text((18,43),f"real original XANIM + voxel geometry  |  75deg FOV  |  {direction} forward",fill=(179,196,210))
     draw.rectangle((0,HEIGHT-50,WIDTH,HEIGHT),fill=(14,17,22))
     draw.text((18,HEIGHT-32),"PERSPECTIVE PROBE • NOT VERIFIED FPS ADS/RELOAD • NOT A GAME SCREENSHOT",fill=(237,186,109))
     outfile.parent.mkdir(parents=True,exist_ok=True)
@@ -115,7 +124,7 @@ def render_perspective(geometry, camera, sign, label, outfile, fov=FOV):
     return {"source_faces":source_faces,"drawn_faces":rendered_faces,
             "source_vertices_in_front":near_front, "near":NEAR,
             "camera_origin":[round(float(v),4) for v in camera],
-            "camera_forward":'+X' if sign>0 else '-X'}
+            "camera_forward":'tag_flash→muzzle' if forward_override is not None else ('+X' if sign>0 else '-X')}
 
 
 def gather_source_camera(hands, clip):
@@ -154,9 +163,32 @@ def run(rifle_path, hands_path, output):
     if hand_rest is None:
         raise ValueError("viewhands lacks original tag_weapon")
     camtag,tags=gather_source_camera(hands,hand_idle)
-    candidates={"original_origin":np.zeros(3)}
-    if camtag is not None:
-        candidates["original_hand_tag_camera"]=camtag
+    # The original COD4 rifle actually has tag_ak47_mount! Pair that with
+    # hands.tag_weapon instead of treating the rifle root as its grip pivot.
+    # Use tag_flash to derive a genuine forward vector, not a guessed rotation.
+    hg=hands.tag(hands.world(hand_idle,0.),"tag_weapon")
+    gw=rifle.world(gun_idle,0.)
+    mount=rifle.tag(gw,"tag_ak47_mount")
+    flash=rifle.tag(gw,"tag_flash")
+    if mount is None or flash is None:
+        raise ValueError("real original AK mount / muzzle tags absent")
+    rel=hg@np.linalg.inv(mount)
+    muzzle=(rel@flash)[:3,3]
+    anchor=hg[:3,3]
+    muzzle_direction=muzzle-anchor
+    muzzle_direction/=max(1e-8,float(np.linalg.norm(muzzle_direction)))
+    native_mesh,_=compose(rifle,hands,gun_idle,hand_idle,0.,hg,mode="native_pair")
+    rifle_xyz=np.vstack([part[0] for part in native_mesh[:len(rifle.geometry)]])
+    axial=rifle_xyz@muzzle_direction
+    min_axis=float(np.min(axial))
+    span=float(np.ptp(axial))
+    # Behind the original receiver based on actual *measured* geometry
+    # bounds. This camera is a diagnostic, not a fabricated COD4 view offset.
+    behind=anchor + (min_axis-float(np.dot(anchor,muzzle_direction))
+                    -0.10*span)*muzzle_direction
+    candidates={"original_camera_origin":np.asarray(camtag if camtag is not None
+                                                     else np.zeros(3),dtype=float),
+                "behind_real_rifle_geometry":behind}
     source_tags={
         "hands_tag_weapon_exists":True,
         "hands_tag_camera_candidates":tags,
@@ -164,38 +196,48 @@ def run(rifle_path, hands_path, output):
                                   for n in rifle.nodes),
         "rifle_tag_weapon":any(n.get("name","").lower()=="tag_weapon"
                                for n in rifle.nodes),
+        "rifle_tag_ak47_mount":any(n.get("name","").lower()=="tag_ak47_mount"
+                                   for n in rifle.nodes),
+        "rifle_tag_flash":any(n.get("name","").lower()=="tag_flash"
+                               for n in rifle.nodes),
+        "measured_muzzle_forward":[round(float(x),4) for x in muzzle_direction],
         "rifle_relevant_joint_names":[n.get("name","") for n in rifle.nodes
             if any(w in n.get("name","").lower() for w in ('sight','mag','tag','bolt'))][:40],
         "hand_relevant_joint_names":[n.get("name","") for n in hands.nodes
             if any(w in n.get("name","").lower() for w in ('camera','weapon','wrist','hand'))][:40],
     }
     results=[]
-    for strategy in ("relative_delta","direct_tag"):
+    for strategy in ("native_pair","relative_delta","direct_tag"):
         for view,origin in candidates.items():
-            for sign in (1,-1):
+            # Original source +X/-X versus the rig's own tag_flash→muzzle.
+            for axis in ("muzzle","posx","negx"):
+                sign=1 if axis!="negx" else -1
+                direction=muzzle_direction if axis=="muzzle" else None
                 for action,fraction in (("idle",0.),("reload",.50)):
                     gc=closest_clip(rifle,action)
                     hc=closest_clip(hands,action)
                     if not gc or not hc:continue
                     t=min(rifle.duration(gc),hands.duration(hc))*fraction
                     combined,meta=compose(rifle,hands,gc,hc,t,hand_rest,mode=strategy)
-                    stem=f"{strategy}_{view}_{'posx' if sign>0 else 'negx'}_{action}"
+                    stem=f"{strategy}_{view}_{axis}_{action}"
                     report=render_perspective(combined,origin,sign,
-                         f"{strategy.upper()} | {view} | {action.upper()} @ {int(fraction*100)}%",
-                         output/(stem+".png"))
+                         f"{strategy.upper()} | {view} | {axis} | {action.upper()} @ {int(fraction*100)}%",
+                         output/(stem+".png"),forward_override=direction)
                     results.append({"name":stem+".png","strategy":strategy,"view":view,
-                       "forward":'+X' if sign>0 else '-X',"action":action,
+                       "forward":axis,"action":action,
                        "fraction":fraction,
                        **report,"hand_proximity_normalized":meta.get("hand_proximity_normalized_by_rifle_extent"),
                        "visually_approved":False})
     output.mkdir(parents=True,exist_ok=True)
     # Each contact sheet compares idle/reload on two camera positions/directions.
-    for strategy in ("relative_delta","direct_tag"):
+    for strategy in ("native_pair","relative_delta","direct_tag"):
         names=[f"{strategy}_{view}_{axis}_{action}.png"
-                for view in candidates for axis in ("posx","negx")
+                for view in candidates for axis in ("muzzle","posx","negx")
                 for action in ("idle","reload")]
         make_grid(output,names,"ak47_fps_"+strategy+"_camera_comparison.png",2)
     audit={"source": "real privately converted COD4 skinned XANIM voxel rifle + viewhands",
+           "original_mount_pair": ["hands:tag_weapon","rifle:tag_ak47_mount"],
+           "muzzle_direction_from_original_tag_flash":[round(float(v),5) for v in muzzle_direction],
            "source_tags":source_tags,"camera_candidates":list(candidates),
            "projections":results,"gameplay_verified":False,"camera_calibrated":False,
            "ads_verified":False,"hand_grip_verified":False,
