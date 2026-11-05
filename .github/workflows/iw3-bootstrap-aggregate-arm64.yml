@@ -49,6 +49,25 @@ jobs:
             --surface-output "$RUNNER_TEMP/iw3-bootstrap-source/surfaceflags.cpp" \
             --constant-output "$RUNNER_TEMP/iw3-bootstrap-source/com_constantconfigstrings.cpp" \
             --report "$RUNNER_TEMP/iw3-bootstrap-source/source-evidence.json"
+      - name: Audit all required original-source inputs before CMake (NOT GAME)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' | tee "$RUNNER_TEMP/bootstrap-prerequisites.log"
+          import pathlib, re, sys
+          cmake = pathlib.Path('android/iw3-native/CMakeLists.txt').read_text()
+          required = re.findall(r'if\(NOT (IW3_EXTRACTED_[A-Z_]+) OR NOT EXISTS', cmake)
+          provided = {'IW3_EXTRACTED_MATH', 'IW3_EXTRACTED_SURFACE', 'IW3_EXTRACTED_CONSTANTS'}
+          missing = sorted(set(required) - provided)
+          print('IW3_BOOTSTRAP_SOURCE_PREREQUISITE_AUDIT_NOT_GAME')
+          print('Provided genuine extraction inputs:', ', '.join(sorted(provided)))
+          print('Required but not yet staged by this workflow:', len(missing))
+          for key in missing:
+              print('MISSING_ORIGINAL_SOURCE_INPUT:', key)
+          if missing:
+              print('BLOCKED: stage authentic KisakCOD extractions before attempting aggregate CMake configure.')
+              sys.exit(1)
+          PY
       - name: Configure authentic Android ARM64 object targets
         shell: bash
         run: |
@@ -74,6 +93,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: iw3-authentic-bootstrap-aggregate-compile-log-NOT-APK
-          path: ${{ runner.temp }}/bootstrap-build.log
+          path: |\n            ${{ runner.temp }}/bootstrap-build.log\n            ${{ runner.temp }}/bootstrap-prerequisites.log
           if-no-files-found: warn
           retention-days: 30
