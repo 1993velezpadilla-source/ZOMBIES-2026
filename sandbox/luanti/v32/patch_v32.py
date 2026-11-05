@@ -140,7 +140,7 @@ void Camera::updateAK47Viewmodel(f32 frametime)
     rot.X -= m_ak47_recoil * 2.5f;
     if (m_ak47_action_reload && m_ak47_action_left > 0.0f)
         pose.Y -= std::sin((2.75f-m_ak47_action_left)/2.75f *
-                core::PI) * 2.0f * (1.0f-a);
+                M_PI) * 2.0f * (1.0f-a);
 
     if (use_rig) {
         // The animated GLB uses authoring dimensions: 10 units = a voxel.
