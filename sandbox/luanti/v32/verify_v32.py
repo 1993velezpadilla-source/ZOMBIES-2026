@@ -25,13 +25,19 @@ def source_check(root):
     root=Path(root)
     camera=(root/"src/client/camera.cpp").read_text()
     header=(root/"src/client/camera.h").read_text()
-    assert ('m_client->getMesh("ak47dev_animated.glb")' in camera or\n            'm_client->getMesh("ak47dev_fp.glb")' in camera)\n    assert ('m_ak47_viewmodel->setScale(v3f(2.7f, 2.7f, 2.7f))' in camera or\n            'm_ak47_viewmodel->setScale(v3f(3.1f, 3.1f, 3.1f))' in camera)\n    for anchor in PARTS:\n        assert anchor in camera,anchor
+    assert ('m_client->getMesh("ak47dev_animated.glb")' in camera or
+            'm_client->getMesh("ak47dev_fp.glb")' in camera)
+    assert ('m_ak47_viewmodel->setScale(v3f(2.7f, 2.7f, 2.7f))' in camera or
+            'm_ak47_viewmodel->setScale(v3f(3.1f, 3.1f, 3.1f))' in camera)
+    for anchor in PARTS:
+        assert anchor in camera,anchor
     for anchor in [
         "m_ak47_viewmodel", "updateAK47Viewmodel",
         "m_ak47_ads_alpha", "m_ak47_last_event"]:
         assert anchor in header,anchor
     assert camera.count('void Camera::updateAK47Viewmodel(')==1
-    assert any(pid in (root/"android/app/build.gradle").read_text()\n               for pid in ('com.xziel.voxelsandbox.v32','com.xziel.voxelsandbox.v33'))
+    assert any(pid in (root/"android/app/build.gradle").read_text()
+               for pid in ('com.xziel.voxelsandbox.v32','com.xziel.voxelsandbox.v33'))
     mod=(root/"games/voxelibre/mods/ak47dev/init.lua").read_text()
     for anchor in ['meta:set_string("xz_ak_anim"', 'meta:set_string("xz_ak_ads"',
                    'meta:set_string("xz_ak_view"', 'sync_camera(player,s,"R")',
