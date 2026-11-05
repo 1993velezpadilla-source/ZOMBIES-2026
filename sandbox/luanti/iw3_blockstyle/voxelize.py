@@ -151,7 +151,7 @@ def allowed_primitive(source: dict, primitive: dict, mode: str) -> bool:
 
 def procedural_color(center: tuple, bone: int, pitch: float, context: dict) -> tuple:
     kind = context["kind"]
-    if kind == "hands":
+    if kind in ("hands","hands_tight"):
         base = (0.73, 0.52, 0.40)  # adult cartoon skin, not COD4 material
     else:
         lo, hi, major = context["lo"], context["hi"], context["major"]
@@ -212,10 +212,35 @@ def z_merge(cells):
     return out
 
 
+def bone_identity(doc: dict, bone: int) -> str:
+    # In glTF JOINTS_0 stores the index INTO skin.joints, not the global
+    # node number. Preserve this exact mapping while filtering forearms.
+    skins=doc.get("skins",[])
+    if not skins or bone>=len(skins[0].get("joints",[])):
+        return ""
+    node_idx=skins[0]["joints"][bone]
+    return doc["nodes"][node_idx].get("name","").lower()
+
+
+def is_hand_or_finger_bone(name: str) -> bool:
+    """Only true hand/wrist segments; exclude shoulders, elbows and forearms.
+
+    This is an EXPERIMENTAL FPS crop, not an anatomical skin-retarget.
+    It never changes the joint indices, source XANIM, or original scene.
+    """
+    if "wristtwist" in name or any(x in name for x in ("elbow","shoulder","clavicle")):
+        return False
+    return any(x in name for x in ("thumb","index","pinky","finger",
+                                  "ring","wrist","palm","j_mid","j_hand"))
+
+
 def emit_boxes(doc, raw, primitive, target_doc, dest_binary, pitch, context):
     tri=list(triangles(doc,raw,primitive))
+    if context["kind"]=="hands_tight":
+        tri=[(xyz,bone) for xyz,bone in tri
+             if is_hand_or_finger_bone(bone_identity(doc,bone))]
     if not tri:
-        raise ValueError("mesh primitive has no triangles")
+        raise ValueError("mesh primitive has no selected hand triangles")
     cells=surface_cells(tri,pitch)
     boxes=z_merge(cells)
     if len(boxes)>MAX_CUBES:
@@ -362,6 +387,10 @@ def voxelize(source: Path, target: Path, *, density=42, kind='rifle'):
             "palette":"original procedural adult-cartoon vertex colors, not COD4 texture",
             "render_mode":kind,
             "accessory_meshes_removed":len(doc.get("meshes",[]))-len(out["meshes"]),
+            "hand_only_positive_joint_names":sorted({
+              doc["nodes"][node_id].get("name","") for skin in doc.get("skins",[])
+              for node_id in skin.get("joints",[]) if kind=="hands_tight" and
+              is_hand_or_finger_bone(doc["nodes"][node_id].get("name","").lower())}),
             "voxel_glb_bytes":target.stat().st_size}
 
 
@@ -441,11 +470,26 @@ def run(dumps: Path, target: Path):
     hands_path=model_dir/"viewmodel_base_viewhands_lod0.glb"
     hands={}
     hands_voxel=None
+    hands_tight_geometry=None
+    tight_hands={}
     if hands_path.exists():
         hands_voxel=voxelize(hands_path,target/"AK47_COD4_HANDS_BLOCKSTYLE_PRIVATE.glb",density=42,kind="hands")
         hands=add_all_animations(
             target/"AK47_COD4_HANDS_BLOCKSTYLE_PRIVATE.glb",
             target/"AK47_COD4_HANDS_ALL_XANIM_PRIVATE.glb", clips)
+        # Owner's earlier request: only the first-person HANDS should remain
+        # visible, not full-sized forearms obstructing the FPS camera.
+        # Preserve original bones/animation; only emit triangles attached to
+        # wrists/fingers. This is an opt-in comparison asset, not a replacement.
+        hands_tight_geometry=voxelize(
+            hands_path,target/"AK47_COD4_HANDSONLY_BLOCKSTYLE_PRIVATE.glb",
+            density=48,kind="hands_tight")
+        tight_hands=add_all_animations(
+            target/"AK47_COD4_HANDSONLY_BLOCKSTYLE_PRIVATE.glb",
+            target/"AK47_COD4_HANDSONLY_ALL_XANIM_PRIVATE.glb", clips)
+        if hands_tight_geometry["cuboids"]<50 or not any(
+            item["status"]=="attached" for item in tight_hands.values()):
+            raise ValueError("hand-only option produced insufficient skinned geometry")
     labels={k:sum(a["status"]=="attached" and k in a.get("actions",[])
                   for a in gun_clips.values()) for k in KINDS}
     return {
@@ -461,6 +505,9 @@ def run(dumps: Path, target: Path):
       "hands_geometry":hands_voxel,
       "hands_animations_attached":sum(x["status"]=="attached" for x in hands.values()),
       "hands_animations":hands,
+      "hands_tight_geometry":hands_tight_geometry,
+      "hands_tight_animations_attached":sum(x["status"]=="attached" for x in tight_hands.values()),
+      "hands_tight_animations":tight_hands,
       "private_binary_outputs":True,
       "mosaicary_blockbench_import":"Generic Model / GeckoLib: supports cubes and animation channels",
       "rest_pose_verified":False,"gameplay_ADS_verified":False,
