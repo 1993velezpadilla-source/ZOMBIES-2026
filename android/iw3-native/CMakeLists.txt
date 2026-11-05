@@ -406,6 +406,23 @@ if(ANDROID)
         -frounding-math -fno-fast-math)
 endif()
 
+# Explicit original-engine bootstrap portability aggregate. This deliberately
+# compiles the COMPLETE authentic translation units together in one requested
+# build (not extracted diagnostic slices), while leaving their unresolved
+# platform/renderer symbols visible for the subsequent link-integration pass.
+# It is NOT an APK, not a runtime, and never links into the JNI probe.
+# Build explicitly with: cmake --build <android-build-dir> --target iw3_sp_bootstrap_compile
+if(ANDROID)
+    add_custom_target(iw3_sp_bootstrap_compile DEPENDS
+        iw3_sp_common_full_compile
+        iw3_sp_cmd_full_compile
+        iw3_sp_com_files_full_compile
+        iw3_sp_db_file_load_full_compile
+        iw3_sp_db_registry_full_compile
+        iw3_sp_client_input_full_compile
+        iw3_sp_screen_placement_full_compile)
+endif()
+
 # Compile an ABI fixture against the original script parser header. These
 # pointer-bearing structs are live runtime bookkeeping, not serialized assets.
 # This gate also protects TRACK_scr_parser from reverting to Win32 byte counts.
