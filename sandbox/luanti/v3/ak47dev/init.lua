@@ -20,7 +20,7 @@ local function state(player)
     local name = player:get_player_name()
     if not S[name] then
         S[name] = {ammo=CAPACITY, reserve=210, next_fire=0, reload_end=0,
-            ads=false, ent=nil, hud=nil, last_item=false}
+            ads=false, ent=nil, hud=nil, rig_enabled=false, last_item=false}
     end
     return S[name]
 end
@@ -33,6 +33,7 @@ local function hud_text(p, s)
 end
 
 local function make_viewmodel(player, s)
+    if not s.rig_enabled then return end
     if s.ent and s.ent:is_valid() then return end
     local obj = minetest.add_entity(player:get_pos(), "ak47dev:fp_model")
     if not obj then return end
@@ -45,7 +46,7 @@ local function make_viewmodel(player, s)
 end
 
 local function show_model(player, s)
-    if is_weapon(player) then
+    if is_weapon(player) and s.rig_enabled then
         make_viewmodel(player, s)
         if s.ent and s.ent:is_valid() then
             s.ent:set_properties({is_visible=true})
@@ -175,12 +176,29 @@ minetest.register_entity("ak47dev:fp_model",{
     },
 })
 
-minetest.register_tool(AK,{
+-- Critical V3.1 render fix: ITEM_NODE + drawtype="mesh" is rendered by
+-- Luanti's native first-person WieldMeshSceneNode. The old ITEM_TOOL had
+-- wield_image=transparent and its head attachment did not appear on Android.
+-- The animation-ready glTF entity is still available with /akrig on.
+minetest.register_node(AK,{
     description="AK-47 Prototype | Tap fire | Tap place ADS | Sneak+fire reload",
+    drawtype="mesh",
+    mesh="ak47dev_static.obj",
+    tiles={"ak47dev_atlas.png"},
     inventory_image="ak47dev_icon.png",
-    wield_image="ak47dev_blank.png",
+    -- Do NOT set wield_image: Luanti must use the 3D mesh-node wield renderer.
+    wield_scale={x=1.0,y=1.0,z=1.0},
+    visual_scale=1.0,
+    paramtype="light",
+    paramtype2="facedir",
+    sunlight_propagates=true,
+    walkable=false,
+    diggable=false,
+    pointable=false,
+    drop="",
+    stack_max=1,
     range=0,
-    groups={weapon=1,weapon_ranged=1},
+    groups={weapon=1,weapon_ranged=1,not_in_creative_inventory=1},
     on_use=function(stack,player)
         if not player then return stack end
         local s=state(player)
@@ -202,6 +220,47 @@ minetest.register_tool(AK,{
         end
         return stack
     end,
+})
+
+-- This diagnostic deliberately does not replace the visible 3D wield mesh.
+-- /akrig on enables the *animated* head-attached GLB in addition to the
+-- stable gun mesh. Compare screenshots to distinguish attachment vs GLB bugs.
+minetest.register_chatcommand("akrig",{
+    params="on|off",
+    description="Toggle experimental animated AK first-person GLB",
+    func=function(name,param)
+        local player=minetest.get_player_by_name(name)
+        if not player or not is_weapon(player) then
+            return false,"Equip your AK-47 first"
+        end
+        local s=state(player)
+        if param~="on" and param~="off" then
+            return true, "AK rig: " .. (s.rig_enabled and "on" or "off") .. ". Use /akrig on or /akrig off."
+        end
+        s.rig_enabled = param=="on"
+        show_model(player,s)
+        return true, s.rig_enabled and "Animated GLB enabled over native 3D gun (experimental)"
+            or "Animated GLB disabled; native 3D gun remains visible"
+    end,
+})
+
+minetest.register_chatcommand("akdiag",{
+    description="Show AK mesh and animation rig diagnostic",
+    func=function(name)
+        local player=minetest.get_player_by_name(name)
+        if not player then return false,"Player not found" end
+        local s=state(player)
+        local entity=(s.ent and s.ent:is_valid()) and "alive" or "none"
+        local forced="unknown"
+        if s.ent and s.ent:is_valid() then
+            local _,bone,_,_,force=s.ent:get_attach()
+            forced=tostring(force).." bone="..tostring(bone)
+        end
+        return true,"AK equipped="..tostring(is_weapon(player))..
+            "; native node=ak47dev_static.obj; GLB="..entity..
+            "; force_visible="..forced..
+            "; rig_enabled="..tostring(s.rig_enabled)
+    end
 })
 
 minetest.register_chatcommand("akreload",{

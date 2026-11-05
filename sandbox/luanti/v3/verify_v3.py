@@ -38,7 +38,8 @@ def inspect(mod):
               "ak47dev_blank.png"]:
         assert Path(m+"textures/"+n).read_bytes().startswith(b"\x89PNG"),n
     s=Path(m+"init.lua").read_text()
-    for token in ["register_tool","on_use","on_secondary_use","set_animation",
+    assert "register_tool" in s or "register_node" in s
+    for token in ["on_use","on_secondary_use","set_animation",
                   "set_attach","register_on_joinplayer","register_globalstep",
                   "register_chatcommand","xz_map_template","set_fov"]:
         assert token in s,token
