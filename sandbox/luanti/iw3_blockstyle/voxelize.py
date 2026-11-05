@@ -240,7 +240,7 @@ def emit_boxes(doc, raw, primitive, target_doc, dest_binary, pitch, context):
         tri=[(xyz,bone) for xyz,bone in tri
              if is_hand_or_finger_bone(bone_identity(doc,bone))]
     if not tri:
-        raise ValueError("mesh primitive has no selected hand triangles")
+        raise ValueError("internal error: unselected primitive passed to voxel emission")
     cells=surface_cells(tri,pitch)
     boxes=z_merge(cells)
     if len(boxes)>MAX_CUBES:
@@ -291,8 +291,22 @@ def voxelize(source: Path, target: Path, *, density=42, kind='rifle'):
     out=deepcopy(doc)
     surviving=[]
     mesh_mapping={}
+    filtered_primitives=0
     for i,mesh in enumerate(doc.get("meshes",[])):
-        good=[p for p in mesh.get("primitives",[]) if allowed_primitive(doc,p,kind)]
+        good=[]
+        for prim in mesh.get("primitives",[]):
+            if not allowed_primitive(doc,prim,kind):
+                filtered_primitives+=1
+                continue
+            if kind=="hands_tight" and not any(
+                is_hand_or_finger_bone(bone_identity(doc,bone))
+                for _,bone in triangles(doc,original,prim)
+            ):
+                # A forearm-only primitive MUST be discarded entirely instead
+                # of aborting the full weapon conversion on empty selection.
+                filtered_primitives+=1
+                continue
+            good.append(prim)
         if good:
             mesh_mapping[i]=len(surviving)
             surviving.append(good)
@@ -307,8 +321,9 @@ def voxelize(source: Path, target: Path, *, density=42, kind='rifle'):
                 node.pop("mesh",None)
                 node.pop("skin",None)
     out["meshes"]=[deepcopy(doc["meshes"][old]) for old in sorted(mesh_mapping)]
-    for mesh in out["meshes"]:
-        mesh["primitives"]=[p for p in mesh["primitives"] if allowed_primitive(doc,p,kind)]
+    for old_index,mesh in zip(sorted(mesh_mapping),out["meshes"]):
+        # Keep the exact filtered primitive subset and consistent node remaps.
+        mesh["primitives"]=surviving[mesh_mapping[old_index]]
     out["buffers"]=[{"byteLength":0}]
     out["accessors"]=[];out["bufferViews"]=[]
     out.pop("images",None);out.pop("textures",None);out.pop("samplers",None)
@@ -335,7 +350,12 @@ def voxelize(source: Path, target: Path, *, density=42, kind='rifle'):
     all_coords=[]
     for mesh in out.get("meshes",[]):
         for prim in mesh.get("primitives",[]):
-            all_coords.extend(read_accessor(doc,original,prim["attributes"]["POSITION"]))
+            if kind=="hands_tight":
+                for xyz,bone in triangles(doc,original,prim):
+                    if is_hand_or_finger_bone(bone_identity(doc,bone)):
+                        all_coords.extend(xyz)
+            else:
+                all_coords.extend(read_accessor(doc,original,prim["attributes"]["POSITION"]))
     if not all_coords:
         raise ValueError("no source mesh vertices")
     lo=[min(p[i] for p in all_coords) for i in range(3)]
@@ -387,6 +407,7 @@ def voxelize(source: Path, target: Path, *, density=42, kind='rifle'):
             "palette":"original procedural adult-cartoon vertex colors, not COD4 texture",
             "render_mode":kind,
             "accessory_meshes_removed":len(doc.get("meshes",[]))-len(out["meshes"]),
+            "filtered_source_primitives":filtered_primitives,
             "hand_only_positive_joint_names":sorted({
               doc["nodes"][node_id].get("name","") for skin in doc.get("skins",[])
               for node_id in skin.get("joints",[]) if kind=="hands_tight" and
