@@ -86,7 +86,8 @@ local function reload(player, s)
     animate(s, 1.0, 3.75)
     -- These are timed mechanical Foley events, aligned to magazine drop,
     -- magazine insertion, then bolt release in the glTF keyframe timeline.
-    play(s, "ak47dev_reload", player, 0.90)\n    play(s, "ak47dev_magout", player, 0.26)
+    play(s, "ak47dev_reload", player, 0.90)
+    play(s, "ak47dev_magout", player, 0.26)
     local name=player:get_player_name()
     minetest.after(1.20,function()
         if S[name]==s and minetest.get_player_by_name(name)
