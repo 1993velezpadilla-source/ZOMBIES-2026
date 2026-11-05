@@ -78,6 +78,21 @@ def output_model(dest):
         for part in ("receiver","mag_top","bolt","rear_sight_notch",
                      "front_sight_post","left_glove","right_glove"):
             assert part in model_names,part
+        # Also generate a reduced native OBJ as a diagnostic fallback.
+        # Keep the old 47-part OBJ unchanged for V3.1 comparisons.
+        import importlib.util
+        spec=importlib.util.spec_from_file_location("ak47_wield_generator",
+                         REPO/"sandbox/luanti/v31/build_wield_mesh.py")
+        lib=importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(lib)
+        pieces=[p for p in lib.extract_parts() if p[0] not in OMIT]
+        assert len(pieces)==43
+        native=dest/"models/ak47dev_fp_static.obj"
+        lib.make_obj(native,pieces)
+        obj=native.read_text()
+        assert "mtllib ak47dev_static.mtl" in obj
+        native.write_text(obj.replace("mtllib ak47dev_static.mtl",
+                                       "mtllib ak47dev_fp_static.mtl"))
         print("AK FPS GLB generated: 43 original components, zero stock "
               "obstruction, five bones and preserved magazine/bolt/hand motion")
 
