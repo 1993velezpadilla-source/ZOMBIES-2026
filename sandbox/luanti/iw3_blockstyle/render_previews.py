@@ -40,11 +40,17 @@ def mesh_faces(file:Path):
                 ix=list(range(len(pos)))
             color=doc["materials"][prim.get("material",0)].get(
                 "pbrMetallicRoughness",{}).get("baseColorFactor",[.38,.40,.44,1])
-            rgb=tuple(max(28,min(220,int(v*255))) for v in color[:3])
+            colors=read_accessor(doc,raw,prim["attributes"]["COLOR_0"]) if "COLOR_0" in prim["attributes"] else None
             bounds.extend(pos)
             if len(ix)%3:raise ValueError("non-triangle index count")
             for k in range(0,len(ix),3):
-                faces.append(([pos[ix[k+j]] for j in range(3)],rgb))
+                ids=ix[k:k+3]
+                if colors is not None:
+                    tint=[sum(colors[i][v] for i in ids)/3 for v in range(3)]
+                    rgb=tuple(max(20,min(245,int(color[v]*tint[v]*255))) for v in range(3))
+                else:
+                    rgb=tuple(max(28,min(220,int(v*255))) for v in color[:3])
+                faces.append(([pos[i] for i in ids],rgb))
     if not faces or len(faces)>MAX_FACES:raise ValueError("unrenderable model")
     return faces,bounds
 
@@ -90,7 +96,7 @@ def make_view(faces,bounds,label,view,yaw,elev,output):
         if length<1e-14:continue
         normal=tuple(x/length for x in cross)
         # Slight facet lighting with broad ambient component.
-        light=.67+.25*abs(sum(normal[i]*u for i,u in enumerate((-.38,.53,.76))))
+        light=.76+.22*abs(sum(normal[i]*u for i,u in enumerate((-.38,.53,.76))))
         color=tuple(min(244,max(25,int(v*light))) for v in rgb)
         prepared.append((sum(t[2] for t in tri)/3,[screen(t) for t in tri],color))
     # Painter algorithm on compact opaque cube faces. Far triangles first.
