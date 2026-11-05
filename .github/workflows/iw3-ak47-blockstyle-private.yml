@@ -220,7 +220,7 @@ jobs:
           assert a['source_tags']['rifle_tag_ak47_mount']
           assert a['source_tags']['rifle_tag_flash']
           assert a['original_mount_pair']==['hands:tag_weapon','rifle:tag_ak47_mount']
-          assert any(x['strategy']=='native_pair' and x['forward']=='tag_flash→muzzle' for x in a['projections'])
+          assert any(x['strategy']=='native_pair' and x['forward']=='muzzle' and x['camera_forward']=='tag_flash→muzzle' for x in a['projections'])
           assert not a['ads_verified'] and not a['hand_grip_verified']
           print("Real first-person camera probe frames:",len(a['projections']))
           print("Camera candidates:",a['camera_candidates'])
