@@ -364,6 +364,9 @@ def run(dumps: Path, target: Path):
         scores=[compatible(doc,a) for _,a in clips]
         scored.append((sum(x>0 for x in scores),sum(scores),p))
     _,_,chosen=max(scored,key=lambda v:(v[0],v[1],-len(v[2].name)))
+    source_doc,_=read_glb(chosen)
+    source_mats=[m.get('name','unnamed') for m in source_doc.get('materials',[])]
+    source_meshes=[m.get('name','unnamed') for m in source_doc.get('meshes',[])]
     target.mkdir(parents=True,exist_ok=True)
     rifle=target/"AK47_COD4_BLOCKSTYLE_PRIVATE.glb"
     voxel=voxelize(chosen,rifle)
@@ -382,6 +385,8 @@ def run(dumps: Path, target: Path):
     return {
       "source":"user-provided COD4 archive, extracted privately with OAT",
       "selected_ak_model":chosen.name,
+      "source_material_names":source_mats,
+      "source_mesh_names":source_meshes,
       "candidate_models":len(models),"xanim_decoded":len(clips),
       "xanim_decode_errors":errors,"rifle_geometry":voxel,
       "rifle_animation_counts":labels,
