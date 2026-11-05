@@ -185,20 +185,31 @@ class PoseScene:
         return world[matches[0]] if matches else None
 
 
-def draw_pose(scene,action,t,title,output,*,orientation=(28,25)):
-    geometry,points,world=scene.poses(action,t)
+def camera_params(points,orientation=(28,25)):
+    """A FIXED capture camera from the rifle's idle pose (not the moving mag).
+
+    Per-frame auto-fit falsely shrunk the whole AK when the magazine dropped
+    offscreen in a reload. FPS camera never zooms out to show a loose magazine.
+    """
     lo=points.min(axis=0);hi=points.max(axis=0)
-    dims=hi-lo
-    axis=int(np.argmax(dims))
+    axis=int(np.argmax(hi-lo))
     vertical=2 if axis!=2 else 1
     side=next(i for i in range(3) if i not in (axis,vertical))
     yaw,elevation=np.radians(orientation)
-    # The same camera convention as our existing static viewer.
     u=points[:,axis];v=points[:,side];w=points[:,vertical]
     right=math.cos(yaw)*u+math.sin(yaw)*v
     up=math.sin(elevation)*math.sin(yaw)*u-math.sin(elevation)*math.cos(yaw)*v+math.cos(elevation)*w
     cx=(right.min()+right.max())/2;cy=(up.min()+up.max())/2
-    scale=min((SCREEN[0]-90)/max(EPS,np.ptp(right)),(SCREEN[1]-185)/max(EPS,np.ptp(up)))
+    scale=min((SCREEN[0]-110)/max(EPS,np.ptp(right)),(SCREEN[1]-210)/max(EPS,np.ptp(up)))
+    return (axis,vertical,side,yaw,elevation,cx,cy,scale)
+
+
+def draw_pose(scene,action,t,title,output,*,orientation=(28,25),camera=None):
+    geometry,points,world=scene.poses(action,t)
+    lo=points.min(axis=0);hi=points.max(axis=0)
+    if camera is None:
+        camera=camera_params(points,orientation)
+    axis,vertical,side,yaw,elevation,cx,cy,scale=camera
     def xy(vec):
         a,b,c=vec[axis],vec[side],vec[vertical]
         X=math.cos(yaw)*a+math.sin(yaw)*b
@@ -240,8 +251,13 @@ def closest_clip(scene,query):
 def run(rifle_path,hands_path,outdir):
     a=PoseScene(rifle_path)
     b=PoseScene(hands_path)
+    idle_clip=closest_clip(a,"idle") or a.names()[0]
+    idle_points=a.poses(idle_clip,0.)[1]
+    fixed_camera=camera_params(idle_points)
     audit={"rifle_clips":len(a.animations),"hands_clips":len(b.animations),
            "actions":{},"synchronized_grip_verified":False,
+           "capture_camera_follows_magazine":False,
+           "camera_type":"fixed orthographic debug from rifle idle; NOT gameplay FPS",
            "animation_rest_pose_verified":False,"ads_camera_verified":False}
     selected=["idle","fire","fire_ads","reload","reload_empty"]
     for key in selected:
@@ -267,7 +283,7 @@ def run(rifle_path,hands_path,outdir):
             dr=np.linalg.norm(gun-rifle_start,axis=1)
             dh=np.linalg.norm(hand_points-hands_start,axis=1)
             fname=outdir / f"ak47_{key}_{int(100*fraction):03d}.png"
-            shot=draw_pose(a,name,t,f"AK47 / {key.upper()} / {int(100*fraction)}%",fname)
+            shot=draw_pose(a,name,t,f"AK47 / {key.upper()} / {int(100*fraction)}%",fname,camera=fixed_camera)
             info["frames"].append({
               "fraction":fraction,"image":fname.name,
               "rifle_mean_vertex_motion":round(float(dr.mean()),6),
