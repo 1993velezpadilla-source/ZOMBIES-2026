@@ -140,15 +140,6 @@ jobs:
             --output _iw3_reports/real-renders
           test -s _iw3_reports/real-renders/ak47_cod4_blockstyle_3quarter.png
           test -s _iw3_reports/real-renders/ak47_cod4_blockstyle_profile.png
-      - name: Upload raster screenshots only (no meshes, textures or animation keys)
-        uses: actions/upload-artifact@v4
-        with:
-          name: ak47-cod4-blockstyle-actual-static-screenshots
-          path: |
-            _iw3_reports/real-renders/*.png
-            _iw3_reports/pose-frames/*.png
-          if-no-files-found: error
-          retention-days: 7
       - name: Verify animated glTF skinning on real COD4 reload / idle / fire / ADS
         run: |
           set -euo pipefail
@@ -173,6 +164,15 @@ jobs:
                  "max_hand_motion":max((f['hands_max_vertex_motion'] for f in v.get('frames',[])),default=0)}
               for k,v in data['actions'].items()})
           PY
+      - name: Upload static and truly animated pose screenshots from real COD4 geometry
+        uses: actions/upload-artifact@v4
+        with:
+          name: ak47-cod4-blockstyle-real-3d-and-animation-pose-screenshots
+          path: |
+            _iw3_reports/real-renders/*.png
+            _iw3_reports/pose-frames/*.png
+          if-no-files-found: error
+          retention-days: 7
       - name: Destroy original archive and all private binary model outputs
         if: always()
         run: |
