@@ -1,0 +1,53 @@
+name: IW3 first-person bone attachment action metrics (metadata only)
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: 'Successful full IW3 extraction+Godot run'
+        type: string
+        required: true
+        default: '41453071080'
+  push:
+    branches: [feature/iw3-arsenal-extraction-audit-20261102]
+    paths: ['.github/workflows/iw3-mount-report.yml']
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  summarize-private-asset-metadata:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Fetch only metadata (never proprietary XMODEL, XANIM, DDS, GLB)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN: ${{ inputs.source_run_id || '41453071080' }}
+        run: |
+          set -euo pipefail
+          mkdir _meta
+          gh run download "$SOURCE_RUN" --repo "$GITHUB_REPOSITORY" \
+            --name iw3-cod4-weapon-probe-metadata --dir _meta
+          test -f _meta/godot-mount-gate.json
+      - name: Report 3 guns x 4 actions and hands->gun alignment
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('_meta/godot-mount-gate.json').read_text())
+          print('GODOT_FPS_ATTACHMENT_GATE_PASS',r['all_bone_attachments_valid'])
+          print('ACTIONS_COVERED',r['all_actions_covered'])
+          print('VISUAL_CHECK',r['visual_pose_verified'])
+          print('ADS_SIGHT_CHECK',r['ads_sight_alignment_verified'])
+          for name,gun in r['gun_reports'].items():
+              print('GUN',name,'HAND_BONES',gun.get('hand_skeleton_bones'),
+                    'WEAPON_BONES',gun.get('weapon_skeleton_bones'),
+                    'CAMERA_BONE',gun.get('base_tag_camera_present'))
+              for action,records in gun.get('action_metrics',{}).items():
+                  print('ACTION',name,action,'TIMES',[x['time_seconds'] for x in records],
+                        'ANCHOR_POSITION_ERRORS',[x['anchor_position_error'] for x in records],
+                        'ANCHOR_ROT_ERRORS',[x['anchor_rotation_error_radians'] for x in records],
+                        'CAMERA_TO_PIVOT_DISTANCES',[x['camera_to_weapon_pivot_distance'] for x in records],
+                        'WEAPON_PIVOT_ERRORS',[x['weapon_pivot_error'] for x in records])
+          PY
