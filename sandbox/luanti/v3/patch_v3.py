@@ -17,6 +17,9 @@ sounds = {
     "ak47dev_fire.ogg": "ak47_shot.ogg",
     "ak47dev_reload.ogg": "ak47_reload.ogg",
     "ak47dev_dry.ogg": "ak47_click.ogg",
+    "ak47dev_magout.ogg": "ak47_click.ogg",
+    "ak47dev_magin.ogg": "ak47_click.ogg",
+    "ak47dev_bolt.ogg": "ak47_click.ogg",
 }
 base = "https://raw.githubusercontent.com/Deases/GunLib/main/sounds/"
 
@@ -56,10 +59,9 @@ def main():
     shutil.copyfile(src/"mod.conf",dest/"mod.conf")
     subprocess.run([sys.executable,str(repo/"sandbox/luanti/v3/build_ak47_assets.py"),
                     str(dest)],check=True)
-    for wav in list((dest/"sounds").glob("*.wav")):
-        subprocess.run(["ffmpeg","-hide_banner","-loglevel","error","-y",
-                        "-i",str(wav),"-c:a","libvorbis","-q:a","4",
-                        str(wav.with_suffix(".ogg"))],check=True)
+    # CC0 OGG sounds run without FFmpeg. The same recorded click is
+    # used at three timed mechanical keyframes for this first prototype.
+    for wav in (dest/"sounds").glob("*.wav"):
         wav.unlink()
 
     for newname,oldname in sounds.items():
