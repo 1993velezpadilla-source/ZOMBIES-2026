@@ -192,6 +192,9 @@ jobs:
           assert len(audit["frames"])>=6,audit["errors"]
           assert all(frame["hand_anchor_present"] for frame in audit["frames"])
           assert any(frame["action"]=="reload" for frame in audit["frames"])
+          assert all(frame["gun_anchor_name"]=="tag_ak47_mount" for frame in audit["frames"]),audit["errors"]
+          assert all(frame["mount_strategy"]=="original_tag_weapon_to_tag_ak47_mount" for frame in audit["frames"])
+          assert all(frame["tag_alignment_error"] < .00001 for frame in audit["frames"])
           assert not audit["hand_grip_verified"],"Do not call a structural tag match a functional grip"
           print("Real original COD4 hands+AK frames:",len(audit["frames"]))
           print("Mount strategies:",sorted(set(f["mount_strategy"] for f in audit["frames"])))
@@ -214,6 +217,10 @@ jobs:
           assert len(a['projections'])>=8, a
           assert any(x['drawn_faces']>40 for x in a['projections'])
           assert a['source_tags']['hands_tag_weapon_exists']
+          assert a['source_tags']['rifle_tag_ak47_mount']
+          assert a['source_tags']['rifle_tag_flash']
+          assert a['original_mount_pair']==['hands:tag_weapon','rifle:tag_ak47_mount']
+          assert any(x['strategy']=='native_pair' and x['forward']=='tag_flash→muzzle' for x in a['projections'])
           assert not a['ads_verified'] and not a['hand_grip_verified']
           print("Real first-person camera probe frames:",len(a['projections']))
           print("Camera candidates:",a['camera_candidates'])
