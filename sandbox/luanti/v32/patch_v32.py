@@ -51,7 +51,6 @@ void Camera::updateAK47Viewmodel(f32 frametime)
                 const u32 count = m_ak47_viewmodel->getMaterialCount();
                 for (u32 i = 0; i < count; ++i) {
                     auto &mat = m_ak47_viewmodel->getMaterial(i);
-                    mat.Lighting = false;
                     mat.BackfaceCulling = false;
                     if (i < 4 && tsrc)
                         mat.setTexture(0, tsrc->getTextureForMesh(textures[i]));
