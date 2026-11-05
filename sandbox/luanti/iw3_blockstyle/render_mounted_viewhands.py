@@ -42,7 +42,7 @@ def measure_proximity(rifle, hands):
     return float(np.median(np.min(d,axis=1)))
 
 
-def compose(rifle,viewhands,gunclip,handclip,t,rest_hand_tag):
+def compose(rifle,viewhands,gunclip,handclip,t,rest_hand_tag,mode='relative_delta'):
     rifle_mesh, gunpoints, gunworld=rifle.poses(gunclip,t)
     hand_mesh, handpoints, handworld=viewhands.poses(handclip,t)
     hand_tag=viewhands.tag(handworld)
@@ -56,10 +56,19 @@ def compose(rifle,viewhands,gunclip,handclip,t,rest_hand_tag):
         mode="original_tag_weapon_to_tag_weapon"
         err=float(np.linalg.norm((matrix@weapon_tag-hand_tag)[:3,3]))
     else:
-        # If weapon GLB contains no tag_weapon, retain first-frame rifle
-        # placement and follow the animated hand mount RELATIVELY.
-        matrix=hand_tag@np.linalg.inv(rest_hand_tag)
-        mode="original_hands_tag_weapon_delta_only_no_gun_tag"
+        if mode == "direct_tag":
+            # Mirrors Godot's BoneAttachment3D: weapon root transform is IDENTITY
+            # as a child of the original hands tag_weapon at every source frame.
+            matrix=hand_tag
+            strategy="original_hands_tag_weapon_direct_attachment"
+        elif mode == "relative_delta":
+            # Diagnosis: retain the rifle's imported rest location and follow
+            # the moving hands tag relative to its initial transform.
+            matrix=hand_tag@np.linalg.inv(rest_hand_tag)
+            strategy="original_hands_tag_weapon_delta_only_no_gun_tag"
+        else:
+            raise ValueError("unsupported attachment mode")
+        mode=strategy
         err=None
     mounted=[]
     for xyz,ix,colors in rifle_mesh:
@@ -128,6 +137,44 @@ def build(rifle_path,hand_path,output):
                     "image":name,**meta})
             except (ValueError,IndexError,np.linalg.LinAlgError) as e:
                 report["errors"][f"{action}:{frac}"]=str(e)[:200]
+    # If the original gun GLB lacks tag_weapon (as ours does), render both
+    # physically distinct candidate strategies; do not silently guess XYZ.
+    # Direct = same transform as Godot BoneAttachment3D, Delta = original
+    # viewmodel origin. Comparable screenshot grids expose alignment errors.
+    comparison=[]
+    for action,fraction in (("idle",0.0),("reload",.5),("reload_empty",.5)):
+        gunclip=closest_clip(rifle,action)
+        handclip=closest_clip(hands,action)
+        if not gunclip or not handclip:
+            continue
+        duration=min(rifle.duration(gunclip),hands.duration(handclip))
+        t=duration*fraction
+        for strategy in ("relative_delta","direct_tag"):
+            try:
+                combo,stat=compose(rifle,hands,gunclip,handclip,t,rest_tag,mode=strategy)
+                img=output/f"ak47_compare_{strategy}_{action}.png"
+                # Use per-strategy idle/camera framing only for the second
+                # comparison sheet; mounted-frames main sheet uses fixed camera.
+                draw_pose(rifle,gunclip,t,
+                    f"COD4 TAG MOUNT TEST: {strategy} / {action}",
+                    img,geometry_override=combo,camera=camera)
+                comparison.append({"action":action,"candidate":strategy,
+                                   "image":img.name,**stat})
+            except (ValueError,np.linalg.LinAlgError) as exc:
+                report["errors"][f"comparison_{strategy}_{action}"]=str(exc)[:160]
+    report["mount_candidates"]=comparison
+    pairs=[]
+    for action in ("idle","reload","reload_empty"):
+        for strategy in ("relative_delta","direct_tag"):
+            name=output/f"ak47_compare_{strategy}_{action}.png"
+            if name.exists():
+                with Image.open(name) as im:
+                    pairs.append(ImageOps.pad(im.convert("RGB"),(825,488)))
+    if pairs:
+        check=Image.new("RGB",(1650,488*math.ceil(len(pairs)/2)),(20,22,29))
+        for i,img in enumerate(pairs):
+            check.paste(img,((i%2)*825,(i//2)*488))
+        check.save(output/"ak47_tag_strategy_comparison.png",optimize=True)
     if not report["frames"]:
         raise ValueError("no combined weapon+hand frames rendered")
     # Side-by-side images share the SAME camera so an apparent grip error cannot
