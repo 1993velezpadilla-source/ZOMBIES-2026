@@ -16,13 +16,10 @@ def real_format_fixture():
     return "\n".join(REQUIRED) + "\n" + "\n".join((
         "IW3_JNI_LIFECYCLE_2",
         "IW3_JNI_TOUCH id=1 pressed=1 coords=0.08,0.88",
-        "IW3_JNI_USERCMD attack=0 buttons=2 forward=0 right=0 pitch=0 yaw=0",
         "IW3_JNI_TOUCH id=1 pressed=0 coords=0.08,0.88",
         "IW3_JNI_TOUCH id=2 pressed=1 coords=0.27,0.88",
-        "IW3_JNI_USERCMD attack=0 buttons=514 forward=0 right=0 pitch=0 yaw=0",
         "IW3_JNI_TOUCH id=2 pressed=0 coords=0.27,0.88",
         "IW3_JNI_TOUCH id=0 pressed=1 coords=0.90,0.85",
-        "IW3_JNI_USERCMD attack=1 buttons=1 forward=0 right=0 pitch=0 yaw=0",
         "IW3_JNI_TOUCH id=0 pressed=0 coords=0.90,0.85",
         "IW3_JNI_LIFECYCLE_3", "IW3_JNI_LIFECYCLE_2"))
 
@@ -44,8 +41,8 @@ class NativeRuntimeEvidenceTests(unittest.TestCase):
     def test_complete_diagnostic_has_explicit_limits(self):
         result = verify(real_format_fixture())
         self.assertTrue(result["touch_down_and_up_read_back_from_native"])
-        self.assertTrue(result["sprint_touch_reached_diagnostic_usercmd_s_adapter"])
-        self.assertTrue(result["slide_chord_touch_reached_diagnostic_usercmd_s_adapter"])
+        self.assertFalse(result["sprint_touch_reached_diagnostic_usercmd_s_adapter"])
+        self.assertFalse(result["slide_chord_touch_reached_diagnostic_usercmd_s_adapter"])
         self.assertTrue(result["original_fs_addsearchpath_inserted_fixture_executed"])
         self.assertTrue(result["original_fs_addiwdfiles_directory_scan_executed"])
         self.assertTrue(result["original_fs_add_game_directory_registered_fixture_executed"])
@@ -86,27 +83,14 @@ class NativeRuntimeEvidenceTests(unittest.TestCase):
             with self.subTest(failure=failure), self.assertRaises(ValueError):
                 verify(real_format_fixture() + "\n" + failure)
 
-    def test_sprint_and_slide_chord_must_reach_original_usercmd_bits(self):
-        sprint = "IW3_JNI_USERCMD attack=0 buttons=2 forward=0 right=0 pitch=0 yaw=0"
-        slide = "IW3_JNI_USERCMD attack=0 buttons=514 forward=0 right=0 pitch=0 yaw=0"
-        for line in (
-            "IW3_JNI_USERCMD attack=0 buttons=0 forward=0 right=0 pitch=0 yaw=0",
-            "IW3_JNI_USERCMD attack=0 buttons=512 forward=0 right=0 pitch=0 yaw=0",
-        ):
-            with self.subTest(line=line), self.assertRaises(ValueError):
-                verify(real_format_fixture().replace(sprint, line))
-        with self.assertRaises(ValueError):
-            verify(real_format_fixture().replace(slide,
-                "IW3_JNI_USERCMD attack=0 buttons=2 forward=0 right=0 pitch=0 yaw=0"))
-
-    def test_touch_must_reach_original_usercmd_attack_bit(self):
-        valid = "IW3_JNI_USERCMD attack=1 buttons=1 forward=0 right=0 pitch=0 yaw=0"
-        for line in (
-            "IW3_JNI_USERCMD attack=0 buttons=0 forward=0 right=0 pitch=0 yaw=0",
-            "IW3_JNI_USERCMD attack=1 buttons=0 forward=0 right=0 pitch=0 yaw=0",
-        ):
-            with self.subTest(line=line), self.assertRaises(ValueError):
-                verify(real_format_fixture().replace(valid, line))
+    def test_diagnostic_touch_does_not_consume_usercmd(self):
+        # The original CL_CreateCmd is not running inside this Activity.
+        # An adapter snapshot during touch would drain look movement early.
+        with self.assertRaisesRegex(ValueError, "consumed usercmd"):
+            verify(real_format_fixture().replace(
+                "IW3_JNI_TOUCH id=0 pressed=0",
+                "IW3_JNI_USERCMD attack=1 buttons=1 forward=0 right=0 pitch=0 yaw=0\\n"
+                "IW3_JNI_TOUCH id=0 pressed=0"))
 
     def test_missing_release_is_not_working_touch(self):
         with self.assertRaises(ValueError):
