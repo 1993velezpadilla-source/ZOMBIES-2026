@@ -27,12 +27,21 @@ void Camera::updateArsenalViewmodel(f32 frametime)
         m_wieldnode->setVisible(true);
         return;
     }
+    // Source-certified attachment mesh: never substitute a guessed model.
+    std::string variant;
+    m_wield_item_next.metadata.getStringToRef("xz_ar_variant", variant);
+    if (variant.size() > 42 || std::any_of(variant.begin(), variant.end(),
+          [](char c) { return !((c >= 'a' && c <= 'z') ||
+                            (c >= '0' && c <= '9') || c == '_'); })) {
+        variant.clear();
+    }
+    const std::string model_key = id + (variant.empty() ? "" : "_" + variant);
     if (m_ak47_viewmodel) m_ak47_viewmodel->setVisible(false);
 
-    if (m_arsenal_id != id) {
+    if (m_arsenal_id != model_key) {
         if (m_arsenal_gun) { m_arsenal_gun->remove(); m_arsenal_gun = nullptr; }
         if (m_arsenal_hands) { m_arsenal_hands->remove(); m_arsenal_hands = nullptr; }
-        m_arsenal_id = id;
+        m_arsenal_id = model_key;
         m_arsenal_last_event.clear();
         m_arsenal_clip.clear();
         m_arsenal_ads_alpha = 0.0f;
@@ -48,7 +57,7 @@ void Camera::updateArsenalViewmodel(f32 frametime)
         m_arsenal_retry -= dt;
         if (m_arsenal_retry <= 0.0f) {
             m_arsenal_retry = 2.0f;
-            auto *gun = m_client->getMesh("arsenal_" + id + "_gun.glb");
+            auto *gun = m_client->getMesh("arsenal_" + model_key + "_gun.glb");
             auto *hands = m_client->getMesh("arsenal_" + id + "_hands.glb");
             const bool clips_ok = gun && hands &&
                 gun->getTrackNumber("idle") && gun->getTrackNumber("fire") &&
