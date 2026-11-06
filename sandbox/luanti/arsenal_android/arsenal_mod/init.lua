@@ -435,9 +435,9 @@ minetest.register_chatcommand("arsenalammo",{
 minetest.register_on_joinplayer(function(player)
     local s=state(player)
     s.hud=player:hud_add({
-        hud_elem_type="text",position={x=.5,y=.91},
-        alignment={x=0,y=0},number=0xDDD7CD,
-        text="Arsenal experimental source viewmodels",z_index=150})
+        hud_elem_type="text",position={x=.025,y=.14},
+        alignment={x=1,y=0},number=0xDDD7CD,
+        text="",z_index=150})
 end)
 minetest.register_on_leaveplayer(function(player)
     local who=player:get_player_name()
@@ -482,6 +482,9 @@ minetest.register_globalstep(function(_)
             s.dig=c.dig
             s.aux=c.aux1
         else
+            if s.weapon~="" and s.hud then
+                player:hud_change(s.hud,"text","")
+            end
             if s.ads then player:set_fov(0,false,.18) end
             s.weapon=""
             s.reloading=false
