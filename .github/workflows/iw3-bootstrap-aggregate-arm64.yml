@@ -75,7 +75,6 @@ jobs:
           "$nm" --undefined-only --format=posix "${objects[@]}" > "$RUNNER_TEMP/bootstrap-undefined-raw.txt"
           "$nm" --defined-only --format=posix "${objects[@]}" > "$RUNNER_TEMP/bootstrap-defined-raw.txt"
           python3 - "$RUNNER_TEMP" <<'PY'
-          import collections
           import pathlib
           import sys
           root = pathlib.Path(sys.argv[1])
@@ -89,9 +88,9 @@ jobs:
           unresolved = sorted(symbols("bootstrap-undefined-raw.txt") - symbols("bootstrap-defined-raw.txt"))
           output = root / "bootstrap-unresolved-symbols.txt"
           output.write_text(
-              "IW3 ORIGINAL ARM64 OBJECT-ONLY LINK GAP; NOT A LINKED ENGINE OR APK\\n"
-              + f"Unresolved unique symbols: {len(unresolved)}\\n"
-              + "\\n".join(unresolved) + "\\n"
+              "IW3 ORIGINAL ARM64 OBJECT-ONLY LINK GAP; NOT A LINKED ENGINE OR APK\n"
+              + f"Unresolved unique symbols: {len(unresolved)}\n"
+              + "\n".join(unresolved) + "\n"
           )
           print(f"IW3_BOOTSTRAP_UNRESOLVED_UNIQUE={len(unresolved)}")
           print("IW3_PLAYABLE_APK=false")
