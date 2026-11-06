@@ -16,7 +16,7 @@ import wave
 ALIASES=("weap_ak47_clipout_plr","weap_ak47_clipin_plr",
          "weap_ak47_chamber_plr","weap_ak47_lift_plr",
          "weap_ak47_reload_npc")
-NAME=re.compile(r"ak.?47|weap_ak|clipout|clipin|chamber|reload",re.I)
+NAME=re.compile(r"ak.?47|weap_ak|clipout|clipin|chamber|reload|dry.?fire|empty.?fire|emptyclick|no.?ammo|weapon.?click|wpfoly_.*click",re.I)
 
 def inspect(list_dir:Path, audio_dir:Path, output:Path):
     rows=[]
@@ -27,7 +27,7 @@ def inspect(list_dir:Path, audio_dir:Path, output:Path):
         listings.append({"file":file.name,"line_count":len(lines),
                          "target_alias_lines":matches[:300]})
         print("COD4_SOUND_ASSET_LIST",file.name,len(lines),"matches",len(matches),flush=True)
-        for line in matches[:65]:print("ORIGINAL_IW3_SOUND_ALIAS",file.name,line,flush=True)
+        for line in matches[:140]:print("ORIGINAL_IW3_SOUND_ALIAS",file.name,line,flush=True)
     for p in audio_dir.rglob("*"):
         if not p.is_file():continue
         relative=p.relative_to(audio_dir).as_posix()
