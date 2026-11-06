@@ -1,0 +1,357 @@
+name: IW3 AK-47 cuboid conversion + all XANIM (private runtime)
+on:
+  push:
+    branches: [feature/iw3-ak47-voxelize-all-xanim-20261105]
+    paths:
+      - sandbox/luanti/iw3_blockstyle/**
+      - .github/workflows/iw3-ak47-blockstyle-private.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ak47-blockstyle-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  synthetic-geometry:
+    name: Test real GLB->cuboids with our licensed original test AK
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/iw3-arsenal-extraction-audit-20261102
+          path: _iw3_pipeline_src
+          persist-credentials: false
+      - name: Headless depth renderer dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends libegl1 libgl1-mesa-dri
+      - name: Syntax and executable cuboid conversion test
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet --user Pillow==12.0.0 numpy==2.3.4 moderngl==5.12.0
+          python3 -m py_compile sandbox/luanti/iw3_blockstyle/*.py
+          PYTHONPATH="$PWD/_iw3_pipeline_src/tools:$PWD/sandbox/luanti/iw3_blockstyle" python3 -m unittest discover -s sandbox/luanti/iw3_blockstyle -p 'test_*.py' -v
+          python3 sandbox/luanti/v3/build_ak47_assets.py /tmp/original-ak-test
+          PYTHONPATH="$PWD/_iw3_pipeline_src/tools:$PWD/sandbox/luanti/iw3_blockstyle" python3 - <<'PY'
+          import importlib.util
+          from pathlib import Path
+          from iw3_gltf_animation_bridge import read_glb
+          source=Path('/tmp/original-ak-test/models/ak47dev_animated.glb')
+          spec=importlib.util.spec_from_file_location('voxel','sandbox/luanti/iw3_blockstyle/voxelize.py')
+          module=importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(module)
+          dest=Path('/tmp/ak-test-voxel.glb')
+          stats=module.voxelize(source,dest,density=24)
+          old,_=read_glb(source)
+          new,_=read_glb(dest)
+          assert stats['cuboids']>100,stats
+          assert stats['cuboids']<=4000,stats
+          assert len(old['skins'])==len(new['skins'])==1
+          assert len(old['skins'][0]['joints'])==len(new['skins'][0]['joints'])==5
+          assert len(old['animations'])==len(new['animations'])>=1
+          assert new['meshes'][0]['primitives'][0]['attributes']['JOINTS_0']>=0
+          assert all(m['pbrMetallicRoughness']['metallicFactor']==0 for m in new['materials'])
+          print('PASS synthetic AK GLB voxelized',stats)
+          import sys
+          sys.path.insert(0,'sandbox/luanti/iw3_blockstyle')
+          from render_pose_sequence import PoseScene, draw_pose
+          scene=PoseScene(dest)
+          clip=scene.names()[0]
+          duration=scene.duration(clip)
+          assert duration>0 and len(scene.poses(clip,0)[1])>100
+          pose_report=draw_pose(scene,clip,duration*.5,"SYNTHETIC POSE SMOKE",Path('/tmp/pose-test.png'))
+          assert pose_report['faces']>100
+          print('PASS animated rig pose smoke',clip,pose_report['faces'])
+          import numpy as np
+          from render_mounted_viewhands import transform_points
+          xyz=transform_points(np.array([[0.,0.,0.],[1.,2.,3.]]),np.eye(4))
+          assert np.allclose(xyz,[[0.,0.,0.],[1.,2.,3.]])
+          print('PASS tag-bone transform smoke')
+          from render_fps_camera_probe import project_point, projection_basis, clip_against_near
+          basis=projection_basis(1)
+          assert np.allclose(project_point([12.,0.,0.],basis,np.zeros(3)),[0.,0.,12.])
+          assert np.allclose(project_point([-12.,0.,0.],basis,np.zeros(3)),[0.,0.,-12.])
+          clipped=clip_against_near([np.array([0.,0.,1.]),np.array([1.,0.,1.]),np.array([0.,1.,-1.])],.25)
+          assert len(clipped)==4 and all(v[2]>=.25-1e-8 for v in clipped)
+          print('PASS camera direction/near-plane clipping smoke')
+          from fps_composition_gate import camera_stats
+          geometry,_,_=scene.poses(clip,duration*.5)
+          m=camera_stats(geometry,np.array([-5.,0.,2.]),np.array([1.,0.,0.]))
+          assert m is None or (0<=m['visible_fraction']<=1 and m['score']>=0)
+          print('PASS quantitative FPS framing metric smoke')
+          PY
+
+  real-cod4-private:
+    name: Convert actual COD4 AK + ALL matched original reload/ADS/fire/idle tracks
+    needs: synthetic-geometry
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/iw3-arsenal-extraction-audit-20261102
+          path: _iw3_pipeline_src
+          persist-credentials: false
+      - name: Headless depth renderer dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends libegl1 libgl1-mesa-dri
+      - name: Cache native-local OAT exporter (open-source binary only)
+        id: native_oat_cache
+        uses: actions/cache@v4
+        with:
+          path: _native_oat
+          key: oat-native-locals-v034-x64-v2-${{ hashFiles('sandbox/luanti/iw3_blockstyle/patch_oat_native_locals.py') }}
+      - uses: actions/checkout@v4
+        if: steps.native_oat_cache.outputs.cache-hit != 'true'
+        with:
+          repository: Laupetin/OpenAssetTools
+          ref: 28b14ea0ee41844cfad9875176f9dc693db045cf
+          path: _oat_native_src
+          submodules: recursive
+          persist-credentials: false
+      - name: Build pinned x64 OAT with private native model-local sidecars
+        if: steps.native_oat_cache.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends g++-14
+          python3 sandbox/luanti/iw3_blockstyle/patch_oat_native_locals.py _oat_native_src
+          export PREMAKE_NO_PROMPT=1
+          (cd _oat_native_src && ./generate.sh --cc=gcc)
+          CC=gcc-14 CXX=g++-14 make -C _oat_native_src/build -j"$(nproc)" config=release_x64 UnlinkerCli
+          mkdir -p _native_oat
+          cp _oat_native_src/build/bin/Release_x64/Unlinker _native_oat/Unlinker
+          cp -a _oat_native_src/build/bin/Release_x64/raw _native_oat/raw
+          chmod +x _native_oat/Unlinker
+      - name: Select native-local source exporter
+        run: |
+          chmod +x _native_oat/Unlinker
+          echo "UNLINKER=$PWD/_native_oat/Unlinker" >> "$GITHUB_ENV"
+      - name: Stage private original 7 GB archive and verify checksum
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p _release_assets/c4
+          gh release download gofile-p2DdQHsz --repo "$GITHUB_REPOSITORY" \
+            --pattern 'C4-Mocs.zip.part-*' --dir _release_assets/c4
+          actual="$(cat _release_assets/c4/C4-Mocs.zip.part-* | sha256sum | cut -d' ' -f1)"
+          test "$actual" = '6787f2082b39ee76445db7fca92892256bfb97e62bbdebfe63f6ee11de6a8d99'
+      - name: Decode original COD4 GLB and XANIM in ignored scratch directory
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="$PWD/_iw3_pipeline_src/tools"
+          mkdir -p _iw3_private/native-locals
+          export IW3_NATIVE_LOCALS_DIR="$PWD/_iw3_private/native-locals"
+          python3 _iw3_pipeline_src/tools/iw3_weapon_probe.py prepare --with-iwds
+          python3 _iw3_pipeline_src/tools/iw3_weapon_probe.py probe --unlinker "$UNLINKER"
+          test -d _iw3_private/dumps/common_mp/model_export
+          test -d _iw3_private/dumps/common_mp/xanim
+      - name: Actual AK triangles -> 3D cuboids, all matching XANIM into skinned GLB
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet --user Pillow==12.0.0 numpy==2.3.4
+          PYTHONPATH="$PWD/_iw3_pipeline_src/tools" python3 \
+            sandbox/luanti/iw3_blockstyle/voxelize.py \
+            --dumps _iw3_private/dumps \
+            --output _iw3_private/blockstyle \
+            --report _iw3_reports/ak47-blockstyle.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          x=json.loads(Path('_iw3_reports/ak47-blockstyle.json').read_text())
+          assert x['rifle_animations_attached']>0
+          assert x['rifle_geometry']['cuboids']>0
+          assert x['rifle_geometry']['effective_density']==384
+          assert not x['rifle_geometry']['automatic_lod_reduced']
+          assert x['rifle_geometry']['triangle_count']>=100000
+          assert x['rifle_geometry']['internal_faces_removed']>0
+          assert x['rifle_texture']['width']==x['rifle_texture']['height']==512
+          assert x['rifle_texture']['animations']==x['rifle_animations_attached']
+          assert not x['rifle_texture']['source_game_texture_used']
+          assert x['hands_tight_geometry']['cuboids']>=50
+          assert x['hands_tight_animations_attached']>20
+          assert x['private_binary_outputs']
+          print('AK47 conversions:',x['rifle_geometry']['cuboids'],
+                'All decoded:',x['xanim_decoded'],
+                'Rifle clips:',x['rifle_animations_attached'],
+                'Hands clips:',x['hands_animations_attached'])
+          PY
+      - name: Render actual converted COD4 AK cuboid screenshots (static, not fake concept images)
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet --user Pillow==12.0.0 moderngl==5.12.0
+          PYTHONPATH="$PWD/_iw3_pipeline_src/tools" python3 \
+            sandbox/luanti/iw3_blockstyle/render_previews.py \
+            --input _iw3_private/blockstyle/AK47_COD4_BLOCKSTYLE_PRIVATE.glb \
+            --hands _iw3_private/blockstyle/AK47_COD4_HANDS_BLOCKSTYLE_PRIVATE.glb \
+            --output _iw3_reports/real-renders
+          test -s _iw3_reports/real-renders/ak47_cod4_blockstyle_3quarter.png
+          test -s _iw3_reports/real-renders/ak47_cod4_blockstyle_profile.png
+      - name: Verify animated glTF skinning on real COD4 reload / idle / fire / ADS
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet --user numpy==2.3.4
+          PYTHONPATH="$PWD/_iw3_pipeline_src/tools" python3 \
+            sandbox/luanti/iw3_blockstyle/render_pose_sequence.py \
+            --rifle _iw3_private/blockstyle/AK47_COD4_BLOCKSTYLE_ALL_XANIM_PRIVATE.glb \
+            --hands _iw3_private/blockstyle/AK47_COD4_HANDS_ALL_XANIM_PRIVATE.glb \
+            --output _iw3_reports/pose-frames
+          test -s _iw3_reports/pose-frames/ak47_animation_comparison.png
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          data=json.loads(Path('_iw3_reports/pose-frames/pose-audit.json').read_text())
+          assert 'reload' in data['actions']
+          assert data['actions']['reload'].get('frames'),data['actions']['reload']
+          assert data['rifle_clips'] >= 4
+          print('ACTUAL COD4 SKIN POSE CHECKS:', {
+              k:{"status":v.get('status','rendered'),
+                 "duration":v.get('duration_seconds'),
+                 "max_rifle_motion":max((f['rifle_max_vertex_motion'] for f in v.get('frames',[])),default=0),
+                 "max_hand_motion":max((f['hands_max_vertex_motion'] for f in v.get('frames',[])),default=0)}
+              for k,v in data['actions'].items()})
+          PY
+      - name: Mount original skinned COD4 hands and rifle on original tag_weapon during full reload
+        run: |
+          set -euo pipefail
+          PYTHONPATH="$PWD/_iw3_pipeline_src/tools" python3 \
+            sandbox/luanti/iw3_blockstyle/render_mounted_viewhands.py \
+            --rifle _iw3_private/blockstyle/AK47_COD4_BLOCKSTYLE_ALL_XANIM_PRIVATE.glb \
+            --hands _iw3_private/blockstyle/AK47_COD4_HANDS_ALL_XANIM_PRIVATE.glb \
+            --output _iw3_reports/mounted-frames
+          test -s _iw3_reports/mounted-frames/ak47_real_viewhands_mounted_contact_sheet.png
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          audit=json.loads(Path("_iw3_reports/mounted-frames/mount-audit.json").read_text())
+          assert len(audit["frames"])>=6,audit["errors"]
+          assert all(frame["hand_anchor_present"] for frame in audit["frames"])
+          assert any(frame["action"]=="reload" for frame in audit["frames"])
+          assert all(frame["gun_anchor_name"]=="native_model_root" for frame in audit["frames"]),audit["errors"]
+          assert all(frame["mount_strategy"]=="iw3_dobj_model_root_to_hands_tag_weapon" for frame in audit["frames"])
+          assert all(frame["tag_alignment_error"] < .00001 for frame in audit["frames"])
+          assert not audit["hand_grip_verified"],"Do not call a structural tag match a functional grip"
+          print("Real original COD4 hands+AK frames:",len(audit["frames"]))
+          print("Mount strategies:",sorted(set(f["mount_strategy"] for f in audit["frames"])))
+          print("Remaining visual errors:",audit["errors"])
+          PY
+      - name: Render first-person original AK with wrists and fingers ONLY (no giant forearms)
+        run: |
+          set -euo pipefail
+          PYTHONPATH="$PWD/_iw3_pipeline_src/tools" python3 \
+            sandbox/luanti/iw3_blockstyle/render_mounted_viewhands.py \
+            --rifle _iw3_private/blockstyle/AK47_COD4_BLOCKSTYLE_ALL_XANIM_PRIVATE.glb \
+            --hands _iw3_private/blockstyle/AK47_COD4_HANDSONLY_ALL_XANIM_PRIVATE.glb \
+            --output _iw3_reports/mounted-hands-only
+          test -s _iw3_reports/mounted-hands-only/ak47_real_viewhands_mounted_contact_sheet.png
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          old=json.loads(Path("_iw3_reports/mounted-frames/mount-audit.json").read_text())
+          new=json.loads(Path("_iw3_reports/mounted-hands-only/mount-audit.json").read_text())
+          assert new["frames"] and len(new["frames"])==len(old["frames"])
+          assert all(f["gun_anchor_name"]=="native_model_root" for f in new["frames"])
+          assert all(f["tag_alignment_error"]<.00001 for f in new["frames"])
+          print("HAND-ONLY AK SOURCE XANIM FRAMES:",len(new["frames"]))
+          PY
+      - name: Verify native IW3 rig with fixed FPS camera across full reload at 24 fps
+        run: |
+          set -euo pipefail
+          PYTHONPATH="$PWD/_iw3_pipeline_src/tools" python3 \
+            sandbox/luanti/iw3_blockstyle/fps_composition_gate.py \
+            --rifle _iw3_private/blockstyle/AK47_COD4_BLOCKSTYLE_ALL_XANIM_PRIVATE.glb \
+            --hands _iw3_private/blockstyle/AK47_COD4_HANDSONLY_ALL_XANIM_PRIVATE.glb \
+            --output _iw3_reports/fps-hipfire-qa
+          test -s _iw3_reports/fps-hipfire-qa/ak47_fps_hipfire_top3_comparison.png
+          test -s _iw3_reports/fps-hipfire-qa/ak47_fps_original_reload_contact_sheet.png
+          test -s _iw3_reports/fps-hipfire-qa/ak47_fps_original_reload_diagnostic.gif
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          a=json.loads(Path('_iw3_reports/fps-hipfire-qa/fps-framing-audit.json').read_text())
+          assert a["candidates_tested"]>=3, a
+          assert a["rifle_core_visible_95pct"],a["full_render_minimum_core_visible_fraction"]
+          assert len([f for f in a["frames"] if f["action"]=="reload" and "file" in f])>=60
+          assert a["camera_fixed_for_all_animation_frames"]
+          assert a["preview_renderer"]["renderer"]=="OpenGL EGL"
+          assert all(f["geometry_pixels"]>100 for f in a["frames"])
+          assert all(f["textured_primitives"]>=4 for f in a["frames"])
+          assert all(f["texture_sizes"]==[[512,512]] for f in a["frames"])
+          assert not a["ads_iron_sight_verified"] and not a["hand_grip_verified"]
+          assert a["reload_gif"]["frames"]>=60
+          assert a["camera_validation_samples"]>=35
+          assert abs(a["reload_gif"]["gif_duration_s"]-a["reload_gif"]["source_duration_s"])<=.0051
+          assert a["coordinate_system"]=="OAT glTF Y-up"
+          print("Full-timeline source-linked Y-up FPS camera candidates:",a["candidates_tested"])
+          print("Auto-camera framing metrics:",a["best_candidates"][0])
+          PY
+      - name: Bake complete native ADS and verify centered emitted iron sights
+        run: |
+          set -euo pipefail
+          PYTHONPATH="$PWD/_iw3_pipeline_src/tools" python3 \
+            sandbox/luanti/iw3_blockstyle/ads_pipeline.py \
+            --rifle _iw3_private/blockstyle/AK47_COD4_BLOCKSTYLE_ALL_XANIM_PRIVATE.glb \
+            --hands _iw3_private/blockstyle/AK47_COD4_HANDSONLY_ALL_XANIM_PRIVATE.glb \
+            --weapon _iw3_private/dumps/common_mp/weapons/ak47_mp \
+            --output _iw3_private/ads-baked
+          python3 - <<'PY'
+          import json,shutil
+          from pathlib import Path
+          source=Path('_iw3_private/ads-baked')
+          audit=json.loads((source/'ads-audit.json').read_text())
+          assert audit['ads_metrics']['maximum_center_error_pixels']<1
+          assert audit['camera_fixed'] and audit['original_clips_preserved']==[39,49]
+          assert audit['derived_clips_added_per_model']==5
+          assert audit['playback_durations']['enter']==audit['playback_durations']['exit']==.25
+          assert all(f['textured_primitives']==4 and f['geometry_pixels']>100 for f in audit['frames'])
+          assert not audit['runtime_android_verified']
+          target=Path('_iw3_reports/ads-qa');target.mkdir(parents=True,exist_ok=True)
+          for pattern in ('*.png','*.gif','*.json'):
+              for path in source.glob(pattern):shutil.copy2(path,target/path.name)
+          assert not list(target.glob('*.glb'))
+          print('Native composed ADS:',audit['ads_metrics'],audit['gif_frames'])
+          PY
+      - name: Upload static and truly animated pose screenshots from real COD4 geometry
+        uses: actions/upload-artifact@v4
+        with:
+          name: ak47-cod4-blockstyle-real-3d-and-animation-pose-screenshots
+          path: |
+            _iw3_reports/real-renders/*.png
+            _iw3_reports/pose-frames/*.png
+            _iw3_reports/mounted-frames/*.png
+            _iw3_reports/mounted-hands-only/*.png
+            _iw3_reports/fps-hipfire-qa/*.png
+            _iw3_reports/fps-hipfire-qa/*.gif
+            _iw3_reports/ads-qa/*.png
+            _iw3_reports/ads-qa/*.gif
+          if-no-files-found: error
+          retention-days: 7
+      - name: Destroy original archive and all private binary model outputs
+        if: always()
+        run: |
+          rm -rf _release_assets _iw3_private
+      - name: Upload metadata audit ONLY (no copyrighted models or keyframes)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: iw3-ak47-blockstyle-metadata-only
+          path: |
+            _iw3_reports/ak47-blockstyle.json
+            _iw3_reports/pose-frames/pose-audit.json
+            _iw3_reports/mounted-frames/mount-audit.json
+            _iw3_reports/mounted-hands-only/mount-audit.json
+            _iw3_reports/fps-hipfire-qa/fps-framing-audit.json
+            _iw3_reports/ads-qa/ads-audit.json
+          if-no-files-found: warn
+          retention-days: 14
+
