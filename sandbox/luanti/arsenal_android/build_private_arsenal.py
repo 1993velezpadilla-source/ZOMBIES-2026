@@ -185,6 +185,30 @@ def stage(expected, animated, definitions, glbs: Path, output: Path):
         }
         if profile:
             metadata.update(profile)
+        # ONLY original OAT variants with real rig channels and original
+        # animation files. Never manufacture a nonexistent 3D attachment.
+        supported = {}
+        for variant, original_name in (a.get("attachment_variant_models") or {}).items():
+            if not isinstance(variant,str) or not variant or not all(
+                    x in {"reflex","acog","silencer","gp25"}
+                    for x in variant.split("_")):
+                continue
+            if not isinstance(original_name,str) or "/" in original_name or "\\" in original_name:
+                continue
+            model_source=glbs/original_name
+            if not model_source.is_file() or model_source.stat().st_size>MAX_FILE:
+                continue
+            try:
+                clips=parse_glb(model_source)
+                if not set(REQUIRED_ANIMS)<=clips:
+                    continue
+            except (ValueError,OSError):
+                continue
+            target_name=f"arsenal_{wid}_{variant}_gun.glb"
+            shutil.copy2(model_source,models/target_name)
+            supported[variant]=target_name
+        metadata["source_attachment_models"]=supported
+        metadata["original_attachment_models_count"]=len(supported)
         shutil.copy2(gun,models/metadata["gun_model"])
         shutil.copy2(hands,models/metadata["hands_model"])
         native.append(wid)
