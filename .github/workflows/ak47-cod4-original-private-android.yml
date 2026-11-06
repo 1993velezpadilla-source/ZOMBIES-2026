@@ -189,7 +189,7 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           text=Path('_iw3_reports/android-badging.txt').read_text()
-          assert "name='com.xziel.voxelsandbox.ak47fps'" in text
+          assert "name='com.xziel.voxelsandbox.ak47combo2'" in text
           assert "versionCode='5180005'" in text
           assert 'application-debuggable' not in text
           assert "native-code: 'arm64-v8a'" in text
