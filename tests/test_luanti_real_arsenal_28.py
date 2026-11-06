@@ -71,6 +71,36 @@ class Original28Tests(unittest.TestCase):
             self.assertTrue(chosen[0].name.startswith("viewmodel_desert_eagle_gold"))
             self.assertEqual(set(chosen[1]),{"idle","ads","fire","reload"})
 
+    def test_reload_empty_does_not_replace_normal_reload(self):
+        with tempfile.TemporaryDirectory() as t:
+            root=Path(t)
+            glb(root/"model_export/viewmodel_ak47_mp_lod0.glb")
+            (root/"xanim").mkdir()
+            for action in ("idle","ads_up","fire","reload_empty","reload"):
+                (root/"xanim"/f"viewmodel_ak47_{action}").write_bytes(b"original-xanim")
+            with patch("luanti_real_arsenal_28.read_nodes",
+                       return_value={"joints":{"j_gun","tag_weapon","j_main"}}),\
+                 patch("luanti_real_arsenal_28.load_xanim",
+                       return_value=FakeAnimation()):
+                chosen,rec=choose_source(root/"model_export",root/"xanim",["viewmodel_ak47"])
+            self.assertIsNotNone(chosen)
+            self.assertEqual(chosen[1]["reload"].name,"viewmodel_ak47_reload")
+            self.assertEqual(chosen[1]["reload_empty"].name,"viewmodel_ak47_reload_empty")
+
+    def test_only_empty_reload_cannot_pretend_normal_reload_exists(self):
+        with tempfile.TemporaryDirectory() as t:
+            root=Path(t)
+            glb(root/"model_export/viewmodel_ak47_mp_lod0.glb")
+            (root/"xanim").mkdir()
+            for action in ("idle","ads_up","fire","reload_empty"):
+                (root/"xanim"/f"viewmodel_ak47_{action}").write_bytes(b"original-xanim")
+            with patch("luanti_real_arsenal_28.read_nodes",
+                       return_value={"joints":{"j_gun","tag_weapon","j_main"}}),\
+                 patch("luanti_real_arsenal_28.load_xanim",
+                       return_value=FakeAnimation()):
+                chosen,rec=choose_source(root/"model_export",root/"xanim",["viewmodel_ak47"])
+            self.assertIsNone(chosen)
+
     def test_no_missing_source_can_produce_28_fake_models(self):
         with tempfile.TemporaryDirectory() as t:
             source=Path(t)/"dumps"
