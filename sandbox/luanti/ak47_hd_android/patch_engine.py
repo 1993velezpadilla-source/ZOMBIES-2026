@@ -3,6 +3,7 @@ import argparse
 from pathlib import Path
 import shutil
 from patch_fps_hud import patch as patch_fps_hud
+from make_reload_audio import prepare as make_reload_audio
 from PIL import Image,ImageDraw,ImageFont
 
 HERE=Path(__file__).resolve().parent
@@ -15,6 +16,7 @@ def checked(path,old,new):
 def patch(root,assets):
     mod=root/'games/voxelibre/mods/ak47dev'
     shutil.copy2(HERE/'init.lua',mod/'init.lua')
+    make_reload_audio(mod)
     for folder in ('models','textures'):
         for file in (assets/folder).iterdir():shutil.copy2(file,mod/folder/file.name)
     shutil.copy2(HERE/'ak47_motion.h',root/'src/client/ak47_motion.h')
@@ -47,12 +49,12 @@ def patch(root,assets):
     app=root/'android/app'
     # MainActivity re-extracts bundled game assets when VERSION_CODE changes.
     checked(root/'android/build.gradle','project.ext.set("versionBuild", 0)',
-            'project.ext.set("versionBuild", 4)')
+            'project.ext.set("versionBuild", 5)')
     for path in [app/'build.gradle',app/'src/main/AndroidManifest.xml',
                  app/'src/main/java/net/minetest/minetest/GameActivity.java']:
         text=path.read_text();assert 'com.xziel.voxelsandbox.v33' in text
         path.write_text(text.replace('com.xziel.voxelsandbox.v33','com.xziel.voxelsandbox.ak47fps'))
-    checked(app/'src/main/res/values/strings.xml','Voxel Sandbox AK V33','AK47 COD4 FPS Test')
+    checked(app/'src/main/res/values/strings.xml','Voxel Sandbox AK V33','AK47 COD4 Materials FPS')
     checked(root/'src/defaultsettings.cpp','settings->setDefault("touch_interaction_style", "tap");',
             'settings->setDefault("touch_interaction_style", "buttons_crosshair");')
     font=ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',23)
@@ -63,7 +65,7 @@ def patch(root,assets):
         draw.text(((128-width)/2,48),label,font=font,fill=(245,245,245,255))
         image.save(root/'textures/base/pack'/name)
         image.save(mod/'textures'/name)
-    print('Original COD4 polygonal adapter: FPS top-right, source clips, custom atlas, FIRE/ADS/R')
+    print('COD4 materials V2: permanent native FPS, 512px textured hands, both synchronized reload audios')
 
 if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('--root',type=Path,required=True)
