@@ -36,6 +36,8 @@ def verify(apk):
             lua=z.read(prefix+'init.lua').decode()
             assert 'c.aux1 and not s.aux' in lua and 's.ammo=s.ammo-1' in lua
             assert 'ak47hd.glb' in lua and 'ak47dev_fp.glb' not in lua
+            assert 'set_wield_index' not in lua, 'unsupported server-side wield-index setter in APK'
+            assert 'player:get_wield_index()' in lua and 'inv:set_stack("main",selected,weapon)' in lua
             assert z.read(prefix+'sounds/ak47dev_fire.ogg').startswith(b'OggS')
     report={'package':'com.xziel.voxelsandbox.ak47hd','architecture':'arm64-v8a',
             'apk_bytes':apk.stat().st_size,'apk_sha256':hashlib.sha256(apk.read_bytes()).hexdigest(),

@@ -7,7 +7,7 @@ on:
       - .github/workflows/ak47-hd-private-android.yml
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 concurrency:
   group: ak47-hd-private-apk-${{ github.ref }}
   cancel-in-progress: true
@@ -34,6 +34,7 @@ jobs:
           python3 -m py_compile sandbox/luanti/ak47_hd_android/*.py
           luac5.1 -p sandbox/luanti/ak47_hd_android/init.lua
           lua5.1 sandbox/luanti/ak47_hd_android/test_controls.lua
+          lua5.1 sandbox/luanti/ak47_hd_android/test_join.lua
           python3 -m unittest discover -s sandbox/luanti/ak47_hd_android -p 'test_*.py' -v
           PYTHONPATH="$PWD/_iw3_pipeline_src/tools:$PWD/sandbox/luanti/iw3_blockstyle" python3 -m unittest discover -s sandbox/luanti/iw3_blockstyle -p 'test_*.py' -v
       - uses: actions/setup-java@v4
@@ -159,6 +160,19 @@ jobs:
           assert "native-code: 'arm64-v8a'" in text
           PY
           "$TOOLS/apksigner" verify --verbose "$APK" > _iw3_reports/android-signature.txt
+      - name: Publish the corrected playtest as a direct GitHub APK download
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="ak47-hd-512-android-${GITHUB_SHA:0:7}"
+          APK="$RUNNER_TEMP/luanti/android/app/build/outputs/apk/debug/app-arm64-v8a-debug.apk"
+          DOWNLOAD="$RUNNER_TEMP/luanti/android/app/build/outputs/apk/debug/AK47-HD-512-ARM64.apk"
+          cp "$APK" "$DOWNLOAD"
+          gh release create "$TAG" "$DOWNLOAD" \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease \
+            --title 'AK47 HD 512 Android ARM64 — join crash fix' \
+            --notes 'Fixes the delayed ak47dev join crash caused by the unsupported set_wield_index method. The AK swaps into the selected slot while preserving the previous item. Includes join/inventory regression checks, weapon control checks, real model/texture/clip inspection and Android signature verification. Physical Android play/FPS testing remains pending. This debug build may require uninstalling the previous playtest because the signing key is generated on the build runner.'
       - name: Encrypt the private APK for direct delivery
         run: |
           set -euo pipefail

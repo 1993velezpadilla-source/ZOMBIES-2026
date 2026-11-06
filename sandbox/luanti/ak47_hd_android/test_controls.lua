@@ -12,7 +12,7 @@ local inventory={contains_item=function() return true end,get_size=function() re
     get_stack=function() return stack end}
 local player={is_player=function() return true end,get_player_name=function() return "test" end,
     get_wielded_item=function() return stack end,set_wielded_item=function() end,
-    get_inventory=function() return inventory end,set_wield_index=function() end,
+    get_inventory=function() return inventory end,get_wield_index=function() return 1 end,
     get_player_control=function() return controls end,set_fov=function() end,
     hud_add=function() return 1 end,hud_change=function(self,id,k,v) hud=v end,
     get_pos=function() return {x=0,y=0,z=0} end,

@@ -83,7 +83,18 @@ minetest.register_on_joinplayer(function(p)
         local inv=player:get_inventory()
         if not inv:contains_item("main",AK) then inv:add_item("main",AK) end
         for i=1,inv:get_size("main") do
-            if inv:get_stack("main",i):get_name()==AK then player:set_wield_index(i);break end
+            local weapon=inv:get_stack("main",i)
+            if weapon:get_name()==AK then
+                -- Luanti exposes get_wield_index(), but no server-side setter.
+                -- Move the weapon into the selected slot and preserve its item.
+                local selected=player:get_wield_index()
+                if i~=selected then
+                    local previous=inv:get_stack("main",selected)
+                    inv:set_stack("main",selected,weapon)
+                    inv:set_stack("main",i,previous)
+                end
+                break
+            end
         end
         sync(player,state(player),"E")
         minetest.chat_send_player(name,"FIRE: disparar | ADS: apuntar | R: recargar")
