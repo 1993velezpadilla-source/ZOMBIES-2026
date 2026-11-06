@@ -60,32 +60,41 @@ def replace_region(canvas,base,photo,box,kind):
     mean=photographic.reshape(-1,3).mean(0)
     centered=photographic-mean
     if kind=='wood':
-        baseline=np.array([143,80,43],dtype=np.float32)
-        detail=.82*centered
-        outline=.22*painted+.78*baseline
+        # Deep walnut: the previous saturated orange made furniture plastic.
+        # Preserve photo grain and weathered pores with directional dark fibers.
+        baseline=np.array([103,60,37],dtype=np.float32)
+        detail=.43*(photographic-photographic.mean(axis=(0,1),keepdims=True))
+        outline=.17*painted+.83*baseline
+        detail=np.clip(detail,-25,22)
     elif kind in ('receiver','magazine','steel'):
-        # Rusty Metal 04 has *real color variation*, not just luminance.
-        # Preserve red/brown oxidation and steel-gray patches from the
-        # photograph. The older grayscale conversion erased nearly all rust.
-        baseline=np.array({'receiver':[78,78,76],
-                           'magazine':[58,61,61],
-                           'steel':[101,108,110]}[kind],dtype=np.float32)
-        rust_chroma=photographic-mean
-        detail=.90*rust_chroma
-        outline=.16*painted+.84*baseline
-        # Slight baked local contrast works with Luanti's non-PBR model shader
-        # without costly screen-space effects on the phone.
-        detail += .16*(photographic.mean(2,keepdims=True)-photographic.mean())
+        # Keep the photograph from Rusty Metal 04 as real weathering, NOT the
+        # base coat. Previously 90% photo chroma painted the whole rifle white.
+        # This is black blued steel first, with restrained rust on dark areas.
+        baseline=np.array({'receiver':[53,60,64],
+                           'magazine':[43,49,52],
+                           'steel':[69,75,79]}[kind],dtype=np.float32)
+        luma=(.2126*photographic[:,:,0]+.7152*photographic[:,:,1]
+              +.0722*photographic[:,:,2])
+        coarse=np.clip((luma-np.mean(luma))*.20,-13,13)[...,None]
+        # Ignore very bright specks: those were the white paint chips.
+        # Colorize genuinely warmer rust pixels only, with bounded strength.
+        red_excess=np.maximum(0,photographic[:,:,0] -
+                              .5*(photographic[:,:,1]+photographic[:,:,2]))
+        rust=np.clip((red_excess-7)/48,0,1)*np.clip((190-luma)/90,0,1)
+        rust=rust[...,None]
+        outline=.15*painted+.85*baseline
+        detail=np.broadcast_to(coarse,photographic.shape).copy()
+        detail+=rust*np.array([22.,6.,-7.],dtype=np.float32)
     elif kind=='skin':
-        # Fine real-photo leather pores are used only as a low-strength
-        # microdetail source, recolored to skin; not a photographic hand.
-        baseline=np.array([186,130,102],dtype=np.float32)
-        detail=.24*centered.mean(2,keepdims=True)
-        outline=.55*painted+.45*baseline
+        # Photo leather is *microtexture only*, not a replacement for skin.
+        # Avoid coarse dark spots projected onto every finger.
+        baseline=np.array([177,125,99],dtype=np.float32)
+        detail=np.clip(.13*centered.mean(2,keepdims=True),-8,8)
+        outline=.40*painted+.60*baseline
     else:
-        baseline=np.array([49,48,50],dtype=np.float32)
-        detail=.56*centered.mean(2,keepdims=True)
-        outline=.37*painted+.63*baseline
+        baseline=np.array([40,43,47],dtype=np.float32)
+        detail=np.clip(.35*centered.mean(2,keepdims=True),-16,16)
+        outline=.36*painted+.64*baseline
     shaded=np.uint8(np.clip(outline+detail,0,255))
     canvas.paste(Image.fromarray(shaded,'RGB'),(x0,y0))
 
@@ -106,7 +115,25 @@ def make_hand_atlas():
         original=atlas.copy()
         for kind,box in HAND_TILES.items():
             replace_region(atlas,original,photos['leather'],box,kind)
-    return atlas
+    # Build continuous sleeve-to-skin gradient INSIDE the two skin UV
+    # islands. Do not label arbitrary neighboring triangles as glove/skin:
+    # that caused the large black sawtooth edges seen during reload.
+    pixels=np.asarray(atlas,dtype=np.float32).copy()
+    # x within each half maps wrist -> palm. Keep most of the fingers skin.
+    for side in (0,1):
+        left=side*(SIZE//2)
+        right=(side+1)*(SIZE//2)
+        width=right-left
+        x=np.arange(width,dtype=np.float32)
+        # 0..0.18 dark cuff, smooth transition from 0.18..0.37
+        t=np.clip((x/width-.16)/.22,0,1)
+        t=t*t*(3-2*t)
+        blend=t[None,:,None]
+        base=pixels[0:HAND_TILES['skin'][3],left:right,:]
+        charcoal=np.array([41,42,43],dtype=np.float32)
+        charcoal=charcoal[None,None,:]+(base-base.mean(axis=(0,1),keepdims=True))*.12
+        pixels[0:HAND_TILES['skin'][3],left:right,:]=blend*base+(1-blend)*charcoal
+    return Image.fromarray(np.uint8(np.clip(pixels,0,255)),'RGB')
 
 def hand_uv(vertices,normals,joints,weights,names):
     """Hand-local UV projection allocating separate left/right skin halves.
@@ -129,21 +156,19 @@ def hand_uv(vertices,normals,joints,weights,names):
     if not bounds: raise ValueError('no hand vertices')
     for start in range(0,len(vertices),3):
         tri=vertices[start:start+3]
-        joint=int(joints[start,np.argmax(weights[start])])
-        name=names[joint] if joint<len(names) else ''
-        # Wrist cuffs stay dark; fingers and palms never borrow the cuff tile.
-        is_cuff='wrist' in name or 'sleeve' in name or 'glove' in name
-        kind='cuff' if is_cuff else 'skin'
+        # A continuous UV island per hand; cuff/sleeve shading is painted as
+        # a smooth gradient on the atlas instead of triangle-by-triangle tags.
+        # 3D hands and finger weights are left completely unchanged.
+        kind='skin'
         side=side_by_tri[start//3]
         low,span=bounds[side]
         uv=np.clip((tri[:,[0,1]]-low)/span,0,1)
         uv[:,1]=1-uv[:,1]
         x0,y0,x1,y1=HAND_TILES[kind]
-        if kind=='skin':
-            # Half the atlas per hand gives stable seams even when mirrored.
-            half=(x1-x0)//2
-            x0+=side*half
-            x1=x0+half
+        # Each hand gets half the same contiguous skin/sleeve region.
+        half=(x1-x0)//2
+        x0+=side*half
+        x1=x0+half
         pad=5
         out[start:start+3]=(np.array([x0+pad+.5,y0+pad+.5])+
                     uv*np.array([x1-x0-2*pad-1,y1-y0-2*pad-1]))/SIZE
