@@ -45,7 +45,10 @@ def _tile(kind, width, height, rng):
         base=np.array([50.,48.,47.])
         fibers=4*np.sin((x+y)*.60)+grain*2
         shade=fibers[...,None]*np.array([.9,.9,1.0])
-    out=np.uint8(np.clip(base+shade,0,255))
+    # Independent fine-grain variation across RGB channels prevents the
+    # material collapsing to a narrow color ramp on a 512px texture.
+    chromatic_noise=rng.normal(0,1.85 if kind not in ('skin','cuff') else 1.20,(height,width,3))
+    out=np.uint8(np.clip(base+shade+chromatic_noise,0,255))
     return Image.fromarray(out,'RGB')
 
 def _draw_details(kind,tile,rng):
