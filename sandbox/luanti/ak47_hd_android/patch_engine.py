@@ -49,8 +49,8 @@ def patch(root,assets):
     for path in [app/'build.gradle',app/'src/main/AndroidManifest.xml',
                  app/'src/main/java/net/minetest/minetest/GameActivity.java']:
         text=path.read_text();assert 'com.xziel.voxelsandbox.v33' in text
-        path.write_text(text.replace('com.xziel.voxelsandbox.v33','com.xziel.voxelsandbox.ak47hd'))
-    checked(app/'src/main/res/values/strings.xml','Voxel Sandbox AK V33','AK47 HD Playtest')
+        path.write_text(text.replace('com.xziel.voxelsandbox.v33','com.xziel.voxelsandbox.ak47original'))
+    checked(app/'src/main/res/values/strings.xml','Voxel Sandbox AK V33','AK47 COD4 Original Mesh')
     checked(root/'src/defaultsettings.cpp','settings->setDefault("touch_interaction_style", "tap");',
             'settings->setDefault("touch_interaction_style", "buttons_crosshair");')
     font=ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',23)
@@ -61,7 +61,7 @@ def patch(root,assets):
         draw.text(((128-width)/2,48),label,font=font,fill=(245,245,245,255))
         image.save(root/'textures/base/pack'/name)
         image.save(mod/'textures'/name)
-    print('HD adapter ready: .ak47hd package, eight named source clips, external 512px atlas, FIRE/ADS/R')
+    print('COD4 original-polygon adapter ready: .ak47hd package, eight named source clips, external 512px atlas, FIRE/ADS/R')
 
 if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('--root',type=Path,required=True)
