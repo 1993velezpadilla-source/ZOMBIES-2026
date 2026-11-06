@@ -16,6 +16,21 @@ end
 local defs = {}
 local players = {}
 local function timestamp() return minetest.get_us_time() / 1000000 end
+-- Only the AK has source-verified sound effects pre-baked by the separate
+-- AK HD pipeline. Never assign the AK fire/reload sounds to other firearms.
+local AK_SOUND={
+    fire="ak47dev_fire",
+    dry="ak47dev_dry",
+    reload_normal="ak47dev_reload_normal",
+    reload_empty="ak47dev_reload_empty"
+}
+local function source_audio(p,def,event)
+    if def.id~="ak47" then return end
+    local effect=AK_SOUND[event]
+    if effect then
+        minetest.sound_play(effect,{to_player=p:get_player_name(),gain=.75},true)
+    end
+end
 local function state(player)
     local username = player:get_player_name()
     if not players[username] then
@@ -111,7 +126,7 @@ local function start_reload(p,def,stack,s)
     s.reload_end=timestamp()+
         (s.empty and def.reload_empty_seconds or def.reload_seconds)
     p:set_fov(0,false,.2)
-    -- No fabricated original COD4 audio. Source Foley mixing is a separate gate.
+    source_audio(p,def,s.empty and "reload_empty" or "reload_normal")
     return send(p,stack,def,s,"R")
 end
 local function hit(p,def)
@@ -142,6 +157,7 @@ local function shoot(p,def,stack,s)
     if mag==0 then
         -- No repeated spamming or fake dryfire audio.
         s.next_fire=t+.25
+        source_audio(p,def,"dry")
         return stack
     end
     local meta=stack:get_meta()
@@ -149,6 +165,7 @@ local function shoot(p,def,stack,s)
     s.next_fire=t+def.fire_interval_seconds
     s.fired=(s.fired or 0)+1
     send(p,stack,def,s,"F")
+    source_audio(p,def,"fire")
     hit(p,def)
     return stack
 end
