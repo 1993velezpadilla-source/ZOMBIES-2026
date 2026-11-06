@@ -30,6 +30,8 @@ EMPTY_SOURCE_AUTHOR='serøutōnin--deprivəd / GunLib'
 EMPTY_SOURCE_URL='https://raw.githubusercontent.com/Deases/GunLib/main/sounds/ak47_reload.ogg'
 DURATIONS={'normal':83/30,'empty':106/30}
 NORMAL_SOURCE_ENV='AK47_TACTICAL_NORMAL_WAV'
+NORMAL_SOURCE_SHA256='efb2d724d634eabe6ba8d3065686abca848bb7497d4d43a5e4aed5e5ea23016f'
+NORMAL_AUDIO_ONSET_S=.55  # place distinct 1.56s recording near mag manipulation
 NATIVE_PEAK=0.98
 
 
@@ -47,6 +49,9 @@ def normal_source_bytes():
             data=response.read(2_500_000)
     if len(data)<20_000 or len(data)>2_000_000 or data[:4]!=b'RIFF' or data[8:12]!=b'WAVE':
         raise ValueError('independent NORMAL CC0 sound was not a valid WAV; refusing to duplicate empty sound')
+    digest=hashlib.sha256(data).hexdigest()
+    if digest!=NORMAL_SOURCE_SHA256:
+        raise ValueError('normal CC0 source WAV differs from pinned independent recording: '+digest)
     return data
 
 
@@ -80,10 +85,15 @@ def independent_normal(samples,rate):
     threshold=max(.018,float(np.percentile(loud,98))*.10)
     activity=np.flatnonzero(loud>=threshold)
     onset=max(0,int(activity[0])-int(rate*.08)) if len(activity) else 0
-    chunk=samples[onset:onset+target]
-    out[:len(chunk)]=chunk
+    # The independent recording is 1.556s. Place it in the source 2.767s
+    # tactical XANIM near magazine removal/insertion, with silent lead/tail.
+    # Do not slow it down or shift pitch simply to fill the animation clock.
+    first=int(round(NORMAL_AUDIO_ONSET_S*rate))
+    chunk=samples[onset:onset+target-first]
+    out[first:first+len(chunk)]=chunk
     _fade_boundaries(out,rate)
     return _peak_safe(out),{'original_start_seconds':round(onset/rate,5),
+                           'animation_audio_onset_seconds':NORMAL_AUDIO_ONSET_S,
                            'source_duration_seconds':round(len(samples)/rate,5),
                            'played_source_frames':len(chunk),
                            'source_provenance':NORMAL_SOURCE_PAGE,
