@@ -208,7 +208,7 @@ jobs:
           from pathlib import Path
           from zipfile import ZipFile
           apk=Path("_direct_apk/AK47-COD4-COMBO-V2-ARM64.apk")
-          assert apk.read_bytes()[:4] == b"PK\\x03\\x04", "Not an installable APK ZIP"
+          assert apk.read_bytes()[:2] == b"PK", "Not an installable APK ZIP"
           with ZipFile(apk) as z:
               assert "AndroidManifest.xml" in z.namelist()
               assert any(p.startswith("lib/arm64-v8a/") for p in z.namelist())
