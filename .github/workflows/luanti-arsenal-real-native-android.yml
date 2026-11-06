@@ -14,7 +14,7 @@ permissions:
   contents: read
 concurrency:
   group: original-arsenal-native-android-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   android:
@@ -38,6 +38,7 @@ jobs:
           # No downloaded airsoft/GunLib reload: use the user's original
           # COD4 common.ff LoadedSound and exact native IW3 XANIM notes.
           python3 -m py_compile sandbox/luanti/ak47_hd_android/*.py
+          python3 sandbox/luanti/ak47_hd_android/test_delivery.py
           python3 sandbox/luanti/ak47_hd_android/photo_materials.py \
             --output "$RUNNER_TEMP/ak47-cc0-photos"
           echo "AK47_CC0_TEXTURE_DIR=$RUNNER_TEMP/ak47-cc0-photos" >> "$GITHUB_ENV"
@@ -309,11 +310,18 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p _arsenal_secure
-          python3 _iw3_pipeline_src/tools/iw3_private_apk_crypt.py seal \
+          python3 sandbox/luanti/ak47_hd_android/private_delivery.py encrypt \
             "$RUNNER_TEMP/luanti/android/app/build/outputs/apk/release/app-arm64-v8a-release.apk" \
             _arsenal_secure/COD4-ARSENAL-SOURCE-ARM64.iw3sealed \
-            _iw3_pipeline_src/tools/iw3_private_transfer_public.pem
+            sandbox/luanti/ak47_hd_android/delivery_public.pem
           test -s _arsenal_secure/COD4-ARSENAL-SOURCE-ARM64.iw3sealed
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('_arsenal_secure/COD4-ARSENAL-SOURCE-ARM64.iw3sealed')
+          assert p.read_bytes()[:8] == b'AKHDAPK1'
+          assert p.stat().st_size > 1024
+          print('AES256GCM_RSA_OAEP_ENCRYPTED_HANDOFF_BYTES',p.stat().st_size)
+          PY
           echo "OWNER_ONLY_AES256GCM_PROTECTED=YES"
       - name: Upload encrypted owner-only Arsenal APK, never plaintext
         uses: actions/upload-artifact@v4
