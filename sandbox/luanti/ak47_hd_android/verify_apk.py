@@ -79,34 +79,48 @@ def verify(apk, expected_audit=None):
                 for name in ('normal','empty'):
                     sfx=z.read(prefix+f'sounds/ak47dev_reload_{name}.ogg')
                     assert sfx.startswith(b'OggS') and len(sfx)>10000, name
-                provenance=json.loads(z.read(prefix+'sounds/ak47dev_reload_audit_v6.json'))
-                assert provenance['normal']['source_name']=='assaultriflereload1_0.wav'
-                assert provenance['source_normal']['url'].startswith('https://opengameart.org/')
-                assert provenance['source_empty']['url'].endswith('ak47_reload.ogg')
-                assert provenance['source_normal']['sha256']!=provenance['source_empty']['sha256'], (
-                    'V5 shared empty reload source has returned')
-                assert provenance['normal']['shared_source_with_empty'] is False
-                assert provenance['normal']['time_stretch_applied'] is False
-                assert provenance['empty']['time_stretch_applied'] is False
-                # Compare decoded signal, NOT filenames or animation duration.
-                # V5 used exactly the same ~2.3s audio in both files.
-                def mono(name):
-                    arr,rate=sf.read(BytesIO(z.read(prefix+f'sounds/ak47dev_reload_{name}.ogg')),
-                                     dtype='float32',always_2d=True)
-                    out=arr.mean(axis=1)
-                    # approximately 220Hz for efficient duration-agnostic FFT
-                    stride=max(1,round(rate/220))
-                    return out[::stride].astype(float)
-                a,b=mono('normal'),mono('empty')
-                a-=np.mean(a);b-=np.mean(b)
-                size=1<<((len(a)+len(b)-2).bit_length())
-                spectrum_a=np.fft.rfft(a,size)
-                spectrum_b=np.fft.rfft(b,size)
-                cross=np.fft.irfft(spectrum_a*np.conjugate(spectrum_b),size)
-                correlation=float(max(np.max(np.abs(cross[:len(a)])),
-                                      np.max(np.abs(cross[-len(b)+1:])))/
-                                  max(1.e-8,np.linalg.norm(a)*np.linalg.norm(b)))
-                assert correlation<.75, ('normal and empty reloads still sound alike',correlation)
+                provenance=json.loads(z.read(prefix+'sounds/ak47dev_reload_audit_v7.json'))
+                assert provenance['version']=='COD4_IW3_ORIGINAL_SOUND_NOTETRACK_V7'
+                assert provenance['source']=='original user COD4 zone/spanish/common.ff'
+                assert provenance['original_source_wavs_in_apk'] is False
+                assert provenance['time_stretched'] is False
+                assert provenance['pitch_changed'] is False
+                origins=provenance['source_files']
+                originals={
+                    'weap_ak47_lift_plr':('wpfoly_ak47_reload_lift_v4.wav',
+                       '0d29856c9f9063fba5b56d6e468d18f6e52025caf51d35bb40cd732c5901f7a3'),
+                    'weap_ak47_clipout_plr':('wpfoly_ak47_reload_clipout_v5.wav',
+                       '5b7fe9e5e588bbed9efb78da9c8a04e6c4c3050e464cd5bbcbe667a034e17e7c'),
+                    'weap_ak47_clipin_plr':('wpfoly_ak47_reload_clipin_v4.wav',
+                       '6bc27dea15268628cb6404e2ee4ded951792c792faf8184f980171567c26d44d'),
+                    'weap_ak47_chamber_plr':('wpfoly_ak47_reload_chamber_v4.wav',
+                       'b19d3d85fd3820f73aa88bd92619dd8b4ee6c6462721a0a10989877c175301ac')}
+                assert set(origins)==set(originals)
+                for name,(file,sha) in originals.items():
+                    assert origins[name]['original_file']==file
+                    assert origins[name]['sha256']==sha
+                expected_events={
+                    'normal':[('weap_ak47_lift_plr',0),('weap_ak47_clipout_plr',19),
+                              ('weap_ak47_clipin_plr',57)],
+                    'empty':[('weap_ak47_lift_plr',0),('weap_ak47_clipout_plr',19),
+                             ('weap_ak47_clipin_plr',57),('weap_ak47_chamber_plr',77)]}
+                for kind,events in expected_events.items():
+                    actual=[(p['alias'],p['frame']) for p in provenance['animations'][kind]['events']]
+                    assert actual==events,(kind,actual)
+                    blob=z.read(prefix+f'sounds/ak47dev_reload_{kind}.ogg')
+                    assert hashlib.sha256(blob).hexdigest()==provenance['animations'][kind]['ogg_sha256']
+                    with sf.SoundFile(BytesIO(blob)) as sound:
+                        assert sound.samplerate==44100
+                        assert abs(sound.frames/sound.samplerate-(83 if kind=='normal' else 106)/30)<.015
+                # Hearing "empty" for both was the regression: at 2.65s,
+                # only original EMPTY XANIM is allowed to sound the chamber.
+                tact,sr=sf.read(BytesIO(z.read(prefix+'sounds/ak47dev_reload_normal.ogg')),
+                                dtype='float32',always_2d=True)
+                empty,_=sf.read(BytesIO(z.read(prefix+'sounds/ak47dev_reload_empty.ogg')),
+                                dtype='float32',always_2d=True)
+                idx0,idx1=round(2.65*sr),round(2.92*sr)
+                assert float(np.max(np.abs(tact[idx0:idx1])))<.004
+                assert float(np.max(np.abs(empty[idx0:idx1])))>.004
             lua=z.read(prefix+'init.lua').decode()
             assert 'c.aux1 and not s.aux' in lua and 's.ammo=s.ammo-1' in lua
             assert 'minetest.register_tool(AK' in lua and 'wield_image="ak47dev_icon.png"' in lua
@@ -114,7 +128,7 @@ def verify(apk, expected_audit=None):
             assert 'set_wield_index' not in lua, 'unsupported server-side wield-index setter in APK'
             assert 'player:get_wield_index()' in lua and 'inv:set_stack("main",selected,weapon)' in lua
             assert z.read(prefix+'sounds/ak47dev_fire.ogg').startswith(b'OggS')
-    report={'package':'com.xziel.voxelsandbox.ak47reloadv6','architecture':'arm64-v8a',
+    report={'package':'com.xziel.voxelsandbox.ak47origv7','architecture':'arm64-v8a',
             'apk_bytes':apk.stat().st_size,'apk_sha256':hashlib.sha256(apk.read_bytes()).hexdigest(),
             'model_sha256':hashlib.sha256(model).hexdigest(),'triangles':faces,
             'model_bytes':len(model),'media_file_limit':MAX_MEDIAFILE_BYTES,
@@ -125,7 +139,8 @@ def verify(apk, expected_audit=None):
             'rifle_texture':'cc0_photo_2048_lit_shader',
             'hands_texture':'cc0_photo_1024_skin_and_cuff',
             'reload_sfx_sync':['83/30','106/30'] if expected else [],
-            'independent_recordings_verified':bool(expected),
+            'original_cod4_player_foley_verified':bool(expected),
+            'exact_original_notify_frames':[0,19,57,77] if expected else [],
             'signed_apk_contents_verified':True,'physical_android_device_tested':False}
     return report
 
