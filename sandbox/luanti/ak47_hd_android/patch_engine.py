@@ -37,9 +37,9 @@ def patch(root,assets):
         '\t\tcam->setNearValue(0.25f);\n'
         '\t} else {\n\t\tcam->setFOV(72.0*M_PI/180.0);\n\t\tcam->setNearValue(10);\n\t}')
     app=root/'android/app'
-    # MainActivity re-extracts the bundled Lua only when VERSION_CODE changes.
+    # MainActivity re-extracts bundled game assets when VERSION_CODE changes.
     checked(root/'android/build.gradle','project.ext.set("versionBuild", 0)',
-            'project.ext.set("versionBuild", 1)')
+            'project.ext.set("versionBuild", 2)')
     for path in [app/'build.gradle',app/'src/main/AndroidManifest.xml',
                  app/'src/main/java/net/minetest/minetest/GameActivity.java']:
         text=path.read_text();assert 'com.xziel.voxelsandbox.v33' in text

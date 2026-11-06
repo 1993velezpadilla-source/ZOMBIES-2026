@@ -29,7 +29,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update -qq
-          sudo apt-get install -y -qq --no-install-recommends gettext lua5.1 libjsoncpp-dev libegl1 libgl1-mesa-dri
+          sudo apt-get install -y -qq --no-install-recommends gettext lua5.1 libjsoncpp-dev libzstd-dev libegl1 libgl1-mesa-dri
           python3 -m pip install --quiet --user Pillow==12.0.0 numpy==2.3.4 moderngl==5.12.0 'cryptography>=44,<49'
           python3 -m py_compile sandbox/luanti/ak47_hd_android/*.py
           luac5.1 -p sandbox/luanti/ak47_hd_android/init.lua
@@ -114,20 +114,26 @@ jobs:
           git -C "$RUNNER_TEMP/luanti/games/voxelibre" fetch --depth 1 origin 4492ce6ff8d856daa4567abe2ea689f4e7a39842
           git -C "$RUNNER_TEMP/luanti/games/voxelibre" checkout --detach FETCH_HEAD
           rm -rf "$RUNNER_TEMP/luanti/games/voxelibre/.git"
+      - name: Raise decoded media limit to 32 MiB with bounded compressed transfer
+        run: python3 sandbox/luanti/ak47_hd_android/patch_media_limit.py "$RUNNER_TEMP/luanti"
       - name: Test the actual Luanti GLB loader and skinning against source poses
         run: |
           set -euo pipefail
           ENGINE="$RUNNER_TEMP/luanti"
-          g++ -std=c++17 -O1 -ffunction-sections -fdata-sections \
+          g++ -std=c++17 -O1 -DHAVE_ENDIAN_H=1 -ffunction-sections -fdata-sections \
             -I "$ENGINE/irr/include" -I "$ENGINE/irr/src" -I "$ENGINE/lib/tiniergltf" \
             -I "$ENGINE/src" -I /usr/include/jsoncpp \
             sandbox/luanti/ak47_hd_android/native_probe.cpp \
             "$ENGINE/irr/src/CGLTFMeshFileLoader.cpp" "$ENGINE/irr/src/SkinnedMesh.cpp" \
             "$ENGINE/irr/src/WeightBuffer.cpp" "$ENGINE/irr/src/CReadFile.cpp" \
             "$ENGINE/irr/src/HWBuffer.cpp" "$ENGINE/src/util/base64.cpp" \
-            -Wl,--gc-sections -ljsoncpp -o "$RUNNER_TEMP/ak47-native-probe"
+            "$ENGINE/src/serialization.cpp" "$ENGINE/src/network/networkpacket.cpp" \
+            "$ENGINE/src/util/string.cpp" \
+            -Wl,--gc-sections -ljsoncpp -lzstd -o "$RUNNER_TEMP/ak47-native-probe"
           "$RUNNER_TEMP/ak47-native-probe" _iw3_private/runtime/models/ak47hd.glb \
             _iw3_private/runtime/GOLDEN_PRIVATE.json | tee _iw3_reports/native-loader.txt
+          python3 sandbox/luanti/ak47_hd_android/verify_media_transport.py \
+            "$RUNNER_TEMP/ak47-native-probe" | tee -a _iw3_reports/native-loader.txt
       - name: Connect real HD assets to the native first-person camera and touch controls
         run: |
           set -euo pipefail
@@ -157,7 +163,7 @@ jobs:
           from pathlib import Path
           text=Path('_iw3_reports/android-badging.txt').read_text()
           assert "name='com.xziel.voxelsandbox.ak47hd'" in text
-          assert "versionCode='5180001'" in text
+          assert "versionCode='5180002'" in text
           assert "native-code: 'arm64-v8a'" in text
           PY
           "$TOOLS/apksigner" verify --verbose "$APK" > _iw3_reports/android-signature.txt
@@ -172,8 +178,8 @@ jobs:
           cp "$APK" "$DOWNLOAD"
           gh release create "$TAG" "$DOWNLOAD" \
             --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease \
-            --title 'AK47 HD 512 Android ARM64 — join crash fix' \
-            --notes 'Fixes the delayed ak47dev join crash caused by the unsupported set_wield_index method. The AK swaps into the selected slot while preserving the previous item. Includes join/inventory regression checks, weapon control checks, real model/texture/clip inspection and Android signature verification. Physical Android play/FPS testing remains pending. This debug build may require uninstalling the previous playtest because the signing key is generated on the build runner.'
+            --title 'AK47 HD 512 Android ARM64 — 32 MiB media limit' \
+            --notes 'Raises the engine decoded media limit from 16,700,000 bytes to 32 MiB so the full original 19,956,932-byte model is accepted. Preserves all 156,890 rifle/hand triangles, the 512px texture and eight source animation clips. Reliable transport limits stay unchanged; oversized serialized transfers are rejected safely. The native check exercises real media compression, packet serialization, decoding, mesh loading and skinning. Includes the previous join/inventory fix. Physical Android rendering/FPS confirmation remains pending. This debug build may require uninstalling the previous playtest because the signing key is generated on the build runner.'
       - name: Encrypt the private APK for direct delivery
         run: |
           set -euo pipefail

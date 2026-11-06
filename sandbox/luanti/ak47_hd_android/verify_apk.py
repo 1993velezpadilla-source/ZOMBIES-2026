@@ -7,6 +7,7 @@ import json
 import struct
 from zipfile import ZipFile
 from PIL import Image
+from media_limits import check_media_size,MAX_MEDIAFILE_BYTES
 
 def verify(apk):
     prefix='games/voxelibre/mods/ak47dev/'
@@ -14,6 +15,9 @@ def verify(apk):
         assert any(n.startswith('lib/arm64-v8a/') and n.endswith('.so') for n in outer.namelist())
         assert not any(n.startswith(('lib/x86/','lib/x86_64/','lib/armeabi-v7a/')) for n in outer.namelist())
         with ZipFile(BytesIO(outer.read('assets/assets.zip'))) as z:
+            for entry in z.infolist():
+                if entry.filename.startswith(tuple(prefix+p+'/' for p in ('models','textures','sounds'))) and not entry.is_dir():
+                    check_media_size(entry.filename,entry.file_size)
             model=z.read(prefix+'models/ak47hd.glb')
             assert model[:4]==b'glTF' and struct.unpack_from('<I',model,8)[0]==len(model)
             length,kind=struct.unpack_from('<I4s',model,12);assert kind==b'JSON'
@@ -42,6 +46,7 @@ def verify(apk):
     report={'package':'com.xziel.voxelsandbox.ak47hd','architecture':'arm64-v8a',
             'apk_bytes':apk.stat().st_size,'apk_sha256':hashlib.sha256(apk.read_bytes()).hexdigest(),
             'model_sha256':hashlib.sha256(model).hexdigest(),'triangles':faces,
+            'model_bytes':len(model),'media_file_limit':MAX_MEDIAFILE_BYTES,
             'clips':sorted(names),'weighted_joints':38,'texture':[512,512],
             'join_api_compatible':True,
             'signed_apk_contents_verified':True,'physical_android_device_tested':False}

@@ -13,6 +13,7 @@ from pathlib import Path
 import sys
 import numpy as np
 from PIL import Image
+from media_limits import check_media_size,MAX_MEDIAFILE_BYTES
 
 BLOCK=Path(__file__).resolve().parents[1]/'iw3_blockstyle'
 sys.path.insert(0,str(BLOCK))
@@ -134,6 +135,7 @@ def export(rifle_path,hands_path,output):
     for node,matrix in zip(doc['nodes'],joint_frames(NAMES['hip'],0)):
         node['translation']=matrix[:3,3].tolist();node['rotation']=quaternion(matrix[:3,:3]).tolist()
     target=output/'models/ak47hd.glb';write_glb(target,doc,raw)
+    check_media_size(target.name,target.stat().st_size)
     # Standard embedded-texture copy only for numerical/raster QA; never ship it.
     preview_doc=deepcopy(doc);preview_raw=bytearray(raw);preview_doc['images']=[]
     for i,image in enumerate((atlas,hand_image)):
@@ -159,6 +161,7 @@ def export(rifle_path,hands_path,output):
             'flattened_joint_matrix_maximum_difference':worst,
             'camera_forward_after_loader':'+Z','camera_up':'+Y',
             'private_model':str(target),'private_outputs':True}
+    report.update(media_file_bytes=target.stat().st_size,media_file_limit=MAX_MEDIAFILE_BYTES)
     # Golden deformed vertices for the actual Luanti C++ loader/skinner probe.
     # Kept beside the private model, never in public metadata artifacts.
     golden=[]

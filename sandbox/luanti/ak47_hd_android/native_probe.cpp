@@ -6,11 +6,26 @@
 #include "IMeshBuffer.h"
 #include "IVertexBuffer.h"
 #include "os.h"
+#include "network/networkprotocol.h"
+#include "network/networkpacket.h"
+#include "serialization.h"
+#include "log.h"
 #include <json/json.h>
 #include <fstream>
 #include <iostream>
 #include <cmath>
 #include <stdexcept>
+#include <sstream>
+
+// Test-harness log sink for the actual engine compression implementation.
+class ProbeLogTarget : public LogTarget {
+public:
+    bool hasOutput() override { return true; }
+    void log(std::string_view message) override { std::cerr<<message; }
+};
+ProbeLogTarget probe_log_target;
+thread_local LogStream dstream(probe_log_target);
+void StreamProxy::fix_stream_state(std::ostream &stream) { stream.clear(); }
 
 namespace os {
 ILogger *Printer::Logger = nullptr;
@@ -24,6 +39,29 @@ int main(int argc,char **argv) {
     if(argc!=3)return 2;
     auto *file=io::CReadFile::createReadFile(argv[1]);
     if(!file)throw std::runtime_error("missing private GLB");
+    const auto media_bytes=file->getSize();
+    if(media_bytes<=0 || media_bytes>MEDIAFILE_MAX_SIZE) {
+        std::cerr<<"SERVER_MEDIA_REJECTED bytes="<<media_bytes
+                 <<" limit="<<MEDIAFILE_MAX_SIZE<<std::endl;
+        file->drop();return 4;
+    }
+    // Exercise the same compression, packet writer and decoder as a real join.
+    std::ifstream raw_stream(argv[1],std::ios::binary);
+    const std::string raw((std::istreambuf_iterator<char>(raw_stream)),{});
+    std::ostringstream encoded(std::ios::binary);compressZstd(raw,encoded,1);
+    NetworkPacket packet(TOCLIENT_MEDIA,4);
+    packet<<u16(1)<<u16(0)<<u32(1)<<std::string_view("ak47hd.glb");
+    packet.putLongString(encoded.str());
+    if(packet.getSize()>MEDIAFILE_TRANSFER_MAX_SIZE) {
+        std::cerr<<"SERVER_MEDIA_TRANSFER_REJECTED bytes="<<packet.getSize()<<std::endl;
+        file->drop();return 5;
+    }
+    packet.seek(0);u16 bunches,index;u32 files;std::string filename;
+    packet>>bunches>>index>>files>>filename;
+    std::istringstream incoming(packet.readLongString(),std::ios::binary);
+    std::ostringstream decoded(std::ios::binary);decompressZstd(incoming,decoded);
+    if(bunches!=1 || index!=0 || files!=1 || filename!="ak47hd.glb" || decoded.str()!=raw)
+        throw std::runtime_error("native compressed media round trip mismatch");
     scene::CGLTFMeshFileLoader loader;
     auto *mesh=loader.createMesh(file);file->drop();
     if(!mesh)throw std::runtime_error("native Luanti loader rejected GLB");
@@ -51,7 +89,10 @@ int main(int argc,char **argv) {
         }
     }
     std::cout<<"NATIVE_LUANTI_SKIN_CHECK worst_vertex_error="<<worst
-             <<" joints="<<skin->getJointCount()<<" buffers="<<mesh->getMeshBufferCount()<<std::endl;
+             <<" joints="<<skin->getJointCount()<<" buffers="<<mesh->getMeshBufferCount()
+             <<" media_bytes="<<media_bytes<<" media_limit="<<MEDIAFILE_MAX_SIZE
+             <<" transfer_bytes="<<packet.getSize()<<" transfer_limit="<<MEDIAFILE_TRANSFER_MAX_SIZE
+             <<" media_round_trip=exact"<<std::endl;
     mesh->drop();
     return worst<.01 ? 0 : 3;
 }
