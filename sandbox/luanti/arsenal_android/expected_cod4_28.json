@@ -4,7 +4,7 @@
   "target_weapon_count": 28,
   "source_distribution": "PRIVATE_ONLY_NO_PUBLIC_GAME_ASSETS",
   "source_license": "commercial_use_not_cleared",
-  "notes": "Expected weapon identities and source model name candidates. NOT an actual extracted model manifest; no unverified gun may be counted as playable. Model alias corrections from actual OAT viewmodel family inventory: M9 -> viewmodel_beretta, gold Deagle -> viewmodel_desert_eagle_gold. Do not use estimated magazine or reserve ammo: require original WeaponDef values. Gold Deagle can reuse original base Desert Eagle XANIM only after bone-overlap validation against the distinct gold viewmodel (never assume matching).",
+  "notes": "Expected weapon identities and source model name candidates. NOT an actual extracted model manifest; no unverified gun may be counted as playable. Model alias corrections from actual OAT viewmodel family inventory: M9 -> viewmodel_beretta, gold Deagle -> viewmodel_desert_eagle_gold. Do not use estimated magazine or reserve ammo: require original WeaponDef values. Gold Deagle can reuse original base Desert Eagle XANIM only after bone-overlap validation against the distinct gold viewmodel (never assume matching). Added only candidate original COD4 WeaponDef and XANIM aliases for missing weapon families (Winchester 1200, Benelli, R700, G36, Colt45, Desert Eagle, M249 SAW, M60E4). They must be validated against actual OAT files and joint overlaps; candidates are not proof.",
   "weapons": [
     {
       "id": "ak47",
@@ -62,7 +62,11 @@
         "g36c_mp",
         "g36c"
       ],
-      "source_status": "UNVERIFIED"
+      "source_status": "UNVERIFIED",
+      "animation_aliases": [
+        "viewmodel_g36c",
+        "viewmodel_g36"
+      ]
     },
     {
       "id": "mp44",
@@ -188,10 +192,17 @@
         "viewmodel_w1200"
       ],
       "source_weapon_candidates": [
+        "winchester1200_mp",
         "w1200_mp",
+        "winchester1200",
         "w1200"
       ],
-      "source_status": "UNVERIFIED"
+      "source_status": "UNVERIFIED",
+      "animation_aliases": [
+        "viewmodel_winchester1200",
+        "viewmodel_winchester",
+        "viewmodel_w1200"
+      ]
     },
     {
       "id": "m1014",
@@ -206,7 +217,12 @@
         "m1014_mp",
         "m1014"
       ],
-      "source_status": "UNVERIFIED"
+      "source_status": "UNVERIFIED",
+      "animation_aliases": [
+        "viewmodel_benelli_m4",
+        "viewmodel_benelli",
+        "viewmodel_m1014"
+      ]
     },
     {
       "id": "m249",
@@ -218,7 +234,9 @@
         "viewmodel_m249saw"
       ],
       "source_weapon_candidates": [
+        "m249saw_mp",
         "m249_mp",
+        "m249saw",
         "m249"
       ],
       "source_status": "UNVERIFIED"
@@ -247,7 +265,9 @@
         "viewmodel_m60e4"
       ],
       "source_weapon_candidates": [
+        "m60e4_mp",
         "m60_mp",
+        "m60e4",
         "m60"
       ],
       "source_status": "UNVERIFIED"
@@ -305,10 +325,17 @@
         "viewmodel_remington700"
       ],
       "source_weapon_candidates": [
+        "remington700_mp",
         "r700_mp",
+        "remington700",
         "r700"
       ],
-      "source_status": "UNVERIFIED"
+      "source_status": "UNVERIFIED",
+      "animation_aliases": [
+        "viewmodel_remington700",
+        "viewmodel_remington",
+        "viewmodel_r700"
+      ]
     },
     {
       "id": "barrett",
@@ -367,7 +394,9 @@
         "viewmodel_m1911"
       ],
       "source_weapon_candidates": [
+        "colt45_mp",
         "m1911_mp",
+        "colt45",
         "m1911"
       ],
       "source_status": "UNVERIFIED"
@@ -382,7 +411,10 @@
         "viewmodel_desert_eagle"
       ],
       "source_weapon_candidates": [
+        "deserteagle_mp",
+        "desert_eagle_mp",
         "deagle_mp",
+        "deserteagle",
         "deagle"
       ],
       "source_status": "UNVERIFIED"
@@ -400,7 +432,8 @@
       "source_weapon_candidates": [
         "deserteaglegold_mp",
         "desert_eagle_gold_mp",
-        "deserteaglegold"
+        "deserteaglegold",
+        "desert_eagle_gold"
       ],
       "source_status": "UNVERIFIED",
       "animation_aliases": [
