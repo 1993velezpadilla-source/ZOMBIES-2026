@@ -81,6 +81,11 @@ local catalog={
          gameplay_logic_enabled=true,magazine_capacity=30,reserve_max=180,
          fire_interval_seconds=.09,reload_seconds=2.5,reload_empty_seconds=3.25,
          damage=30,distinct_empty_reload_animation=true,fire_mode="auto"},
+        {id="m16",name="M16A4",category="assault",
+         gun_model="arsenal_m16_gun.glb",hands_model="arsenal_m16_hands.glb",
+         gameplay_logic_enabled=true,magazine_capacity=30,reserve_max=180,
+         fire_interval_seconds=.064,reload_seconds=2.0,reload_empty_seconds=2.365,
+         damage=30,distinct_empty_reload_animation=true,fire_mode="burst"},
         {id="usp",name="USP PREVIEW",category="pistol",
          gun_model="arsenal_usp_gun.glb",hands_model="arsenal_usp_hands.glb",
          gameplay_logic_enabled=false,distinct_empty_reload_animation=false,
@@ -146,7 +151,8 @@ _G.minetest={
 }
 local mod="sandbox/luanti/arsenal_android/arsenal_mod/init.lua"
 dofile(mod)
-assert(methods["arsenal:ak47"] and methods["arsenal:m4"] and methods["arsenal:usp"])
+assert(methods["arsenal:ak47"] and methods["arsenal:m4"] and
+       methods["arsenal:m16"] and methods["arsenal:usp"])
 assert(methods["arsenal:ammo_box"] and methods["/arsenalammo"])
 assert(methods["/arsenal"])
 assert(methods["/arsenalmenu"] and methods["arsenal:tablet"])
@@ -231,6 +237,36 @@ assert(player:get_wielded_item():get_meta():get_string("xz_ar_anim"):sub(1,1)=="
 assert(#played==audio_count_before_other_weapon,
     "Preview pistols must not emit the AK sound")
 
+-- COD4 M16 genuine three-round burst: 3 shots, 3 bullets, never fake rounds.
+equip("arsenal:m16",4)
+local m16=methods["arsenal:m16"]
+clock=clock+.6
+control.dig=true
+m16.on_use(player:get_wielded_item(),player)
+assert(ammo(4)==29,"M16 initial burst fire")
+for _=1,2 do
+    clock=clock+.075
+    methods.step(.075)
+end
+assert(ammo(4)==27,"Exactly three rounds fired, not one or an early consumed burst")
+-- Continued button hold must not schedule a second three-round burst.
+clock=clock+.15
+m16.on_use(player:get_wielded_item(),player)
+methods.step(.01)
+assert(ammo(4)==27,"Holding trigger must not repeat M16 burst")
+control.dig=false
+methods.step(.02)
+clock=clock+.15
+control.dig=true
+m16.on_use(player:get_wielded_item(),player)
+assert(ammo(4)==26,"New burst begins only after trigger released")
+for _=1,2 do
+    clock=clock+.075
+    methods.step(.075)
+end
+assert(ammo(4)==24,"Second three-round burst must consume exactly 3 rounds")
+control.dig=false
+methods.step(.01)
 local ok,msg=methods["/arsenal"].func("Tester","not_a_real_gun")
 assert(not ok and msg:find("not verified"),"No nonexistent tool")
 ok,msg=methods["/arsenal"].func("Tester","m4")
