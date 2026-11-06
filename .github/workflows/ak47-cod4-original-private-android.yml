@@ -137,6 +137,18 @@ jobs:
               --loaded _iw3_private/original-ak47-foley \
               --anims _iw3_private/dumps/common_mp/xanim \
               --output _iw3_private/runtime/sounds
+          python3 sandbox/luanti/ak47_hd_android/make_cod4_dryfire_v8.py \
+            --loaded _iw3_private/original-ak47-foley \
+            --output _iw3_private/runtime/sounds
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          data=json.loads(Path('_iw3_private/runtime/sounds/ak47dev_dry_audit_v8.json').read_text())
+          assert data['player_alias']=='weap_dryfire_smg_plr'
+          assert data['source_wav_sha256']=='561963bfb073ee2b765ed2d3a1b0f8b6722124b87a8950a5170b05727c284c3f'
+          assert abs(data['duration_seconds']-.21626)<.01
+          print('COD4_REAL_AK47_EMPTY_TRIGGER_PLAYER_SOUND_VERIFIED',data['output'],data['duration_seconds'])
+          PY
           python3 - <<'PY'
           import json
           from pathlib import Path
@@ -238,8 +250,8 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           text=Path('_iw3_reports/android-badging.txt').read_text()
-          assert "name='com.xziel.voxelsandbox.ak47origv7'" in text
-          assert "versionCode='5180010'" in text
+          assert "name='com.xziel.voxelsandbox.ak47dryv8'" in text
+          assert "versionCode='5180011'" in text
           assert 'application-debuggable' not in text
           assert "native-code: 'arm64-v8a'" in text
           PY
@@ -252,11 +264,11 @@ jobs:
           set -euo pipefail
           mkdir -p _direct_apk
           APK="$RUNNER_TEMP/luanti/android/app/build/outputs/apk/release/app-arm64-v8a-release.apk"
-          cp "$APK" _direct_apk/AK47-ORIGINAL-COD4-RELOAD-V7-ARM64.apk
+          cp "$APK" _direct_apk/AK47-COD4-DRYFIRE-V8-ARM64.apk
           python3 - <<'PY'
           from pathlib import Path
           from zipfile import ZipFile
-          apk=Path("_direct_apk/AK47-ORIGINAL-COD4-RELOAD-V7-ARM64.apk")
+          apk=Path("_direct_apk/AK47-COD4-DRYFIRE-V8-ARM64.apk")
           assert apk.read_bytes()[:2] == b"PK", "Not an installable APK ZIP"
           with ZipFile(apk) as z:
               assert "AndroidManifest.xml" in z.namelist()
@@ -266,8 +278,8 @@ jobs:
       - name: Upload real installable APK without encryption
         uses: actions/upload-artifact@v4
         with:
-          name: AK47-ORIGINAL-COD4-RELOAD-V7-DIRECT-APK
-          path: _direct_apk/AK47-ORIGINAL-COD4-RELOAD-V7-ARM64.apk
+          name: AK47-COD4-DRYFIRE-V8-DIRECT-APK
+          path: _direct_apk/AK47-COD4-DRYFIRE-V8-ARM64.apk
           if-no-files-found: error
           retention-days: 7
           compression-level: 0
@@ -280,7 +292,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: AK47-ORIGINAL-COD4-RELOAD-V7-build-evidence
+          name: AK47-COD4-DRYFIRE-V8-build-evidence
           path: |
             _iw3_reports/android-build.json
             _iw3_reports/android-badging.txt
