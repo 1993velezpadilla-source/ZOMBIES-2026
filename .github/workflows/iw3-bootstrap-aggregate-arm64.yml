@@ -24,7 +24,7 @@ jobs:
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
-      - name: Install NDK and original OpenAL API headers
+      - name: Verify ARM64 symbol-audit regression tests (NOT GAME)\n        run: python3 -m unittest discover -s android/iw3-native/bootstrap_compile -p 'test_*.py' -v\n      - name: Install NDK and original OpenAL API headers
         shell: bash
         run: |
           set -euo pipefail
