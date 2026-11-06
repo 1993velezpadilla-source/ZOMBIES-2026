@@ -19,7 +19,7 @@ def patch(root,assets):
     # V7: original four separate COD4 Foley samples mixed at native XANIM
     # notetrack frames in transient build directory; NEVER call old CC0 mixer.
     for original in ('ak47dev_reload_normal.ogg','ak47dev_reload_empty.ogg',
-                     'ak47dev_reload_audit_v7.json'):
+                     'ak47dev_reload_audit_v7.json','ak47dev_dry.ogg','ak47dev_dry_audit_v8.json'):
         if not (assets/'sounds'/original).is_file():
             raise FileNotFoundError('MISSING AUTHENTIC COD4 SOUND: '+original)
         shutil.copy2(assets/'sounds'/original,mod/'sounds'/original)
@@ -56,12 +56,12 @@ def patch(root,assets):
     app=root/'android/app'
     # MainActivity re-extracts bundled game assets when VERSION_CODE changes.
     checked(root/'android/build.gradle','project.ext.set("versionBuild", 0)',
-            'project.ext.set("versionBuild", 10)')
+            'project.ext.set("versionBuild", 11)')
     for path in [app/'build.gradle',app/'src/main/AndroidManifest.xml',
                  app/'src/main/java/net/minetest/minetest/GameActivity.java']:
         text=path.read_text();assert 'com.xziel.voxelsandbox.v33' in text
-        path.write_text(text.replace('com.xziel.voxelsandbox.v33','com.xziel.voxelsandbox.ak47origv7'))
-    checked(app/'src/main/res/values/strings.xml','Voxel Sandbox AK V33','AK47 Original COD4 Foley V7')
+        path.write_text(text.replace('com.xziel.voxelsandbox.v33','com.xziel.voxelsandbox.ak47dryv8'))
+    checked(app/'src/main/res/values/strings.xml','Voxel Sandbox AK V33','AK47 COD4 Dry Fire V8')
     checked(root/'src/defaultsettings.cpp','settings->setDefault("touch_interaction_style", "tap");',
             'settings->setDefault("touch_interaction_style", "buttons_crosshair");')
     font=ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',23)
@@ -72,7 +72,7 @@ def patch(root,assets):
         draw.text(((128-width)/2,48),label,font=font,fill=(245,245,245,255))
         image.save(root/'textures/base/pack'/name)
         image.save(mod/'textures'/name)
-    print('AK47 V7: four original COD4 source Foley notes frame 0/19/57/77; no external recordings')
+    print('AK47 V8: original COD4 normal+empty reload notetracks and original 0.216s SMG zero-ammo trigger click')
 
 if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('--root',type=Path,required=True)
