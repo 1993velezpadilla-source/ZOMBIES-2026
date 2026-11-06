@@ -60,7 +60,7 @@ class Original28Tests(unittest.TestCase):
             for action in ("idle","ads_up","fire","reload"):
                 (root/"xanim"/f"viewmodel_desert_eagle_{action}").write_bytes(b"original-xanim")
             with patch("luanti_real_arsenal_28.read_nodes",
-                       return_value={"joints":{"j_gun","tag_weapon","j_main"}}),\\
+                       return_value={"joints":{"j_gun","tag_weapon","j_main"}}),\
                  patch("luanti_real_arsenal_28.load_xanim",
                        return_value=FakeAnimation()):
                 chosen,rec=choose_source(
