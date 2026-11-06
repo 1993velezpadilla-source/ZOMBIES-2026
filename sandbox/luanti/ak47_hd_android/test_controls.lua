@@ -41,6 +41,8 @@ assert(values.xz_ak_fired=="30","only successful shots increment the recoil coun
 assert(hud:find("00 / 210",1,true),hud)
 callbacks.node.on_use(stack,player)
 assert(values.xz_ak_empty=="1" and values.xz_ak_anim:sub(1,1)=="R","empty reload event")
+assert(values.xz_ak_reload_kind=="empty" and sounds.ak47dev_reload_empty==1,"empty mag must use EMPTY sound")
+assert(not sounds.ak47dev_reload_normal,"normal sound must NOT play for empty mag")
 clock=clock+3.52;callbacks.step(.05);assert(hud:find("00 / 210",1,true),"empty reload completed early")
 clock=clock+.02;callbacks.step(.05);assert(hud:find("30 / 180",1,true),hud)
 callbacks.node.on_use(stack,player);clock=clock+.101
@@ -50,6 +52,8 @@ controls.aux1=true;callbacks.step(.05)
 assert(values.xz_ak_ads=="0" and values.xz_ak_anim==event,"ADS must exit before reload")
 clock=clock+.24;callbacks.step(.05);assert(values.xz_ak_anim==event,"reload started before exit")
 clock=clock+.02;callbacks.step(.05);assert(values.xz_ak_anim~=event and values.xz_ak_empty=="0","normal reload event")
+assert(values.xz_ak_reload_kind=="normal" and sounds.ak47dev_reload_normal==1,"nonempty mag must use NORMAL sound")
+assert(sounds.ak47dev_reload_empty==1,"normal reload must not trigger empty-only sound")
 controls.aux1=false;clock=clock+2.77;callbacks.step(.05)
 assert(hud:find("30 / 179",1,true),hud)
 callbacks.node.on_use(stack,player);clock=clock+.101
