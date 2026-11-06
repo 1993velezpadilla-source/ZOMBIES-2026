@@ -2,6 +2,7 @@
 import argparse
 from pathlib import Path
 import shutil
+from patch_fps_hud import patch as patch_fps_hud
 from PIL import Image,ImageDraw,ImageFont
 
 HERE=Path(__file__).resolve().parent
@@ -18,6 +19,7 @@ def patch(root,assets):
         for file in (assets/folder).iterdir():shutil.copy2(file,mod/folder/file.name)
     shutil.copy2(HERE/'ak47_motion.h',root/'src/client/ak47_motion.h')
     shutil.copy2(assets/'ak47_weapon_params.h',root/'src/client/ak47_weapon_params.h')
+    patch_fps_hud(root)
     cpp=root/'src/client/camera.cpp';text=cpp.read_text()
     start=text.index('void Camera::updateAK47Viewmodel(f32 frametime)')
     end=text.index('void Camera::wield(',start)
@@ -45,12 +47,12 @@ def patch(root,assets):
     app=root/'android/app'
     # MainActivity re-extracts bundled game assets when VERSION_CODE changes.
     checked(root/'android/build.gradle','project.ext.set("versionBuild", 0)',
-            'project.ext.set("versionBuild", 3)')
+            'project.ext.set("versionBuild", 4)')
     for path in [app/'build.gradle',app/'src/main/AndroidManifest.xml',
                  app/'src/main/java/net/minetest/minetest/GameActivity.java']:
         text=path.read_text();assert 'com.xziel.voxelsandbox.v33' in text
-        path.write_text(text.replace('com.xziel.voxelsandbox.v33','com.xziel.voxelsandbox.ak47original'))
-    checked(app/'src/main/res/values/strings.xml','Voxel Sandbox AK V33','AK47 COD4 Original Mesh')
+        path.write_text(text.replace('com.xziel.voxelsandbox.v33','com.xziel.voxelsandbox.ak47fps'))
+    checked(app/'src/main/res/values/strings.xml','Voxel Sandbox AK V33','AK47 COD4 FPS Test')
     checked(root/'src/defaultsettings.cpp','settings->setDefault("touch_interaction_style", "tap");',
             'settings->setDefault("touch_interaction_style", "buttons_crosshair");')
     font=ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',23)
@@ -61,7 +63,7 @@ def patch(root,assets):
         draw.text(((128-width)/2,48),label,font=font,fill=(245,245,245,255))
         image.save(root/'textures/base/pack'/name)
         image.save(mod/'textures'/name)
-    print('COD4 original-polygon adapter ready: .ak47hd package, eight named source clips, external 512px atlas, FIRE/ADS/R')
+    print('Original COD4 polygonal adapter: FPS top-right, source clips, custom atlas, FIRE/ADS/R')
 
 if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('--root',type=Path,required=True)
