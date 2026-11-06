@@ -31,6 +31,16 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq --no-install-recommends gettext lua5.1 libjsoncpp-dev libzstd-dev libegl1 libgl1-mesa-dri
           python3 -m pip install --quiet --user Pillow==12.0.0 numpy==2.3.4 soundfile==0.13.1 moderngl==5.12.0 'cryptography>=44,<49'
+          # Fetch a genuinely DIFFERENT CC0 rifle reload recording BEFORE
+          # downloading the 7 GB original private model archive.
+          mkdir -p "$RUNNER_TEMP/ak47-distinct-reload"
+          curl --fail --location --retry 3 --retry-delay 2 \
+            --user-agent 'Mozilla/5.0' \
+            --output "$RUNNER_TEMP/ak47-distinct-reload/assaultriflereload1_0.wav" \
+            'https://opengameart.org/sites/default/files/assaultriflereload1_0.wav'
+          export AK47_TACTICAL_NORMAL_WAV="$RUNNER_TEMP/ak47-distinct-reload/assaultriflereload1_0.wav"
+          echo "AK47_TACTICAL_NORMAL_WAV=$AK47_TACTICAL_NORMAL_WAV" >> "$GITHUB_ENV"
+          python3 sandbox/luanti/ak47_hd_android/make_reload_distinct_v6.py --check-download
           python3 -m py_compile sandbox/luanti/ak47_hd_android/*.py
           python3 sandbox/luanti/ak47_hd_android/photo_materials.py \
             --output "$RUNNER_TEMP/ak47-cc0-photos"
@@ -199,8 +209,8 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           text=Path('_iw3_reports/android-badging.txt').read_text()
-          assert "name='com.xziel.voxelsandbox.ak47hiresv5'" in text
-          assert "versionCode='5180008'" in text
+          assert "name='com.xziel.voxelsandbox.ak47reloadv6'" in text
+          assert "versionCode='5180009'" in text
           assert 'application-debuggable' not in text
           assert "native-code: 'arm64-v8a'" in text
           PY
@@ -213,11 +223,11 @@ jobs:
           set -euo pipefail
           mkdir -p _direct_apk
           APK="$RUNNER_TEMP/luanti/android/app/build/outputs/apk/release/app-arm64-v8a-release.apk"
-          cp "$APK" _direct_apk/AK47-HIRES-LIT-V5-ARM64.apk
+          cp "$APK" _direct_apk/AK47-DISTINCT-RELOAD-V6-ARM64.apk
           python3 - <<'PY'
           from pathlib import Path
           from zipfile import ZipFile
-          apk=Path("_direct_apk/AK47-HIRES-LIT-V5-ARM64.apk")
+          apk=Path("_direct_apk/AK47-DISTINCT-RELOAD-V6-ARM64.apk")
           assert apk.read_bytes()[:2] == b"PK", "Not an installable APK ZIP"
           with ZipFile(apk) as z:
               assert "AndroidManifest.xml" in z.namelist()
@@ -227,8 +237,8 @@ jobs:
       - name: Upload real installable APK without encryption
         uses: actions/upload-artifact@v4
         with:
-          name: AK47-HIRES-LIT-V5-DIRECT-APK
-          path: _direct_apk/AK47-HIRES-LIT-V5-ARM64.apk
+          name: AK47-DISTINCT-RELOAD-V6-DIRECT-APK
+          path: _direct_apk/AK47-DISTINCT-RELOAD-V6-ARM64.apk
           if-no-files-found: error
           retention-days: 7
           compression-level: 0
@@ -241,7 +251,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: AK47-HIRES-LIT-V5-build-evidence
+          name: AK47-DISTINCT-RELOAD-V6-build-evidence
           path: |
             _iw3_reports/android-build.json
             _iw3_reports/android-badging.txt
