@@ -43,6 +43,52 @@ def match(stem: str, aliases: list[str]) -> bool:
     return any(s == a or s.startswith(a + "_") for a in aliases)
 
 
+# Only names of genuine source LOD0 weapon models can open attachment
+# slots. No arbitrary user-crafted attachment/texture claims are allowed.
+def source_variant_id(filename: str) -> str | None:
+    stem = Path(filename).stem.lower()
+    parts = set(re.split(r"[_+]", stem))
+    optic = "acog" if "acog" in parts else "reflex" if "reflex" in parts else None
+    muzzle = "silencer" if {"silencer", "silenced", "suppressor"} & parts else None
+    under = "gp25" if {"gp25", "grenadier", "grenadelauncher", "m203"} & parts else None
+    variant = "_".join(x for x in (optic, muzzle, under) if x)
+    return variant or None
+
+
+def source_attachment_variants(model_dir: Path, aliases: list[str],
+                               selected: dict[str, Path], target_dir: Path,
+                               weapon_id: str) -> dict[str, str]:
+    """Animate actual optional model variants with the chosen original XANIM.
+
+    One alias path may have several cosmetic IW3 author variants; group by
+    exact attachment set and try each until a skinned rig/channel passes.
+    Do NOT count a variant unless a REAL generated GLB passes the gate.
+    """
+    choices: dict[str, list[Path]] = {}
+    for path in sorted(model_dir.glob("*.glb")):
+        if not LOD0.search(path.name) or not match(path.stem, aliases):
+            continue
+        variant = source_variant_id(path.name)
+        if variant:
+            choices.setdefault(variant, []).append(path)
+    result: dict[str, str] = {}
+    for variant, candidates in sorted(choices.items()):
+        # Bound processing and avoid reading any unknown giant candidate.
+        for path in candidates[:8]:
+            try:
+                out = target_dir / f"{weapon_id}_variant_{variant}.glb"
+                attach(path, selected, out)
+                if not metadata_valid(out):
+                    out.unlink(missing_ok=True)
+                    continue
+                result[variant] = out.name
+                break
+            except (OSError, ValueError, KeyError, IndexError):
+                out.unlink(missing_ok=True)
+                continue
+    return result
+
+
 def metadata_valid(path: Path, *, required=frozenset(ACTIONS)) -> bool:
     doc, _ = read_glb(path)
     return bool(doc.get("meshes")) and bool(doc.get("skins")) and all(
@@ -165,7 +211,10 @@ def build(original: Path, manifest: dict, destination: Path) -> dict:
             valid_hand = metadata_valid(hand_out)
             if not(valid_gun and valid_hand):
                 raise ValueError("source XANIM clips missing actual GLB channels")
+            variants = source_attachment_variants(
+                model_dir, w["model_aliases"], animations, destination, id)
             report.update({
+                "attachment_variant_models": variants,
                 "native_empty_reload_clip": "reload_empty" in animations,
                 "source_glb_generated":True, "source_hands_generated":True,
                 "source_glb_bytes":out.stat().st_size,
