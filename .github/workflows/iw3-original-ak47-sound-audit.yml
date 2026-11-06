@@ -120,7 +120,6 @@ jobs:
           python3 tools/find_cod4_ak47_loaded_audio.py \
             _iw3_reports/cod4-sound-lists _iw3_private/sound-loaded \
             _iw3_reports/ak47-cod4-original-loaded-audio-source-search.json
-            _iw3_reports/ak47-original-reload-xanim-notetracks.json
           test -s _iw3_reports/ak47-cod4-original-loaded-audio-source-search.json
       - name: Read original AK47 tactical and empty animation event frames
         run: |
@@ -146,6 +145,7 @@ jobs:
           path: |
             _iw3_reports/ak47-cod4-original-reload-sound-search.json
             _iw3_reports/ak47-cod4-original-loaded-audio-source-search.json
+            _iw3_reports/ak47-original-reload-xanim-notetracks.json
           if-no-files-found: warn
           retention-days: 14
       - name: Clean private game archive
