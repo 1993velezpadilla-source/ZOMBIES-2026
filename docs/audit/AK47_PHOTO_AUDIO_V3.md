@@ -65,3 +65,13 @@ ones before shipping.
   arm64 release build must pass, with Android signature verified.
 - User/physical-device screens and FPS must be checked before claiming
   actual in-game visual/audio sync quality. CI GREEN is not that test.
+
+## Photo-material refinement after real Pixel Fold reload screenshots
+
+The 22/38 FPS readings in screenshots are **not** treated as a GPU performance regression: tester confirmed rapid consecutive Android screenshots while otherwise seeing 60 FPS. Do not optimize/reduce 3D detail based solely on those frames.
+
+Visual bugs addressed:
+- Rusty Metal 04 stays the source photo, but white paint-chip values are clamped and rust color is subtle on dark blued-steel base.
+- Walnut base is darkened; image material is grain, not a bright orange diffuse coat.
+- Per-triangle classification of glove/wrist versus hand was causing severe sawtooth black/skin seams. Both hands now use uninterrupted UV islands; each contains a smooth cuff-to-skin gradient. Geometry and XANIM are unchanged.
+- Device playtest still needed: verify both hand poses and exact look against photos at 60 FPS.
