@@ -1,0 +1,83 @@
+name: IW3 RotU source preflight
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'tools/iw3_rotu/**'
+      - 'tests/test_rotu_preflight.py'
+      - 'tests/test_rotu_package_gate.py'
+      - 'tests/test_iw3_oat_probe.py'
+      - 'third_party/KisakCOD/**'
+      - '.github/workflows/iw3-rotu-source-preflight.yml'
+  push:
+    paths:
+      - 'tools/iw3_rotu/**'
+      - 'tests/test_rotu_preflight.py'
+      - 'tests/test_rotu_package_gate.py'
+      - 'tests/test_iw3_oat_probe.py'
+      - 'third_party/KisakCOD/**'
+      - '.github/workflows/iw3-rotu-source-preflight.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  source-contract:
+    name: IW3 source + RotU scripts (static, NOT playable)
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Unit-test static gate against synthetic fixtures
+        run: python -m unittest discover -s tests -p 'test_rotu_preflight.py' -v
+      - name: Test package manifest logic with synthetic fixtures
+        run: python -m unittest discover -s tests -p 'test_rotu_package_gate.py' -v
+      - name: Guard original-only IW3 fastfile diagnostic source
+        run: python -m unittest discover -s tests -p 'test_iw3_oat_probe.py' -v
+      - name: Fetch pinned public RotU source only (no released mod binaries)
+        env:
+          ROTU_REV: b76fca23dbd6e803fcfc66c01411dda37e39e232
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/rotu-src"
+          git -C "$RUNNER_TEMP/rotu-src" init -q
+          git -C "$RUNNER_TEMP/rotu-src" remote add origin https://github.com/doctorluk/rotu-revolution.git
+          git -C "$RUNNER_TEMP/rotu-src" sparse-checkout init --cone
+          git -C "$RUNNER_TEMP/rotu-src" sparse-checkout set scripts cfgs maps common_scripts
+          git -C "$RUNNER_TEMP/rotu-src" -c protocol.version=2 fetch --filter=blob:none --depth=1 origin "$ROTU_REV"
+          git -C "$RUNNER_TEMP/rotu-src" checkout --detach FETCH_HEAD
+          test "$(git -C "$RUNNER_TEMP/rotu-src" rev-parse HEAD)" = "$ROTU_REV"
+      - name: Validate KisakCOD and RotU code structure
+        run: |
+          python tools/iw3_rotu/preflight.py \
+            --kisak third_party/KisakCOD \
+            --rotu "$RUNNER_TEMP/rotu-src" \
+            --output rotu-preflight.json
+      - name: Build verified temporary RotU script ZIP/IWD (never upload archive)
+        run: |
+          python tools/iw3_rotu/package_gate.py \
+            --rotu "$RUNNER_TEMP/rotu-src" \
+            --iwd-temp "$RUNNER_TEMP/rotu-script-build/z_svr_scripts.iwd" \
+            --output rotu-package-report.json \
+            --strict
+          python - <<'PY'
+          import json
+          report = json.load(open('rotu-package-report.json', encoding='utf-8'))
+          assert report['iwd_archive']['crc_verified']
+          assert report['iwd_archive']['member_count'] >= 4
+          print('RotU canonical script IWD built and CRC checked; mod.ff and full game still not built.')
+          PY
+      - name: Publish metadata reports only (never upstream binaries/game data)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: iw3-rotu-source-preflight
+          path: |
+            rotu-preflight.json
+            rotu-package-report.json
+          if-no-files-found: ignore
+          retention-days: 7

@@ -1,0 +1,3 @@
+ZOMBIES-2026 IW3 original fastfile smoke test.
+This file contains no Activision/RotU game assets.
+Probe format v1.

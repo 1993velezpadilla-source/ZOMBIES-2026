@@ -1,0 +1,11 @@
+# Generated/test-only material. Never commit commercial game or mod binaries.
+_work/
+local-game-data/
+rotu-preflight.json
+*.iwd
+*.ff
+*.iwi
+*.apk
+*.zip
+*.exe
+*.dll
