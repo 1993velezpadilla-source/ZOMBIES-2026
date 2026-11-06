@@ -5,6 +5,7 @@ on:
     paths:
       - tools/find_cod4_ak47_reload_sound.py
       - tools/find_cod4_ak47_loaded_audio.py
+      - tools/audit_ak47_original_xanim_notes.py
       - .github/workflows/iw3-original-ak47-sound-audit.yml
   workflow_dispatch:
 permissions:
@@ -16,6 +17,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/iw3-arsenal-extraction-audit-20261102
+          path: _iw3_pipeline_src
           persist-credentials: false
       - uses: actions/setup-java@v4
         with:
@@ -114,7 +120,24 @@ jobs:
           python3 tools/find_cod4_ak47_loaded_audio.py \
             _iw3_reports/cod4-sound-lists _iw3_private/sound-loaded \
             _iw3_reports/ak47-cod4-original-loaded-audio-source-search.json
+            _iw3_reports/ak47-original-reload-xanim-notetracks.json
           test -s _iw3_reports/ak47-cod4-original-loaded-audio-source-search.json
+      - name: Read original AK47 tactical and empty animation event frames
+        run: |
+          set -euo pipefail
+          mkdir -p _iw3_private/anims
+          for zone in common_mp common; do
+            FF="$PWD/_iw3_private/zone/spanish/$zone.ff"
+            "$UNLINKER" --no-color --search-path "$PWD/_iw3_private/zone/spanish" \
+              --include-assets xanim --output-folder "$PWD/_iw3_private/anims/$zone" "$FF" \
+              > "_iw3_reports/cod4-sound-lists/anim-$zone.txt" 2>&1 || {
+                tail -60 "_iw3_reports/cod4-sound-lists/anim-$zone.txt"
+                exit 1
+              }
+          done
+          PYTHONPATH="$PWD/_iw3_pipeline_src/tools" python3 tools/audit_ak47_original_xanim_notes.py \
+            _iw3_private/anims _iw3_reports/ak47-original-reload-xanim-notetracks.json
+          test -s _iw3_reports/ak47-original-reload-xanim-notetracks.json
       - name: Upload filename/hash audit ONLY, never upload proprietary sounds
         if: always()
         uses: actions/upload-artifact@v4
