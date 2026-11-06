@@ -544,7 +544,25 @@ def run(dumps: Path, target: Path, native_locals_dir=None,rifle_detail='high'):
     # Independent original-polygon experiment: same native XANIM/rig correction,
     # but NO voxel geometry replacement. Private CI scratch only.
     original_rifle=target/'AK47_COD4_ORIGINAL_ALL_XANIM_PRIVATE.glb'
-    original_rifle_clips=add_all_animations(chosen,original_rifle,clips,rifle_native)
+    def geometry_only_source(path, target):
+        # A first-person material atlas is authored separately. Some OAT
+        # exports include image references that are not embedded in the GLB;
+        # never leak or depend on source-game textures in the new renderer.
+        original_doc, original_bytes = read_glb(path)
+        for material in original_doc.get('materials', []):
+            material.get('pbrMetallicRoughness', {}).pop('baseColorTexture', None)
+            material.pop('normalTexture', None)
+            material.pop('occlusionTexture', None)
+            material.pop('emissiveTexture', None)
+        original_doc.pop('images', None)
+        original_doc.pop('textures', None)
+        original_doc.pop('samplers', None)
+        original_doc.pop('extensionsRequired', None)
+        original_doc.pop('extensionsUsed', None)
+        write_glb(target, original_doc, original_bytes)
+    original_rifle_base=target/'AK47_COD4_ORIGINAL_SOURCE_GEOMETRY_PRIVATE.glb'
+    geometry_only_source(chosen,original_rifle_base)
+    original_rifle_clips=add_all_animations(original_rifle_base,original_rifle,clips,rifle_native)
     hands_path=model_dir/"viewmodel_base_viewhands_lod0.glb"
     hands={}
     hands_voxel=None
@@ -569,7 +587,9 @@ def run(dumps: Path, target: Path, native_locals_dir=None,rifle_detail='high'):
         # Preserve full source polygonal hand geometry and native viewhands rig
         # for a separate original-mesh rendering comparison.
         original_hands=target/'AK47_COD4_ORIGINAL_HANDS_ALL_XANIM_PRIVATE.glb'
-        original_hands_clips=add_all_animations(hands_path,original_hands,clips,hands_native)
+        original_hands_base=target/'AK47_COD4_ORIGINAL_HANDS_SOURCE_GEOMETRY_PRIVATE.glb'
+        geometry_only_source(hands_path,original_hands_base)
+        original_hands_clips=add_all_animations(original_hands_base,original_hands,clips,hands_native)
         if hands_tight_geometry["cuboids"]<50 or not any(
             item["status"]=="attached" for item in tight_hands.values()):
             raise ValueError("hand-only option produced insufficient skinned geometry")
