@@ -73,9 +73,11 @@ def export(rifle_path,hands_path,output,*,original_geometry=False):
         bone_names=[scene.nodes[node].get('name','').lower() for node in skin['joints']]
         for index,(geometry,primitive) in enumerate(zip(scene.geometry,source_primitives)):
             _,pos,indices,joints,weights,_=geometry
-            if joints is None or weights is None:raise ValueError('unskinned source geometry')
             if original_geometry and component==0 and not allowed_primitive(scene.doc,primitive,'rifle'):
                 continue
+            if joints is None or weights is None:
+                if original_geometry:continue  # decorative unskinned primitives
+                raise ValueError('unskinned source geometry')
             indices=np.asarray(indices,dtype=np.int64)
             if original_geometry and component==1:
                 # Crop viewhands without voxelizing them: keep hand/wrist triangles.
