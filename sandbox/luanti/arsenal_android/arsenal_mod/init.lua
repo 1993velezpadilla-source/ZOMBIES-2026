@@ -239,8 +239,8 @@ for _,def in ipairs(manifest.weapons) do
             minetest.register_tool("arsenal:"..def.id,{
                 description=def.name..(def.gameplay_logic_enabled
                     and " | Original COD4 mechanics (private)" or " | Animated source preview"),
-                inventory_image="arsenal_flat_metal.png",
-                wield_image="arsenal_flat_metal.png",
+                inventory_image="arsenal_icon_"..def.id..".png",
+                wield_image="arsenal_icon_"..def.id..".png",
                 stack_max=1,range=0,
                 groups={weapon=1,weapon_ranged=1},
                 on_use=function(_,p)
@@ -382,8 +382,8 @@ minetest.register_on_player_receive_fields(function(player,formname,fields)
     return true
 end)
 minetest.register_craftitem("arsenal:tablet",{
-    description="Arsenal loadout picker (private source preview)",
-    inventory_image="arsenal_flat_metal.png",
+    description="ARSENAL - OPEN WEAPON SELECTOR (TAP FIRE)",
+    inventory_image="arsenal_menu.png",
     stack_max=1,
     on_use=function(itemstack,user)
         display_picker(user)
@@ -432,12 +432,40 @@ minetest.register_chatcommand("arsenalammo",{
         return true,"Universal ammo box added"
     end
 })
+-- Boot usable HOTBAR shortcuts, not console-only debug commands.
+-- Legacy AK initializes first; NEVER overwrite an existing item or quickslot.
+local function give_if_missing(p,item)
+    local inventory=p:get_inventory()
+    if inventory:contains_item("main",item) then return false end
+    local size=inventory:get_size("main")
+    for i=2,math.min(size,8) do
+        local slot=inventory:get_stack("main",i)
+        if slot:is_empty() then
+            inventory:set_stack("main",i,ItemStack(item))
+            return true
+        end
+    end
+    -- Never discard saved items or clobber a user's selected weapon.
+    local rem=inventory:add_item("main",item)
+    return rem:is_empty()
+end
 minetest.register_on_joinplayer(function(player)
     local s=state(player)
     s.hud=player:hud_add({
         hud_elem_type="text",position={x=.025,y=.14},
         alignment={x=1,y=0},number=0xDDD7CD,
         text="",z_index=150})
+    local who=player:get_player_name()
+    minetest.after(2,function()
+        local p=minetest.get_player_by_name(who)
+        if not p then return end
+        -- Prioritize the missing pistol and visible selector, rather than
+        -- a duplicate AK forced on every respawn.
+        if defs["arsenal:m9"] then give_if_missing(p,"arsenal:m9") end
+        give_if_missing(p,"arsenal:tablet")
+        if defs["arsenal:m4"] then give_if_missing(p,"arsenal:m4") end
+        give_if_missing(p,"arsenal:ammo_box")
+    end)
 end)
 minetest.register_on_leaveplayer(function(player)
     local who=player:get_player_name()
