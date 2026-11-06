@@ -65,10 +65,14 @@ def discover(root: Path, manifest: dict) -> dict:
         # OAT layout is zone/model_export/name.glb, some exporters use nested dirs.
         model_files = sorted(p for p in root.rglob("*.glb")
                              if "model_export" in p.parts)
+    # Real OAT IW3 Unlinker emits extensionless files such as
+    # xanim/viewmodel_ak47_reload. The old suffix-only filter returned
+    # a demonstrably incorrect 0/28 coverage even with 1,125 XANIMs.
     anim_files = sorted(
-        p for p in root.rglob("*") if p.is_file() and
-        "xanim" in p.parts and p.suffix.lower() in
-        {".xanim_bin", ".xanim_export", ".anim", ".json"})
+        p for p in root.rglob("*") if p.is_file()
+        and "xanim" in p.parts
+        and p.stat().st_size <= _MAX_GLB_JSON
+        and p.suffix.lower() in ("", ".xanim_bin", ".xanim_export", ".anim", ".json"))
     entries = []
     bad_glb = []
     for item in weapons:

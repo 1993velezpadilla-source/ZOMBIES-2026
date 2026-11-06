@@ -60,8 +60,11 @@ def analyze(root: Path, manifest: dict, decoder) -> dict:
     folder = root/"common_mp"/"xanim"
     if not folder.is_dir():
         raise FileNotFoundError("source original xanim/ folder is missing")
+    # Original OAT IW3 exports have NO extension. Accept both source
+    # layout and explicit .xanim_bin fixtures without inventing notes.
     paths = [p for p in folder.iterdir() if p.is_file()
-             and p.suffix.lower()==".xanim_bin"]
+             and p.suffix.lower() in ("", ".xanim_bin")
+             and p.stat().st_size <= 32 * 1024 * 1024]
     output = {}
     for weapon in weapons:
         aliases=weapon.get("model_aliases",[])

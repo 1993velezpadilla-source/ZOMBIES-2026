@@ -27,6 +27,20 @@ MANIFEST = {"schema_version": 1, "target_weapon_count": 2, "weapons": [
 
 
 class DiscoveryTests(unittest.TestCase):
+    def test_extensionless_original_oat_xanim_counts(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d)
+            glb(root/"common_mp/model_export/viewmodel_m4_lod0.glb",skins=1)
+            xanim=root/"common_mp/xanim"
+            xanim.mkdir()
+            for action in ("idle","ads_up","fire","reload"):
+                (xanim/("viewmodel_m4_"+action)).write_bytes(b"native-xanim")
+            data=discover(root,MANIFEST)
+            self.assertEqual(data["source_xanim_files_scanned"],4)
+            self.assertEqual(data["unique_weapon_identities_with_xanim_name_coverage"],1)
+            self.assertTrue(data["weapons"][0]["source_animation_coverage"])
+            self.assertFalse(data["full_arsenal_playable"])
+
     def test_no_confusion_m4_with_benelli(self):
         self.assertFalse(source_match("viewmodel_benelli_m4", ["viewmodel_m4"]))
         self.assertFalse(source_match("viewmodel_m40a3", ["viewmodel_m4"]))

@@ -43,6 +43,17 @@ class OriginalReloadNoteTests(unittest.TestCase):
             self.assertFalse(r["sound_ogg_baked"])
             self.assertFalse(report["actual_audio_rendered"])
 
+    def test_real_extensionless_oat_files_are_found(self):
+        with TemporaryDirectory() as d:
+            root=Path(d)
+            folder=root/"common_mp/xanim"
+            folder.mkdir(parents=True)
+            (folder/"viewmodel_ak47_reload").write_bytes(b"mock")
+            (folder/"viewmodel_ak47_reload_empty").write_bytes(b"mock")
+            report=analyze(root,manifest(),decoder)
+            self.assertEqual(report["both_original_reload_xanims_found"],1)
+            self.assertEqual(report["native_sound_event_difference_confirmed"],1)
+
     def test_only_normal_reload_must_not_claim_empty_audio(self):
         with TemporaryDirectory() as d:
             root=Path(d)

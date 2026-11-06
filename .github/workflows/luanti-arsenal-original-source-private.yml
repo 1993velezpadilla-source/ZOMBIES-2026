@@ -107,6 +107,15 @@ jobs:
             --manifest sandbox/luanti/arsenal_android/expected_cod4_28.json \
             --output _iw3_reports/real-28-weapon-definition-stats.json
           test -s _iw3_reports/real-28-weapon-definition-stats.json
+      - name: Decode original normal vs empty reload notetrack differences
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="$PWD/_iw3_pipeline_src/tools"
+          python3 sandbox/luanti/arsenal_android/audit_original_reload_notes.py \
+            --dumps _iw3_private/dumps \
+            --manifest sandbox/luanti/arsenal_android/expected_cod4_28.json \
+            --output _iw3_reports/real-28-original-reload-notetracks.json
+          test -s _iw3_reports/real-28-original-reload-notetracks.json
       - name: Build REAL skinned 28-weapon source GLBs and first-person hands privately
         run: |
           set -euo pipefail
@@ -150,11 +159,14 @@ jobs:
           path: |
             _iw3_reports/real-28-weapon-source-inventory.json
             _iw3_reports/real-28-weapon-definition-stats.json
+            _iw3_reports/real-28-original-reload-notetracks.json
             _iw3_reports/real-28-source-animated-gate.json
           if-no-files-found: warn
           retention-days: 7
       - name: Securely delete staged original source data
         if: always()
         run: |
-          rm -rf _release_assets _iw3_private _oat_native_src _native_oat
+          # Keep open-source _native_oat until the post-job cache-save step.
+          # Deleting it here caused every run to recompile OAT for 16+ minutes.
+          rm -rf _release_assets _iw3_private _oat_native_src
           echo 'Private original COD4 game data not committed or redistributed.'

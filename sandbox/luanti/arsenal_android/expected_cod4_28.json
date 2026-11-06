@@ -4,15 +4,13 @@
   "target_weapon_count": 28,
   "source_distribution": "PRIVATE_ONLY_NO_PUBLIC_GAME_ASSETS",
   "source_license": "commercial_use_not_cleared",
-  "notes": "Expected weapon identities and source model name candidates. NOT an actual extracted model manifest; no unverified gun may be counted as playable.",
+  "notes": "Expected weapon identities and source model name candidates. NOT an actual extracted model manifest; no unverified gun may be counted as playable. Model alias corrections from actual OAT viewmodel family inventory: M9 -> viewmodel_beretta, gold Deagle -> viewmodel_desert_eagle_gold. Do not use estimated magazine or reserve ammo: require original WeaponDef values.",
   "weapons": [
     {
       "id": "ak47",
       "name": "AK-47",
       "category": "assault",
       "fire_mode": "auto",
-      "magazine": 30,
-      "reserve": 90,
       "model_aliases": [
         "viewmodel_ak47"
       ],
@@ -27,8 +25,6 @@
       "name": "M4 Carbine",
       "category": "assault",
       "fire_mode": "auto",
-      "magazine": 30,
-      "reserve": 90,
       "model_aliases": [
         "viewmodel_m4",
         "viewmodel_m4a1"
@@ -44,8 +40,6 @@
       "name": "M16A4",
       "category": "assault",
       "fire_mode": "burst",
-      "magazine": 30,
-      "reserve": 90,
       "model_aliases": [
         "viewmodel_m16",
         "viewmodel_m16a4"
@@ -61,8 +55,6 @@
       "name": "G36C",
       "category": "assault",
       "fire_mode": "auto",
-      "magazine": 30,
-      "reserve": 90,
       "model_aliases": [
         "viewmodel_g36c"
       ],
@@ -77,8 +69,6 @@
       "name": "MP44",
       "category": "assault",
       "fire_mode": "auto",
-      "magazine": 30,
-      "reserve": 90,
       "model_aliases": [
         "viewmodel_mp44"
       ],
@@ -93,8 +83,6 @@
       "name": "G3",
       "category": "marksman",
       "fire_mode": "semi",
-      "magazine": 20,
-      "reserve": 80,
       "model_aliases": [
         "viewmodel_g3"
       ],
@@ -109,8 +97,6 @@
       "name": "M14",
       "category": "marksman",
       "fire_mode": "semi",
-      "magazine": 20,
-      "reserve": 80,
       "model_aliases": [
         "viewmodel_m14"
       ],
@@ -125,8 +111,6 @@
       "name": "MP5",
       "category": "smg",
       "fire_mode": "auto",
-      "magazine": 30,
-      "reserve": 120,
       "model_aliases": [
         "viewmodel_mp5"
       ],
@@ -141,8 +125,6 @@
       "name": "AK-74u",
       "category": "smg",
       "fire_mode": "auto",
-      "magazine": 30,
-      "reserve": 120,
       "model_aliases": [
         "viewmodel_ak74u",
         "viewmodel_ak74"
@@ -158,8 +140,6 @@
       "name": "Skorpion",
       "category": "smg",
       "fire_mode": "auto",
-      "magazine": 20,
-      "reserve": 100,
       "model_aliases": [
         "viewmodel_skorpion"
       ],
@@ -174,8 +154,6 @@
       "name": "Mini-Uzi",
       "category": "smg",
       "fire_mode": "auto",
-      "magazine": 32,
-      "reserve": 128,
       "model_aliases": [
         "viewmodel_uzi",
         "viewmodel_miniuzi"
@@ -191,8 +169,6 @@
       "name": "P90",
       "category": "smg",
       "fire_mode": "auto",
-      "magazine": 50,
-      "reserve": 150,
       "model_aliases": [
         "viewmodel_p90"
       ],
@@ -207,8 +183,6 @@
       "name": "W1200",
       "category": "shotgun",
       "fire_mode": "pump",
-      "magazine": 7,
-      "reserve": 28,
       "model_aliases": [
         "viewmodel_winchester1200",
         "viewmodel_w1200"
@@ -224,8 +198,6 @@
       "name": "M1014",
       "category": "shotgun",
       "fire_mode": "semi",
-      "magazine": 4,
-      "reserve": 24,
       "model_aliases": [
         "viewmodel_benelli_m4",
         "viewmodel_m1014"
@@ -241,8 +213,6 @@
       "name": "M249 SAW",
       "category": "lmg",
       "fire_mode": "auto",
-      "magazine": 100,
-      "reserve": 200,
       "model_aliases": [
         "viewmodel_m249",
         "viewmodel_m249saw"
@@ -258,8 +228,6 @@
       "name": "RPD",
       "category": "lmg",
       "fire_mode": "auto",
-      "magazine": 100,
-      "reserve": 200,
       "model_aliases": [
         "viewmodel_rpd"
       ],
@@ -274,8 +242,6 @@
       "name": "M60E4",
       "category": "lmg",
       "fire_mode": "auto",
-      "magazine": 100,
-      "reserve": 200,
       "model_aliases": [
         "viewmodel_m60",
         "viewmodel_m60e4"
@@ -291,8 +257,6 @@
       "name": "M40A3",
       "category": "sniper",
       "fire_mode": "bolt",
-      "magazine": 5,
-      "reserve": 20,
       "model_aliases": [
         "viewmodel_m40a3",
         "viewmodel_m40"
@@ -308,8 +272,6 @@
       "name": "M21",
       "category": "sniper",
       "fire_mode": "semi",
-      "magazine": 10,
-      "reserve": 30,
       "model_aliases": [
         "viewmodel_m21"
       ],
@@ -324,8 +286,6 @@
       "name": "Dragunov",
       "category": "sniper",
       "fire_mode": "semi",
-      "magazine": 10,
-      "reserve": 30,
       "model_aliases": [
         "viewmodel_dragunov"
       ],
@@ -340,8 +300,6 @@
       "name": "R700",
       "category": "sniper",
       "fire_mode": "bolt",
-      "magazine": 4,
-      "reserve": 20,
       "model_aliases": [
         "viewmodel_r700",
         "viewmodel_remington700"
@@ -357,8 +315,6 @@
       "name": "Barrett .50cal",
       "category": "sniper",
       "fire_mode": "semi",
-      "magazine": 10,
-      "reserve": 30,
       "model_aliases": [
         "viewmodel_barrett",
         "viewmodel_m82"
@@ -374,8 +330,6 @@
       "name": "USP .45",
       "category": "pistol",
       "fire_mode": "semi",
-      "magazine": 12,
-      "reserve": 48,
       "model_aliases": [
         "viewmodel_usp",
         "viewmodel_usp45"
@@ -391,13 +345,14 @@
       "name": "M9",
       "category": "pistol",
       "fire_mode": "semi",
-      "magazine": 15,
-      "reserve": 60,
       "model_aliases": [
+        "viewmodel_beretta",
         "viewmodel_m9"
       ],
       "source_weapon_candidates": [
+        "beretta_mp",
         "m9_mp",
+        "beretta",
         "m9"
       ],
       "source_status": "UNVERIFIED"
@@ -407,8 +362,6 @@
       "name": "M1911 .45",
       "category": "pistol",
       "fire_mode": "semi",
-      "magazine": 8,
-      "reserve": 40,
       "model_aliases": [
         "viewmodel_colt45",
         "viewmodel_m1911"
@@ -424,8 +377,6 @@
       "name": "Desert Eagle",
       "category": "pistol",
       "fire_mode": "semi",
-      "magazine": 7,
-      "reserve": 35,
       "model_aliases": [
         "viewmodel_deserteagle",
         "viewmodel_desert_eagle"
@@ -441,15 +392,15 @@
       "name": "Golden Desert Eagle",
       "category": "pistol",
       "fire_mode": "semi",
-      "magazine": 7,
-      "reserve": 35,
       "model_aliases": [
+        "viewmodel_desert_eagle_gold",
         "viewmodel_deserteaglegold",
         "viewmodel_deserteagle_gold"
       ],
       "source_weapon_candidates": [
-        "deaglegold_mp",
-        "deaglegold"
+        "deserteaglegold_mp",
+        "desert_eagle_gold_mp",
+        "deserteaglegold"
       ],
       "source_status": "UNVERIFIED"
     },
@@ -458,8 +409,6 @@
       "name": "RPG-7",
       "category": "launcher",
       "fire_mode": "single",
-      "magazine": 1,
-      "reserve": 5,
       "model_aliases": [
         "viewmodel_rpg",
         "viewmodel_rpg7"
