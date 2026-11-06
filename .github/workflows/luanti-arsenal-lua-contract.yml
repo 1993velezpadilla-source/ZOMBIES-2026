@@ -4,6 +4,7 @@ on:
     branches: [feature/luanti-real-arsenal-28-source-gate-20261106]
     paths:
       - sandbox/luanti/arsenal_android/arsenal_mod/**
+      - sandbox/luanti/arsenal_android/test_arsenal_gameplay.lua
       - sandbox/luanti/arsenal_android/build_private_arsenal.py
       - sandbox/luanti/arsenal_android/patch_native_arsenal.py
       - sandbox/luanti/arsenal_android/native_arsenal_camera.cpp.inc
@@ -34,6 +35,7 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq --no-install-recommends lua5.1
           luac5.1 -p sandbox/luanti/arsenal_android/arsenal_mod/init.lua
+          lua5.1 sandbox/luanti/arsenal_android/test_arsenal_gameplay.lua
       - name: Validate private models, source stats and native patch regression
         run: |
           python3 -m unittest discover -s sandbox/luanti/arsenal_android \
