@@ -33,7 +33,7 @@ jobs:
       - name: Compile actual Luanti Lua 5.1 mod
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq --no-install-recommends lua5.1
+          sudo apt-get install -y -qq --no-install-recommends lua5.1 python3-pil
           luac5.1 -p sandbox/luanti/arsenal_android/arsenal_mod/init.lua
           lua5.1 sandbox/luanti/arsenal_android/test_arsenal_gameplay.lua
       - name: Validate private models, source stats and native patch regression
