@@ -247,7 +247,7 @@ void __cdecl CM_LoadStaticModels()
     }
     if (numStaticModels)
     {
-        cm.staticModelList = (cStaticModel_s *)CM_Hunk_Alloc(80 * numStaticModels, "CM_CreateStaticModel", 27);
+        cm.staticModelList = (cStaticModel_s *)CM_Hunk_Alloc(sizeof(cStaticModel_s) * numStaticModels, "CM_CreateStaticModel", 27);
         ptr = Com_EntityString(0);
         iassert( ptr );
         ProfLoad_Begin("Create static model collision");
