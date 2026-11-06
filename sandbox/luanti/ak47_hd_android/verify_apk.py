@@ -92,7 +92,7 @@ def verify(apk, expected_audit=None):
                 assert dry_audit['source_wav_bundled'] is False
                 assert hashlib.sha256(dry).hexdigest()==dry_audit['output_sha256']
                 with sf.SoundFile(BytesIO(dry)) as sound:
-                    assert abs(sound.duration-.21626)<.01
+                    assert abs(sound.frames/sound.samplerate-.21626)<.01
                     assert sound.frames>0 and sound.channels>=1
                 assert 's.next_fire=time+.25' in lua
                 assert 'if s.reserve>0 then reload(p,s) end' in lua
