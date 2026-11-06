@@ -79,6 +79,17 @@ def prepare(mod:Path):
                               for ch in range(bolt.shape[1])]).astype(np.float32)
         print('BOLT_SAMPLE_RATE_CONVERTED_NO_PITCH_SHIFT',
               {'from':bolt_rate,'to':rate,'duration_s':len(bolt)/rate})
+    # The CC0 rifle magazine recording and mechanical click use different
+    # CHANNEL layouts as well as different source sample rates. Match the
+    # layouts without changing playback speed or duration.
+    if bolt.shape[1]!=magazine.shape[1]:
+        if bolt.shape[1]==1 and magazine.shape[1]==2:
+            bolt=np.repeat(bolt,2,axis=1)*0.70710678
+        elif bolt.shape[1]==2 and magazine.shape[1]==1:
+            bolt=bolt.mean(axis=1,keepdims=True)
+        else:
+            raise ValueError('unsupported source channel layout')
+        print('BOLT_CHANNEL_LAYOUT_CONVERTED',bolt.shape[1])
     seconds=len(magazine)/rate
     if abs(seconds-EXPECTED_MAG_DURATION)>.25:
         raise ValueError(f'AK source changed unexpectedly ({seconds:.3f}s)')
