@@ -359,8 +359,20 @@ local function grant_weapon(player,id)
             return false
         end
     end
+    -- Touch selection must equip immediately, not silently add a weapon to
+    -- an invisible inventory slot. Mobile users have no keyboard.
+    local selected=nil
+    for i=1,inv:get_size("main") do
+        if inv:get_stack("main",i):get_name()=="arsenal:"..id then
+            selected=i
+            break
+        end
+    end
+    if selected and player.set_wield_index then
+        player:set_wield_index(selected)
+    end
     minetest.chat_send_player(player:get_player_name(),
-        def.name.." ready. Equip from hotbar. Reload: R/AUX1. ADS: secondary.")
+        def.name.." selected. FIRE / ADS / R. Tap ARSENAL to switch.")
     return true
 end
 minetest.register_on_player_receive_fields(function(player,formname,fields)
@@ -459,10 +471,10 @@ minetest.register_on_joinplayer(function(player)
     minetest.after(2,function()
         local p=minetest.get_player_by_name(who)
         if not p then return end
-        -- Prioritize the missing pistol and visible selector, rather than
-        -- a duplicate AK forced on every respawn.
-        if defs["arsenal:m9"] then give_if_missing(p,"arsenal:m9") end
+        -- First hotbar slots are reachable on phones; avoid silent
+        -- inventory insertion behind a full desktop-style hotbar.
         give_if_missing(p,"arsenal:tablet")
+        if defs["arsenal:m9"] then give_if_missing(p,"arsenal:m9") end
         if defs["arsenal:m4"] then give_if_missing(p,"arsenal:m4") end
         give_if_missing(p,"arsenal:ammo_box")
     end)
