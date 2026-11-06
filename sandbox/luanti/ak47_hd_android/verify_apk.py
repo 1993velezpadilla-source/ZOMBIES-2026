@@ -79,6 +79,23 @@ def verify(apk, expected_audit=None):
                 for name in ('normal','empty'):
                     sfx=z.read(prefix+f'sounds/ak47dev_reload_{name}.ogg')
                     assert sfx.startswith(b'OggS') and len(sfx)>10000, name
+                dry=z.read(prefix+'sounds/ak47dev_dry.ogg')
+                dry_audit=json.loads(z.read(prefix+'sounds/ak47dev_dry_audit_v8.json'))
+                assert dry.startswith(b'OggS') and len(dry)>1100
+                assert dry_audit['weapon_def']=='main/iw_11.iwd/weapons/mp/ak47_mp'
+                assert dry_audit['weapon_field']=='emptyFireSoundPlayer'
+                assert dry_audit['player_alias']=='weap_dryfire_smg_plr'
+                assert dry_audit['source_wav']=='sound/weapons/weap_dryfire_smg.wav'
+                assert dry_audit['source_wav_sha256']=='561963bfb073ee2b765ed2d3a1b0f8b6722124b87a8950a5170b05727c284c3f'
+                assert dry_audit['original_pitch'] is True
+                assert dry_audit['time_stretch_applied'] is False
+                assert dry_audit['source_wav_bundled'] is False
+                assert hashlib.sha256(dry).hexdigest()==dry_audit['output_sha256']
+                with sf.SoundFile(BytesIO(dry)) as sound:
+                    assert abs(sound.duration-.21626)<.01
+                    assert sound.frames>0 and sound.channels>=1
+                assert 's.next_fire=time+.25' in lua
+                assert 'if s.reserve>0 then reload(p,s) end' in lua
                 provenance=json.loads(z.read(prefix+'sounds/ak47dev_reload_audit_v7.json'))
                 assert provenance['version']=='COD4_IW3_ORIGINAL_SOUND_NOTETRACK_V7'
                 assert provenance['source']=='original user COD4 zone/spanish/common.ff'
@@ -128,7 +145,7 @@ def verify(apk, expected_audit=None):
             assert 'set_wield_index' not in lua, 'unsupported server-side wield-index setter in APK'
             assert 'player:get_wield_index()' in lua and 'inv:set_stack("main",selected,weapon)' in lua
             assert z.read(prefix+'sounds/ak47dev_fire.ogg').startswith(b'OggS')
-    report={'package':'com.xziel.voxelsandbox.ak47origv7','architecture':'arm64-v8a',
+    report={'package':'com.xziel.voxelsandbox.ak47dryv8','architecture':'arm64-v8a',
             'apk_bytes':apk.stat().st_size,'apk_sha256':hashlib.sha256(apk.read_bytes()).hexdigest(),
             'model_sha256':hashlib.sha256(model).hexdigest(),'triangles':faces,
             'model_bytes':len(model),'media_file_limit':MAX_MEDIAFILE_BYTES,
@@ -140,6 +157,7 @@ def verify(apk, expected_audit=None):
             'hands_texture':'cc0_photo_1024_skin_and_cuff',
             'reload_sfx_sync':['83/30','106/30'] if expected else [],
             'original_cod4_player_foley_verified':bool(expected),
+            'original_cod4_empty_trigger_verified':bool(expected),
             'exact_original_notify_frames':[0,19,57,77] if expected else [],
             'signed_apk_contents_verified':True,'physical_android_device_tested':False}
     return report
