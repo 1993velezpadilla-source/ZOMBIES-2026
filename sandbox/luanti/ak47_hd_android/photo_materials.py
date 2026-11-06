@@ -22,10 +22,10 @@ SOURCES={
       'bytes':215573
     },
     'metal':{
-      'asset':'metal_plate','channel':'Diffuse',
-      'url':'https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/metal_plate/metal_plate_diff_1k.jpg',
-      'md5':'bd9daf4c04046ca392a38b8df955ed26',
-      'bytes':692234
+      'asset':'rusty_metal_04','channel':'Diffuse',
+      'url':'https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rusty_metal_04/rusty_metal_04_diff_1k.jpg',
+      'md5':'91832efd8e5896387e2af18a5b49b895',
+      'bytes':938338
     },
     'leather':{
       'asset':'leather_red_02','channel':'coll1',
