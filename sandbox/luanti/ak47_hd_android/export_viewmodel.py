@@ -19,6 +19,7 @@ BLOCK=Path(__file__).resolve().parents[1]/'iw3_blockstyle'
 sys.path.insert(0,str(BLOCK))
 from voxelize import read_glb,read_accessor,pack_new,write_glb,allowed_primitive,is_hand_or_finger_bone
 from texture_atlas import make_atlas, TILES, SIZE, PADDING
+from material_v2 import make_rifle_atlas, make_hand_atlas, hand_uv
 from render_pose_sequence import PoseScene
 from ads_pipeline import quaternion,NAMES
 from render_mounted_viewhands import OAT_TO_NATIVE
@@ -27,7 +28,7 @@ CLIPS=[*NAMES.values(),'viewmodel_ak47_fire','viewmodel_ak47_reload','viewmodel_
 MAX_VERTICES=64000
 
 
-def source_triangle_uv(vertices, normals, joints, weights, bone_names, material, lower, upper):
+def source_triangle_uv(vertices, normals, joints, weights, bone_names, material, lower, upper, *, forced_tile=None):
     """Re-UV source polygons onto newly authored material islands.
 
     Original geometry, weighted vertices and XANIM stay untouched. Only
@@ -41,7 +42,9 @@ def source_triangle_uv(vertices, normals, joints, weights, bone_names, material,
         forward=(tri[:,0].mean()-lower[0])/span[0]
         joint=int(joints[begin,np.argmax(weights[begin])])
         bone=bone_names[joint] if joint<len(bone_names) else ''
-        if any(x in bone+' '+material for x in ('magazine','tag_clip','j_clip','_mag')):
+        if forced_tile in TILES:
+            tile=forced_tile
+        elif any(x in bone+' '+material for x in ('magazine','tag_clip','j_clip','_mag')):
             tile='magazine'
         elif 'wood' in material or forward<.225:
             tile='wood'
@@ -102,7 +105,7 @@ def export(rifle_path,hands_path,output,*,original_geometry=False):
          'materials':[{'name':'rifle_512','pbrMetallicRoughness':{'baseColorTexture':{'index':0}}},
                       {'name':'hand_palette','pbrMetallicRoughness':{'baseColorTexture':{'index':1}}}],
          'textures':[{'sampler':0},{'sampler':0}],
-         'samplers':[{'magFilter':9728,'minFilter':9728,'wrapS':33071,'wrapT':33071}],
+         'samplers':[{'magFilter':9729,'minFilter':9729,'wrapS':33071,'wrapT':33071}],
          'meshes':[{'name':'AK47_HD_combined','primitives':[]}],
          'nodes':[],'skins':[],'animations':[],
          'extras':{'external_texture_slots':['ak47hd_512.png','ak47hd_hands.png']}}
@@ -132,7 +135,8 @@ def export(rifle_path,hands_path,output,*,original_geometry=False):
     while width<len(palette):width*=2
     width=max(width,16)
     colors=np.array(palette+[palette[-1]]*(width-len(palette)),dtype='u1')[None,:,:]
-    hand_image=Image.fromarray(colors);hand_image.save(output/'textures/ak47hd_hands.png')
+    hand_image=make_hand_atlas() if original_geometry else Image.fromarray(colors)
+    hand_image.save(output/'textures/ak47hd_hands.png')
     color_ids={color:i for i,color in enumerate(palette)}
     rifle_points=np.vstack([geom[1][idx] for _,geom,_,idx in selected[0]])
     rifle_min=rifle_points.min(0);rifle_max=rifle_points.max(0)
@@ -152,10 +156,15 @@ def export(rifle_path,hands_path,output,*,original_geometry=False):
                 if component==0:
                     names=[scene.nodes[node].get('name','').lower()
                            for node in scene.doc['skins'][0]['joints']]
-                    uv=source_triangle_uv(pos,normals,joints,weights,names,material,rifle_min,rifle_max)
+                    # Original OAT primitive #3 contains the wooden furniture.
+                    # The earlier classifier labeled most of it gray receiver.
+                    furniture='wood' if source_index==3 else None
+                    uv=source_triangle_uv(pos,normals,joints,weights,names,material,rifle_min,rifle_max,
+                                          forced_tile=furniture)
                 else:
-                    color=(48,51,57) if any(x in material for x in ('glove','sleeve','cloth')) else (182,134,108)
-                    uv=np.tile([[(color_ids[color]+.5)/width,.5]],(len(pos),1))
+                    hand_names=[scene.nodes[node].get('name','').lower()
+                                for node in scene.doc['skins'][0]['joints']]
+                    uv=hand_uv(pos,normals,joints,weights,hand_names)
                 step=(MAX_VERTICES//3)*3
             else:
                 if len(pos)%4:raise ValueError('HD shell no longer has quad vertices')
@@ -184,7 +193,7 @@ def export(rifle_path,hands_path,output,*,original_geometry=False):
                 doc['meshes'][0]['primitives'].append({'attributes':attrs,'indices':idx,'mode':4,'material':component})
                 buffers+=1;faces+=len(ix)//3
         buffer_counts.append(buffers);triangles.append(faces)
-    atlas=make_atlas() if original_geometry else r.surfaces[0]['image']
+    atlas=make_rifle_atlas() if original_geometry else r.surfaces[0]['image']
     atlas.save(output/'textures/ak47hd_512.png')
     def joint_frames(name,t):
         rw=r.world(name,t);hw=h.world(name,t);mount=h.tag(hw)@OAT_TO_NATIVE
@@ -235,6 +244,8 @@ def export(rifle_path,hands_path,output,*,original_geometry=False):
                 worst=max(worst,float(np.abs(actual[index]-G@want).max()))
     if worst>.005:raise ValueError('flattened source motion mismatch: '+str(worst))
     report={'joint_count':count,'total_nodes':count+2,'original_source_mesh':bool(original_geometry),
+            'rifle_texture_version':'material_v2' if original_geometry else 'blockstyle',
+            'hands_texture_resolution':[512,512] if original_geometry else [width,1],
             'no_voxel_conversion':bool(original_geometry), 'mesh_buffers':buffer_counts,
             'triangles':triangles,'max_vertices_per_buffer':MAX_VERTICES,
             'texture_slots':['ak47hd_512.png','ak47hd_hands.png'],'durations':durations,
