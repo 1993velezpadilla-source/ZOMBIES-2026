@@ -37,7 +37,7 @@ local function state(player)
         players[username] = {
             weapon = "", seq = 0, last_action = "", next_fire = 0,
             reload_end = 0, reloading = false, ads = false,
-            dig = false, aux = false, burst = 0, hud = nil
+            dig = false, aux = false, burst = 0, burst_guard = false, hud = nil
         }
     end
     return players[username]
@@ -100,6 +100,7 @@ local function change(p, def, stack, s)
     s.empty=false
     s.next_fire=0
     s.burst=0
+    s.burst_guard=false
     p:set_fov(0,false,.18)
     send(p,stack,def,s,"E")
 end
@@ -248,10 +249,17 @@ for _,def in ipairs(manifest.weapons) do
                     local s=state(p)
                     change(p,def,stack,s)
                     if def.fire_mode=="burst" and def.gameplay_logic_enabled then
-                        if s.burst==0 then s.burst=3 end
-                    end
-                    if def.fire_mode=="burst" and s.burst>0 then
-                        s.burst=s.burst-1
+                        -- A trigger edge initiates exactly one three-round burst.
+                        -- Never consume pending shots until a round actually fires.
+                        if s.burst_guard or s.burst>0 then return stack end
+                        s.burst_guard=true
+                        local mag=ammo(stack,def)
+                        if mag==0 then return shoot(p,def,stack,s) end
+                        s.burst=3
+                        local fired=s.fired or 0
+                        stack=shoot(p,def,stack,s)
+                        if (s.fired or 0)>fired then s.burst=s.burst-1 end
+                        return stack
                     end
                     return shoot(p,def,stack,s)
                 end,
@@ -449,11 +457,23 @@ minetest.register_globalstep(function(_)
             if c.aux1 and not s.aux then
                 start_reload(player,def,player:get_wielded_item(),s)
             end
-            if c.dig then
-                if def.fire_mode=="auto" then
+            if def.fire_mode=="burst" then
+                if s.burst>0 and not s.reloading and
+                    timestamp()>=s.next_fire then
+                    local before=s.fired or 0
                     shoot(player,def,player:get_wielded_item(),s)
-                elseif def.fire_mode=="burst" and s.burst>0 then
-                    s.burst=s.burst-1
+                    if (s.fired or 0)>before then
+                        s.burst=s.burst-1
+                    else
+                        -- No ammo/invalid source: do not retry endless fake shots.
+                        s.burst=0
+                    end
+                end
+                -- All three rounds continue on the original fire clock,
+                -- even if the user releases early, until reload or empty.
+                if not c.dig then s.burst_guard=false end
+            elseif c.dig then
+                if def.fire_mode=="auto" then
                     shoot(player,def,player:get_wielded_item(),s)
                 elseif not s.dig then
                     shoot(player,def,player:get_wielded_item(),s)
@@ -470,6 +490,7 @@ minetest.register_globalstep(function(_)
             s.dig=false
             s.aux=false
             s.burst=0
+            s.burst_guard=false
         end
     end
 end)
