@@ -309,37 +309,37 @@ jobs:
           assert "native-code: 'arm64-v8a'" in text
           PY
           "$TOOLS/apksigner" verify --verbose "$APK" > _iw3_reports/android-signature.txt
-      - name: Encrypt authentic Arsenal APK using the existing recipient-only envelope
+      - name: Prepare DIRECT signed Android APK for owner playtest
         run: |
           set -euo pipefail
-          mkdir -p _arsenal_secure
-          python3 sandbox/luanti/ak47_hd_android/private_delivery.py encrypt \
-            "$RUNNER_TEMP/luanti/android/app/build/outputs/apk/release/app-arm64-v8a-release.apk" \
-            _arsenal_secure/COD4-ARSENAL-SOURCE-ARM64.iw3sealed \
-            sandbox/luanti/ak47_hd_android/delivery_public.pem
-          test -s _arsenal_secure/COD4-ARSENAL-SOURCE-ARM64.iw3sealed
+          mkdir -p _owner_apk
+          APK="$RUNNER_TEMP/luanti/android/app/build/outputs/apk/release/app-arm64-v8a-release.apk"
+          test -s "$APK"
+          cp "$APK" _owner_apk/COD4-ARSENAL-REAL-SOURCE-ARM64.apk
+          sha256sum _owner_apk/COD4-ARSENAL-REAL-SOURCE-ARM64.apk
+          # The actual source-derived weapon count, never a claimed 28.
           python3 - <<'PY'
+          import json
           from pathlib import Path
-          p=Path('_arsenal_secure/COD4-ARSENAL-SOURCE-ARM64.iw3sealed')
-          assert p.read_bytes()[:8] == b'AKHDAPK1'
-          assert p.stat().st_size > 1024
-          print('AES256GCM_RSA_OAEP_ENCRYPTED_HANDOFF_BYTES',p.stat().st_size)
+          a=json.loads(Path('_iw3_reports/arsenal-native-mod.json').read_text())
+          assert 1 <= a['native_models_verified_by_original_binary'] <= 28
+          print('REAL_SOURCE_GLBS_IN_APK',a['native_models_verified_by_original_binary'])
+          print('GAMEPLAY_ORIGINAL_DEF_ONLY',a['gameplay_logic_with_original_stats_and_empty_reload'])
+          print('ACTUAL_ANDROID_DEVICE_TESTED',False)
           PY
-          echo "OWNER_ONLY_AES256GCM_PROTECTED=YES"
-      - name: Upload encrypted owner-only Arsenal APK, never plaintext
+      - name: Upload DIRECT APK for mobile installation — 24-hour owner test
         uses: actions/upload-artifact@v4
         with:
-          name: COD4-ARSENAL-AUTHENTIC-ARM64-OWNER-ONLY-ENCRYPTED
-          path: _arsenal_secure/COD4-ARSENAL-SOURCE-ARM64.iw3sealed
+          name: COD4-ARSENAL-REAL-SOURCE-ARM64-DIRECT-APK
+          path: _owner_apk/COD4-ARSENAL-REAL-SOURCE-ARM64.apk
           if-no-files-found: error
-          retention-days: 2
+          retention-days: 1
           compression-level: 0
-      - name: Destroy plaintext original source and APK
+      - name: Remove raw game source from transient builder
         if: always()
         run: |
-          rm -rf _iw3_private _release_assets _arsenal_secure
+          rm -rf _iw3_private _release_assets _owner_apk
           rm -rf "$RUNNER_TEMP/luanti"
-          echo "No original COD4 meshes or raw installable APK released publicly"
       - name: Upload non-reversible build evidence
         if: always()
         uses: actions/upload-artifact@v4
