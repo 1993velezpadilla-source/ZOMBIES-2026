@@ -66,7 +66,7 @@ def prepare(loaded_dir: Path, output_dir: Path) -> dict:
         'wav_total_bytes': source.stat().st_size,
     }
     (output_dir/'ak47dev_dry_audit_v8.json').write_text(
-        json.dumps(report,sort_keys=True,indent=2)+'\\n')
+        json.dumps(report,sort_keys=True,indent=2)+'\n')
     print('ORIGINAL_COD4_EMPTY_TRIGGER_READY ' + json.dumps(report,sort_keys=True), flush=True)
     return report
 
