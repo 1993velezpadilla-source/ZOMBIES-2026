@@ -12,6 +12,7 @@ end
 local function make_stack(name)
     local self={name=name or "", meta={}}
     function self:get_name() return self.name end
+    function self:is_empty() return self.name=="" end
     function self:get_meta()
         local m=self.meta
         return {
@@ -100,6 +101,9 @@ end
 local methods={}
 local hit_count=0
 local played={}
+local formshown={}
+local messages={}
+local form_callback
 local function has_audio(name)
     for _,effect in ipairs(played) do if effect==name then return true end end
     return false
@@ -114,6 +118,19 @@ _G.minetest={
     register_tool=function(name,t) methods[name]=t end,
     register_node=function(name,t) methods[name]=t end,
     register_chatcommand=function(name,t) methods["/"..name]=t end,
+    register_craftitem=function(name,t) methods[name]=t end,
+    register_on_player_receive_fields=function(fn) form_callback=fn end,
+    formspec_escape=function(s)
+        return tostring(s):gsub("\\","\\\\"):gsub("%]","\\]"):gsub("%[","\\[")
+    end,
+    show_formspec=function(who,name,body)
+        assert(who=="Tester" and name=="arsenal:picker")
+        formshown[#formshown+1]=body
+    end,
+    chat_send_player=function(who,msg)
+        assert(who=="Tester")
+        messages[#messages+1]=msg
+    end,
     register_on_joinplayer=function(fn) methods.join=fn end,
     register_on_leaveplayer=function(fn) methods.leave=fn end,
     register_globalstep=function(fn) methods.step=fn end,
@@ -132,6 +149,8 @@ dofile(mod)
 assert(methods["arsenal:ak47"] and methods["arsenal:m4"] and methods["arsenal:usp"])
 assert(methods["arsenal:ammo_box"] and methods["/arsenalammo"])
 assert(methods["/arsenal"])
+assert(methods["/arsenalmenu"] and methods["arsenal:tablet"])
+assert(type(form_callback)=="function")
 methods.join(player)
 
 local function equip(name, slot)
@@ -219,6 +238,26 @@ assert(ok)
 ok,msg=methods["/arsenalammo"].func("Tester")
 assert(ok)
 assert(inventory:contains_item("main","arsenal:ammo_box"))
+-- Mobile formspec can switch categories and select only real GLB-backed guns.
+local before=#formshown
+ok,msg=methods["/arsenalmenu"].func("Tester")
+assert(ok and #formshown==before+1 and formshown[#formshown]:find("cat_assault"))
+assert(formshown[#formshown]:find("weapon_ak47") and formshown[#formshown]:find("weapon_m4"))
+assert(not formshown[#formshown]:find("weapon_usp"),
+    "Category list must not leak guns from other categories")
+form_callback(player,"arsenal:picker",{cat_pistol="true"})
+assert(formshown[#formshown]:find("weapon_usp"),"Touch pistol category")
+assert(not formshown[#formshown]:find("weapon_ak47"),"Pistol filter")
+-- This is the same tablet UI entry used by Android touchscreen users.
+methods["arsenal:tablet"].on_use(make_stack("arsenal:tablet"),player)
+assert(#formshown==before+3)
+local oldmessages=#messages
+form_callback(player,"arsenal:picker",{weapon_usp="true"})
+assert(#messages==oldmessages+1,"Choosing a GLB-backed gun shows equip confirmation")
+assert(inventory:contains_item("main","arsenal:usp"))
+local previous=#messages
+form_callback(player,"arsenal:picker",{weapon_fake="true"})
+assert(#messages==previous,"Unknown button cannot issue arbitrary inventory item")
 methods.leave(player)
 io.open=original_open
 print("ARSENAL_LUA_REAL_CALLBACK_GAUNTLET=PASS; weapons=3, magazine/dry/ADS/reload/crate/touch")
