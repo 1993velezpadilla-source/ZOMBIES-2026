@@ -116,7 +116,7 @@ def gif_timing(duration,count):
     if min(delays)<10:raise ValueError("GIF sampling exceeds centisecond timebase")
     return delays
 
-def build(rifle_path,hands_path,output,camera_mode='review'):
+def _build(rifle_path,hands_path,output,camera_mode='review',render_func=render_perspective,renderer_info=None):
     rifle=PoseScene(rifle_path);hands=PoseScene(hands_path)
     source=source_model_frame(rifle,hands)
     ri,hi,rest,combined,measured_front,muzzle,rear,span=source
@@ -139,6 +139,7 @@ def build(rifle_path,hands_path,output,camera_mode='review'):
     audit={"method":"Native IW3 model local fields + source DObj attachment + fixed FPS review camera",
         "camera_is_original_cod4":False,"hand_grip_verified":False,"ads_iron_sight_verified":False,
         "runtime_fps_verified":False,"coordinate_system":"OAT glTF Y-up",
+        "preview_renderer":renderer_info or {"renderer":"painter reference"},
         "original_mount_pair":["hands:tag_weapon","rifle:native model root"],
         "source_forward_direction":front.tolist(),"source_rifle_length":span,
         "candidates_tested":len(rank),"camera_validation_samples":len(samples),"best_candidates":rank,
@@ -146,7 +147,7 @@ def build(rifle_path,hands_path,output,camera_mode='review'):
         "stock_and_detached_magazine_excluded_from_core_framing":True,
         "camera_fixed_for_all_animation_frames":True,"frames":[],"animations":{}}
     for i,c in enumerate(rank[:3],1):
-        render_perspective(combined,np.asarray(c["eye_xyz"]),1,
+        render_func(combined,np.asarray(c["eye_xyz"]),1,
             f"REAL COD4 AK47 | NATIVE RIG | FIXED CAMERA #{i}",
             output/f"ak47_fps_hipfire_candidate_{i}.png",forward_override=front,fov=c['fov'])
     make_grid(output,[f"ak47_fps_hipfire_candidate_{i}.png" for i in range(1,4)],
@@ -161,11 +162,12 @@ def build(rifle_path,hands_path,output,camera_mode='review'):
         for index,t in enumerate(times):
             geometry,mount=compose(rifle,hands,gc,hc,float(t),rest)
             name=f"ak47_fps_{action}_frame_{index:03d}.png"
-            render=render_perspective(geometry,eye,1,
+            render=render_func(geometry,eye,1,
                 f"REAL COD4 XANIM | {action.upper()} {t:.3f}/{duration:.3f}s | fixed Y-up camera",
                 output/name,forward_override=front,fov=fov)
             record={"action":action,"fraction":float(t/duration) if duration else 0.,
                 "time_seconds":float(t),"file":name,"rendered_faces":render["drawn_faces"],
+                "geometry_pixels":render.get('geometry_pixels'),
                 "mount_tag_error":mount["tag_alignment_error"],"framing":camera_stats(geometry,eye,front,fov),
                 "core_framing":camera_stats(core_geometry(geometry,masks),eye,front,fov)}
             audit["frames"].append(record);records.append(record)
@@ -196,12 +198,22 @@ def build(rifle_path,hands_path,output,camera_mode='review'):
         "real_frames":len(audit["frames"]),"reload_gif":audit["reload_gif"]}))
     return audit
 
+def build(rifle_path,hands_path,output,camera_mode='review',renderer='depth'):
+    if renderer=='painter':return _build(rifle_path,hands_path,output,camera_mode)
+    from depth_preview import DepthPreview
+    preview=DepthPreview()
+    try:
+        return _build(rifle_path,hands_path,output,camera_mode,preview.render,
+                      {"renderer":"OpenGL EGL","backend":preview.backend,"samples":preview.samples})
+    finally:preview.close()
+
 def main():
     p=argparse.ArgumentParser()
     p.add_argument("--rifle",type=Path,required=True);p.add_argument("--hands",type=Path,required=True)
     p.add_argument("--output",type=Path,required=True)
     p.add_argument("--camera",choices=['review','native'],default='review')
-    a=p.parse_args();build(a.rifle,a.hands,a.output,a.camera)
+    p.add_argument("--renderer",choices=['depth','painter'],default='depth')
+    a=p.parse_args();build(a.rifle,a.hands,a.output,a.camera,a.renderer)
 
 if __name__=="__main__":main()
 

@@ -208,7 +208,7 @@ def camera_params(points,orientation=(28,25)):
     return (axis,vertical,side,yaw,elevation,cx,cy,scale)
 
 
-def draw_pose(scene,action,t,title,output,*,orientation=(28,25),camera=None,geometry_override=None):
+def draw_pose(scene,action,t,title,output,*,orientation=(28,25),camera=None,geometry_override=None,renderer='depth'):
     # Independent skinning/mount code may pass a physically composed scene.
     # This renders the actual transformed vertices, never an artist mock-up.
     if geometry_override is None:
@@ -220,6 +220,15 @@ def draw_pose(scene,action,t,title,output,*,orientation=(28,25),camera=None,geom
     lo=points.min(axis=0);hi=points.max(axis=0)
     if camera is None:
         camera=camera_params(points,orientation)
+    if renderer=='depth':
+        from depth_preview import DepthPreview
+        preview=DepthPreview(*SCREEN)
+        try:
+            result=preview.orthographic(geometry,camera,title,output)
+            return {"bbox_min":lo.round(5).tolist(),"bbox_max":hi.round(5).tolist(),
+                    "faces":result['source_faces'],"geometry_pixels":result['geometry_pixels'],
+                    "tag_weapon":scene.tag(world) is not None,"renderer":"OpenGL EGL"}
+        finally:preview.close()
     axis,vertical,side,yaw,elevation,cx,cy,scale=camera
     def xy(vec):
         a,b,c=vec[axis],vec[side],vec[vertical]

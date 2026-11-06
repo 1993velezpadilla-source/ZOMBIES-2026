@@ -26,10 +26,14 @@ jobs:
           ref: feature/iw3-arsenal-extraction-audit-20261102
           path: _iw3_pipeline_src
           persist-credentials: false
+      - name: Headless depth renderer dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends libegl1 libgl1-mesa-dri
       - name: Syntax and executable cuboid conversion test
         run: |
           set -euo pipefail
-          python3 -m pip install --quiet --user Pillow==12.0.0 numpy==2.3.4
+          python3 -m pip install --quiet --user Pillow==12.0.0 numpy==2.3.4 moderngl==5.12.0
           python3 -m py_compile sandbox/luanti/iw3_blockstyle/*.py
           PYTHONPATH="$PWD/_iw3_pipeline_src/tools:$PWD/sandbox/luanti/iw3_blockstyle" python3 -m unittest discover -s sandbox/luanti/iw3_blockstyle -p 'test_*.py' -v
           python3 sandbox/luanti/v3/build_ak47_assets.py /tmp/original-ak-test
@@ -96,6 +100,10 @@ jobs:
           ref: feature/iw3-arsenal-extraction-audit-20261102
           path: _iw3_pipeline_src
           persist-credentials: false
+      - name: Headless depth renderer dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends libegl1 libgl1-mesa-dri
       - name: Cache native-local OAT exporter (open-source binary only)
         id: native_oat_cache
         uses: actions/cache@v4
@@ -162,6 +170,10 @@ jobs:
           x=json.loads(Path('_iw3_reports/ak47-blockstyle.json').read_text())
           assert x['rifle_animations_attached']>0
           assert x['rifle_geometry']['cuboids']>0
+          assert x['rifle_geometry']['effective_density']==384
+          assert not x['rifle_geometry']['automatic_lod_reduced']
+          assert x['rifle_geometry']['triangle_count']>=100000
+          assert x['rifle_geometry']['internal_faces_removed']>0
           assert x['hands_tight_geometry']['cuboids']>=50
           assert x['hands_tight_animations_attached']>20
           assert x['private_binary_outputs']
@@ -173,7 +185,7 @@ jobs:
       - name: Render actual converted COD4 AK cuboid screenshots (static, not fake concept images)
         run: |
           set -euo pipefail
-          python3 -m pip install --quiet --user Pillow==12.0.0
+          python3 -m pip install --quiet --user Pillow==12.0.0 moderngl==5.12.0
           PYTHONPATH="$PWD/_iw3_pipeline_src/tools" python3 \
             sandbox/luanti/iw3_blockstyle/render_previews.py \
             --input _iw3_private/blockstyle/AK47_COD4_BLOCKSTYLE_PRIVATE.glb \
@@ -267,6 +279,8 @@ jobs:
           assert a["rifle_core_visible_95pct"],a["full_render_minimum_core_visible_fraction"]
           assert len([f for f in a["frames"] if f["action"]=="reload" and "file" in f])>=60
           assert a["camera_fixed_for_all_animation_frames"]
+          assert a["preview_renderer"]["renderer"]=="OpenGL EGL"
+          assert all(f["geometry_pixels"]>100 for f in a["frames"])
           assert not a["ads_iron_sight_verified"] and not a["hand_grip_verified"]
           assert a["reload_gif"]["frames"]>=60
           assert a["camera_validation_samples"]>=35

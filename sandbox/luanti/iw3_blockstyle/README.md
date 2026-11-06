@@ -1,5 +1,11 @@
 # COD4 AK-47 -> Minecraft-style block geometry + every XANIM
 
+> High detail is now the default rifle profile: 384 grid divisions and
+> 144,134 triangles after internal-face removal. Use `--rifle-detail legacy`
+> for the original 10,692-triangle comparison. Primary pose/FPS previews use
+> OpenGL/EGL depth testing; install ModernGL 5.12.0 and Mesa EGL.
+> See [geometry verification](../../../docs/audit/COD4_AK47_HIGH_DETAIL.md).
+
 > Current native-rig path: build the pinned OAT exporter with
 > `patch_oat_native_locals.py` and set `IW3_NATIVE_LOCALS_DIR` while extracting.
 > Pass those private sidecars with `voxelize.py --native-locals DIR`.
@@ -37,7 +43,8 @@ PR #6 OpenAssetTools extraction pipeline (checkout on its source branch).
    report clips with no matching bone rather than declaring them successful.
 3. Approximate the original mesh triangles as **axis-aligned surface cuboids**,
    bound to their dominant existing skin joint; preserve hierarchy and
-   inverse-bind matrices; cap complexity for mobile (4,000 cuboids max).
+   inverse-bind matrices; enforce explicit geometry budgets (40,000 rifle
+   cuboids in high detail; 4,000 with the legacy profile).
 4. Independently rebuild both first-person AK geometry and original viewhands
    (if present) as cubes, preserving their skinning and associating each
    compatible XANIM clip as a named glTF animation channel.

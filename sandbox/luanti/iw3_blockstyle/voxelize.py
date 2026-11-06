@@ -38,6 +38,12 @@ KINDS = ("idle", "ads", "fire", "reload", "pullout", "putaway", "sprint", "other
 MAX_POINTS = 1_500_000
 MAX_CUBES = 4000
 MAX_CLIPS = 128
+RIFLE_DETAIL_PROFILES = {
+    "legacy": dict(density=76, max_cubes=4000, max_points=MAX_POINTS,
+                   max_steps=72, cull_internal=False, allow_lod=True),
+    "high": dict(density=384, max_cubes=40000, max_points=8_000_000,
+                 max_steps=512, cull_internal=True, allow_lod=False),
+}
 
 
 def read_accessor(doc: dict, raw: bytes, index: int):
@@ -169,10 +175,11 @@ def procedural_color(center: tuple, bone: int, pitch: float, context: dict) -> t
         else:
             base = (0.29, 0.34, 0.38)      # receiver/magazine
     ix, iy, iz = (int(round(x / max(pitch, .001))) for x in center)
-    shade = (((ix * 3 + iy * 5 + iz * 11 + bone * 13) % 9) - 4) * .013
+    grain=.013 if kind in ("hands","hands_tight") else .013*min(1.,pitch/.35)
+    shade = (((ix * 3 + iy * 5 + iz * 11 + bone * 13) % 9) - 4) * grain
     return tuple(max(.12, min(.9, v + shade)) for v in base) + (1.0,)
 
-def surface_cells(tris: list, pitch: float):
+def surface_cells(tris: list, pitch: float, *, max_points=MAX_POINTS, max_steps=72):
     cubes=set()
     sampled=0
     for xyz,bone in tris:
@@ -180,7 +187,7 @@ def surface_cells(tris: list, pitch: float):
         def length(p,q):
             return math.sqrt(sum((p[i]-q[i])**2 for i in range(3)))
         longest=max(length(a,b),length(b,c),length(c,a))
-        steps=max(1,min(72,math.ceil(longest/(pitch*.9))))
+        steps=max(1,min(max_steps,math.ceil(longest/(pitch*.9))))
         # Triangular barycentric sampling includes boundaries and interior;
         # unlike bounding-box fill, does not create large solid weapon bricks.
         for i in range(steps+1):
@@ -190,7 +197,7 @@ def surface_cells(tris: list, pitch: float):
                 q=tuple(a[d]*(1-v-w)+b[d]*v+c[d]*w for d in range(3))
                 cubes.add((bone,*(math.floor(t/pitch) for t in q)))
                 sampled+=1
-                if sampled > MAX_POINTS:
+                if sampled > max_points:
                     raise OverflowError("triangle sampling budget exhausted")
     return cubes
 
@@ -211,6 +218,20 @@ def z_merge(cells):
                 first=last=z
         out.append((bone,x,y,first,last+1))
     return out
+
+
+def exposed_box_faces(cells, box):
+    """Cull only faces fully covered by cells on the SAME animated joint.
+
+    Faces between the magazine/bolt and receiver must remain, because those
+    parts move apart. Partially covered long faces are retained conservatively.
+    Face order matches emit_boxes' bottom, top, left, right, front, back.
+    """
+    bone,x,y,z0,z1=box
+    covered=[(bone,x,y,z0-1) in cells,(bone,x,y,z1) in cells]
+    for dx,dy in ((-1,0),(1,0),(0,1),(0,-1)):
+        covered.append(all((bone,x+dx,y+dy,z) in cells for z in range(z0,z1)))
+    return [i for i,hidden in enumerate(covered) if not hidden]
 
 
 def bone_identity(doc: dict, bone: int) -> str:
@@ -242,9 +263,9 @@ def emit_boxes(doc, raw, primitive, target_doc, dest_binary, pitch, context):
              if is_hand_or_finger_bone(bone_identity(doc,bone))]
     if not tri:
         raise ValueError("internal error: unselected primitive passed to voxel emission")
-    cells=surface_cells(tri,pitch)
+    cells=surface_cells(tri,pitch,max_points=context["max_points"],max_steps=context["max_steps"])
     boxes=z_merge(cells)
-    if len(boxes)>MAX_CUBES:
+    if len(boxes)>context["max_cubes"]:
         raise OverflowError("cuboid output budget exceeded")
     positions=[]; normals=[]; tex=[]; joints=[]; weights=[]; colors=[]; indices=[]
     sides=[
@@ -252,7 +273,12 @@ def emit_boxes(doc, raw, primitive, target_doc, dest_binary, pitch, context):
       ((0,4,7,3),(-1.,0.,0.)),((1,2,6,5),(1.,0.,0.)),
       ((3,7,6,2),(0.,1.,0.)),((0,1,5,4),(0.,-1.,0.)),
     ]
-    for bone,x,y,z0,z1 in boxes:
+    removed=0
+    for box in boxes:
+        bone,x,y,z0,z1=box
+        visible=exposed_box_faces(cells,box) if context["cull_internal"] else list(range(6))
+        removed+=6-len(visible)
+        if not visible:continue
         x0=x*pitch; x1=(x+1)*pitch
         y0=y*pitch; y1=(y+1)*pitch
         a=z0*pitch; b=z1*pitch
@@ -262,7 +288,8 @@ def emit_boxes(doc, raw, primitive, target_doc, dest_binary, pitch, context):
             (x0,y0,a),(x1,y0,a),(x1,y1,a),(x0,y1,a),
             (x0,y0,b),(x1,y0,b),(x1,y1,b),(x0,y1,b),
         ]
-        for face,norm in sides:
+        for face_index in visible:
+            face,norm=sides[face_index]
             off=len(positions)
             for j,vertex in enumerate(face):
                 positions.append(corners[vertex])
@@ -284,10 +311,14 @@ def emit_boxes(doc, raw, primitive, target_doc, dest_binary, pitch, context):
     result={"attributes":attrs,"indices":pack_new(target_doc,dest_binary,
             [(v,) for v in indices],"SCALAR",5125,34963),
             "mode":4,"material":primitive.get("material",0)}
-    return result, len(boxes), len(cells)
+    return result, len(boxes), len(cells), removed
 
 
-def voxelize(source: Path, target: Path, *, density=42, kind='rifle'):
+def voxelize(source: Path, target: Path, *, density=42, kind='rifle',
+             max_cubes=MAX_CUBES,max_points=MAX_POINTS,max_steps=72,
+             cull_internal=False,allow_lod=True):
+    if not 12<=density<=512 or max_cubes>40000 or max_points>8_000_000:
+        raise ValueError('unsupported voxel detail budget')
     doc,original=read_glb(source)
     out=deepcopy(doc)
     surviving=[]
@@ -368,39 +399,49 @@ def voxelize(source: Path, target: Path, *, density=42, kind='rifle'):
     best=None
     # Automatic LOD cap rather than exploding a mobile renderer into millions
     # of voxels. Source geometry is never shipped with the model.
-    for divisor in [density]+[d for d in (72,64,56,48,42,32,24,18,12) if d<density]:
+    divisors=[density]+([d for d in (256,192,128,96,72,64,56,48,42,32,24,18,12) if d<density] if allow_lod else [])
+    for divisor in divisors:
         pitch=longest/divisor
         attempt=deepcopy(out)
         blob=bytearray(binary)
-        parts=[]; total=0; occupied=0
+        parts=[]; total=0; occupied=0; removed_faces=0
         try:
             for mesh in out["meshes"]:
                 target_primitives=[]
                 for prim in mesh["primitives"]:
                     mat_id=prim.get("material",0)
                     mat_name=doc.get("materials",[])[mat_id].get("name","").lower() if mat_id<len(doc.get("materials",[])) else ""
-                    context={"kind":kind,"lo":lo,"hi":hi,"major":major,"material":mat_name}
-                    result,count,cells=emit_boxes(doc,original,prim,attempt,blob,pitch,context)
+                    context={"kind":kind,"lo":lo,"hi":hi,"major":major,"material":mat_name,
+                             "max_cubes":max_cubes,"max_points":max_points,"max_steps":max_steps,
+                             "cull_internal":cull_internal}
+                    result,count,cells,removed=emit_boxes(doc,original,prim,attempt,blob,pitch,context)
                     result["material"]=min(result["material"],len(out["materials"])-1)
                     target_primitives.append(result)
-                    total+=count;occupied+=cells
-                    if total>MAX_CUBES:
+                    total+=count;occupied+=cells;removed_faces+=removed
+                    if total>max_cubes:
                         raise OverflowError("mesh cube budget exhausted")
                 parts.append(target_primitives)
         except OverflowError:
             continue
-        best=(attempt,blob,parts,total,occupied,pitch)
+        best=(attempt,blob,parts,total,occupied,pitch,divisor,removed_faces)
         break
     if best is None:
-        raise ValueError("could not voxelize inside mobile cube budget")
-    target_doc,raw,parts,total,occupied,pitch=best
+        raise ValueError(f"requested density {density} exceeds the explicit geometry budget; no lower detail accepted")
+    target_doc,raw,parts,total,occupied,pitch,effective_density,removed_faces=best
     for mesh,primitives in zip(target_doc["meshes"],parts):
         mesh["primitives"]=primitives
     write_glb(target,target_doc,raw)
     check,_=read_glb(target)
     assert len(check.get("skins",[]))==len(doc.get("skins",[]))
     assert len(check.get("nodes",[]))==len(doc.get("nodes",[]))
+    primitives=[p for m in check['meshes'] for p in m['primitives']]
+    triangle_count=sum(check['accessors'][p['indices']]['count']//3 for p in primitives)
+    vertex_count=sum(check['accessors'][p['attributes']['POSITION']]['count'] for p in primitives)
     return {"cuboids":total,"sampled_cells":occupied,"pitch":round(pitch,6),
+            "requested_density":density,"effective_density":effective_density,
+            "automatic_lod_reduced":effective_density!=density,
+            "triangle_count":triangle_count,"vertex_count":vertex_count,
+            "internal_faces_removed":removed_faces,"same_joint_face_culling":cull_internal,
             "skin_count":len(check.get("skins",[])),
             "node_count":len(check.get("nodes",[])),
             "primitives":sum(len(m["primitives"]) for m in check["meshes"]),
@@ -462,7 +503,7 @@ def add_all_animations(base: Path, target: Path, clips, native_locals=None):
     return report
 
 
-def run(dumps: Path, target: Path, native_locals_dir=None):
+def run(dumps: Path, target: Path, native_locals_dir=None,rifle_detail='high'):
     source=dumps/"common_mp"
     model_dir=source/"model_export"
     models=sorted(p for p in model_dir.glob("viewmodel_ak47*_lod0.glb") if family(p))
@@ -497,7 +538,7 @@ def run(dumps: Path, target: Path, native_locals_dir=None):
     source_meshes=[m.get('name','unnamed') for m in source_doc.get('meshes',[])]
     target.mkdir(parents=True,exist_ok=True)
     rifle=target/"AK47_COD4_BLOCKSTYLE_PRIVATE.glb"
-    voxel=voxelize(chosen,rifle,density=76,kind='rifle')
+    voxel=voxelize(chosen,rifle,kind='rifle',**RIFLE_DETAIL_PROFILES[rifle_detail])
     animated=target/"AK47_COD4_BLOCKSTYLE_ALL_XANIM_PRIVATE.glb"
     gun_clips=add_all_animations(rifle,animated,clips,rifle_native)
     hands_path=model_dir/"viewmodel_base_viewhands_lod0.glb"
@@ -531,6 +572,7 @@ def run(dumps: Path, target: Path, native_locals_dir=None):
       "animation_coordinate_frame":"OAT glTF Y-up; Rx(-90deg) on skeleton roots only",
       "animation_translation_semantics":"IW3 model bind offset + XANIM translation delta on non-root bones",
       "selected_ak_model":chosen.name,
+      "rifle_detail_profile":rifle_detail,
       "source_material_names":source_mats,
       "source_mesh_names":source_meshes,
       "candidate_models":len(models),"xanim_decoded":len(clips),
@@ -559,8 +601,9 @@ def main():
     parser.add_argument("--output",type=Path,default=Path("_iw3_private/blockstyle"))
     parser.add_argument("--report",type=Path,default=Path("_iw3_reports/ak47-blockstyle.json"))
     parser.add_argument("--native-locals",type=Path,default=Path("_iw3_private/native-locals"))
+    parser.add_argument("--rifle-detail",choices=sorted(RIFLE_DETAIL_PROFILES),default='high')
     args=parser.parse_args()
-    result=run(args.dumps,args.output,args.native_locals)
+    result=run(args.dumps,args.output,args.native_locals,args.rifle_detail)
     args.report.parent.mkdir(parents=True,exist_ok=True)
     args.report.write_text(json.dumps(result,indent=2,ensure_ascii=False)+"\n")
     print(json.dumps({"rifle_cuboids":result["rifle_geometry"]["cuboids"],
