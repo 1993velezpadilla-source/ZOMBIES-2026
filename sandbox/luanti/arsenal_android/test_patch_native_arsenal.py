@@ -22,7 +22,7 @@ void Camera::updateAK47Viewmodel(f32 frametime)
 void Camera::wield(const ItemStack &item, bool animate)
 {
     if (item.name == "ak47dev:ak47" &&
-                m_wield_item_next.name == item.name) {
+				m_wield_item_next.name == item.name) {
         m_wield_item_next = item;
     }
 }
