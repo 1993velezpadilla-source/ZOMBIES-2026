@@ -2,6 +2,9 @@
 local AK="ak47dev:ak47"
 local S={}
 local CAPACITY=30
+-- Durations are sourced from the two native XANIM clips (83/30 and 106/30 s).
+local NORMAL_RELOAD_DURATION=83/30
+local EMPTY_RELOAD_DURATION=106/30
 local function now() return minetest.get_us_time()/1000000 end
 local function equipped(p) return p and p:is_player() and p:get_wielded_item():get_name()==AK end
 local function state(p)
@@ -30,9 +33,11 @@ local function ads(p,s,on)
 end
 local function start_reload(p,s)
     s.pending=0;s.empty_reload=s.ammo==0
-    s.reload_end=now()+(s.empty_reload and 106/30 or 83/30)
+    s.reload_end=now()+(s.empty_reload and EMPTY_RELOAD_DURATION or NORMAL_RELOAD_DURATION)
     s.ads=false;p:set_fov(0,false,.25);sync(p,s,"R")
-    sound(p,"ak47dev_reload",.8)
+    -- Independent time-stretched audio files follow the matching XANIM clip.
+    -- Do not play the 2.32-second original on both longer animations.
+    sound(p,s.empty_reload and "ak47dev_reload_empty" or "ak47dev_reload_normal",.80)
 end
 local function reload(p,s)
     if s.reload_end>0 or s.pending>0 or s.ammo>=CAPACITY or s.reserve<=0 then return end
@@ -97,7 +102,7 @@ minetest.register_on_joinplayer(function(p)
             end
         end
         sync(player,state(player),"E")
-        minetest.chat_send_player(name,"FIRE: disparar | ADS: apuntar | R: recargar")
+        -- No unsolicited onboarding message above the game viewport.
     end)
 end)
 minetest.register_on_leaveplayer(function(p) S[p:get_player_name()]=nil end)
