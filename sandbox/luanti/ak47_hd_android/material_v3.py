@@ -64,9 +64,18 @@ def replace_region(canvas,base,photo,box,kind):
         detail=.82*centered
         outline=.22*painted+.78*baseline
     elif kind in ('receiver','magazine','steel'):
-        baseline={'receiver':[67,77,79],'magazine':[51,60,65],'steel':[102,112,118]}[kind]
-        detail=.60*centered.mean(2,keepdims=True)
-        outline=.22*painted+.78*np.array(baseline,dtype=np.float32)
+        # Rusty Metal 04 has *real color variation*, not just luminance.
+        # Preserve red/brown oxidation and steel-gray patches from the
+        # photograph. The older grayscale conversion erased nearly all rust.
+        baseline=np.array({'receiver':[78,78,76],
+                           'magazine':[58,61,61],
+                           'steel':[101,108,110]}[kind],dtype=np.float32)
+        rust_chroma=photographic-mean
+        detail=.90*rust_chroma
+        outline=.16*painted+.84*baseline
+        # Slight baked local contrast works with Luanti's non-PBR model shader
+        # without costly screen-space effects on the phone.
+        detail += .16*(photographic.mean(2,keepdims=True)-photographic.mean())
     elif kind=='skin':
         # Fine real-photo leather pores are used only as a low-strength
         # microdetail source, recolored to skin; not a photographic hand.
