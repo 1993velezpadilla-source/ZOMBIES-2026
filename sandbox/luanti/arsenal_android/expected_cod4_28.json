@@ -4,7 +4,7 @@
   "target_weapon_count": 28,
   "source_distribution": "PRIVATE_ONLY_NO_PUBLIC_GAME_ASSETS",
   "source_license": "commercial_use_not_cleared",
-  "notes": "Expected weapon identities and source model name candidates. NOT an actual extracted model manifest; no unverified gun may be counted as playable. Model alias corrections from actual OAT viewmodel family inventory: M9 -> viewmodel_beretta, gold Deagle -> viewmodel_desert_eagle_gold. Do not use estimated magazine or reserve ammo: require original WeaponDef values. Gold Deagle can reuse original base Desert Eagle XANIM only after bone-overlap validation against the distinct gold viewmodel (never assume matching). Added only candidate original COD4 WeaponDef and XANIM aliases for missing weapon families (Winchester 1200, Benelli, R700, G36, Colt45, Desert Eagle, M249 SAW, M60E4). They must be validated against actual OAT files and joint overlaps; candidates are not proof.",
+  "notes": "Expected weapon identities and source model name candidates. NOT an actual extracted model manifest; no unverified gun may be counted as playable. Model alias corrections from actual OAT viewmodel family inventory: M9 -> viewmodel_beretta, gold Deagle -> viewmodel_desert_eagle_gold. Do not use estimated magazine or reserve ammo: require original WeaponDef values. Gold Deagle can reuse original base Desert Eagle XANIM only after bone-overlap validation against the distinct gold viewmodel (never assume matching). Added only candidate original COD4 WeaponDef and XANIM aliases for missing weapon families (Winchester 1200, Benelli, R700, G36, Colt45, Desert Eagle, M249 SAW, M60E4). They must be validated against actual OAT files and joint overlaps; candidates are not proof. 2026-11-06 latest real source census 25/28 gun+hands pairs and 27/28 WeaponDefs (M249 missing), so added source name candidates saw_mp/saw for M249 and M14-family animation candidates for M21. These are probes only: xanim joint overlap and original definition file are still required before enabling any gameplay.",
   "weapons": [
     {
       "id": "ak47",
@@ -236,8 +236,11 @@
       "source_weapon_candidates": [
         "m249saw_mp",
         "m249_mp",
+        "saw_mp",
+        "m249_saw_mp",
         "m249saw",
-        "m249"
+        "m249",
+        "saw"
       ],
       "source_status": "UNVERIFIED"
     },
@@ -299,7 +302,11 @@
         "m21_mp",
         "m21"
       ],
-      "source_status": "UNVERIFIED"
+      "source_status": "UNVERIFIED",
+      "animation_aliases": [
+        "viewmodel_m21",
+        "viewmodel_m14"
+      ]
     },
     {
       "id": "dragunov",
