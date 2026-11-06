@@ -1,0 +1,43 @@
+name: Find original COD4 AK47 normal reload sound and aliases
+on:
+  push:
+    branches: [feature/ak47-cod4-original-mesh-luanti-20261106]
+    paths:
+      - tools/find_cod4_ak47_reload_sound.py
+      - .github/workflows/iw3-original-ak47-sound-audit.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit_original_cod4_sound:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 85
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Download the user's actual COD4 PC game data (7GB split source ZIP)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p _release_assets/c4
+          gh release download gofile-p2DdQHsz --repo "$GITHUB_REPOSITORY" \
+            --pattern 'C4-Mocs.zip.part-*' --dir _release_assets/c4
+          actual="$(cat _release_assets/c4/C4-Mocs.zip.part-* | sha256sum | cut -d' ' -f1)"
+          test "$actual" = '6787f2082b39ee76445db7fca92892256bfb97e62bbdebfe63f6ee11de6a8d99'
+      - name: Inspect every original COD4 IWD for AK47 tactical versus empty audio
+        run: |
+          set -euo pipefail
+          python3 tools/find_cod4_ak47_reload_sound.py _release_assets/c4 _iw3_reports/ak47-cod4-original-reload-sound-search.json
+      - name: Upload filename/hash audit ONLY, never upload proprietary sounds
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: original-COD4-AK47-reload-source-search
+          path: _iw3_reports/ak47-cod4-original-reload-sound-search.json
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Clean private game archive
+        if: always()
+        run: rm -rf _release_assets
