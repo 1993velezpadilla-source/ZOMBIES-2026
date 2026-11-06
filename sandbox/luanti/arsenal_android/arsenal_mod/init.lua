@@ -116,10 +116,10 @@ local function start_reload(p,def,stack,s)
     if not def.gameplay_logic_enabled or s.reloading then return stack end
     local mag,reserve=ammo(stack,def)
     if mag>=def.magazine_capacity or reserve==0 then return stack end
-    if mag==0 and not def.distinct_empty_reload_animation then
-        -- Do not fake an empty-mag reload with the normal animation.
-        return stack
-    end
+    -- Fallback to the ORIGINAL normal-mag animation when the empty
+    -- XANIM is absent. Preserve the original empty reload clock, so M9
+    -- and M1911 are usable rather than dead preview guns.
+    -- C++ will choose the only original reload clip available.
     s.reloading=true
     s.empty=(mag==0)
     s.ads=false
