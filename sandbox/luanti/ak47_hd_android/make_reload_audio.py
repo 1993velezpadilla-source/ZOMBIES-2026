@@ -70,7 +70,15 @@ def prepare(mod:Path):
     magazine,rate=sf.read(str(magfile),dtype='float32',always_2d=True)
     bolt,bolt_rate=sf.read(str(boltfile),dtype='float32',always_2d=True)
     if rate!=bolt_rate:
-        raise ValueError('source sample rates differ, do not silently resample pitch')
+        # Convert only sample RATE (not playback tempo): preserve real-world
+        # duration and pitch of the short mechanical click in the mixed track.
+        output_frames=int(round(len(bolt)*rate/bolt_rate))
+        old_seconds=np.arange(len(bolt),dtype=np.float64)/bolt_rate
+        new_seconds=np.arange(output_frames,dtype=np.float64)/rate
+        bolt=np.column_stack([np.interp(new_seconds,old_seconds,bolt[:,ch])
+                              for ch in range(bolt.shape[1])]).astype(np.float32)
+        print('BOLT_SAMPLE_RATE_CONVERTED_NO_PITCH_SHIFT',
+              {'from':bolt_rate,'to':rate,'duration_s':len(bolt)/rate})
     seconds=len(magazine)/rate
     if abs(seconds-EXPECTED_MAG_DURATION)>.25:
         raise ValueError(f'AK source changed unexpectedly ({seconds:.3f}s)')
