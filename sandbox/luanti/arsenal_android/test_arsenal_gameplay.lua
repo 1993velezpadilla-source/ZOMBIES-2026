@@ -1,6 +1,7 @@
 -- Real Luanti mod callback behavior test, not just luac syntax.
 -- FAKE ENGINE. Exercises inventory, ammo, ADS, reload, source-preview and crate.
 local clock = 1
+ItemStack=function(name) return make_stack(name) end
 local function clone_table(t)
     local r={}
     for k,v in pairs(t) do
@@ -87,6 +88,11 @@ local catalog={
          gameplay_logic_enabled=true,magazine_capacity=30,reserve_max=180,
          fire_interval_seconds=.064,reload_seconds=2.0,reload_empty_seconds=2.365,
          damage=30,distinct_empty_reload_animation=true,fire_mode="burst"},
+        {id="m9",name="M9 BERETTA",category="pistol",
+         gun_model="arsenal_m9_gun.glb",hands_model="arsenal_m9_hands.glb",
+         gameplay_logic_enabled=true,magazine_capacity=15,reserve_max=90,
+         fire_interval_seconds=.05,reload_seconds=1.629,reload_empty_seconds=1.917,
+         damage=40,distinct_empty_reload_animation=false,fire_mode="semi"},
         {id="usp",name="USP PREVIEW",category="pistol",
          gun_model="arsenal_usp_gun.glb",hands_model="arsenal_usp_hands.glb",
          gameplay_logic_enabled=false,distinct_empty_reload_animation=false,
@@ -143,6 +149,7 @@ _G.minetest={
     get_us_time=function() return math.floor(clock*1000000) end,
     get_connected_players=function() return {player} end,
     get_player_by_name=function(name) return name=="Tester" and player or nil end,
+    after=function(delay,fn) assert(delay>=0);fn() end,
     raycast=function() return function() return nil end end,
     log=function() end,
     sound_play=function(name,params,ephemeral)
@@ -153,12 +160,19 @@ _G.minetest={
 local mod="sandbox/luanti/arsenal_android/arsenal_mod/init.lua"
 dofile(mod)
 assert(methods["arsenal:ak47"] and methods["arsenal:m4"] and
+       methods["arsenal:m9"] and
        methods["arsenal:m16"] and methods["arsenal:usp"])
 assert(methods["arsenal:ammo_box"] and methods["/arsenalammo"])
 assert(methods["/arsenal"])
 assert(methods["/arsenalmenu"] and methods["arsenal:tablet"])
 assert(type(form_callback)=="function")
 methods.join(player)
+assert(inventory:contains_item("main","arsenal:m9"),
+    "Regression: M9 pistol missing from mobile hotbar")
+assert(inventory:contains_item("main","arsenal:tablet"),
+    "Regression: no visible way to open weapon selector")
+assert(inventory:contains_item("main","arsenal:m4"))
+assert(inventory:contains_item("main","arsenal:ammo_box"))
 
 local function equip(name, slot)
     slots[slot]=make_stack(name);wield_index=slot
@@ -210,6 +224,27 @@ assert(meta:get_string("xz_ar_empty")=="1","Empty magazine needs original empty 
 assert(has_audio("ak47dev_reload_empty"),"Empty mag sound must remain distinct")
 clock=clock+3.26;methods.step(.01)
 a,b=ammo(1);assert(a==30 and b==119,"Empty-mag refill accounting")
+
+-- Validate M9: usable source stats and normal animation fallback on empty.
+equip("arsenal:m9",5)
+local m9=methods["arsenal:m9"]
+clock=clock+.3
+m9.on_use(player:get_wielded_item(),player)
+assert(ammo(5)==14,"M9 must fire and consume ammo")
+for _=1,14 do
+    clock=clock+.06
+    m9.on_use(player:get_wielded_item(),player)
+end
+assert(ammo(5)==0,"M9 magazine must reach empty")
+clock=clock+.06
+control.aux1=true
+methods.step(.01)
+assert(player:get_wielded_item():get_meta():get_string("xz_ar_empty")=="1",
+    "Empty M9 must trigger fallback reload")
+control.aux1=false
+clock=clock+1.92
+methods.step(.01)
+assert(ammo(5)==15,"M9 reload must refill source mag even without separate empty clip")
 
 -- Universal ammo crate refills both owned arms, not only AK.
 equip("arsenal:m4",2)
