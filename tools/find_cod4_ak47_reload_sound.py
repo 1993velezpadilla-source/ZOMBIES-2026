@@ -89,7 +89,7 @@ def scan(parts_dir:Path,report_path:Path):
                                     print("ORIGINAL_AK47_WEAPON_FIELD_SOURCE",
                                           relative+"/"+weapon,flush=True)
                                     for key,value in selected.items():
-                                        if "reload" in key.lower() or "notetrack" in key.lower():
+                                        if "reload" in key.lower() or "notetrack" in key.lower() or "emptyfire" in key.lower() or "lastshot" in key.lower() or "fireSound" in key:
                                             print("AK47_ORIGINAL_DEF",key,repr(value[:210]),flush=True)
                         for item in z.infolist():
                             if item.is_dir():continue
