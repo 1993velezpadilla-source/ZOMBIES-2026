@@ -58,6 +58,31 @@ def png_solid(path, rgba):
         chunk(b"IEND",b""))
 
 
+def icon_text_png(path: Path, title: str, *, small: str = ""):
+    """Author an actual 96px labeled touch icon; never reuse one metal square."""
+    from PIL import Image, ImageDraw, ImageFont
+    image=Image.new("RGBA",(96,96),(16,24,35,255))
+    d=ImageDraw.Draw(image)
+    d.rounded_rectangle((3,3,92,92),radius=14,fill=(36,49,64,255),
+                        outline=(177,203,226,255),width=3)
+    try:
+        font=ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",19)
+        font2=ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",11)
+    except OSError:
+        font=ImageFont.load_default()
+        font2=font
+    label=title[:8].upper()
+    bounds=d.textbbox((0,0),label,font=font)
+    tw=bounds[2]-bounds[0]
+    d.text(((96-tw)/2,32),label,font=font,fill=(246,249,252,255))
+    if small:
+        label2=small[:11].upper()
+        b=d.textbbox((0,0),label2,font=font2)
+        d.text(((96-(b[2]-b[0]))/2,66),label2,font=font2,
+               fill=(122,237,211,255))
+    image.save(path,format="PNG",optimize=True)
+
+
 def source_profile(original: dict, row: dict):
     numeric=row.get("numeric") or {}
     # These are original exact WeaponDef quantities, not older guessed counts.
@@ -108,6 +133,12 @@ def stage(expected, animated, definitions, glbs: Path, output: Path):
     textures=output/"textures";textures.mkdir(exist_ok=True)
     png_solid(textures/"arsenal_flat_metal.png",(69,77,86,255))
     png_solid(textures/"arsenal_flat_hands.png",(165,110,87,255))
+    icon_text_png(textures/"arsenal_menu.png","ARSENAL",small="TAP HERE")
+    icon_text_png(textures/"arsenal_ammo.png","AMMO",small="REFILL")
+    # Labels are source identities, not guessed 3D previews or screenshots.
+    for info in weapons:
+        icon_text_png(textures/("arsenal_icon_"+info["id"]+".png"),
+                      info.get("name",info["id"]),small=info["id"])
     native=[]
     rejected={}
     profiles=[]
