@@ -60,6 +60,9 @@ local function status(p, def, stack, s)
     p:hud_change(s.hud, "text", label)
 end
 local function send(p,stack,def,s,event)
+    -- Initialize the actual ItemStack BEFORE set_wielded_item copies it into
+    -- the inventory. Doing so in status() AFTER the copy lost all ammo data.
+    initialize(stack,def)
     local meta=stack:get_meta()
     if event then
         s.seq=s.seq+1
