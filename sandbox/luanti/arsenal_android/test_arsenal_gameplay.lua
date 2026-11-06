@@ -1,7 +1,6 @@
 -- Real Luanti mod callback behavior test, not just luac syntax.
 -- FAKE ENGINE. Exercises inventory, ammo, ADS, reload, source-preview and crate.
 local clock = 1
-ItemStack=function(name) return make_stack(name) end
 local function clone_table(t)
     local r={}
     for k,v in pairs(t) do
@@ -25,6 +24,7 @@ local function make_stack(name)
     end
     return self
 end
+ItemStack=function(name) return make_stack(name) end
 local function duplicate(item)
     local x=make_stack(item.name)
     x.meta=clone_table(item.meta)
