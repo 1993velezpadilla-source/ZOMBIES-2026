@@ -44,6 +44,8 @@ def scan(parts_dir:Path,report_path:Path):
     records=[]
     outer_candidates=[]
     stats=[]
+    audio_index=[]
+    ak47_weapon_defs=[]
     try:
         with zipfile.ZipFile(src) as outer:
             members={p.filename.removeprefix(PREFIX):p for p in outer.infolist()
@@ -68,13 +70,39 @@ def scan(parts_dir:Path,report_path:Path):
                     with zipfile.ZipFile(tmp) as z:
                         count=0; candidates=0; audio_count=0
                         found=[]
+                        if relative=="main/iw_11.iwd":
+                            for weapon in ("weapons/mp/ak47_mp","weapons/sp/ak47"):
+                                if weapon in z.namelist():
+                                    data=z.read(weapon).decode('latin1',errors='replace').replace('\x00','')
+                                    tokens=data.split('\\')
+                                    # Original IW3 weapon definitions are WEAPONFILE\\key\\value pairs.
+                                    fields={}
+                                    for k in range(1,len(tokens)-1,2):
+                                        fields[tokens[k].strip()]=tokens[k+1].strip()
+                                    selected={k:v[:350] for k,v in fields.items()
+                                              if any(word in k.lower() for word in
+                                                     ('reload','notetrack','clip','chamber','sound'))}
+                                    ak47_weapon_defs.append({"source":relative+"/"+weapon,
+                                                              "field_count":len(fields),
+                                                              "fields":selected,
+                                                              "text_head":data[:110]})
+                                    print("ORIGINAL_AK47_WEAPON_FIELD_SOURCE",
+                                          relative+"/"+weapon,flush=True)
+                                    for key,value in selected.items():
+                                        if "reload" in key.lower() or "notetrack" in key.lower():
+                                            print("AK47_ORIGINAL_DEF",key,repr(value[:210]),flush=True)
                         for item in z.infolist():
                             if item.is_dir():continue
                             count+=1
                             path=item.filename.replace("\\","/")
                             ext=Path(path).suffix.lower()
                             is_audio=ext in AUDIO
-                            if is_audio:audio_count+=1
+                            if is_audio:
+                                audio_count+=1
+                                audio_index.append({"iwd":relative,"path":path,"bytes":item.file_size})
+                                if relative in ("main/iw_08.iwd","main/iw_10.iwd","main/iw_11.iwd") and (
+                                    audio_count<=15 or re.search(r"weap|rifle|reload|ak47|clip|mag|cham",path,re.I)):
+                                    print("AUDIO_FILE_INDEX",relative,path,flush=True)
                             # Categorize likely actual source AUDIO and alias config
                             relevance="AK47" if EXACT.search(path) else (
                                 "reload_audio" if RELOAD.search(path) and is_audio else (
@@ -106,6 +134,8 @@ def scan(parts_dir:Path,report_path:Path):
             "ownership":"user-supplied original COD4 files",
             "status":"IWD filenames only; soundalias names are not proof of gameplay sound",
             "iwd_inventory":stats,"candidate_entries":records,
+            "original_ak47_weapon_definitions":ak47_weapon_defs,
+            "all_original_audio_paths":audio_index,
             "outer_candidates":outer_candidates[:100],
             "copyright_data_uploaded":False,
             "found_tactical_audio_files":[r for r in records if r["type"] in ("AK47","reload_audio")
