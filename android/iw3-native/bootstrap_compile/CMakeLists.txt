@@ -41,7 +41,9 @@ original_tu(iw3_db_load database/db_file_load.cpp)
 original_tu(iw3_db_registry database/db_registry.cpp)
 original_tu(iw3_client_input client/cl_input.cpp)
 original_tu(iw3_screen client/screen_placement.cpp)
-add_custom_target(iw3_sp_bootstrap_compile DEPENDS iw3_common iw3_cmd iw3_math iw3_files iw3_db_load iw3_db_registry iw3_client_input iw3_screen)
+# Original server command provider: advance beyond compile-only client/common closure.
+original_tu(iw3_sv_ccmds server/sv_ccmds.cpp)
+add_custom_target(iw3_sp_bootstrap_compile DEPENDS iw3_common iw3_cmd iw3_math iw3_files iw3_db_load iw3_db_registry iw3_client_input iw3_screen iw3_sv_ccmds)
 
 # Explicit, opt-in genuine link probe. This target deliberately fails until all
 # original engine dependencies are provided; it must NEVER be packaged as an APK.
@@ -55,6 +57,7 @@ add_library(iw3_sp_link_probe SHARED
   $<TARGET_OBJECTS:iw3_db_registry>
   $<TARGET_OBJECTS:iw3_client_input>
   $<TARGET_OBJECTS:iw3_screen>
+  $<TARGET_OBJECTS:iw3_sv_ccmds>
 )
 set_target_properties(iw3_sp_link_probe PROPERTIES EXCLUDE_FROM_ALL TRUE)
 # Capture the complete genuine dependency closure instead of lld's first 20 errors.
