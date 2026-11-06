@@ -5,13 +5,13 @@ on:
     branches: [feature/zombies-offline-sp-weapons-20261024]
     paths:
       - '.github/workflows/iw3-bootstrap-aggregate-arm64.yml'
-      - 'android/iw3-native/bootstrap_compile/CMakeLists.txt'
+      - 'android/iw3-native/bootstrap_compile/**'
       - 'third_party/KisakCOD/src/**'
   push:
     branches: [feature/iw3-native-android-arm64-20261025]
     paths:
       - '.github/workflows/iw3-bootstrap-aggregate-arm64.yml'
-      - 'android/iw3-native/bootstrap_compile/CMakeLists.txt'
+      - 'android/iw3-native/bootstrap_compile/**'
       - 'third_party/KisakCOD/src/**'
   workflow_dispatch:
 
@@ -74,27 +74,10 @@ jobs:
           test "${#objects[@]}" -ge 8
           "$nm" --undefined-only --format=posix "${objects[@]}" > "$RUNNER_TEMP/bootstrap-undefined-raw.txt"
           "$nm" --defined-only --format=posix "${objects[@]}" > "$RUNNER_TEMP/bootstrap-defined-raw.txt"
-          python3 - "$RUNNER_TEMP" <<'PY'
-          import pathlib
-          import sys
-          root = pathlib.Path(sys.argv[1])
-          def symbols(filename):
-              found = set()
-              for line in (root / filename).read_text(errors="replace").splitlines():
-                  parts = line.split()
-                  if len(parts) >= 2 and parts[1] in ("U", "T", "t", "W", "w", "D", "d", "B", "b", "R", "r", "V", "v"):
-                      found.add(parts[0])
-              return found
-          unresolved = sorted(symbols("bootstrap-undefined-raw.txt") - symbols("bootstrap-defined-raw.txt"))
-          output = root / "bootstrap-unresolved-symbols.txt"
-          output.write_text(
-              "IW3 ORIGINAL ARM64 OBJECT-ONLY LINK GAP; NOT A LINKED ENGINE OR APK\n"
-              + f"Unresolved unique symbols: {len(unresolved)}\n"
-              + "\n".join(unresolved) + "\n"
-          )
-          print(f"IW3_BOOTSTRAP_UNRESOLVED_UNIQUE={len(unresolved)}")
-          print("IW3_PLAYABLE_APK=false")
-          PY
+          python3 android/iw3-native/bootstrap_compile/audit_bootstrap_symbols.py \
+            "$RUNNER_TEMP/bootstrap-undefined-raw.txt" \
+            "$RUNNER_TEMP/bootstrap-defined-raw.txt" \
+            "$RUNNER_TEMP/bootstrap-unresolved-symbols.txt"
       - name: Preserve compiler diagnostics (NOT APK)
         if: always()
         uses: actions/upload-artifact@v4
