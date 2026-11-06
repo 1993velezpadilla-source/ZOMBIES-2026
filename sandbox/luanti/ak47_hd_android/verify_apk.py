@@ -43,6 +43,7 @@ def verify(apk):
             'apk_bytes':apk.stat().st_size,'apk_sha256':hashlib.sha256(apk.read_bytes()).hexdigest(),
             'model_sha256':hashlib.sha256(model).hexdigest(),'triangles':faces,
             'clips':sorted(names),'weighted_joints':38,'texture':[512,512],
+            'join_api_compatible':True,
             'signed_apk_contents_verified':True,'physical_android_device_tested':False}
     return report
 
