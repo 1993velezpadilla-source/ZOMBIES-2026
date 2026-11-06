@@ -114,7 +114,7 @@ jobs:
           import json
           report=json.load(open('_iw3_private/runtime/viewmodel-audit.json'))
           assert report['original_source_mesh'] and report['no_voxel_conversion'],report
-          assert report['rifle_texture_version']=='photo_material_v3',report
+          assert report['rifle_texture_version']=='photo_material_v5_lit',report
           print('ORIGINAL_COD4_POLYGON_TRIANGLES',report['triangles'])
           PY
       - name: Fetch the pinned working game base
@@ -166,6 +166,9 @@ jobs:
           grep -q 'AK47_REAL_FPS_METER' "$RUNNER_TEMP/luanti/src/client/gameui.cpp"
           grep -q 'm_flags.show_minimal_debug = true;' "$RUNNER_TEMP/luanti/src/client/gameui.cpp"
           grep -q 'm_guitext2->setVisible(false)' "$RUNNER_TEMP/luanti/src/client/gameui.cpp"
+          grep -q 'ak47_lit_model_shader' "$RUNNER_TEMP/luanti/src/client/camera.cpp"
+          grep -q 'normalize(vNormal)' "$RUNNER_TEMP/luanti/client/shaders/ak47_lit_model_shader/opengl_fragment.glsl"
+          grep -q 'normalize(vNormal)' "$RUNNER_TEMP/luanti/client/shaders/ak47_lit_skin_shader/opengl_fragment.glsl"
           python3 - <<'PY'
           import soundfile as sf
           from pathlib import Path
@@ -196,8 +199,8 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           text=Path('_iw3_reports/android-badging.txt').read_text()
-          assert "name='com.xziel.voxelsandbox.ak47steelv4'" in text
-          assert "versionCode='5180007'" in text
+          assert "name='com.xziel.voxelsandbox.ak47hiresv5'" in text
+          assert "versionCode='5180008'" in text
           assert 'application-debuggable' not in text
           assert "native-code: 'arm64-v8a'" in text
           PY
@@ -210,11 +213,11 @@ jobs:
           set -euo pipefail
           mkdir -p _direct_apk
           APK="$RUNNER_TEMP/luanti/android/app/build/outputs/apk/release/app-arm64-v8a-release.apk"
-          cp "$APK" _direct_apk/AK47-DARK-STEEL-V4-ARM64.apk
+          cp "$APK" _direct_apk/AK47-HIRES-LIT-V5-ARM64.apk
           python3 - <<'PY'
           from pathlib import Path
           from zipfile import ZipFile
-          apk=Path("_direct_apk/AK47-DARK-STEEL-V4-ARM64.apk")
+          apk=Path("_direct_apk/AK47-HIRES-LIT-V5-ARM64.apk")
           assert apk.read_bytes()[:2] == b"PK", "Not an installable APK ZIP"
           with ZipFile(apk) as z:
               assert "AndroidManifest.xml" in z.namelist()
@@ -224,8 +227,8 @@ jobs:
       - name: Upload real installable APK without encryption
         uses: actions/upload-artifact@v4
         with:
-          name: AK47-DARK-STEEL-V4-DIRECT-APK
-          path: _direct_apk/AK47-DARK-STEEL-V4-ARM64.apk
+          name: AK47-HIRES-LIT-V5-DIRECT-APK
+          path: _direct_apk/AK47-HIRES-LIT-V5-ARM64.apk
           if-no-files-found: error
           retention-days: 7
           compression-level: 0
@@ -238,7 +241,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: AK47-DARK-STEEL-V4-build-evidence
+          name: AK47-HIRES-LIT-V5-build-evidence
           path: |
             _iw3_reports/android-build.json
             _iw3_reports/android-badging.txt
