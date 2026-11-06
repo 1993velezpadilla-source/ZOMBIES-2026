@@ -2,6 +2,8 @@
 import argparse
 from pathlib import Path
 import shutil
+from patch_fps_hud import patch as patch_fps_hud
+from patch_lit_shader import patch as patch_lit_shader
 from PIL import Image,ImageDraw,ImageFont
 
 HERE=Path(__file__).resolve().parent
@@ -14,10 +16,19 @@ def checked(path,old,new):
 def patch(root,assets):
     mod=root/'games/voxelibre/mods/ak47dev'
     shutil.copy2(HERE/'init.lua',mod/'init.lua')
+    # V7: original four separate COD4 Foley samples mixed at native XANIM
+    # notetrack frames in transient build directory; NEVER call old CC0 mixer.
+    for original in ('ak47dev_reload_normal.ogg','ak47dev_reload_empty.ogg',
+                     'ak47dev_reload_audit_v7.json','ak47dev_dry.ogg','ak47dev_dry_audit_v8.json'):
+        if not (assets/'sounds'/original).is_file():
+            raise FileNotFoundError('MISSING AUTHENTIC COD4 SOUND: '+original)
+        shutil.copy2(assets/'sounds'/original,mod/'sounds'/original)
     for folder in ('models','textures'):
         for file in (assets/folder).iterdir():shutil.copy2(file,mod/folder/file.name)
     shutil.copy2(HERE/'ak47_motion.h',root/'src/client/ak47_motion.h')
     shutil.copy2(assets/'ak47_weapon_params.h',root/'src/client/ak47_weapon_params.h')
+    patch_fps_hud(root)
+    patch_lit_shader(root)
     cpp=root/'src/client/camera.cpp';text=cpp.read_text()
     start=text.index('void Camera::updateAK47Viewmodel(f32 frametime)')
     end=text.index('void Camera::wield(',start)
@@ -45,12 +56,12 @@ def patch(root,assets):
     app=root/'android/app'
     # MainActivity re-extracts bundled game assets when VERSION_CODE changes.
     checked(root/'android/build.gradle','project.ext.set("versionBuild", 0)',
-            'project.ext.set("versionBuild", 3)')
+            'project.ext.set("versionBuild", 11)')
     for path in [app/'build.gradle',app/'src/main/AndroidManifest.xml',
                  app/'src/main/java/net/minetest/minetest/GameActivity.java']:
         text=path.read_text();assert 'com.xziel.voxelsandbox.v33' in text
-        path.write_text(text.replace('com.xziel.voxelsandbox.v33','com.xziel.voxelsandbox.ak47hd'))
-    checked(app/'src/main/res/values/strings.xml','Voxel Sandbox AK V33','AK47 HD Playtest')
+        path.write_text(text.replace('com.xziel.voxelsandbox.v33','com.xziel.voxelsandbox.ak47dryv8'))
+    checked(app/'src/main/res/values/strings.xml','Voxel Sandbox AK V33','AK47 COD4 Dry Fire V8')
     checked(root/'src/defaultsettings.cpp','settings->setDefault("touch_interaction_style", "tap");',
             'settings->setDefault("touch_interaction_style", "buttons_crosshair");')
     font=ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',23)
@@ -61,7 +72,7 @@ def patch(root,assets):
         draw.text(((128-width)/2,48),label,font=font,fill=(245,245,245,255))
         image.save(root/'textures/base/pack'/name)
         image.save(mod/'textures'/name)
-    print('HD adapter ready: .ak47hd package, eight named source clips, external 512px atlas, FIRE/ADS/R')
+    print('AK47 V8: original COD4 normal+empty reload notetracks and original 0.216s SMG zero-ammo trigger click')
 
 if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('--root',type=Path,required=True)

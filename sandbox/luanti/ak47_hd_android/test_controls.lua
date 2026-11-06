@@ -41,6 +41,8 @@ assert(values.xz_ak_fired=="30","only successful shots increment the recoil coun
 assert(hud:find("00 / 210",1,true),hud)
 callbacks.node.on_use(stack,player)
 assert(values.xz_ak_empty=="1" and values.xz_ak_anim:sub(1,1)=="R","empty reload event")
+assert(values.xz_ak_reload_kind=="empty" and sounds.ak47dev_reload_empty==1,"empty mag must use EMPTY sound")
+assert(not sounds.ak47dev_reload_normal,"normal sound must NOT play for empty mag")
 clock=clock+3.52;callbacks.step(.05);assert(hud:find("00 / 210",1,true),"empty reload completed early")
 clock=clock+.02;callbacks.step(.05);assert(hud:find("30 / 180",1,true),hud)
 callbacks.node.on_use(stack,player);clock=clock+.101
@@ -50,10 +52,42 @@ controls.aux1=true;callbacks.step(.05)
 assert(values.xz_ak_ads=="0" and values.xz_ak_anim==event,"ADS must exit before reload")
 clock=clock+.24;callbacks.step(.05);assert(values.xz_ak_anim==event,"reload started before exit")
 clock=clock+.02;callbacks.step(.05);assert(values.xz_ak_anim~=event and values.xz_ak_empty=="0","normal reload event")
+assert(values.xz_ak_reload_kind=="normal" and sounds.ak47dev_reload_normal==1,"nonempty mag must use NORMAL sound")
+assert(sounds.ak47dev_reload_empty==1,"normal reload must not trigger empty-only sound")
 controls.aux1=false;clock=clock+2.77;callbacks.step(.05)
 assert(hud:find("30 / 179",1,true),hud)
 callbacks.node.on_use(stack,player);clock=clock+.101
 callbacks.node.on_place(stack,player);assert(values.xz_ak_ads=="1")
 current="air";callbacks.step(.05);current="ak47dev:ak47"
 clock=clock+.2;callbacks.node.on_place(stack,player);assert(values.xz_ak_ads=="1","unequip resets ADS state")
-print("CONTROL_TESTS_PASS: ammunition, dry fire, both reload clocks, ADS exit ordering, aux reload and unequip reset")
+-- Dry fire when the AK has 0/0 bullets must produce one real COD4 click
+-- per trigger event and NEVER automatically start reload or spam at 60 FPS.
+local function upvalue(func,name)
+    for i=1,24 do
+        local key,value=debug.getupvalue(func,i)
+        if key==name then return value end
+        if not key then break end
+    end
+    error("Missing Lua closure upvalue "..name)
+end
+local state_fn=upvalue(callbacks.step,"state")
+local all_states=upvalue(state_fn,"S")
+local rifle_state=all_states["test"]
+rifle_state.ammo=0;rifle_state.reserve=0;rifle_state.reload_end=0
+rifle_state.pending=0;rifle_state.next_fire=0;rifle_state.ads=false
+local clicks_before=sounds.ak47dev_dry or 0
+local empty_reloads_before=sounds.ak47dev_reload_empty or 0
+local fire_before=sounds.ak47dev_fire or 0
+callbacks.node.on_use(stack,player)
+assert(sounds.ak47dev_dry==clicks_before+1,"0/0 ammo must sound original COD4 dryfire")
+assert(rifle_state.reload_end==0,"0/0 ammo must NOT start empty-mag reload")
+assert((sounds.ak47dev_reload_empty or 0)==empty_reloads_before,"dryfire must not play reload sound")
+assert(sounds.ak47dev_fire==fire_before,"dryfire must not play gunshot")
+callbacks.node.on_use(stack,player)
+assert(sounds.ak47dev_dry==clicks_before+1,"held empty trigger sound must be rate-limited")
+clock=clock+.26
+callbacks.node.on_use(stack,player)
+assert(sounds.ak47dev_dry==clicks_before+2,"new dry trigger pull must produce another click")
+assert(rifle_state.reload_end==0 and rifle_state.ammo==0 and rifle_state.reserve==0,"dry click must never create ammo")
+
+print("CONTROL_TESTS_PASS: ammunition, rate-limited 0/0 dry fire, both reload clocks, ADS exit ordering, aux reload and unequip reset")

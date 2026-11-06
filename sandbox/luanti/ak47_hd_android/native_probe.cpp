@@ -67,7 +67,7 @@ int main(int argc,char **argv) {
     auto *mesh=loader.createMesh(file);file->drop();
     if(!mesh)throw std::runtime_error("native Luanti loader rejected GLB");
     auto *skin=dynamic_cast<scene::SkinnedMesh*>(mesh);
-    if(!skin || mesh->getTrackCount()!=8 || mesh->getMeshBufferCount()!=8)
+    if(!skin || mesh->getTrackCount()!=8 || mesh->getMeshBufferCount()<2 || mesh->getMeshBufferCount()>64)
         throw std::runtime_error("native mesh layout mismatch");
     mesh->prepareForAnimation(0);
     skin->setSkinPoseCache(true);

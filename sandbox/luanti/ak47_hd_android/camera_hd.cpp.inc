@@ -24,14 +24,15 @@ void Camera::updateAK47Viewmodel(f32 frametime)
                 auto *shaders = m_client->getShaderSource();
                 ShaderFeatures features;
                 features.skinning = mesh->needsHwSkinning();
-                const u32 shader_id = shaders->getShaderRaw("fs_model_shader", false, features);
+                const u32 rifle_shader = shaders->getShaderRaw("ak47_lit_model_shader", false, features);
+                const u32 hands_shader = shaders->getShaderRaw("ak47_lit_skin_shader", false, features);
                 for (u32 i = 0; m_ak47_viewmodel && i < m_ak47_viewmodel->getMaterialCount(); ++i) {
                     auto &material = m_ak47_viewmodel->getMaterial(i);
-                    material.MaterialType = shaders->getShaderInfo(shader_id).material;
-                    material.BackfaceCulling = false;
                     const u32 slot = mesh->getTextureSlot(i);
+                    material.MaterialType = shaders->getShaderInfo(slot == 1 ? hands_shader : rifle_shader).material;
+                    material.BackfaceCulling = false;
                     material.setTexture(0, textures->getTextureForMesh(
-                        slot == 1 ? "ak47hd_hands.png" : "ak47hd_512.png"));
+                        slot == 1 ? "ak47hd_hands_1k.png" : "ak47hd_rifle_2k.png"));
                 }
                 infostream << "[ak47hd] loaded combined rifle+hands: "
                            << mesh->getMeshBufferCount() << " buffers, "

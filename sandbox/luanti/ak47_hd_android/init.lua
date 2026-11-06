@@ -2,6 +2,9 @@
 local AK="ak47dev:ak47"
 local S={}
 local CAPACITY=30
+-- Durations are sourced from the two native XANIM clips (83/30 and 106/30 s).
+local NORMAL_RELOAD_DURATION=83/30
+local EMPTY_RELOAD_DURATION=106/30
 local function now() return minetest.get_us_time()/1000000 end
 local function equipped(p) return p and p:is_player() and p:get_wielded_item():get_name()==AK end
 local function state(p)
@@ -15,6 +18,7 @@ local function sync(p,s,event)
     if event then s.seq=s.seq+1;meta:set_string("xz_ak_anim",event..s.seq) end
     meta:set_string("xz_ak_ads",s.ads and "1" or "0")
     meta:set_string("xz_ak_empty",s.empty_reload and "1" or "0")
+    meta:set_string("xz_ak_reload_kind",s.empty_reload and "empty" or "normal")
     meta:set_string("xz_ak_fired",tostring(s.fired))
     p:set_wielded_item(stack)
     if s.hud then
@@ -30,9 +34,16 @@ local function ads(p,s,on)
 end
 local function start_reload(p,s)
     s.pending=0;s.empty_reload=s.ammo==0
-    s.reload_end=now()+(s.empty_reload and 106/30 or 83/30)
+    s.reload_end=now()+(s.empty_reload and EMPTY_RELOAD_DURATION or NORMAL_RELOAD_DURATION)
     s.ads=false;p:set_fov(0,false,.25);sync(p,s,"R")
-    sound(p,"ak47dev_reload",.8)
+    -- Select reload by the actual magazine count BEFORE any ammo refill.
+    -- NORMAL: ORIGINAL COD4 note events at 0/19/57 frames (lift/clipout/clipin).
+    -- EMPTY: SAME authentic magazine Foley plus the original chamber at 77.
+    -- Engine plays separate pre-baked soundtracks, respecting native XANIM cues.
+    -- Never call GunLib or external airsoft reload audio.
+    local effect=s.empty_reload and "ak47dev_reload_empty" or "ak47dev_reload_normal"
+    s.reload_sound_name=effect
+    sound(p,effect,.80)
 end
 local function reload(p,s)
     if s.reload_end>0 or s.pending>0 or s.ammo>=CAPACITY or s.reserve<=0 then return end
@@ -43,7 +54,14 @@ end
 local function fire(p,s)
     local time=now()
     if s.reload_end>0 or s.pending>0 or time<s.next_fire then return end
-    if s.ammo==0 then sound(p,"ak47dev_dry",.5);reload(p,s);return end
+    if s.ammo==0 then
+        -- Original COD4 AK47 first-person emptyFireSoundPlayer=weap_dryfire_smg_plr.
+        -- The click lasts 0.216s; throttle held FIRE to prevent 60 clicks/s.
+        s.next_fire=time+.25
+        sound(p,"ak47dev_dry",.75)
+        if s.reserve>0 then reload(p,s) end
+        return
+    end
     s.next_fire=time+.10;s.ammo=s.ammo-1;s.fired=s.fired+1;sync(p,s,"F");sound(p,"ak47dev_fire",.65)
     local eye=vector.add(p:get_pos(),{x=0,y=p:get_properties().eye_height or 1.47,z=0})
     local direction=p:get_look_dir();local stop=vector.add(eye,vector.multiply(direction,76))
@@ -97,7 +115,7 @@ minetest.register_on_joinplayer(function(p)
             end
         end
         sync(player,state(player),"E")
-        minetest.chat_send_player(name,"FIRE: disparar | ADS: apuntar | R: recargar")
+        -- No unsolicited onboarding message above the game viewport.
     end)
 end)
 minetest.register_on_leaveplayer(function(p) S[p:get_player_name()]=nil end)
