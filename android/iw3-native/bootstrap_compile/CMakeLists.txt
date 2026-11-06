@@ -57,4 +57,6 @@ add_library(iw3_sp_link_probe SHARED
   $<TARGET_OBJECTS:iw3_screen>
 )
 set_target_properties(iw3_sp_link_probe PROPERTIES EXCLUDE_FROM_ALL TRUE)
-target_link_options(iw3_sp_link_probe PRIVATE "LINKER:--no-undefined")
+# Capture the complete genuine dependency closure instead of lld's first 20 errors.
+# The probe is intentionally expected to fail until original providers are linked.
+target_link_options(iw3_sp_link_probe PRIVATE "LINKER:--no-undefined" "LINKER:--error-limit=0")
