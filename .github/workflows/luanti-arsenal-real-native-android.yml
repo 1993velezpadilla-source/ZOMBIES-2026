@@ -3,6 +3,8 @@ on:
   push:
     branches: [feature/luanti-real-arsenal-28-source-gate-20261106]
     paths:
+      - sandbox/luanti/arsenal_android/arsenal_mod/**
+      - sandbox/luanti/arsenal_android/test_arsenal_gameplay.lua
       - sandbox/luanti/arsenal_android/patch_native_arsenal.py
       - sandbox/luanti/arsenal_android/native_arsenal_camera.cpp.inc
       - sandbox/luanti/arsenal_android/build_private_arsenal.py
@@ -154,6 +156,7 @@ jobs:
             --private-output _iw3_private/arsenal_native_mod \
             --metadata _iw3_reports/arsenal-native-mod.json
           luac5.1 -p _iw3_private/arsenal_native_mod/init.lua
+          lua5.1 sandbox/luanti/arsenal_android/test_arsenal_gameplay.lua
           python3 - <<'PY'
           import json
           d=json.load(open('_iw3_reports/arsenal-native-mod.json'))
