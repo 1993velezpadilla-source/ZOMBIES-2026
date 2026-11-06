@@ -31,16 +31,8 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq --no-install-recommends gettext lua5.1 libjsoncpp-dev libzstd-dev libegl1 libgl1-mesa-dri
           python3 -m pip install --quiet --user Pillow==12.0.0 numpy==2.3.4 soundfile==0.13.1 moderngl==5.12.0 'cryptography>=44,<49'
-          # Fetch a genuinely DIFFERENT CC0 rifle reload recording BEFORE
-          # downloading the 7 GB original private model archive.
-          mkdir -p "$RUNNER_TEMP/ak47-distinct-reload"
-          curl --fail --location --retry 3 --retry-delay 2 \
-            --user-agent 'Mozilla/5.0' \
-            --output "$RUNNER_TEMP/ak47-distinct-reload/assaultriflereload1_0.wav" \
-            'https://opengameart.org/sites/default/files/assaultriflereload1_0.wav'
-          export AK47_TACTICAL_NORMAL_WAV="$RUNNER_TEMP/ak47-distinct-reload/assaultriflereload1_0.wav"
-          echo "AK47_TACTICAL_NORMAL_WAV=$AK47_TACTICAL_NORMAL_WAV" >> "$GITHUB_ENV"
-          python3 sandbox/luanti/ak47_hd_android/make_reload_distinct_v6.py --check-download
+          # No downloaded airsoft/GunLib reload: use the user's original
+          # COD4 common.ff LoadedSound and exact native IW3 XANIM notes.
           python3 -m py_compile sandbox/luanti/ak47_hd_android/*.py
           python3 sandbox/luanti/ak47_hd_android/photo_materials.py \
             --output "$RUNNER_TEMP/ak47-cc0-photos"
@@ -127,6 +119,38 @@ jobs:
           assert report['rifle_texture_version']=='photo_material_v5_lit',report
           print('ORIGINAL_COD4_POLYGON_TRIANGLES',report['triangles'])
           PY
+      - name: Extract original COD4 AK47 Foley and bake RAW XANIM notify events
+        run: |
+          set -euo pipefail
+          SOURCE="$PWD/_iw3_private/zone/spanish/common.ff"
+          test -s "$SOURCE"
+          mkdir -p _iw3_private/original-ak47-foley
+          "$UNLINKER" --no-color --search-path "$PWD/_iw3_private/zone/spanish" \
+            --include-assets loadedsound \
+            --output-folder "$PWD/_iw3_private/original-ak47-foley" \
+            "$SOURCE" > _iw3_reports/cod4-original-foley-dump.txt 2>&1 || {
+              tail -80 _iw3_reports/cod4-original-foley-dump.txt
+              exit 1
+            }
+          PYTHONPATH="$PWD/_iw3_pipeline_src/tools" \
+            python3 sandbox/luanti/ak47_hd_android/make_original_cod4_reload_v7.py \
+              --loaded _iw3_private/original-ak47-foley \
+              --anims _iw3_private/dumps/common_mp/xanim \
+              --output _iw3_private/runtime/sounds
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('_iw3_private/runtime/sounds/ak47dev_reload_audit_v7.json')
+          a=json.loads(p.read_text())
+          assert a['version']=='COD4_IW3_ORIGINAL_SOUND_NOTETRACK_V7'
+          assert len(a['source_files'])==4
+          normal=[x['alias'] for x in a['animations']['normal']['events']]
+          empty=[x['alias'] for x in a['animations']['empty']['events']]
+          assert len(normal)==3 and len(empty)==4
+          assert 'weap_ak47_chamber_plr' not in normal
+          assert 'weap_ak47_chamber_plr' in empty
+          print('REAL_ORIGINAL_COD4_NORMAL_VS_EMPTY_EVENTS',normal,empty)
+          PY
       - name: Fetch the pinned working game base
         run: |
           set -euo pipefail
@@ -185,8 +209,13 @@ jobs:
           sound=Path(__import__('os').environ['RUNNER_TEMP'])/'luanti/games/voxelibre/mods/ak47dev/sounds'
           for name,target in [('normal',83/30),('empty',106/30)]:
               info=sf.info(str(sound/f'ak47dev_reload_{name}.ogg'))
-              assert abs(info.duration-target)<.08,(name,info.duration,target)
-              print('RELOAD_AUDIO_VERIFIED',name,info.duration)
+              assert abs(info.duration-target)<.01,(name,info.duration,target)
+              print('ORIGINAL_COD4_RELOAD_AUDIO_VERIFIED',name,info.duration)
+          import json
+          a=json.loads((sound/'ak47dev_reload_audit_v7.json').read_text())
+          assert a['source'].startswith('original user COD4')
+          assert a['animations']['normal']['events'][0]['frame']==0
+          assert a['animations']['empty']['events'][-1]['frame']==77
           PY
           luac5.1 -p "$RUNNER_TEMP/luanti/games/voxelibre/mods/ak47dev/init.lua"
       - name: Compile separate Android ARM64 HD playtest
@@ -209,8 +238,8 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           text=Path('_iw3_reports/android-badging.txt').read_text()
-          assert "name='com.xziel.voxelsandbox.ak47reloadv6'" in text
-          assert "versionCode='5180009'" in text
+          assert "name='com.xziel.voxelsandbox.ak47origv7'" in text
+          assert "versionCode='5180010'" in text
           assert 'application-debuggable' not in text
           assert "native-code: 'arm64-v8a'" in text
           PY
@@ -223,11 +252,11 @@ jobs:
           set -euo pipefail
           mkdir -p _direct_apk
           APK="$RUNNER_TEMP/luanti/android/app/build/outputs/apk/release/app-arm64-v8a-release.apk"
-          cp "$APK" _direct_apk/AK47-DISTINCT-RELOAD-V6-ARM64.apk
+          cp "$APK" _direct_apk/AK47-ORIGINAL-COD4-RELOAD-V7-ARM64.apk
           python3 - <<'PY'
           from pathlib import Path
           from zipfile import ZipFile
-          apk=Path("_direct_apk/AK47-DISTINCT-RELOAD-V6-ARM64.apk")
+          apk=Path("_direct_apk/AK47-ORIGINAL-COD4-RELOAD-V7-ARM64.apk")
           assert apk.read_bytes()[:2] == b"PK", "Not an installable APK ZIP"
           with ZipFile(apk) as z:
               assert "AndroidManifest.xml" in z.namelist()
@@ -237,8 +266,8 @@ jobs:
       - name: Upload real installable APK without encryption
         uses: actions/upload-artifact@v4
         with:
-          name: AK47-DISTINCT-RELOAD-V6-DIRECT-APK
-          path: _direct_apk/AK47-DISTINCT-RELOAD-V6-ARM64.apk
+          name: AK47-ORIGINAL-COD4-RELOAD-V7-DIRECT-APK
+          path: _direct_apk/AK47-ORIGINAL-COD4-RELOAD-V7-ARM64.apk
           if-no-files-found: error
           retention-days: 7
           compression-level: 0
@@ -251,7 +280,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: AK47-DISTINCT-RELOAD-V6-build-evidence
+          name: AK47-ORIGINAL-COD4-RELOAD-V7-build-evidence
           path: |
             _iw3_reports/android-build.json
             _iw3_reports/android-badging.txt
