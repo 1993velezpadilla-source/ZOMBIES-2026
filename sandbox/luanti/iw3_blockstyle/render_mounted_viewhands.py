@@ -118,7 +118,8 @@ def build(rifle_path,hand_path,output):
       "frames":[],
       "errors":{},
     }
-    baseline_gun=rifle.poses(idle_gun,0)[1]
+    baseline,_=compose(rifle,hands,idle_gun,idle_hand,0,rest_tag)
+    baseline_gun=np.vstack([mesh[0] for mesh in baseline])
     camera=camera_params(baseline_gun,orientation=(28,25))
     for action in ACTIONS:
         gunclip=closest_clip(rifle,action)
@@ -220,3 +221,4 @@ def main():
 
 if __name__=="__main__":
     main()
+

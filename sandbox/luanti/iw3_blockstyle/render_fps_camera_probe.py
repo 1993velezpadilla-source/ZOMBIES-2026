@@ -32,9 +32,10 @@ def projection_basis(sign=1, forward_override=None, roll_degrees=0):
     length=float(np.linalg.norm(forward))
     if length<1e-8:raise ValueError("degenerate original muzzle direction")
     forward=forward/length
-    up=np.array([0.,0.,1.])
+    # OAT's glTF is Y-up, including converted animation roots.
+    up=np.array([0.,1.,0.])
     if abs(float(np.dot(forward,up)))>.95:
-        up=np.array([0.,1.,0.])
+        up=np.array([0.,0.,1.])
     right=np.cross(forward,up)
     right=right/max(1e-8,float(np.linalg.norm(right)))
     up=np.cross(right,forward)
@@ -85,11 +86,34 @@ def render_perspective(geometry, camera, sign, label, outfile, fov=FOV, forward_
     rendered_faces=0
     source_faces=0
     for positions,indices,colors in geometry:
-        pts=np.array([project_point(p,basis,camera) for p in positions])
+        pts=(positions-np.asarray(camera))@np.asarray(basis).T
         near_front+=int(np.count_nonzero(pts[:,2]>=NEAR))
         source_faces+=len(indices)//3
-        for i in range(0,len(indices),3):
-            ids=indices[i:i+3]
+        faces=indices.reshape((-1,3))
+        vertices=pts[faces]
+        in_front=vertices[:,:,2]>=NEAR
+        complete=np.all(in_front,axis=1)
+        # Most faces never cross the near plane. Project/color/shade them in
+        # batches so an actual 24 fps source-pose sequence is practical in CI.
+        if np.any(complete):
+            v=vertices[complete]
+            screen=np.empty((len(v),3,2))
+            screen[:,:,0]=cx+focal*v[:,:,0]/v[:,:,2]
+            screen[:,:,1]=cy-focal*v[:,:,1]/v[:,:,2]
+            keep=((screen[:,:,0].max(axis=1)>=0)&(screen[:,:,0].min(axis=1)<=WIDTH)
+                 &(screen[:,:,1].max(axis=1)>=0)&(screen[:,:,1].min(axis=1)<=HEIGHT))
+            v=v[keep];screen=screen[keep]
+            ids=faces[complete][keep]
+            normal=np.cross(v[:,1]-v[:,0],v[:,2]-v[:,0])
+            ratio=np.linalg.norm(normal,axis=1)
+            shade=np.where(ratio>1e-9,.83+.16*np.abs(normal[:,2])/np.maximum(ratio,1e-9),1.)
+            rgb=np.clip(colors[ids].mean(axis=1)*255,28,235).astype(int)
+            rgb=np.clip(rgb*shade[:,None],22,245).astype(int)
+            depths=v[:,:,2].mean(axis=1)
+            for depth,poly,color in zip(depths,screen.tolist(),rgb.tolist()):
+                triangles.append((float(depth),[tuple(p) for p in poly],tuple(color)))
+        crossing=(~complete)&np.any(in_front,axis=1)
+        for ids in faces[crossing]:
             polygon=clip_against_near([pts[j] for j in ids],NEAR)
             if len(polygon)<3:
                 continue
@@ -120,7 +144,7 @@ def render_perspective(geometry, camera, sign, label, outfile, fov=FOV, forward_
     draw.rectangle((0,0,WIDTH,76),fill=(14,17,22))
     draw.text((18,16),label,fill=(233,238,246))
     direction="tag_flash→muzzle" if forward_override is not None else ('+X' if sign>0 else '-X')
-    draw.text((18,43),f"original XANIM voxel mesh | 75deg FOV | {direction} forward | roll {roll_degrees} deg",fill=(179,196,210))
+    draw.text((18,43),f"original XANIM voxel mesh | {fov:g}deg FOV | Y-up | {direction} forward | roll {roll_degrees} deg",fill=(179,196,210))
     draw.rectangle((0,HEIGHT-50,WIDTH,HEIGHT),fill=(14,17,22))
     draw.text((18,HEIGHT-32),"PERSPECTIVE PROBE • NOT VERIFIED FPS ADS/RELOAD • NOT A GAME SCREENSHOT",fill=(237,186,109))
     outfile.parent.mkdir(parents=True,exist_ok=True)
@@ -239,7 +263,7 @@ def run(rifle_path, hands_path, output):
     # NO camera candidate here is certified for hipfire/ADS yet.
     sweep=[]
     neutral,meta=compose(rifle,hands,gun_idle,hand_idle,0.,hand_rest,mode="native_pair")
-    spine=np.array([0.,0.,1.],dtype=float)
+    spine=np.array([0.,1.,0.],dtype=float)
     for above in (0.0,.12,.25):
         eye=behind+spine*(span*above)
         # Aim at the ORIGINAL model muzzle, not an invented iron sight tag.
@@ -294,3 +318,4 @@ def main():
 
 if __name__=='__main__':
     main()
+

@@ -26,6 +26,7 @@ from iw3_gltf_animation_bridge import (
     add_animation, read_glb, write_glb,
 )
 from iw3_xanim_v17 import load_xanim
+from oat_coordinates import oat_root_tracks
 
 COMPONENT = {
     5121: ("B", 1), 5123: ("H", 2), 5125: ("I", 4), 5126: ("f", 4),
@@ -441,10 +442,14 @@ def add_all_animations(base: Path, target: Path, clips):
             report[path.name]={"status":"unmatched","matched_bones":0}
             continue
         try:
-            info=add_animation(doc,raw,animation,label=path.stem)
+            # OAT exports global frames as Rx(-90deg)*native; its child
+            # locals remain native. Preserve that frame for root XANIM too.
+            gltf_animation,converted_roots=oat_root_tracks(doc,animation)
+            info=add_animation(doc,raw,gltf_animation,label=path.stem)
             report[path.name]={"status":"attached" if info["channels"] else "unmatched",
                                "matched_bones":info["matched_bones"],
                                "channels":info["channels"],
+                               "oat_root_tracks_converted":converted_roots,
                                "actions":classify(path.stem)}
         except (ValueError,KeyError,OverflowError) as e:
             report[path.name]={"status":"error","reason":str(e)[:130]}
@@ -515,6 +520,7 @@ def run(dumps: Path, target: Path):
                   for a in gun_clips.values()) for k in KINDS}
     return {
       "source":"user-provided COD4 archive, extracted privately with OAT",
+      "animation_coordinate_frame":"OAT glTF Y-up; Rx(-90deg) on skeleton roots only",
       "selected_ak_model":chosen.name,
       "source_material_names":source_mats,
       "source_mesh_names":source_meshes,
@@ -557,3 +563,4 @@ def main():
 
 if __name__=="__main__":
     main()
+

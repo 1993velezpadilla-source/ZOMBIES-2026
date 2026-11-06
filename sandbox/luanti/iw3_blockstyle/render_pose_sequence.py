@@ -81,6 +81,21 @@ class PoseScene:
                 self.parent[child]=i
         self.animations={a.get("name",f"clip_{i}"):a
                          for i,a in enumerate(self.doc.get("animations",[]))}
+        self.tracks={}
+        self.durations={}
+        for name,animation in self.animations.items():
+            channels=[]
+            duration=0.
+            for ch in animation["channels"]:
+                prop=ch["target"]["path"]
+                if prop not in ("translation","rotation","scale"):continue
+                sm=animation["samplers"][ch["sampler"]]
+                ts=np.asarray(read_accessor(self.doc,self.binary,sm["input"]),dtype=float).reshape(-1)
+                xs=np.asarray(read_accessor(self.doc,self.binary,sm["output"]),dtype=float)
+                channels.append((ch["target"]["node"],prop,ts,xs,sm.get("interpolation","LINEAR")))
+                duration=max(duration,float(ts[-1]))
+            self.tracks[name]=channels
+            self.durations[name]=duration
         self.mesh_nodes={}
         for i,node in enumerate(self.nodes):
             if "mesh" in node:
@@ -118,25 +133,14 @@ class PoseScene:
 
     def duration(self,name):
         if name not in self.animations:raise ValueError("missing clip "+name)
-        anim=self.animations[name]
-        durations=[]
-        for sampler in anim["samplers"]:
-            times=read_accessor(self.doc,self.binary,sampler["input"])
-            durations.extend(t[0] for t in times)
-        return max(durations,default=0.0)
+        return self.durations[name]
 
     def world(self,name=None,t=0.0):
         values={}
         if name is not None:
-            anim=self.animations[name]
-            for ch in anim["channels"]:
-                node=ch["target"]["node"];prop=ch["target"]["path"]
-                if prop not in ("translation","rotation","scale"):continue
-                sm=anim["samplers"][ch["sampler"]]
-                ts=np.asarray(read_accessor(self.doc,self.binary,sm["input"]),dtype=float).reshape(-1)
-                xs=np.asarray(read_accessor(self.doc,self.binary,sm["output"]),dtype=float)
+            for node,prop,ts,xs,mode in self.tracks[name]:
                 values.setdefault(node,{})[prop]=interp(xs,ts,t,
-                      rotation=prop=="rotation",mode=sm.get("interpolation","LINEAR"))
+                      rotation=prop=="rotation",mode=mode)
         locals_=[local_matrix(n,values.get(i,{})) for i,n in enumerate(self.nodes)]
         memo={}
         def transform(i,depth=0):
@@ -193,7 +197,7 @@ def camera_params(points,orientation=(28,25)):
     """
     lo=points.min(axis=0);hi=points.max(axis=0)
     axis=int(np.argmax(hi-lo))
-    vertical=2 if axis!=2 else 1
+    vertical=1 if axis!=1 else 2
     side=next(i for i in range(3) if i not in (axis,vertical))
     yaw,elevation=np.radians(orientation)
     u=points[:,axis];v=points[:,side];w=points[:,vertical]
@@ -334,3 +338,4 @@ def main():
 
 
 if __name__=="__main__":main()
+

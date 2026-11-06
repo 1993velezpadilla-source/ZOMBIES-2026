@@ -31,8 +31,9 @@ jobs:
           set -euo pipefail
           python3 -m pip install --quiet --user Pillow==12.0.0 numpy==2.3.4
           python3 -m py_compile sandbox/luanti/iw3_blockstyle/voxelize.py sandbox/luanti/iw3_blockstyle/render_previews.py sandbox/luanti/iw3_blockstyle/render_pose_sequence.py sandbox/luanti/iw3_blockstyle/render_mounted_viewhands.py sandbox/luanti/iw3_blockstyle/render_fps_camera_probe.py sandbox/luanti/iw3_blockstyle/fps_composition_gate.py
+          PYTHONPATH="$PWD/_iw3_pipeline_src/tools:$PWD/sandbox/luanti/iw3_blockstyle" python3 -m unittest discover -s sandbox/luanti/iw3_blockstyle -p 'test_*.py' -v
           python3 sandbox/luanti/v3/build_ak47_assets.py /tmp/original-ak-test
-          PYTHONPATH="$PWD/_iw3_pipeline_src/tools" python3 - <<'PY'
+          PYTHONPATH="$PWD/_iw3_pipeline_src/tools:$PWD/sandbox/luanti/iw3_blockstyle" python3 - <<'PY'
           import importlib.util
           from pathlib import Path
           from iw3_gltf_animation_bridge import read_glb
@@ -232,7 +233,7 @@ jobs:
           assert all(f["tag_alignment_error"]<.00001 for f in new["frames"])
           print("HAND-ONLY AK SOURCE XANIM FRAMES:",len(new["frames"]))
           PY
-      - name: Optimize REAL FPS hipfire camera and render original five-frame reload GIF
+      - name: Rank fixed Y-up FPS camera across full reload and render source poses at 24 fps
         run: |
           set -euo pipefail
           PYTHONPATH="$PWD/_iw3_pipeline_src/tools" python3 \
@@ -248,11 +249,14 @@ jobs:
           from pathlib import Path
           a=json.loads(Path('_iw3_reports/fps-hipfire-qa/fps-framing-audit.json').read_text())
           assert a["candidates_tested"]>=20, a
-          assert len([f for f in a["frames"] if f["action"]=="reload" and "file" in f])==5
+          assert len([f for f in a["frames"] if f["action"]=="reload" and "file" in f])>=60
           assert a["camera_fixed_for_all_animation_frames"]
           assert not a["ads_iron_sight_verified"] and not a["hand_grip_verified"]
-          assert a["reload_gif"]["frames"]==5
-          print("Actual source-linked hipfire FPS diagnostic candidates:",a["candidates_tested"])
+          assert a["reload_gif"]["frames"]>=60
+          assert a["camera_validation_samples"]>=35
+          assert abs(a["reload_gif"]["gif_duration_s"]-a["reload_gif"]["source_duration_s"])<=.0051
+          assert a["coordinate_system"]=="OAT glTF Y-up"
+          print("Full-timeline source-linked Y-up FPS camera candidates:",a["candidates_tested"])
           print("Auto-camera framing metrics:",a["best_candidates"][0])
           PY
       - name: Probe actual first-person camera perspective from COD4 source tags
@@ -318,3 +322,4 @@ jobs:
             _iw3_reports/fps-hipfire-qa/fps-framing-audit.json
           if-no-files-found: warn
           retention-days: 14
+
