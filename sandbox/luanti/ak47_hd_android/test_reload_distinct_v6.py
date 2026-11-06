@@ -71,7 +71,10 @@ class DistinctSourceReloadTest(unittest.TestCase):
             e,_=sf.read(mod/'sounds'/'ak47dev_reload_empty.ogg',always_2d=True)
             self.assertGreater(float(np.std(n)),.035)
             self.assertGreater(float(np.std(e)),.035)
-            self.assertFalse(np.allclose(n[:1000,0],e[:1000,0],atol=.01),
+            # Compare when BOTH independently recorded clips are active.
+            # Leading silence is deliberately different in each XANIM.
+            a,b=round(.8*44100),round(.84*44100)
+            self.assertFalse(np.allclose(n[a:b,0],e[a:b,0],atol=.01),
                              'user reported identical source in both reloads')
 
     def test_v5_generator_still_uses_same_base_source_and_must_not_be_called(self):
