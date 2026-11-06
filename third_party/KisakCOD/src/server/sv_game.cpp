@@ -521,7 +521,7 @@ void __cdecl SV_CheckLoadLevel(SaveGame *save)
     Hunk_CheckTempMemoryHighClear();
 }
 
-static void SV_FreeReliableCommandsForClient(client_t *cl)
+static void SV_ClearReliableCommandsForShutdown(client_t *cl)
 {
     Com_Memset(&cl->reliableCommands, 0, 12);
 }
@@ -536,7 +536,7 @@ static void SV_ShutdownGameVM(int clearScripts)
     sv.state = SS_DEAD;
     G_ShutdownGame(clearScripts);
     svs.clients->gentity = 0;
-    SV_FreeReliableCommandsForClient(svs.clients);
+    SV_ClearReliableCommandsForShutdown(svs.clients);
 }
 
 void __cdecl SV_ShutdownGameProgs()
