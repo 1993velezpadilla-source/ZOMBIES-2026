@@ -29,7 +29,9 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update -qq
-          sudo apt-get install -y -qq --no-install-recommends gettext lua5.1 libjsoncpp-dev libzstd-dev libegl1 libgl1-mesa-dri ffmpeg
+          sudo apt-get install -y -qq --no-install-recommends gettext lua5.1 libjsoncpp-dev libzstd-dev libegl1 libgl1-mesa-dri
+          command -v ffmpeg
+          command -v ffprobe
           python3 -m pip install --quiet --user Pillow==12.0.0 numpy==2.3.4 moderngl==5.12.0 'cryptography>=44,<49'
           python3 -m py_compile sandbox/luanti/ak47_hd_android/*.py
           python3 sandbox/luanti/ak47_hd_android/test_fps_patch.py
