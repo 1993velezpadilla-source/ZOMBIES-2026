@@ -24,7 +24,9 @@ jobs:
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
-      - name: Verify ARM64 symbol-audit regression tests (NOT GAME)\n        run: python3 -m unittest discover -s android/iw3-native/bootstrap_compile -p 'test_*.py' -v\n      - name: Install NDK and original OpenAL API headers
+      - name: Verify ARM64 symbol-audit regression tests (NOT GAME)
+        run: python3 -m unittest discover -s android/iw3-native/bootstrap_compile -p 'test_*.py' -v
+      - name: Install NDK and original OpenAL API headers
         shell: bash
         run: |
           set -euo pipefail
@@ -64,6 +66,22 @@ jobs:
           cmake --build "$RUNNER_TEMP/iw3-bootstrap-build" --target iw3_sp_bootstrap_compile -j2 2>&1 | tee -a "$RUNNER_TEMP/bootstrap-build.log"
           echo 'IW3_AUTHENTIC_BOOTSTRAP_AGGREGATE_COMPILE_PASS'
           echo 'IW3_PLAYABLE_APK=false'
+      - name: Probe strict genuine-engine link and capture missing dependencies (EXPECTED FAILURE, NOT GAME)
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          cmake --build "$RUNNER_TEMP/iw3-bootstrap-build" --target iw3_sp_link_probe -j2 > "$RUNNER_TEMP/bootstrap-link-probe.log" 2>&1
+          rc=$?
+          set -e
+          cat "$RUNNER_TEMP/bootstrap-link-probe.log"
+          echo "IW3_STRICT_LINK_PROBE_EXIT=$rc"
+          if [ "$rc" -eq 0 ]; then
+            echo 'IW3_STRICT_LINK_PROBE_RESOLVED=true (NOT A PLAYABLE GAME)'
+          else
+            echo 'IW3_STRICT_LINK_PROBE_RESOLVED=false (EXPECTED UNTIL ORIGINAL DEPENDENCIES LINK)'
+          fi
+          echo 'IW3_PLAYABLE_APK=false'
       - name: Audit ARM64 original-object unresolved symbols (NOT a link or game)
         shell: bash
         run: |
@@ -85,6 +103,7 @@ jobs:
           name: iw3-authentic-bootstrap-aggregate-compile-log-NOT-APK
           path: |
             ${{ runner.temp }}/bootstrap-build.log
+            ${{ runner.temp }}/bootstrap-link-probe.log
             ${{ runner.temp }}/bootstrap-undefined-raw.txt
             ${{ runner.temp }}/bootstrap-defined-raw.txt
             ${{ runner.temp }}/bootstrap-unresolved-symbols.txt
