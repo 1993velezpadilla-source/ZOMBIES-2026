@@ -32,6 +32,7 @@ jobs:
           sudo apt-get install -y -qq --no-install-recommends gettext lua5.1 libjsoncpp-dev libzstd-dev libegl1 libgl1-mesa-dri
           python3 -m pip install --quiet --user Pillow==12.0.0 numpy==2.3.4 moderngl==5.12.0 'cryptography>=44,<49'
           python3 -m py_compile sandbox/luanti/ak47_hd_android/*.py
+          python3 sandbox/luanti/ak47_hd_android/test_fps_patch.py
           luac5.1 -p sandbox/luanti/ak47_hd_android/init.lua
           lua5.1 sandbox/luanti/ak47_hd_android/test_controls.lua
           lua5.1 sandbox/luanti/ak47_hd_android/test_join.lua
@@ -156,6 +157,8 @@ jobs:
           python3 sandbox/luanti/v33/patch_v33.py "$RUNNER_TEMP/luanti"
           python3 sandbox/luanti/ak47_hd_android/patch_engine.py \
             --root "$RUNNER_TEMP/luanti" --assets _iw3_private/runtime
+          grep -q 'FPS: ' "$RUNNER_TEMP/luanti/src/client/gameui.cpp"
+          grep -q 'm_ak47_fps_text' "$RUNNER_TEMP/luanti/src/client/gameui.h"
           luac5.1 -p "$RUNNER_TEMP/luanti/games/voxelibre/mods/ak47dev/init.lua"
       - name: Compile separate Android ARM64 HD playtest
         run: |
@@ -177,8 +180,8 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           text=Path('_iw3_reports/android-badging.txt').read_text()
-          assert "name='com.xziel.voxelsandbox.ak47original'" in text
-          assert "versionCode='5180003'" in text
+          assert "name='com.xziel.voxelsandbox.ak47fps'" in text
+          assert "versionCode='5180004'" in text
           assert 'application-debuggable' not in text
           assert "native-code: 'arm64-v8a'" in text
           PY
@@ -191,7 +194,7 @@ jobs:
           mkdir -p _private_delivery
           python3 sandbox/luanti/ak47_hd_android/private_delivery.py encrypt \
             "$RUNNER_TEMP/luanti/android/app/build/outputs/apk/release/app-arm64-v8a-release.apk" \
-            _private_delivery/AK47-COD4-ORIGINAL-ARM64.apk.enc \
+            _private_delivery/AK47-COD4-FPS-ARM64.apk.enc \
             sandbox/luanti/ak47_hd_android/delivery_public.pem
           cp _iw3_reports/android-build.json _private_delivery/android-build.json
           cp _iw3_reports/native-loader.txt _private_delivery/native-loader.txt
@@ -200,7 +203,7 @@ jobs:
       - name: Upload encrypted private build only
         uses: actions/upload-artifact@v4
         with:
-          name: AK47-COD4-ORIGINAL-ARM64-private-delivery
+          name: AK47-COD4-FPS-ARM64-private-delivery
           path: _private_delivery/*
           if-no-files-found: error
           retention-days: 7
@@ -213,7 +216,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: AK47-COD4-original-build-evidence
+          name: AK47-COD4-FPS-build-evidence
           path: |
             _iw3_reports/android-build.json
             _iw3_reports/android-badging.txt
