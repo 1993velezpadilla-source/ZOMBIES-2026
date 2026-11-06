@@ -3,6 +3,7 @@ import argparse
 from pathlib import Path
 import shutil
 from patch_fps_hud import patch as patch_fps_hud
+from patch_lit_shader import patch as patch_lit_shader
 from make_reload_audio import prepare as make_reload_audio
 from PIL import Image,ImageDraw,ImageFont
 
@@ -22,6 +23,7 @@ def patch(root,assets):
     shutil.copy2(HERE/'ak47_motion.h',root/'src/client/ak47_motion.h')
     shutil.copy2(assets/'ak47_weapon_params.h',root/'src/client/ak47_weapon_params.h')
     patch_fps_hud(root)
+    patch_lit_shader(root)
     cpp=root/'src/client/camera.cpp';text=cpp.read_text()
     start=text.index('void Camera::updateAK47Viewmodel(f32 frametime)')
     end=text.index('void Camera::wield(',start)
@@ -49,12 +51,12 @@ def patch(root,assets):
     app=root/'android/app'
     # MainActivity re-extracts bundled game assets when VERSION_CODE changes.
     checked(root/'android/build.gradle','project.ext.set("versionBuild", 0)',
-            'project.ext.set("versionBuild", 7)')
+            'project.ext.set("versionBuild", 8)')
     for path in [app/'build.gradle',app/'src/main/AndroidManifest.xml',
                  app/'src/main/java/net/minetest/minetest/GameActivity.java']:
         text=path.read_text();assert 'com.xziel.voxelsandbox.v33' in text
-        path.write_text(text.replace('com.xziel.voxelsandbox.v33','com.xziel.voxelsandbox.ak47steelv4'))
-    checked(app/'src/main/res/values/strings.xml','Voxel Sandbox AK V33','AK47 Dark Steel V4')
+        path.write_text(text.replace('com.xziel.voxelsandbox.v33','com.xziel.voxelsandbox.ak47hiresv5'))
+    checked(app/'src/main/res/values/strings.xml','Voxel Sandbox AK V33','AK47 Lit HiRes V5')
     checked(root/'src/defaultsettings.cpp','settings->setDefault("touch_interaction_style", "tap");',
             'settings->setDefault("touch_interaction_style", "buttons_crosshair");')
     font=ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',23)
@@ -65,7 +67,7 @@ def patch(root,assets):
         draw.text(((128-width)/2,48),label,font=font,fill=(245,245,245,255))
         image.save(root/'textures/base/pack'/name)
         image.save(mod/'textures'/name)
-    print('COD4 materials V2: permanent native FPS, 512px textured hands, both synchronized reload audios')
+    print('AK47 V5: natural-pitch reload, visible FPS, 2K/1K full texture resolution, GPU normal lighting')
 
 if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('--root',type=Path,required=True)
