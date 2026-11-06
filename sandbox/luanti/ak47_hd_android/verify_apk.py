@@ -62,12 +62,12 @@ def verify(apk, expected_audit=None):
                 assert int(wood_mask.sum())>700, 'wood furniture still mapped to gray steel'
                 hands_uv=np.concatenate([uv(p) for p in parts if p['material']==1])
                 assert len(hands_uv)>2500 and np.unique(np.round(hands_uv,4),axis=0).shape[0]>200, 'hands flat palette texel'
-            with Image.open(BytesIO(z.read(prefix+'textures/ak47hd_512.png'))) as im:
-                assert im.size==(512,512)
+            with Image.open(BytesIO(z.read(prefix+'textures/ak47hd_rifle_2k.png'))) as im:
+                assert im.size==(2048,2048)
                 assert im.convert('RGB').getcolors(maxcolors=1024) is None, 'rifle atlas has insufficient detail'
-            with Image.open(BytesIO(z.read(prefix+'textures/ak47hd_hands.png'))) as im:
+            with Image.open(BytesIO(z.read(prefix+'textures/ak47hd_hands_1k.png'))) as im:
                 if expected:
-                    assert im.size==(512,512)
+                    assert im.size==(1024,1024)
                     assert im.convert('RGB').getcolors(maxcolors=1024) is None, 'hands atlas flat'
                 else:
                     assert im.width>=16
@@ -85,16 +85,16 @@ def verify(apk, expected_audit=None):
             assert 'set_wield_index' not in lua, 'unsupported server-side wield-index setter in APK'
             assert 'player:get_wield_index()' in lua and 'inv:set_stack("main",selected,weapon)' in lua
             assert z.read(prefix+'sounds/ak47dev_fire.ogg').startswith(b'OggS')
-    report={'package':'com.xziel.voxelsandbox.ak47steelv4','architecture':'arm64-v8a',
+    report={'package':'com.xziel.voxelsandbox.ak47hiresv5','architecture':'arm64-v8a',
             'apk_bytes':apk.stat().st_size,'apk_sha256':hashlib.sha256(apk.read_bytes()).hexdigest(),
             'model_sha256':hashlib.sha256(model).hexdigest(),'triangles':faces,
             'model_bytes':len(model),'media_file_limit':MAX_MEDIAFILE_BYTES,
             'clips':sorted(names),'weighted_joints':len(d['skins'][0]['joints']),
-            'original_polygon_geometry':bool(expected), 'texture':[512,512],
+            'original_polygon_geometry':bool(expected), 'texture':[2048,2048],
             'join_api_compatible':True,
             'fps_position':'native_top_right_debug_widget',
-            'rifle_texture':'original_512_painted_v2',
-            'hands_texture':'original_512_skin_and_cuff',
+            'rifle_texture':'cc0_photo_2048_lit_shader',
+            'hands_texture':'cc0_photo_1024_skin_and_cuff',
             'reload_sfx_sync':['83/30','106/30'] if expected else [],
             'signed_apk_contents_verified':True,'physical_android_device_tested':False}
     return report
