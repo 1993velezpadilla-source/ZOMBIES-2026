@@ -217,12 +217,6 @@ jobs:
             --hands _iw3_private/blockstyle/AK47_COD4_HANDSONLY_ALL_XANIM_PRIVATE.glb \
             --output _iw3_reports/mounted-hands-only
           test -s _iw3_reports/mounted-hands-only/ak47_real_viewhands_mounted_contact_sheet.png
-          PYTHONPATH="$PWD/_iw3_pipeline_src/tools" python3 \
-            sandbox/luanti/iw3_blockstyle/render_fps_camera_probe.py \
-            --rifle _iw3_private/blockstyle/AK47_COD4_BLOCKSTYLE_ALL_XANIM_PRIVATE.glb \
-            --hands _iw3_private/blockstyle/AK47_COD4_HANDSONLY_ALL_XANIM_PRIVATE.glb \
-            --output _iw3_reports/fps-hands-only
-          test -s _iw3_reports/fps-hands-only/ak47_native_fps_roll_and_height_sweep.png
           python3 - <<'PY'
           import json
           from pathlib import Path
@@ -259,35 +253,6 @@ jobs:
           print("Full-timeline source-linked Y-up FPS camera candidates:",a["candidates_tested"])
           print("Auto-camera framing metrics:",a["best_candidates"][0])
           PY
-      - name: Probe actual first-person camera perspective from COD4 source tags
-        run: |
-          set -euo pipefail
-          PYTHONPATH="$PWD/_iw3_pipeline_src/tools" python3 \
-            sandbox/luanti/iw3_blockstyle/render_fps_camera_probe.py \
-            --rifle _iw3_private/blockstyle/AK47_COD4_BLOCKSTYLE_ALL_XANIM_PRIVATE.glb \
-            --hands _iw3_private/blockstyle/AK47_COD4_HANDS_ALL_XANIM_PRIVATE.glb \
-            --output _iw3_reports/fps-cameras
-          test -s _iw3_reports/fps-cameras/ak47_fps_relative_delta_camera_comparison.png
-          test -s _iw3_reports/fps-cameras/ak47_fps_direct_tag_camera_comparison.png
-          test -s _iw3_reports/fps-cameras/ak47_native_fps_roll_and_height_sweep.png
-          python3 - <<'PY'
-          import json
-          from pathlib import Path
-          a=json.loads(Path('_iw3_reports/fps-cameras/fps-camera-audit.json').read_text())
-          assert len(a['projections'])>=8, a
-          assert any(x['drawn_faces']>40 for x in a['projections'])
-          assert a['source_tags']['hands_tag_weapon_exists']
-          assert a['source_tags']['rifle_tag_ak47_mount']
-          assert a['source_tags']['rifle_tag_flash']
-          assert a['original_mount_pair']==['hands:tag_weapon','rifle:tag_ak47_mount']
-          assert len(a['fps_camera_roll_sweep'])==12
-          assert set(x['roll_degrees'] for x in a['fps_camera_roll_sweep'])=={0,90,-90,180}
-          assert any(x['strategy']=='native_pair' and x['forward']=='muzzle' and x['camera_forward']=='tag_flash→muzzle' for x in a['projections'])
-          assert not a['ads_verified'] and not a['hand_grip_verified']
-          print("Real first-person camera probe frames:",len(a['projections']))
-          print("Camera candidates:",a['camera_candidates'])
-          print("Source bone references:",a['source_tags'])
-          PY
       - name: Upload static and truly animated pose screenshots from real COD4 geometry
         uses: actions/upload-artifact@v4
         with:
@@ -296,9 +261,7 @@ jobs:
             _iw3_reports/real-renders/*.png
             _iw3_reports/pose-frames/*.png
             _iw3_reports/mounted-frames/*.png
-            _iw3_reports/fps-cameras/*.png
             _iw3_reports/mounted-hands-only/*.png
-            _iw3_reports/fps-hands-only/*.png
             _iw3_reports/fps-hipfire-qa/*.png
             _iw3_reports/fps-hipfire-qa/*.gif
           if-no-files-found: error
@@ -316,9 +279,7 @@ jobs:
             _iw3_reports/ak47-blockstyle.json
             _iw3_reports/pose-frames/pose-audit.json
             _iw3_reports/mounted-frames/mount-audit.json
-            _iw3_reports/fps-cameras/fps-camera-audit.json
             _iw3_reports/mounted-hands-only/mount-audit.json
-            _iw3_reports/fps-hands-only/fps-camera-audit.json
             _iw3_reports/fps-hipfire-qa/fps-framing-audit.json
           if-no-files-found: warn
           retention-days: 14

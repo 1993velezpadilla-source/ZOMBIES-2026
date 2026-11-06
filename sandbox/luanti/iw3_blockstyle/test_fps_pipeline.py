@@ -7,7 +7,7 @@ import unittest
 import numpy as np
 from PIL import Image
 from iw3_gltf_animation_bridge import add_animation, write_glb
-from oat_coordinates import oat_root_tracks
+from oat_coordinates import oat_animation_tracks
 from voxelize import pack_new
 from render_pose_sequence import PoseScene
 from render_fps_camera_probe import projection_basis, render_perspective
@@ -48,9 +48,10 @@ class PipelineTests(unittest.TestCase):
             NS(name='root',rotations=track((0,0,0,1),(0,0,math.sqrt(.5),math.sqrt(.5))),
                translations=track((1,2,3),(2,3,4))),
             NS(name='child',rotations=track((0,0,0,1),(.5,0,0,math.sqrt(.75))),
-               translations=track((2,0,1),(3,1,2)))])
-        converted,roots=oat_root_tracks(doc,animation)
-        self.assertEqual(roots,['root'])
+               translations=track((0,0,0),(1,1,1)))])
+        converted,info=oat_animation_tracks(doc,animation)
+        self.assertEqual(info['oat_root_tracks_converted'],['root'])
+        self.assertEqual(info['bind_offsets_added_to_translation_tracks'],['child'])
         self.assertEqual(converted.bones[1].rotations.values,animation.bones[1].rotations.values)
         self.assertEqual(animation.bones[0].translations.values[0],(1,2,3))
         add_animation(doc,raw,converted,label='test')
@@ -61,6 +62,17 @@ class PipelineTests(unittest.TestCase):
                 child=transform([2+t,t,1+t],'x',t*math.pi/3)
                 expected=(native@(C@root@child@np.linalg.inv(bind1)).T)[:,:3]
                 np.testing.assert_allclose(scene.poses('test',t)[1],expected,atol=2e-6)
+
+    def test_no_quat_is_identity_and_missing_trans_preserves_bind(self):
+        doc={'nodes':[{'name':'root','children':[1]},
+                      {'name':'child','translation':[4,5,6],
+                       'rotation':[0,0,.5,math.sqrt(.75)]}],
+             'skins':[{'joints':[0,1]}]}
+        anim=NS(bones=[NS(name='child',rotations=None,translations=None)])
+        converted,info=oat_animation_tracks(doc,anim)
+        self.assertEqual(converted.bones[0].rotations.values,[(0.,0.,0.,1.)])
+        self.assertIsNone(converted.bones[0].translations)
+        self.assertEqual(info['no_quat_identity_tracks'],['child'])
 
     def test_y_up_basis_and_near_plane_render(self):
         right,up,front=projection_basis(1,[1,0,0])

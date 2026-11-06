@@ -149,7 +149,8 @@ def build(rifle_path,hands_path,output):
             chosen=np.rint(np.linspace(0,len(records)-1,9)).astype(int)
             make_grid(output,[records[i]["file"] for i in chosen],
                       f"ak47_fps_original_{action}_contact_sheet.png",columns=3)
-    audit["framing_within_screen_95pct"]=rank[0]["minimum_visible_fraction"]>=.95
+    audit["full_render_minimum_visible_fraction"]=min(f["framing"]["visible_fraction"] for f in audit["frames"])
+    audit["framing_within_screen_95pct"]=audit["full_render_minimum_visible_fraction"]>=.95
     (output/"fps-framing-audit.json").write_text(json.dumps(audit,indent=2)+"\n")
     print(json.dumps({"cameras_checked":len(rank),"timeline_samples":len(samples),
         "minimum_visible_fraction":rank[0]["minimum_visible_fraction"],
