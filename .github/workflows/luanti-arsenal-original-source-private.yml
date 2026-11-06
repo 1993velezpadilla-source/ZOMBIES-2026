@@ -98,6 +98,27 @@ jobs:
             --dumps _iw3_private/dumps \
             --output _iw3_reports/real-28-weapon-source-inventory.json
           test -s _iw3_reports/real-28-weapon-source-inventory.json
+      - name: Build REAL skinned 28-weapon source GLBs and first-person hands privately
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="$PWD/tools:$PWD/_iw3_pipeline_src/tools"
+          python3 tools/luanti_real_arsenal_28.py \\
+            --dumps _iw3_private/dumps \\
+            --manifest sandbox/luanti/arsenal_android/expected_cod4_28.json \\
+            --private-output _iw3_private/arsenal_28_animated_source \\
+            --metadata _iw3_reports/real-28-source-animated-gate.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('_iw3_reports/real-28-source-animated-gate.json').read_text())
+          assert r['target_unique_weapon_count']==28
+          assert r['android_runtime_playtested'] is False
+          assert r['rendered_and_ads_calibrated'] is False
+          count=r['weapon_source_animated_pair_count']
+          assert count==sum(1 for p in Path('_iw3_private/arsenal_28_animated_source').glob('*_real_source_experimental.glb'))
+          assert count==sum(1 for p in Path('_iw3_private/arsenal_28_animated_source').glob('*_hands_source_experimental.glb'))
+          print('REAL_ASSET_GENERATOR_OUTPUT',count,'animated weapon + original hand source pairs')
+          PY
       - name: Check metadata is source only and never a false APK claim
         run: |
           set -euo pipefail
