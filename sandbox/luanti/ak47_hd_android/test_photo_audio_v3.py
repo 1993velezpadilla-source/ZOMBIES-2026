@@ -8,6 +8,7 @@ from PIL import Image
 from make_reload_audio import render_sequence, TIMELINES
 from material_v3 import make_rifle_atlas, make_hand_atlas, hand_uv
 from material_v2 import make_rifle_atlas as original_rifle, make_hand_atlas as original_hands
+from photo_materials import SOURCES
 from export_viewmodel import source_triangle_uv
 
 
@@ -38,6 +39,26 @@ class NaturalReloadTests(unittest.TestCase):
 
 
 class PhotoMaterialsTests(unittest.TestCase):
+    def test_pinned_rusty_metal_04_asset(self):
+        self.assertEqual(SOURCES['metal']['asset'],'rusty_metal_04')
+        self.assertEqual(SOURCES['metal']['md5'],'91832efd8e5896387e2af18a5b49b895')
+        self.assertEqual(SOURCES['metal']['bytes'],938338)
+
+    def test_rust_photo_keeps_actual_chromatic_variation(self):
+        # Deliberately rich red/brown and blue-gray rust pattern must survive
+        # the material conversion, instead of collapsing to grayscale metal.
+        photo=np.empty((1024,1024,3),dtype=np.uint8)
+        photo[:512,:]=[172,62,34]
+        photo[512:,:]=[49,97,130]
+        wood=np.zeros((1024,1024,3),dtype=np.uint8)+np.array([140,80,30],dtype=np.uint8)
+        fake={'wood':Image.fromarray(wood),'metal':Image.fromarray(photo),
+              'leather':Image.fromarray(wood)}
+        with patch('material_v3.photo_library',return_value=fake):
+            atlas=np.asarray(make_rifle_atlas(),dtype=np.int16)
+        # Receiver tile samples should have strong red-versus-blue contrast.
+        receiver=atlas[10:245,10:370]
+        self.assertGreater(float(np.ptp(receiver[:,:,0].astype(float)-receiver[:,:,2].astype(float))),30)
+
     def test_photo_bake_not_just_procedural_512(self):
         rng=np.random.default_rng(4726)
         fake={
