@@ -195,27 +195,33 @@ jobs:
           assert "native-code: 'arm64-v8a'" in text
           PY
           "$TOOLS/apksigner" verify --verbose "$APK" > _iw3_reports/android-signature.txt
-      # Copyright-sensitive original COD4 geometry and animations MUST NOT be
-      # placed into a public GitHub release, APK artifact or unencrypted file.
-      - name: Encrypt the private APK for direct delivery
+      # Deliver the actually installable Android package, always ending in .apk.
+      # GitHub Actions bundles build artifacts in a ZIP, but the file INSIDE
+      # is an ordinary signed .apk suitable for installation on Android.
+      - name: Stage installable APK with exact extension
         run: |
           set -euo pipefail
-          mkdir -p _private_delivery
-          python3 sandbox/luanti/ak47_hd_android/private_delivery.py encrypt \
-            "$RUNNER_TEMP/luanti/android/app/build/outputs/apk/release/app-arm64-v8a-release.apk" \
-            _private_delivery/AK47-COD4-COMBO-V2-ARM64.apk.enc \
-            sandbox/luanti/ak47_hd_android/delivery_public.pem
-          cp _iw3_reports/android-build.json _private_delivery/android-build.json
-          cp _iw3_reports/native-loader.txt _private_delivery/native-loader.txt
-          cp _iw3_reports/android-signature.txt _private_delivery/android-signature.txt
-          cp _iw3_reports/native-build-mode.json _private_delivery/native-build-mode.json
-      - name: Upload encrypted private build only
+          mkdir -p _direct_apk
+          APK="$RUNNER_TEMP/luanti/android/app/build/outputs/apk/release/app-arm64-v8a-release.apk"
+          cp "$APK" _direct_apk/AK47-COD4-COMBO-V2-ARM64.apk
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          apk=Path("_direct_apk/AK47-COD4-COMBO-V2-ARM64.apk")
+          assert apk.read_bytes()[:4] == b"PK\\x03\\x04", "Not an installable APK ZIP"
+          with ZipFile(apk) as z:
+              assert "AndroidManifest.xml" in z.namelist()
+              assert any(p.startswith("lib/arm64-v8a/") for p in z.namelist())
+          print("DIRECT_INSTALLABLE_APK_READY",apk.stat().st_size)
+          PY
+      - name: Upload real installable APK without encryption
         uses: actions/upload-artifact@v4
         with:
-          name: AK47-COD4-COMBO-V2-ARM64-private-delivery
-          path: _private_delivery/*
+          name: AK47-COD4-COMBO-V2-DIRECT-APK
+          path: _direct_apk/AK47-COD4-COMBO-V2-ARM64.apk
           if-no-files-found: error
           retention-days: 7
+          compression-level: 0
       - name: Destroy plain APK and source game outputs
         if: always()
         run: |
