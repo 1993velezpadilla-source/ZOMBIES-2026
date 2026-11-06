@@ -25,16 +25,20 @@ class DistinctSourceReloadTest(unittest.TestCase):
     def _different_sound_sources(self,base):
         rate=44100
         t=np.arange(round(2.318481*rate))/rate
-        # EMPTY: distinct low-frequency recording with mechanical clicks.
-        empty=np.zeros((len(t),2),dtype=np.float32)
-        empty[:,0]=.21*np.sin(2*np.pi*410*t)
-        empty[:,1]=.20*np.sin(2*np.pi*550*t)
+        # Two DIFFERENT natural recordings with realistic broadband noise.
+        # A pure synthesized sine wave compresses under 10KB in Vorbis,
+        # unlike actual reload Foley and triggers the valid-size guard.
+        rng=np.random.default_rng(7612)
+        empty=rng.normal(0,.06,(len(t),2)).astype(np.float32)
+        empty[:,0]+=.21*np.sin(2*np.pi*410*t)
+        empty[:,1]+=.20*np.sin(2*np.pi*550*t)
         bolt_rate=48000
         bt=np.arange(round(.892*bolt_rate))/bolt_rate
         bolt=np.sin(2*np.pi*1460*bt)[:,None].astype('float32')*.18
         normal_time=np.arange(round(2.0*rate))/rate
         # NORMAL: independently recorded waveform, unlike GunLib empty.
-        normal=np.sin(2*np.pi*1700*normal_time)[:,None].astype('float32')*.22
+        normal=(np.sin(2*np.pi*1700*normal_time)[:,None]*.22+
+                rng.normal(0,.055,(len(normal_time),1))).astype(np.float32)
         normal=np.pad(normal,((int(.07*rate),0),(0,0)))
         sounds=base/'sounds'
         sounds.mkdir(parents=True)
