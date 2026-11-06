@@ -87,6 +87,9 @@ def choose_source(model_dir: Path, xanim_dir: Path, aliases: list[str], animatio
             for p, x in decoded.items():
                 if not regex.search(p.stem):
                     continue
+                # Normal reload may NEVER bind the empty-mag XANIM.
+                if action == "reload" and re.search(r"(?:^|_)reload[_]?empty(?:_|$)", p.stem, re.I):
+                    continue
                 common = len(joints & {bone.name.casefold() for bone in x.bones})
                 # Reject xanim with only unrelated root/weapon tag overlap.
                 if common >= 2:
@@ -96,7 +99,20 @@ def choose_source(model_dir: Path, xanim_dir: Path, aliases: list[str], animatio
                 overlap[action] = options[0][0]
                 chosen[action] = options[0][3]
         if len(chosen) == len(ACTIONS):
-            candidates.append((min(overlap.values()),sum(overlap.values()),
+            # Preserve the distinct original empty-mag reload when compatible.
+            # This is optional SOURCE evidence, not a claim that audio exists.
+            empty_compatible = []
+            for p,x in decoded.items():
+                if not re.search(r"(?:^|_)reload[_]?empty(?:_|$)", p.stem, re.I):
+                    continue
+                common = len(joints & {bone.name.casefold() for bone in x.bones})
+                if common >= 2:
+                    empty_compatible.append((common, len(p.name), p.name, p))
+            if empty_compatible:
+                empty_compatible.sort(key=lambda v:(-v[0],v[1],v[2]))
+                chosen["reload_empty"] = empty_compatible[0][3]
+                overlap["reload_empty"] = empty_compatible[0][0]
+            candidates.append((min(overlap[a] for a in ACTIONS),sum(overlap[a] for a in ACTIONS),
                                len(joints),model,chosen,overlap))
     candidates.sort(key=lambda x:(-x[0],-x[1],-x[2],len(x[3].name)))
     diagnostics = {"candidate_models":len(models),
@@ -150,6 +166,7 @@ def build(original: Path, manifest: dict, destination: Path) -> dict:
             if not(valid_gun and valid_hand):
                 raise ValueError("source XANIM clips missing actual GLB channels")
             report.update({
+                "native_empty_reload_clip": "reload_empty" in animations,
                 "source_glb_generated":True, "source_hands_generated":True,
                 "source_glb_bytes":out.stat().st_size,
                 "source_hands_bytes":hand_out.stat().st_size,
