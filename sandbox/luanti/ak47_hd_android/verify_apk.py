@@ -5,6 +5,7 @@ from pathlib import Path
 import hashlib
 import json
 import struct
+import numpy as np
 from zipfile import ZipFile
 from PIL import Image
 from media_limits import check_media_size,MAX_MEDIAFILE_BYTES
@@ -25,6 +26,7 @@ def verify(apk, expected_audit=None):
             assert model[:4]==b'glTF' and struct.unpack_from('<I',model,8)[0]==len(model)
             length,kind=struct.unpack_from('<I4s',model,12);assert kind==b'JSON'
             d=json.loads(model[20:20+length])
+            binary=model[20+length+8:]
             assert not d.get('images')
             assert len(d['skins'])==1
             if expected:
@@ -47,8 +49,35 @@ def verify(apk, expected_audit=None):
                 assert len(d['meshes'][0]['primitives'])==sum(expected['mesh_buffers'])
             else:
                 assert faces==144134+12756,faces
-            with Image.open(BytesIO(z.read(prefix+'textures/ak47hd_512.png'))) as im:assert im.size==(512,512)
-            assert z.read(prefix+'textures/ak47hd_hands.png').startswith(b'\x89PNG')
+            def uv(primitive):
+                accessor=d['accessors'][primitive['attributes']['TEXCOORD_0']]
+                view=d['bufferViews'][accessor['bufferView']]
+                assert accessor['componentType']==5126
+                start=view.get('byteOffset',0)+accessor.get('byteOffset',0)
+                return np.frombuffer(binary,dtype='<f4',count=accessor['count']*2,offset=start).reshape(-1,2)
+            if expected:
+                parts=d['meshes'][0]['primitives']
+                wood_uv=np.concatenate([uv(p) for p in parts if p['material']==0])
+                wood_mask=(wood_uv[:,0]<.5)&(wood_uv[:,1]>.5)
+                assert int(wood_mask.sum())>700, 'wood furniture still mapped to gray steel'
+                hands_uv=np.concatenate([uv(p) for p in parts if p['material']==1])
+                assert len(hands_uv)>2500 and np.unique(np.round(hands_uv,4),axis=0).shape[0]>200, 'hands flat palette texel'
+            with Image.open(BytesIO(z.read(prefix+'textures/ak47hd_512.png'))) as im:
+                assert im.size==(512,512)
+                assert im.convert('RGB').getcolors(maxcolors=1024) is None, 'rifle atlas has insufficient detail'
+            with Image.open(BytesIO(z.read(prefix+'textures/ak47hd_hands.png'))) as im:
+                if expected:
+                    assert im.size==(512,512)
+                    assert im.convert('RGB').getcolors(maxcolors=1024) is None, 'hands atlas flat'
+                else:
+                    assert im.width>=16
+            if expected:
+                lua=z.read(prefix+'init.lua').decode()
+                assert 'minetest.chat_send_player(name' not in lua, 'top-left helper still active'
+                assert 'ak47dev_reload_normal' in lua and 'ak47dev_reload_empty' in lua
+                for name in ('normal','empty'):
+                    sfx=z.read(prefix+f'sounds/ak47dev_reload_{name}.ogg')
+                    assert sfx.startswith(b'OggS') and len(sfx)>10000, name
             lua=z.read(prefix+'init.lua').decode()
             assert 'c.aux1 and not s.aux' in lua and 's.ammo=s.ammo-1' in lua
             assert 'minetest.register_tool(AK' in lua and 'wield_image="ak47dev_icon.png"' in lua
@@ -63,6 +92,10 @@ def verify(apk, expected_audit=None):
             'clips':sorted(names),'weighted_joints':len(d['skins'][0]['joints']),
             'original_polygon_geometry':bool(expected), 'texture':[512,512],
             'join_api_compatible':True,
+            'fps_position':'native_top_right_debug_widget',
+            'rifle_texture':'original_512_painted_v2',
+            'hands_texture':'original_512_skin_and_cuff',
+            'reload_sfx_sync':['83/30','106/30'] if expected else [],
             'signed_apk_contents_verified':True,'physical_android_device_tested':False}
     return report
 
