@@ -19,7 +19,7 @@ BLOCK=Path(__file__).resolve().parents[1]/'iw3_blockstyle'
 sys.path.insert(0,str(BLOCK))
 from voxelize import read_glb,read_accessor,pack_new,write_glb,allowed_primitive,is_hand_or_finger_bone
 from texture_atlas import make_atlas, TILES, SIZE, PADDING
-from material_v2 import make_rifle_atlas, make_hand_atlas, hand_uv
+from material_v3 import make_rifle_atlas, make_hand_atlas, hand_uv
 from render_pose_sequence import PoseScene
 from ads_pipeline import quaternion,NAMES
 from render_mounted_viewhands import OAT_TO_NATIVE
@@ -28,7 +28,7 @@ CLIPS=[*NAMES.values(),'viewmodel_ak47_fire','viewmodel_ak47_reload','viewmodel_
 MAX_VERTICES=64000
 
 
-def source_triangle_uv(vertices, normals, joints, weights, bone_names, material, lower, upper, *, forced_tile=None):
+def source_triangle_uv(vertices, normals, joints, weights, bone_names, material, lower, upper, *, forced_tile=None, uv_lower=None, uv_upper=None):
     """Re-UV source polygons onto newly authored material islands.
 
     Original geometry, weighted vertices and XANIM stay untouched. Only
@@ -37,6 +37,11 @@ def source_triangle_uv(vertices, normals, joints, weights, bone_names, material,
     if len(vertices)%3:raise ValueError('source triangle count invalid')
     result=np.zeros((len(vertices),2),dtype=float)
     span=np.maximum(upper-lower,.1)
+    # Classify using full rifle bounds, but project onto each original material
+    # primitive's own surface. This gives 10-100x more texels to small parts.
+    if uv_lower is None:uv_lower=lower
+    if uv_upper is None:uv_upper=upper
+    uv_span=np.maximum(uv_upper-uv_lower,.075)
     for begin in range(0,len(vertices),3):
         tri=vertices[begin:begin+3]
         forward=(tri[:,0].mean()-lower[0])/span[0]
@@ -54,7 +59,7 @@ def source_triangle_uv(vertices, normals, joints, weights, bone_names, material,
         n=np.cross(tri[1]-tri[0],tri[2]-tri[0])
         if np.linalg.norm(n)<1e-10:n=normals[begin:begin+3].mean(0)
         axes={0:(2,1),1:(0,2),2:(0,1)}[int(np.argmax(np.abs(n)))]
-        xy=np.clip((tri[:,axes]-lower[list(axes)])/span[list(axes)],0,1)
+        xy=np.clip((tri[:,axes]-uv_lower[list(axes)])/uv_span[list(axes)],0,1)
         xy[:,1]=1-xy[:,1]
         left,top,right,bottom=TILES[tile]
         result[begin:begin+3]=(np.array([left+PADDING+.5,top+PADDING+.5])+
@@ -160,7 +165,7 @@ def export(rifle_path,hands_path,output,*,original_geometry=False):
                     # The earlier classifier labeled most of it gray receiver.
                     furniture='wood' if source_index==3 else None
                     uv=source_triangle_uv(pos,normals,joints,weights,names,material,rifle_min,rifle_max,
-                                          forced_tile=furniture)
+                                          forced_tile=furniture,uv_lower=pos.min(0),uv_upper=pos.max(0))
                 else:
                     hand_names=[scene.nodes[node].get('name','').lower()
                                 for node in scene.doc['skins'][0]['joints']]
@@ -244,7 +249,7 @@ def export(rifle_path,hands_path,output,*,original_geometry=False):
                 worst=max(worst,float(np.abs(actual[index]-G@want).max()))
     if worst>.005:raise ValueError('flattened source motion mismatch: '+str(worst))
     report={'joint_count':count,'total_nodes':count+2,'original_source_mesh':bool(original_geometry),
-            'rifle_texture_version':'material_v2' if original_geometry else 'blockstyle',
+            'rifle_texture_version':'photo_material_v3' if original_geometry else 'blockstyle',
             'hands_texture_resolution':[512,512] if original_geometry else [width,1],
             'no_voxel_conversion':bool(original_geometry), 'mesh_buffers':buffer_counts,
             'triangles':triangles,'max_vertices_per_buffer':MAX_VERTICES,
