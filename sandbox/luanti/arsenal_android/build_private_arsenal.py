@@ -21,10 +21,12 @@ TIME_FIELDS = {"fire": "fireTime", "reload": "reloadTime",
 
 
 def source_seconds(number):
-    # IW3 WeaponDef timings are integer milliseconds; no mixed-unit guessing.
-    if not isinstance(number, (int, float)) or not (1 <= number <= 30000):
+    # Real source dump (COD4 common_mp.ff) contains SECONDS, verified:
+    # AK-47 fireTime=0.085, reloadTime=2.5, reloadEmptyTime=3.25.
+    # Never misinterpret as milliseconds (0.000085 sec would be absurd).
+    if not isinstance(number, (int, float)) or not (0.02 <= number <= 20):
         return None
-    return float(number)/1000
+    return float(number)
 
 
 def parse_glb(path):
@@ -66,22 +68,23 @@ def source_profile(original: dict, row: dict):
     empty=source_seconds(numeric.get("reloadEmptyTime"))
     dmg=numeric.get("damage")
     raw_type=(row.get("strings") or {}).get("fireType","").lower()
+    fire_kind="".join(c for c in raw_type if c.isascii() and c.isalnum())
     if (not row.get("has_required_timing_and_ammo") or
             not isinstance(clip,(int,float)) or not 1<=clip<=250 or
             not isinstance(cap,(int,float)) or cap<clip or cap>10000 or
             not delay or not .035<=delay<=5 or
             not normal or not .2<=normal<=20 or
-            not empty or not .2<=empty<=20 or
+            not empty or not .1<=empty<=20 or
             not isinstance(dmg,(int,float)) or not 1<=dmg<=250):
         return None
     if int(clip)!=clip or int(cap)!=cap:
         return None
     # Disable weapon mechanics for ambiguous original fire types, not fabricate.
-    if raw_type in {"fullauto", "auto", "fullyautomatic"}:
+    if fire_kind in {"fullauto", "auto", "fullyautomatic"}:
         fire_mode="auto"
-    elif raw_type in {"single", "semi", "semiauto"}:
+    elif fire_kind in {"single", "semi", "semiauto", "singleshot"}:
         fire_mode="semi"
-    elif raw_type in {"burst", "burstfire", "burst3"}:
+    elif fire_kind in {"burst", "burstfire", "burst3", "3roundburst"}:
         fire_mode="burst"
     else:
         return None
@@ -140,7 +143,11 @@ def stage(expected, animated, definitions, glbs: Path, output: Path):
             "source_glb_animation_names":sorted(ga&ha),
             "distinct_empty_reload_animation":have_empty,
             "original_stats_verified":bool(profile),
-            "gameplay_logic_enabled":bool(profile and have_empty),
+            # Shotguns require per-shell reload / pellet logic; sniper optics
+            # and bolt actions need native calibrated scope+cycling. Preview
+            # their real animated models, never pretend gameplay is complete.
+            "gameplay_logic_enabled":bool(profile and have_empty and
+                                           w["category"] not in ("shotgun","sniper")),
             "audio_samples_present":False,
             "ads_sights_calibrated":False,
             "android_playtest_verified":False,
