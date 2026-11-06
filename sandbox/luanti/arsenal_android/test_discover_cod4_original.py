@@ -30,7 +30,7 @@ class DiscoveryTests(unittest.TestCase):
     def test_extensionless_original_oat_xanim_counts(self):
         with tempfile.TemporaryDirectory() as d:
             root=Path(d)
-            glb(root/"common_mp/model_export/viewmodel_m4_lod0.glb",skins=1)
+            glb(root/"common_mp/model_export/viewmodel_m4_lod0.glb",skin=True)
             xanim=root/"common_mp/xanim"
             xanim.mkdir()
             for action in ("idle","ads_up","fire","reload"):
