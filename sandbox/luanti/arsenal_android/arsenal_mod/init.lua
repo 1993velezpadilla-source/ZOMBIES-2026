@@ -278,6 +278,119 @@ for _,def in ipairs(manifest.weapons) do
     end
 end
 
+-- Mobile-first Arsenal test picker; no custom Gunsmith in Classic Zombies.
+-- Only actually present, source-verified GLB pairs become selectable.
+local categories={
+    {key="assault",label="Assault"},
+    {key="smg",label="SMG"},
+    {key="shotgun",label="Shotgun"},
+    {key="sniper",label="Sniper"},
+    {key="marksman",label="Marksman"},
+    {key="lmg",label="LMG"},
+    {key="pistol",label="Pistol"}
+}
+local active_category={}
+local function visible_weapons(category)
+    local found={}
+    for key,def in pairs(defs) do
+        if def.category==category then
+            found[#found+1]={id=def.id,name=def.name,
+                playable=def.gameplay_logic_enabled}
+        end
+    end
+    table.sort(found,function(a,b) return a.name<b.name end)
+    return found
+end
+local function display_picker(player,requested)
+    if not valid_player(player) then return end
+    local who=player:get_player_name()
+    local cat=requested or active_category[who] or "assault"
+    local valid=false
+    for _,c in ipairs(categories) do if c.key==cat then valid=true end end
+    if not valid then cat="assault" end
+    active_category[who]=cat
+    local esc=minetest.formspec_escape
+    local ui={
+        "formspec_version[4]",
+        "size[15,10.5]",
+        "bgcolor[#0D1019;true]",
+        "label[.45,.35;COD4 ARSENAL  |  PRIVATE SOURCE PREVIEW]",
+        "label[.45,.9;Select an original model. Preview-only = no invented weapon stats.]"
+    }
+    for i,c in ipairs(categories) do
+        local x=.45+(i-1)*2.05
+        ui[#ui+1]=("button[%.2f,1.45;1.94,.68;cat_%s;%s]"):format(
+            x,c.key,esc(c.label))
+    end
+    local list=visible_weapons(cat)
+    if #list==0 then
+        ui[#ui+1]="label[.7,3;No verified source model available in this category.]"
+    end
+    for i,item in ipairs(list) do
+        local col=(i-1)%3
+        local row=math.floor((i-1)/3)
+        if row<5 then
+            local x=.5+col*4.85
+            local y=2.45+row*1.36
+            ui[#ui+1]=("button[%.2f,%.2f;4.62,1.1;weapon_%s;%s]"):format(
+                x,y,item.id,esc(item.name)..(item.playable and " | SOURCE STATS" or " | PREVIEW"))
+        end
+    end
+    ui[#ui+1]="button_exit[10.6,9.65;3.8,.65;exit;Close]"
+    minetest.show_formspec(who,"arsenal:picker",table.concat(ui))
+end
+local function grant_weapon(player,id)
+    local def=defs["arsenal:"..id]
+    if not def or not valid_player(player) then return false end
+    local inv=player:get_inventory()
+    if not inv:contains_item("main","arsenal:"..id) then
+        local left=inv:add_item("main","arsenal:"..id.." 1")
+        if not left:is_empty() then
+            minetest.chat_send_player(player:get_player_name(),
+                "Inventory full: clear one slot to receive "..def.name)
+            return false
+        end
+    end
+    minetest.chat_send_player(player:get_player_name(),
+        def.name.." ready. Equip from hotbar. Reload: R/AUX1. ADS: secondary.")
+    return true
+end
+minetest.register_on_player_receive_fields(function(player,formname,fields)
+    if formname~="arsenal:picker" or not valid_player(player) then return false end
+    for _,c in ipairs(categories) do
+        if fields["cat_"..c.key] then
+            display_picker(player,c.key)
+            return true
+        end
+    end
+    for key in pairs(fields) do
+        local id=key:match("^weapon_([a-z0-9_]+)$")
+        if id and defs["arsenal:"..id] then
+            grant_weapon(player,id)
+            display_picker(player,active_category[player:get_player_name()])
+            return true
+        end
+    end
+    return true
+end)
+minetest.register_craftitem("arsenal:tablet",{
+    description="Arsenal loadout picker (private source preview)",
+    inventory_image="arsenal_flat_metal.png",
+    stack_max=1,
+    on_use=function(itemstack,user)
+        display_picker(user)
+        return itemstack
+    end
+})
+minetest.register_chatcommand("arsenalmenu",{
+    description="Open mobile touch category and gun picker",
+    func=function(who)
+        local player=minetest.get_player_by_name(who)
+        if not player then return false,"Player unavailable" end
+        display_picker(player)
+        return true,"Arsenal weapon picker opened"
+    end
+})
 minetest.register_chatcommand("arsenal",{
     params="[weapon_id]",
     description="Private Arsenal: list or give a source-verified test weapon",
@@ -322,6 +435,7 @@ minetest.register_on_leaveplayer(function(player)
     local who=player:get_player_name()
     players[who]=nil
     crate_timestamps[who]=nil
+    active_category[who]=nil
 end)
 minetest.register_globalstep(function(_)
     for _,player in ipairs(minetest.get_connected_players()) do
