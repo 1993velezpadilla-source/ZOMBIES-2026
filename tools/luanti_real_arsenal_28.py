@@ -52,14 +52,15 @@ def metadata_valid(path: Path, *, required=frozenset(ACTIONS)) -> bool:
     )
 
 
-def choose_source(model_dir: Path, xanim_dir: Path, aliases: list[str]):
+def choose_source(model_dir: Path, xanim_dir: Path, aliases: list[str], animation_aliases: list[str] | None = None):
+    animation_aliases = animation_aliases or aliases
     models = sorted((p for p in model_dir.glob("*.glb") if
                      LOD0.search(p.name) and match(p.stem, aliases)),
                     key=lambda p:(sum(t in p.stem.lower() for t in SKIP_PARTS),
                                   len(p.name),p.name))[:MAX_MODELS_PER_WEAPON]
     animation_candidates = [
         p for p in sorted(xanim_dir.iterdir()) if p.is_file() and
-        match(p.stem, aliases)
+        match(p.stem, animation_aliases)
     ][:MAX_ANIMS_PER_WEAPON] if xanim_dir.exists() else []
     if not models or not animation_candidates:
         return None, {"candidate_models":len(models),
@@ -127,7 +128,8 @@ def build(original: Path, manifest: dict, destination: Path) -> dict:
     results = {}
     for w in weapons:
         id = w["id"]
-        chosen, report = choose_source(model_dir,anim_dir,w["model_aliases"])
+        chosen, report = choose_source(model_dir,anim_dir,w["model_aliases"],
+                                       w.get("animation_aliases"))
         report.update({"category":w["category"],
                        "source_glb_generated":False,
                        "source_hands_generated":False,

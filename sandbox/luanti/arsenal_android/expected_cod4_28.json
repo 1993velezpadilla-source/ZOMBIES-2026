@@ -4,7 +4,7 @@
   "target_weapon_count": 28,
   "source_distribution": "PRIVATE_ONLY_NO_PUBLIC_GAME_ASSETS",
   "source_license": "commercial_use_not_cleared",
-  "notes": "Expected weapon identities and source model name candidates. NOT an actual extracted model manifest; no unverified gun may be counted as playable. Model alias corrections from actual OAT viewmodel family inventory: M9 -> viewmodel_beretta, gold Deagle -> viewmodel_desert_eagle_gold. Do not use estimated magazine or reserve ammo: require original WeaponDef values.",
+  "notes": "Expected weapon identities and source model name candidates. NOT an actual extracted model manifest; no unverified gun may be counted as playable. Model alias corrections from actual OAT viewmodel family inventory: M9 -> viewmodel_beretta, gold Deagle -> viewmodel_desert_eagle_gold. Do not use estimated magazine or reserve ammo: require original WeaponDef values. Gold Deagle can reuse original base Desert Eagle XANIM only after bone-overlap validation against the distinct gold viewmodel (never assume matching).",
   "weapons": [
     {
       "id": "ak47",
@@ -402,7 +402,11 @@
         "desert_eagle_gold_mp",
         "deserteaglegold"
       ],
-      "source_status": "UNVERIFIED"
+      "source_status": "UNVERIFIED",
+      "animation_aliases": [
+        "viewmodel_desert_eagle_gold",
+        "viewmodel_desert_eagle"
+      ]
     },
     {
       "id": "rpg",

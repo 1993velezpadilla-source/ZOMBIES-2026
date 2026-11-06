@@ -52,6 +52,25 @@ class Original28Tests(unittest.TestCase):
             self.assertEqual(set(chosen[1]),{"idle","ads","fire","reload"})
             self.assertGreaterEqual(report["minimum_common_bones"],2)
 
+    def test_gold_deagle_source_model_can_reuse_native_base_xanim_with_rig_check(self):
+        with tempfile.TemporaryDirectory() as t:
+            root=Path(t)
+            glb(root/"model_export/viewmodel_desert_eagle_gold_mp_lod0.glb")
+            (root/"xanim").mkdir()
+            for action in ("idle","ads_up","fire","reload"):
+                (root/"xanim"/f"viewmodel_desert_eagle_{action}").write_bytes(b"original-xanim")
+            with patch("luanti_real_arsenal_28.read_nodes",
+                       return_value={"joints":{"j_gun","tag_weapon","j_main"}}),\\
+                 patch("luanti_real_arsenal_28.load_xanim",
+                       return_value=FakeAnimation()):
+                chosen,rec=choose_source(
+                    root/"model_export",root/"xanim",
+                    ["viewmodel_desert_eagle_gold"],
+                    ["viewmodel_desert_eagle_gold","viewmodel_desert_eagle"])
+            self.assertIsNotNone(chosen)
+            self.assertTrue(chosen[0].name.startswith("viewmodel_desert_eagle_gold"))
+            self.assertEqual(set(chosen[1]),{"idle","ads","fire","reload"})
+
     def test_no_missing_source_can_produce_28_fake_models(self):
         with tempfile.TemporaryDirectory() as t:
             source=Path(t)/"dumps"
