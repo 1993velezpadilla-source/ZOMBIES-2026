@@ -18,8 +18,10 @@ PR #15 development branch \`feature/ak47-cod4-original-mesh-luanti-20261106\`.
    - Empty: original-pitch recording starts at 0.47 seconds, with a **separate
      CC0 bolt click** at 2.93 sec in the 106-frame
      \`viewmodel_ak47_reload_empty\` animation (3.5333 sec).
-   - Both are independently exported OGGs and source samples are never
-     resampled, pitched down or time-stretched.
+   - Both are independently exported OGGs; the magazine recording's PCM is
+     unchanged. The short click may be sample-rate converted to match the
+     magazine file without altering its pitch or real-world duration.
+     No slowing down, phase-vocoder effects or tempo changes.
    - NOTE: a future recording with truly separate magazine/charging Foley
      would still be an upgrade. This fix does not pretend those recordings
      exist.
