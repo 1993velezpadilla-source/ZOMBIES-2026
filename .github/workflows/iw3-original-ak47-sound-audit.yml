@@ -4,6 +4,7 @@ on:
     branches: [feature/ak47-cod4-original-mesh-luanti-20261106]
     paths:
       - tools/find_cod4_ak47_reload_sound.py
+      - tools/find_cod4_ak47_loaded_audio.py
       - .github/workflows/iw3-original-ak47-sound-audit.yml
   workflow_dispatch:
 permissions:
@@ -16,6 +17,42 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Cache native-local OAT exporter (open-source binary only)
+        id: native_oat_cache
+        uses: actions/cache@v4
+        with:
+          path: _native_oat
+          key: oat-native-locals-v034-x64-v2-${{ hashFiles('sandbox/luanti/iw3_blockstyle/patch_oat_native_locals.py') }}
+      - uses: actions/checkout@v4
+        if: steps.native_oat_cache.outputs.cache-hit != 'true'
+        with:
+          repository: Laupetin/OpenAssetTools
+          ref: 28b14ea0ee41844cfad9875176f9dc693db045cf
+          path: _oat_native_src
+          submodules: recursive
+          persist-credentials: false
+      - name: Build pinned x64 OAT with private native model-local sidecars
+        if: steps.native_oat_cache.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends g++-14
+          python3 sandbox/luanti/iw3_blockstyle/patch_oat_native_locals.py _oat_native_src
+          export PREMAKE_NO_PROMPT=1
+          (cd _oat_native_src && ./generate.sh --cc=gcc)
+          CC=gcc-14 CXX=g++-14 make -C _oat_native_src/build -j"$(nproc)" config=release_x64 UnlinkerCli
+          mkdir -p _native_oat
+          cp _oat_native_src/build/bin/Release_x64/Unlinker _native_oat/Unlinker
+          cp -a _oat_native_src/build/bin/Release_x64/raw _native_oat/raw
+          chmod +x _native_oat/Unlinker
+      - name: Select native-local source exporter
+        run: |
+          chmod +x _native_oat/Unlinker
+          echo "UNLINKER=$PWD/_native_oat/Unlinker" >> "$GITHUB_ENV"
       - name: Download the user's actual COD4 PC game data (7GB split source ZIP)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -30,14 +67,64 @@ jobs:
         run: |
           set -euo pipefail
           python3 tools/find_cod4_ak47_reload_sound.py _release_assets/c4 _iw3_reports/ak47-cod4-original-reload-sound-search.json
+      - name: Stage authentic COD4 common_mp and common FastFiles (no extraction published)
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import sys
+          from pathlib import Path
+          from zipfile import ZipFile
+          sys.path.insert(0,str(Path("tools").resolve()))
+          from audit_releases import SplitReader
+          parts=sorted(Path("_release_assets/c4").glob("C4-Mocs.zip.part-*"))
+          src=SplitReader(parts)
+          try:
+              with ZipFile(src) as archive:
+                  for zone in ("common_mp","mp_crash","common"):
+                      name="Call of Duty 4 Modern Warfare/zone/spanish/"+zone+".ff"
+                      info=archive.getinfo(name)
+                      out=Path("_iw3_private/zone/spanish")/(zone+".ff")
+                      out.parent.mkdir(parents=True,exist_ok=True)
+                      with archive.open(info) as i,out.open('wb') as o:
+                          while data:=i.read(4*1024*1024):o.write(data)
+                      assert out.stat().st_size==info.file_size
+                      print("PRIVATE_FASTFILE_STAGED",zone,info.file_size,flush=True)
+          finally:
+              src.close()
+          PY
+      - name: Resolve AK47 clipout / clipin / chamber from original fastfile Sound and LoadedSound assets
+        run: |
+          set -euo pipefail
+          mkdir -p _iw3_reports/cod4-sound-lists _iw3_private/sound-loaded
+          for zone in common_mp mp_crash common; do
+            FF="$PWD/_iw3_private/zone/spanish/$zone.ff"
+            echo "== inspecting original IW3 zone $zone =="
+            "$UNLINKER" --no-color --search-path "$PWD/_iw3_private/zone/spanish" \
+              --list "$FF" > "_iw3_reports/cod4-sound-lists/cod4-$zone.txt" 2>&1
+            grep -iE 'weap_ak47|ak47|clipout|clipin|chamber|reload' \
+              "_iw3_reports/cod4-sound-lists/cod4-$zone.txt" | head -80 || true
+            "$UNLINKER" --no-color --search-path "$PWD/_iw3_private/zone/spanish" \
+              --include-assets loadedsound \
+              --output-folder "$PWD/_iw3_private/sound-loaded/$zone" \
+              "$FF" > "_iw3_reports/cod4-sound-lists/unlink-$zone.txt" 2>&1 || {
+                tail -80 "_iw3_reports/cod4-sound-lists/unlink-$zone.txt"
+                exit 1
+              }
+          done
+          python3 tools/find_cod4_ak47_loaded_audio.py \
+            _iw3_reports/cod4-sound-lists _iw3_private/sound-loaded \
+            _iw3_reports/ak47-cod4-original-loaded-audio-source-search.json
+          test -s _iw3_reports/ak47-cod4-original-loaded-audio-source-search.json
       - name: Upload filename/hash audit ONLY, never upload proprietary sounds
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: original-COD4-AK47-reload-source-search
-          path: _iw3_reports/ak47-cod4-original-reload-sound-search.json
+          path: |
+            _iw3_reports/ak47-cod4-original-reload-sound-search.json
+            _iw3_reports/ak47-cod4-original-loaded-audio-source-search.json
           if-no-files-found: warn
           retention-days: 14
       - name: Clean private game archive
         if: always()
-        run: rm -rf _release_assets
+        run: rm -rf _release_assets _iw3_private
