@@ -81,7 +81,8 @@ class PrivateArsenalTests(unittest.TestCase):
                           clips=("idle","ads","fire","reload"))
             result=stage(expected,animated,original,root/"source",root/"out")
             self.assertFalse(result["weapons"][0]["distinct_empty_reload_animation"])
-            self.assertFalse(result["weapons"][0]["gameplay_logic_enabled"])
+            self.assertTrue(result["weapons"][0]["gameplay_logic_enabled"])
+            self.assertTrue(result["weapons"][0]["original_stats_verified"])
 
     def test_no_real_model_raises_instead_of_faking_28(self):
         with tempfile.TemporaryDirectory() as t:
