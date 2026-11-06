@@ -259,7 +259,11 @@ def build(rifle_path,hands_path,weapon_path,output):
     finally:preview.close()
     images[0].save(output/'AK47_ADS_512.gif',save_all=True,append_images=images[1:],
                    duration=delays,loop=0,optimize=False,disposal=2)
-    audit['gif_frames']=len(images);audit['gif_duration_ms']=sum(delays)
+    # Pillow coalesces identical hold frames while retaining their delays.
+    # Distinguish rendered samples from physical encoded GIF frames.
+    with Image.open(output/'AK47_ADS_512.gif') as encoded:
+        audit['gif_frames']=encoded.n_frames
+    audit['rendered_pose_count']=len(images);audit['gif_duration_ms']=sum(delays)
     (output/'ads-audit.json').write_text(json.dumps(audit,indent=2)+'\n')
     print(json.dumps({'frames':len(images),'duration_ms':sum(delays),'metrics':metrics,'calibration':config}))
     return audit

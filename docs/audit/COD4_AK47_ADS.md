@@ -54,9 +54,11 @@ No per-frame recentering follows the rifle or suppresses source recoil.
 Seventeen local tests pass, including independent sparse-layer kinematics,
 standalone baked grip and enter/hold/exit boundaries, quaternion half turns,
 embedded 512px GPU texturing and the existing native-rig regressions. The
-actual-source ADS GIF contains 128 sampled poses over 2.12s, with paired
+actual-source ADS render samples 128 poses over 2.12s, with paired
 source-derived enter/hold/fire/exit and a fixed camera. Every frame samples
 four textured rifle primitives and has nonempty rendered geometry.
+The GIF encoder merges identical held poses into 47 encoded frames, preserving
+the full 2.12s playback duration.
 
 The prior static painter's 65,000-triangle cap rejected the HD rifle before
 other CI gates could run. Static previews now use the same depth renderer,
