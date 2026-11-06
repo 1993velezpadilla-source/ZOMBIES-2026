@@ -81,7 +81,9 @@ class DistinctSourceReloadTest(unittest.TestCase):
         # Documentation for the repeated bug, guard the newly installed
         # runtime against accidentally regressing back to the old generator.
         src=(Path(__file__).parent/'patch_engine.py').read_text()
-        self.assertIn('from make_reload_distinct_v6 import prepare',src)
+        self.assertNotIn('from make_reload_distinct_v6 import prepare',src)
+        self.assertIn('MISSING AUTHENTIC COD4 SOUND',src)
+        self.assertIn("assets/'sounds'/original",src)
         self.assertNotIn('from make_reload_audio import prepare as make_reload_audio',src)
         self.assertIn('assaultriflereload1_0.wav',Path(__file__).with_name('make_reload_distinct_v6.py').read_text())
 
