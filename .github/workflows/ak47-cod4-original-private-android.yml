@@ -196,8 +196,8 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           text=Path('_iw3_reports/android-badging.txt').read_text()
-          assert "name='com.xziel.voxelsandbox.ak47photoaudio'" in text
-          assert "versionCode='5180006'" in text
+          assert "name='com.xziel.voxelsandbox.ak47steelv4'" in text
+          assert "versionCode='5180007'" in text
           assert 'application-debuggable' not in text
           assert "native-code: 'arm64-v8a'" in text
           PY
@@ -210,11 +210,11 @@ jobs:
           set -euo pipefail
           mkdir -p _direct_apk
           APK="$RUNNER_TEMP/luanti/android/app/build/outputs/apk/release/app-arm64-v8a-release.apk"
-          cp "$APK" _direct_apk/AK47-COD4-PHOTO-AUDIO-V3-ARM64.apk
+          cp "$APK" _direct_apk/AK47-DARK-STEEL-V4-ARM64.apk
           python3 - <<'PY'
           from pathlib import Path
           from zipfile import ZipFile
-          apk=Path("_direct_apk/AK47-COD4-PHOTO-AUDIO-V3-ARM64.apk")
+          apk=Path("_direct_apk/AK47-DARK-STEEL-V4-ARM64.apk")
           assert apk.read_bytes()[:2] == b"PK", "Not an installable APK ZIP"
           with ZipFile(apk) as z:
               assert "AndroidManifest.xml" in z.namelist()
@@ -224,8 +224,8 @@ jobs:
       - name: Upload real installable APK without encryption
         uses: actions/upload-artifact@v4
         with:
-          name: AK47-COD4-PHOTO-AUDIO-V3-DIRECT-APK
-          path: _direct_apk/AK47-COD4-PHOTO-AUDIO-V3-ARM64.apk
+          name: AK47-DARK-STEEL-V4-DIRECT-APK
+          path: _direct_apk/AK47-DARK-STEEL-V4-ARM64.apk
           if-no-files-found: error
           retention-days: 7
           compression-level: 0
@@ -238,7 +238,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: AK47-COD4-PHOTO-AUDIO-V3-build-evidence
+          name: AK47-DARK-STEEL-V4-build-evidence
           path: |
             _iw3_reports/android-build.json
             _iw3_reports/android-badging.txt
