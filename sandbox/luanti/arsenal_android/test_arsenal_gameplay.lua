@@ -99,6 +99,11 @@ io.open=function(path,mode)
 end
 local methods={}
 local hit_count=0
+local played={}
+local function has_audio(name)
+    for _,effect in ipairs(played) do if effect==name then return true end end
+    return false
+end
 _G.vector={
     add=function(a,b) return {x=a.x+b.x,y=a.y+b.y,z=a.z+b.z} end,
     multiply=function(a,v) return {x=a.x*v,y=a.y*v,z=a.z*v} end
@@ -117,6 +122,10 @@ _G.minetest={
     get_player_by_name=function(name) return name=="Tester" and player or nil end,
     raycast=function() return function() return nil end end,
     log=function() end,
+    sound_play=function(name,params,ephemeral)
+        assert(params.to_player=="Tester" and ephemeral==true)
+        played[#played+1]=name
+    end,
 }
 local mod="sandbox/luanti/arsenal_android/arsenal_mod/init.lua"
 dofile(mod)
@@ -139,6 +148,7 @@ local get=methods["arsenal:ak47"]
 get.on_use(player:get_wielded_item(),player)
 assert(ammo(1)==29,"AK fire must consume one real bullet")
 assert(hud_text:find("29 / 150"),"Real source ammo HUD wrong")
+assert(has_audio("ak47dev_fire"),"AK must use actual original fire sound")
 clock=clock+.11
 get.on_secondary_use(player:get_wielded_item(),player)
 assert(player:get_wielded_item():get_meta():get_string("xz_ar_ads")=="1","ADS metadata")
@@ -151,6 +161,7 @@ local meta=player:get_wielded_item():get_meta()
 assert(meta:get_string("xz_ar_empty")=="0","Tactical reload selected empty sequence")
 assert(meta:get_string("xz_ar_anim"):sub(1,1)=="R")
 assert(ammo(1)==29,"Clip must not refill before actual reload duration")
+assert(has_audio("ak47dev_reload_normal"),"Tactical mag sound must be original")
 control.aux1=false
 clock=clock+2.51
 methods.step(.01)
@@ -166,15 +177,19 @@ clock=clock+.11
 control.aux1=true;methods.step(.01);control.aux1=false
 meta=player:get_wielded_item():get_meta()
 assert(meta:get_string("xz_ar_empty")=="1","Empty magazine needs original empty animation")
+assert(has_audio("ak47dev_reload_empty"),"Empty mag sound must remain distinct")
 clock=clock+3.26;methods.step(.01)
 a,b=ammo(1);assert(a==30 and b==119,"Empty-mag refill accounting")
 
 -- Universal ammo crate refills both owned arms, not only AK.
 equip("arsenal:m4",2)
 local m4=methods["arsenal:m4"]
+local audio_count_before_other_weapon=#played
 clock=clock+.2
 m4.on_use(player:get_wielded_item(),player)
 assert(ammo(2)==29)
+assert(#played==audio_count_before_other_weapon,
+    "Other guns may NOT reuse original AK47 fire sound")
 methods["arsenal:ammo_box"].on_rightclick(nil,nil,player,nil)
 a,b=ammo(1);assert(a==30 and b==150,"AK crate reserve")
 a,b=ammo(2);assert(a==30 and b==150,"M4 universal refill")
@@ -190,6 +205,8 @@ clock=clock+.1
 preview.on_use(player:get_wielded_item(),player)
 assert(ammo(3)==0,"Preview gun must not get fabricated clip count")
 assert(player:get_wielded_item():get_meta():get_string("xz_ar_anim"):sub(1,1)=="F")
+assert(#played==audio_count_before_other_weapon,
+    "Preview pistols must not emit the AK sound")
 
 local ok,msg=methods["/arsenal"].func("Tester","not_a_real_gun")
 assert(not ok and msg:find("not verified"),"No nonexistent tool")
