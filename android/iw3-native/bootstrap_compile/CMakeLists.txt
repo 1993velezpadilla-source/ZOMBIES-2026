@@ -42,3 +42,19 @@ original_tu(iw3_db_registry database/db_registry.cpp)
 original_tu(iw3_client_input client/cl_input.cpp)
 original_tu(iw3_screen client/screen_placement.cpp)
 add_custom_target(iw3_sp_bootstrap_compile DEPENDS iw3_common iw3_cmd iw3_math iw3_files iw3_db_load iw3_db_registry iw3_client_input iw3_screen)
+
+# Explicit, opt-in genuine link probe. This target deliberately fails until all
+# original engine dependencies are provided; it must NEVER be packaged as an APK.
+# Build with: cmake --build <build-dir> --target iw3_sp_link_probe
+add_library(iw3_sp_link_probe SHARED
+  $<TARGET_OBJECTS:iw3_common>
+  $<TARGET_OBJECTS:iw3_cmd>
+  $<TARGET_OBJECTS:iw3_math>
+  $<TARGET_OBJECTS:iw3_files>
+  $<TARGET_OBJECTS:iw3_db_load>
+  $<TARGET_OBJECTS:iw3_db_registry>
+  $<TARGET_OBJECTS:iw3_client_input>
+  $<TARGET_OBJECTS:iw3_screen>
+)
+set_target_properties(iw3_sp_link_probe PROPERTIES EXCLUDE_FROM_ALL TRUE)
+target_link_options(iw3_sp_link_probe PRIVATE "LINKER:--no-undefined")
