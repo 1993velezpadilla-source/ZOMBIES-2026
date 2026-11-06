@@ -63,8 +63,8 @@ class DistinctSourceReloadTest(unittest.TestCase):
             report_on_disk=json.loads((mod/'sounds'/'ak47dev_reload_audit_v6.json').read_text())
             self.assertNotEqual(report_on_disk['normal']['source_provenance'],
                                 report_on_disk['empty']['source_provenance'])
-            n,_=sf.read(mod/'sounds'/'ak47dev_reload_normal.ogg')
-            e,_=sf.read(mod/'sounds'/'ak47dev_reload_empty.ogg')
+            n,_=sf.read(mod/'sounds'/'ak47dev_reload_normal.ogg',always_2d=True)
+            e,_=sf.read(mod/'sounds'/'ak47dev_reload_empty.ogg',always_2d=True)
             self.assertGreater(float(np.std(n)),.035)
             self.assertGreater(float(np.std(e)),.035)
             self.assertFalse(np.allclose(n[:1000,0],e[:1000,0],atol=.01),
