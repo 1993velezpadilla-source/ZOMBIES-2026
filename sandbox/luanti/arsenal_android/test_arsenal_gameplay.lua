@@ -174,6 +174,10 @@ for i=1,30 do
 end
 a,b=ammo(1);assert(a==0 and b==149,"Magazine must empty exactly")
 clock=clock+.11
+get.on_use(player:get_wielded_item(),player)
+assert(has_audio("ak47dev_dry"),"AK original dry-fire click required at zero")
+a,b=ammo(1);assert(a==0 and b==149,"Dry-fire cannot consume reserve")
+clock=clock+.3
 control.aux1=true;methods.step(.01);control.aux1=false
 meta=player:get_wielded_item():get_meta()
 assert(meta:get_string("xz_ar_empty")=="1","Empty magazine needs original empty animation")
