@@ -32,6 +32,10 @@ jobs:
           sudo apt-get install -y -qq --no-install-recommends gettext lua5.1 libjsoncpp-dev libzstd-dev libegl1 libgl1-mesa-dri
           python3 -m pip install --quiet --user Pillow==12.0.0 numpy==2.3.4 soundfile==0.13.1 moderngl==5.12.0 'cryptography>=44,<49'
           python3 -m py_compile sandbox/luanti/ak47_hd_android/*.py
+          python3 sandbox/luanti/ak47_hd_android/photo_materials.py \
+            --output "$RUNNER_TEMP/ak47-cc0-photos"
+          echo "AK47_CC0_TEXTURE_DIR=$RUNNER_TEMP/ak47-cc0-photos" >> "$GITHUB_ENV"
+          echo "AK47_REQUIRE_CC0_PHOTOS=1" >> "$GITHUB_ENV"
           python3 sandbox/luanti/ak47_hd_android/test_fps_patch.py
           luac5.1 -p sandbox/luanti/ak47_hd_android/init.lua
           lua5.1 sandbox/luanti/ak47_hd_android/test_controls.lua
@@ -101,6 +105,7 @@ jobs:
           python3 sandbox/luanti/iw3_blockstyle/voxelize.py \
             --dumps _iw3_private/dumps --output _iw3_private/blockstyle \
             --report _iw3_reports/ak47-blockstyle.json
+          test -s "$AK47_CC0_TEXTURE_DIR/sources.json"
           python3 sandbox/luanti/ak47_hd_android/prepare_runtime.py \
             --blockstyle _iw3_private/blockstyle \
             --weapon _iw3_private/dumps/common_mp/weapons/ak47_mp \
@@ -109,6 +114,7 @@ jobs:
           import json
           report=json.load(open('_iw3_private/runtime/viewmodel-audit.json'))
           assert report['original_source_mesh'] and report['no_voxel_conversion'],report
+          assert report['rifle_texture_version']=='photo_material_v3',report
           print('ORIGINAL_COD4_POLYGON_TRIANGLES',report['triangles'])
           PY
       - name: Fetch the pinned working game base
@@ -159,6 +165,7 @@ jobs:
             --root "$RUNNER_TEMP/luanti" --assets _iw3_private/runtime
           grep -q 'AK47_REAL_FPS_METER' "$RUNNER_TEMP/luanti/src/client/gameui.cpp"
           grep -q 'm_flags.show_minimal_debug = true;' "$RUNNER_TEMP/luanti/src/client/gameui.cpp"
+          grep -q 'm_guitext2->setVisible(false)' "$RUNNER_TEMP/luanti/src/client/gameui.cpp"
           python3 - <<'PY'
           import soundfile as sf
           from pathlib import Path
@@ -189,8 +196,8 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           text=Path('_iw3_reports/android-badging.txt').read_text()
-          assert "name='com.xziel.voxelsandbox.ak47combo2'" in text
-          assert "versionCode='5180005'" in text
+          assert "name='com.xziel.voxelsandbox.ak47photoaudio'" in text
+          assert "versionCode='5180006'" in text
           assert 'application-debuggable' not in text
           assert "native-code: 'arm64-v8a'" in text
           PY
@@ -203,11 +210,11 @@ jobs:
           set -euo pipefail
           mkdir -p _direct_apk
           APK="$RUNNER_TEMP/luanti/android/app/build/outputs/apk/release/app-arm64-v8a-release.apk"
-          cp "$APK" _direct_apk/AK47-COD4-COMBO-V2-ARM64.apk
+          cp "$APK" _direct_apk/AK47-COD4-PHOTO-AUDIO-V3-ARM64.apk
           python3 - <<'PY'
           from pathlib import Path
           from zipfile import ZipFile
-          apk=Path("_direct_apk/AK47-COD4-COMBO-V2-ARM64.apk")
+          apk=Path("_direct_apk/AK47-COD4-PHOTO-AUDIO-V3-ARM64.apk")
           assert apk.read_bytes()[:2] == b"PK", "Not an installable APK ZIP"
           with ZipFile(apk) as z:
               assert "AndroidManifest.xml" in z.namelist()
@@ -217,8 +224,8 @@ jobs:
       - name: Upload real installable APK without encryption
         uses: actions/upload-artifact@v4
         with:
-          name: AK47-COD4-COMBO-V2-DIRECT-APK
-          path: _direct_apk/AK47-COD4-COMBO-V2-ARM64.apk
+          name: AK47-COD4-PHOTO-AUDIO-V3-DIRECT-APK
+          path: _direct_apk/AK47-COD4-PHOTO-AUDIO-V3-ARM64.apk
           if-no-files-found: error
           retention-days: 7
           compression-level: 0
@@ -231,7 +238,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: AK47-COD4-COMBO-V2-build-evidence
+          name: AK47-COD4-PHOTO-AUDIO-V3-build-evidence
           path: |
             _iw3_reports/android-build.json
             _iw3_reports/android-badging.txt
