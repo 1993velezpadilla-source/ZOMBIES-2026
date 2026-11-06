@@ -1,68 +1,53 @@
-"""Always-on top-right FPS display for the private COD4 Luanti Android trial.
+"""Permanent FPS meter for Luanti 5.18: REUSE its working minimal-debug text.
 
-Patch the pinned Luanti 5.18 GameUI, not a Lua HUD. Lua cannot measure the
-client's actual rendered frames. The regular debug overlay remains optional.
+Earlier dedicated StaticText had no visible output on a real Pixel Fold.
+Instead, this uses the pre-existing GameUI text that is already rendered by
+the engine, and makes its contents simply "FPS: N" at the upper-right.
+Never use a Lua/server timer as a substitute for measured client frame FPS.
 """
 from pathlib import Path
 import argparse
 
-def replace_once(path: Path, before: str, after: str):
-    text = path.read_text()
-    count = text.count(before)
-    if count != 1:
-        raise ValueError(f"{path}: expected one FPS HUD anchor; found {count}: {before[:75]!r}")
-    path.write_text(text.replace(before, after))
+
+def replace_once(path: Path, old: str, new: str):
+    text=path.read_text()
+    if text.count(old)!=1:
+        raise ValueError(f"{path}: FPS anchor count={text.count(old)}: {old[:95]!r}")
+    path.write_text(text.replace(old,new))
+
 
 def patch(root: Path):
-    header = root / "src/client/gameui.h"
-    cpp = root / "src/client/gameui.cpp"
-    # Fail early instead of appending a second FPS widget on repeated runs.
-    if "m_ak47_fps_text" in header.read_text() or "m_ak47_fps_text" in cpp.read_text():
-        raise ValueError("Luanti source already has the dedicated AK47 FPS HUD")
-    replace_once(header,
-        "\tgui::IGUIStaticText *m_guitext2 = nullptr; // Second line of debug text",
-        "\tgui::IGUIStaticText *m_guitext2 = nullptr; // Second line of debug text\n"
-        "\tgui::IGUIStaticText *m_ak47_fps_text = nullptr; // Always-on Android FPS")
-
+    cpp=root/'src/client/gameui.cpp'
+    if 'AK47_REAL_FPS_METER' in cpp.read_text():
+        raise ValueError('FPS source already patched')
+    # Existing engine debug text is reliably rendered even on Android.
     replace_once(cpp,
-        "\t// Chat text\n\tm_guitext_chat = gui::StaticText::add(",
-        "\t// Small, separate HUD, positioned relative to the live viewport.\n"
-        "\tm_ak47_fps_text = gui::StaticText::add(guienv, L\"FPS: --\",\n"
-        "\t\tcore::recti(), false, false, guiroot);\n"
-        "\tm_ak47_fps_text->setOverrideFont(g_fontengine->getFont(\n"
-        "\t\tg_fontengine->getDefaultFontSize() * 1.1f, FM_Unspecified));\n"
-        "\tm_ak47_fps_text->setTextAlignment(gui::EGUIA_LOWERRIGHT, gui::EGUIA_UPPERLEFT);\n"
-        "\tm_ak47_fps_text->setOverrideColor(video::SColor(255, 255, 244, 160));\n"
-        "\t// Chat text\n\tm_guitext_chat = gui::StaticText::add(")
-
+        '\ts32 minimal_debug_height = 0;',
+        '\t// AK47_REAL_FPS_METER: always show genuine smoothed render FPS.\n'
+        '\t// The previous new StaticText control was hidden on the test phone.\n'
+        '\tm_flags.show_minimal_debug = true;\n'
+        '\ts32 minimal_debug_height = 0;')
     replace_once(cpp,
-        "\ts32 minimal_debug_height = 0;",
-        "\t// The same jitter-smoothed frame duration used by Luanti's own\n"
-        "\t// minimal debug screen. This reports REAL rendered FPS, not a limit.\n"
-        "\tconst float avg_dt = stats.dtime_jitter.avg;\n"
-        "\tstd::ostringstream fps_label;\n"
-        "\tif (avg_dt > 0.000001f && avg_dt < 10.0f)\n"
-        "\t\tfps_label << \"FPS: \" << static_cast<int>(1.0f / avg_dt + 0.5f);\n"
-        "\telse\n"
-        "\t\tfps_label << \"FPS: --\";\n"
-        "\tconst s32 right = static_cast<s32>(screensize.X) - 14;\n"
-        "\tconst s32 left = std::max(0, right - 180);\n"
-        "\tm_ak47_fps_text->setRelativePosition(core::recti(left, 9, right, 57));\n"
-        "\tsetStaticText(m_ak47_fps_text, utf8_to_wide(fps_label.str()));\n"
-        "\tm_ak47_fps_text->setVisible(m_flags.show_hud && g_menumgr.menuCount() == 0);\n\n"
-        "\ts32 minimal_debug_height = 0;")
-
+        '\t\tm_guitext->setRelativePosition(core::rect<s32>(5, 5, screensize.X, screensize.Y));',
+        '\t\t// Right-anchored using the actual window dimension on rotation.\n'
+        '\t\tm_guitext->setRelativePosition(core::rect<s32>(\n'
+        '\t\t\tstd::max<s32>(0, static_cast<s32>(screensize.X) - 235),\n'
+        '\t\t\t12, static_cast<s32>(screensize.X) - 14, 65));\n'
+        '\t\tm_guitext->setTextAlignment(gui::EGUIA_LOWERRIGHT, gui::EGUIA_UPPERLEFT);\n'
+        '\t\tm_guitext->setOverrideColor(video::SColor(255, 255, 235, 122));')
     replace_once(cpp,
-        "void GameUI::clearText()\n{\n",
-        "void GameUI::clearText()\n{\n"
-        "\tif (m_ak47_fps_text) {\n"
-        "\t\tm_ak47_fps_text->remove();\n"
-        "\t\tm_ak47_fps_text = nullptr;\n"
-        "\t}\n")
+        '\t\tsetStaticText(m_guitext, utf8_to_wide(os.str()));',
+        '\t\t// Show only the frame rate, not the original long debug line.\n'
+        '\t\tstd::ostringstream meter;\n'
+        '\t\tif (stats.dtime_jitter.avg > 0.0001f && stats.dtime_jitter.avg < 10.0f)\n'
+        '\t\t\tmeter << "FPS: " << static_cast<int>(1.0f / stats.dtime_jitter.avg + 0.5f);\n'
+        '\t\telse\n'
+        '\t\t\tmeter << "FPS: --";\n'
+        '\t\tsetStaticText(m_guitext, utf8_to_wide(meter.str()));')
+    print('AK47_REAL_FPS_METER: native visible minimal-debug control in top-right')
 
-    print("Top-right FPS overlay enabled using real GameUI frame stats")
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("root", type=Path)
+if __name__=='__main__':
+    parser=argparse.ArgumentParser()
+    parser.add_argument('root',type=Path)
     patch(parser.parse_args().root)
