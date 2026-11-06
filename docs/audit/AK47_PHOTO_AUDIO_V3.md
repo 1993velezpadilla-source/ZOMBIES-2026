@@ -41,12 +41,12 @@ publisher's MD5 hashes. No third-party COD4 diffuse textures are used.
 | Material | CC0 publisher | Asset | Download map |
 | --- | --- | --- | --- |
 | Walnut furniture | Poly Haven | \`wood_table_001\` | 1K JPG Diffuse |
-| Painted/steel receiver and magazine | Poly Haven | \`metal_plate\` | 1K JPG Diffuse |
+| Rusty steel receiver, barrel and magazine | Poly Haven | \`rusty_metal_04\` | 1K JPG Diffuse |
 | Skin microvariation + cuff surface grain | Poly Haven | \`leather_red_02\` | 1K JPG coll1 |
 
 Poly Haven source/license: https://polyhaven.com/license
 Public endpoints: https://api.polyhaven.com/files/wood_table_001 ;
-https://api.polyhaven.com/files/metal_plate ;
+https://api.polyhaven.com/files/rusty_metal_04 ;
 https://api.polyhaven.com/files/leather_red_02
 
 **These CC0 surface maps may be reused commercially.** That does **not**
