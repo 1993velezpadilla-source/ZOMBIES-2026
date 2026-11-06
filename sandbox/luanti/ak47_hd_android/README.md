@@ -16,7 +16,25 @@ The first-person camera renders the new combined mesh with a skinning-enabled
 shader. It uses the same native camera origin and 75°/50° horizontal FOV as
 the inspected previews, adjusted to the actual viewport aspect ratio.
 Near clipping is 0.25 model units for this weapon. Old generic item placement,
-procedural recoil and the previous placeholder fallback are bypassed.
+and the previous placeholder fallback are bypassed. The inventory item is a
+lightweight tool, avoiding a second static copy of the full weapon mesh.
+
+The native Android code uses Release/O3 with NDEBUG, checked against the actual
+NDK compilation commands. Identical software skin poses are cached on the
+shared mesh; pose changes and static-pose resets invalidate that cache. The
+developer FPS overlay reports hardware/software skinning counters.
+
+Gun recoil uses the original AK weapon-definition parameters and the IW3
+single-angle integration in 5 ms steps. A reference test compares 10,000 steps
+against the original function. Shot counters preserve coalesced events and
+the first firing sample advances beyond frame zero even at low FPS. The
+combined rifle and hands receive the gun rotation together. World-camera
+kick remains a separate integration task.
+
+Decoded media accepts up to 32 MiB per file. Protocol 48+ compression and a
+final serialized-packet guard retain the existing reliable transport budget.
+The native probe verifies exact compression/packet/decoding round trips,
+original source poses, skin-cache invalidation and oversize rejection.
 
 Runtime clips: hip idle, ADS enter/hold/fire/exit, hip fire, normal reload and
 empty reload. Input remains the existing Luanti joystick/look/jump/sneak.
@@ -26,13 +44,14 @@ Normal reload is 83/30s, empty reload 106/30s, and ADS exits before reloading.
 An AK is added and equipped on world join. Raycast hits use the camera center.
 
 Build: `.github/workflows/ak47-hd-private-android.yml`. It reuses the established
-private extraction, verifies the native loader, compiles ARM64, verifies actual
-nested APK assets and the Android signature, and encrypts the APK with a
-delivery public key. Only encrypted APK bytes and non-reversible metadata are
-public Actions artifacts. The private decryption key is never in git or CI.
-The decrypted APK is delivered privately to the owner. No plaintext APK, game
-models, keyframes or original textures are committed or publicly released.
+private extraction, verifies the actual native loader, compiles optimized
+ARM64 code, inspects nested APK assets and verifies the Android signature.
+At the owner's request the installable APK is published as a GitHub prerelease
+asset. An encrypted delivery artifact is also retained; its private RSA key
+never enters git or CI. Extracted source archives and standalone game exports
+are not committed.
 
 Source build recipe and upstream license notices remain in the existing app.
-This prototype still requires a real Android launch/play test and FPS
-measurement; source/loader tests and a signed build do not establish those.
+The previous Debug build ran at 6–7 FPS on the test phone, including while idle.
+Device FPS improvement and the appearance of recoil in this optimized build
+remain to be confirmed; native host tests do not measure phone performance.
