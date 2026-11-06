@@ -2,8 +2,10 @@
 
 The default rifle profile now uses a 384-division surface grid, replacing the
 76-division preview. This is a geometry-resolution setting, not a texture size.
-Materials remain procedural vertex colors; no claim of a 128x128 texture atlas
-is made. The denser conversion follows the same user-provided AK geometry.
+The geometry pass initially used procedural vertex colors; it did not create
+a 128x128 texture atlas. A later pass adds an actual 512x512 atlas; see
+[current texture verification](COD4_AK47_TEXTURE_512.md). The denser conversion
+follows the same user-provided AK geometry.
 
 | Metric | Previous rifle | High-detail rifle |
 | --- | ---: | ---: |

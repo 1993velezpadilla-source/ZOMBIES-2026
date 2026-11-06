@@ -1,5 +1,12 @@
 # COD4 AK-47 -> Minecraft-style block geometry + every XANIM
 
+> The rifle now has an original **512x512 PNG texture atlas**, embedded in its
+> GLB and mapped through new rest-space UVs. Wood grain, pressed magazine
+> grooves and machined-metal detail are painted at native resolution. The
+> 144,134-triangle mesh, original rig and all 39 rifle clips are preserved.
+> Pose/FPS depth previews sample the embedded image directly. The hands keep
+> their existing vertex colors. See [texture verification](../../../docs/audit/COD4_AK47_TEXTURE_512.md).
+
 > High detail is now the default rifle profile: 384 grid divisions and
 > 144,134 triangles after internal-face removal. Use `--rifle-detail legacy`
 > for the original 10,692-triangle comparison. Primary pose/FPS previews use
@@ -53,7 +60,7 @@ PR #6 OpenAssetTools extraction pipeline (checkout on its source branch).
    geometry, textures, animated keyframes or derived proprietary mesh is
    committed or exposed in public GitHub Actions artifacts.**
 
-The generated model is deliberately *unstyled beyond coarse toon materials*;
+The generated model uses independently drawn procedural wood/metal materials;
 it is a **starting point for reauthoring an original AK-family weapon**, not
 a commercially cleared game asset.
 

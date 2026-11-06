@@ -109,6 +109,8 @@ class PoseScene:
             if len(mats)!=len(ids):raise ValueError("skin IBM length differs from joints")
             self.IBM.append(mats)
         self.geometry=[]
+        self.surfaces=[]
+        from texture_atlas import embedded_surface
         for mi,mesh in enumerate(self.doc.get("meshes",[])):
             for primitive in mesh.get("primitives",[]):
                 attrs=primitive["attributes"]
@@ -126,7 +128,12 @@ class PoseScene:
                 factor=material[mid].get("pbrMetallicRoughness",{}).get("baseColorFactor",[1,1,1,1])[:3]
                 colors*=np.asarray(factor)[None,:]
                 self.geometry.append((mi,pos,ix,joints,weights,colors))
+                self.surfaces.append(embedded_surface(self.doc,self.binary,primitive))
         if not self.geometry:raise ValueError("no GLB mesh geometry")
+
+    def posed_surfaces(self):
+        return [surface for geometry,surface in zip(self.geometry,self.surfaces)
+                for _ in self.mesh_nodes.get(geometry[0],[None])]
 
     def names(self):
         return sorted(self.animations)
@@ -208,7 +215,7 @@ def camera_params(points,orientation=(28,25)):
     return (axis,vertical,side,yaw,elevation,cx,cy,scale)
 
 
-def draw_pose(scene,action,t,title,output,*,orientation=(28,25),camera=None,geometry_override=None,renderer='depth'):
+def draw_pose(scene,action,t,title,output,*,orientation=(28,25),camera=None,geometry_override=None,renderer='depth',surfaces_override=None):
     # Independent skinning/mount code may pass a physically composed scene.
     # This renders the actual transformed vertices, never an artist mock-up.
     if geometry_override is None:
@@ -224,6 +231,8 @@ def draw_pose(scene,action,t,title,output,*,orientation=(28,25),camera=None,geom
         from depth_preview import DepthPreview
         preview=DepthPreview(*SCREEN)
         try:
+            preview.set_surfaces(scene.posed_surfaces() if geometry_override is None
+                                 else (surfaces_override or []))
             result=preview.orthographic(geometry,camera,title,output)
             return {"bbox_min":lo.round(5).tolist(),"bbox_max":hi.round(5).tolist(),
                     "faces":result['source_faces'],"geometry_pixels":result['geometry_pixels'],

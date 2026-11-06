@@ -144,7 +144,8 @@ def build(rifle_path,hand_path,output):
                 path=output/name
                 draw_pose(rifle,gunclip,t,
                     f"COD4 BLOCK AK + VIEW HANDS / {action.upper()} / {int(frac*100)}%",
-                    path,camera=camera,geometry_override=combined)
+                    path,camera=camera,geometry_override=combined,
+                    surfaces_override=rifle.posed_surfaces()+hands.posed_surfaces())
                 report["frames"].append({"action":action,"fraction":frac,"time_s":round(t,4),
                     "image":name,**meta})
             except (ValueError,IndexError,np.linalg.LinAlgError) as e:
@@ -167,7 +168,8 @@ def build(rifle_path,hand_path,output):
                 # comparison sheet; mounted-frames main sheet uses fixed camera.
                 draw_pose(rifle,gunclip,t,
                     f"COD4 TAG MOUNT TEST: {strategy} / {action}",
-                    img,geometry_override=combo,camera=camera)
+                    img,geometry_override=combo,camera=camera,
+                    surfaces_override=rifle.posed_surfaces()+hands.posed_surfaces())
                 comparison.append({"action":action,"candidate":strategy,
                                    "image":img.name,**stat})
             except (ValueError,np.linalg.LinAlgError) as exc:

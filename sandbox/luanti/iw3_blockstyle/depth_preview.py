@@ -19,20 +19,26 @@ class DepthPreview:
             uniform mat4 clip_from_world;
             in vec3 in_position;
             in vec3 in_color;
+            in vec2 in_uv;
             out vec3 color;
             out vec3 position;
+            out vec2 uv;
             void main(){
-                position=in_position;color=in_color;
+                position=in_position;color=in_color;uv=in_uv;
                 gl_Position=clip_from_world*vec4(in_position,1.0);
             }''',fragment_shader='''#version 330
             in vec3 color;
             in vec3 position;
+            in vec2 uv;
+            uniform sampler2D base_texture;
+            uniform bool use_texture;
             out vec4 frag;
             void main(){
                 vec3 normal=normalize(cross(dFdx(position),dFdy(position)));
                 vec3 light=normalize(vec3(-0.45,0.8,0.4));
                 float shade=0.68+0.32*abs(dot(normal,light));
-                frag=vec4(color*shade,1.0);
+                vec3 base=use_texture ? texture(base_texture,uv).rgb*color : color;
+                frag=vec4(base*shade,1.0);
             }''')
         samples=min(4,self.ctx.info.get('GL_MAX_SAMPLES',0))
         self.samples=samples
@@ -41,6 +47,20 @@ class DepthPreview:
         self.fbo=self.ctx.framebuffer([self.color],self.depth)
         self.resolve=self.ctx.simple_framebuffer((width,height),components=4)
         self.buffers={}
+        self.surfaces=[]
+        self.textures={}
+        self.program['base_texture'].value=0
+        self.white=self.ctx.texture((1,1),3,bytes([255,255,255]))
+
+    def set_surfaces(self,surfaces):
+        self.surfaces=list(surfaces)
+        for surface in self.surfaces:
+            if surface is None or surface['key'] in self.textures:continue
+            im=surface['image']
+            texture=self.ctx.texture(im.size,3,im.tobytes(),alignment=1)
+            texture.filter=(self.gl.LINEAR,self.gl.LINEAR)
+            texture.repeat_x=False;texture.repeat_y=False
+            self.textures[surface['key']]=texture
 
     def _draw(self,geometry,matrix,label,outfile,caption):
         self.fbo.use();self.ctx.viewport=(0,0,self.width,self.height)
@@ -48,16 +68,25 @@ class DepthPreview:
         self.ctx.depth_func='<='
         self.fbo.clear(21/255,24/255,31/255,1.,depth=1.)
         self.program['clip_from_world'].write(np.asarray(matrix,dtype='f4').T.tobytes())
-        faces=0
+        faces=0;textured=0
+        if self.surfaces and len(self.surfaces)!=len(geometry):
+            raise ValueError('texture surfaces do not match posed geometry order')
         for i,(xyz,indices,colors) in enumerate(geometry):
-            data=np.concatenate((xyz,colors[:,:3]),axis=1).astype('f4').tobytes()
+            surface=self.surfaces[i] if self.surfaces else None
+            uv=surface['uv'] if surface is not None else np.zeros((len(xyz),2))
+            if len(uv)!=len(xyz):raise ValueError('UV count differs from posed vertices')
+            self.program['use_texture'].value=surface is not None
+            if surface is not None:
+                self.textures[surface['key']].use(0);textured+=1
+            else:self.white.use(0)
+            data=np.concatenate((xyz,colors[:,:3],uv),axis=1).astype('f4').tobytes()
             index_data=np.asarray(indices,dtype='u4').tobytes()
             old=self.buffers.get(i)
             if old is None or (old[0].size,old[1].size)!=(len(data),len(index_data)):
                 if old:
                     for value in reversed(old):value.release()
                 vbo=self.ctx.buffer(data);ibo=self.ctx.buffer(index_data)
-                vao=self.ctx.vertex_array(self.program,[(vbo,'3f 3f','in_position','in_color')],ibo)
+                vao=self.ctx.vertex_array(self.program,[(vbo,'3f 3f 2f','in_position','in_color','in_uv')],ibo)
                 self.buffers[i]=(vbo,ibo,vao)
             else:
                 vbo,ibo,vao=old;vbo.write(data);ibo.write(index_data)
@@ -76,6 +105,8 @@ class DepthPreview:
         if outfile is not None:
             outfile.parent.mkdir(parents=True,exist_ok=True);image.save(outfile,optimize=True)
         return image,{'source_faces':faces,'drawn_faces':faces,'geometry_pixels':geometry_pixels,
+                      'textured_primitives':textured,
+                      'texture_sizes':[list(t.size) for t in self.textures.values()],
                       'face_count_means':'submitted to depth-tested rasterizer, not visible pixel count',
                       'renderer':'OpenGL EGL','backend':self.backend}
 
@@ -108,6 +139,8 @@ class DepthPreview:
         return self._draw(geometry,matrix,label,outfile,'Actual posed geometry | fixed orthographic camera | same lighting')[1]
 
     def close(self):
+        for texture in self.textures.values():texture.release()
+        self.white.release()
         for buffers in self.buffers.values():
             for value in reversed(buffers):value.release()
         for value in (self.resolve,self.fbo,self.color,self.depth,self.program):value.release()

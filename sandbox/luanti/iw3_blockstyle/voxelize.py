@@ -565,6 +565,11 @@ def run(dumps: Path, target: Path, native_locals_dir=None,rifle_detail='high'):
         if hands_tight_geometry["cuboids"]<50 or not any(
             item["status"]=="attached" for item in tight_hands.values()):
             raise ValueError("hand-only option produced insufficient skinned geometry")
+    from texture_atlas import apply_texture
+    # Keep the existing rig and mesh byte ranges. Atlas PNGs and UV bindings
+    # live only in private outputs, while this report contains metadata.
+    apply_texture(rifle,rifle)
+    rifle_texture=apply_texture(animated,animated,target/'AK47_texture_512_PRIVATE.png')
     labels={k:sum(a["status"]=="attached" and k in a.get("actions",[])
                   for a in gun_clips.values()) for k in KINDS}
     return {
@@ -576,7 +581,7 @@ def run(dumps: Path, target: Path, native_locals_dir=None,rifle_detail='high'):
       "source_material_names":source_mats,
       "source_mesh_names":source_meshes,
       "candidate_models":len(models),"xanim_decoded":len(clips),
-      "xanim_decode_errors":errors,"rifle_geometry":voxel,
+      "xanim_decode_errors":errors,"rifle_geometry":voxel,"rifle_texture":rifle_texture,
       "rifle_animation_counts":labels,
       "rifle_animations_attached":sum(x["status"]=="attached" for x in gun_clips.values()),
       "rifle_animations":gun_clips,

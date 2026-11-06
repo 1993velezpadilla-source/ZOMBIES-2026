@@ -159,6 +159,7 @@ jobs:
       - name: Actual AK triangles -> 3D cuboids, all matching XANIM into skinned GLB
         run: |
           set -euo pipefail
+          python3 -m pip install --quiet --user Pillow==12.0.0 numpy==2.3.4
           PYTHONPATH="$PWD/_iw3_pipeline_src/tools" python3 \
             sandbox/luanti/iw3_blockstyle/voxelize.py \
             --dumps _iw3_private/dumps \
@@ -174,6 +175,9 @@ jobs:
           assert not x['rifle_geometry']['automatic_lod_reduced']
           assert x['rifle_geometry']['triangle_count']>=100000
           assert x['rifle_geometry']['internal_faces_removed']>0
+          assert x['rifle_texture']['width']==x['rifle_texture']['height']==512
+          assert x['rifle_texture']['animations']==x['rifle_animations_attached']
+          assert not x['rifle_texture']['source_game_texture_used']
           assert x['hands_tight_geometry']['cuboids']>=50
           assert x['hands_tight_animations_attached']>20
           assert x['private_binary_outputs']
@@ -281,6 +285,8 @@ jobs:
           assert a["camera_fixed_for_all_animation_frames"]
           assert a["preview_renderer"]["renderer"]=="OpenGL EGL"
           assert all(f["geometry_pixels"]>100 for f in a["frames"])
+          assert all(f["textured_primitives"]>=4 for f in a["frames"])
+          assert all(f["texture_sizes"]==[[512,512]] for f in a["frames"])
           assert not a["ads_iron_sight_verified"] and not a["hand_grip_verified"]
           assert a["reload_gif"]["frames"]>=60
           assert a["camera_validation_samples"]>=35

@@ -116,8 +116,9 @@ def gif_timing(duration,count):
     if min(delays)<10:raise ValueError("GIF sampling exceeds centisecond timebase")
     return delays
 
-def _build(rifle_path,hands_path,output,camera_mode='review',render_func=render_perspective,renderer_info=None):
+def _build(rifle_path,hands_path,output,camera_mode='review',render_func=render_perspective,renderer_info=None,preview=None):
     rifle=PoseScene(rifle_path);hands=PoseScene(hands_path)
+    if preview is not None:preview.set_surfaces(rifle.posed_surfaces()+hands.posed_surfaces())
     source=source_model_frame(rifle,hands)
     ri,hi,rest,combined,measured_front,muzzle,rear,span=source
     front=np.array([1.,0.,0.])
@@ -168,6 +169,8 @@ def _build(rifle_path,hands_path,output,camera_mode='review',render_func=render_
             record={"action":action,"fraction":float(t/duration) if duration else 0.,
                 "time_seconds":float(t),"file":name,"rendered_faces":render["drawn_faces"],
                 "geometry_pixels":render.get('geometry_pixels'),
+                "textured_primitives":render.get('textured_primitives',0),
+                "texture_sizes":render.get('texture_sizes',[]),
                 "mount_tag_error":mount["tag_alignment_error"],"framing":camera_stats(geometry,eye,front,fov),
                 "core_framing":camera_stats(core_geometry(geometry,masks),eye,front,fov)}
             audit["frames"].append(record);records.append(record)
@@ -204,7 +207,7 @@ def build(rifle_path,hands_path,output,camera_mode='review',renderer='depth'):
     preview=DepthPreview()
     try:
         return _build(rifle_path,hands_path,output,camera_mode,preview.render,
-                      {"renderer":"OpenGL EGL","backend":preview.backend,"samples":preview.samples})
+                      {"renderer":"OpenGL EGL","backend":preview.backend,"samples":preview.samples},preview)
     finally:preview.close()
 
 def main():
