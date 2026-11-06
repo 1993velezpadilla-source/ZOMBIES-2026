@@ -177,7 +177,7 @@ def stage(expected, animated, definitions, glbs: Path, output: Path):
             # Shotguns require per-shell reload / pellet logic; sniper optics
             # and bolt actions need native calibrated scope+cycling. Preview
             # their real animated models, never pretend gameplay is complete.
-            "gameplay_logic_enabled":bool(profile and have_empty and
+            "gameplay_logic_enabled":bool(profile and
                                            w["category"] not in ("shotgun","sniper")),
             "audio_samples_present":False,
             "ads_sights_calibrated":False,
