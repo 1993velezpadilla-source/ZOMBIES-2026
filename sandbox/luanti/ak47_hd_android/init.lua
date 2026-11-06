@@ -94,8 +94,8 @@ minetest.register_tool(AK,{
 })
 minetest.register_on_joinplayer(function(p)
     local s=state(p);local name=p:get_player_name()
-    s.hud=p:hud_add({hud_elem_type="text",position={x=.5,y=.92},alignment={x=0,y=0},
-        number=0xEEE4CE,text="AK47 HD",style=1,z_index=150})
+    s.hud=p:hud_add({hud_elem_type="text",position={x=.025,y=.14},alignment={x=1,y=0},
+        number=0xEEE4CE,text="",style=1,z_index=150})
     minetest.after(1,function()
         local player=minetest.get_player_by_name(name);if not player then return end
         local inv=player:get_inventory()
@@ -139,6 +139,7 @@ minetest.register_globalstep(function(dt)
             s.aux=c.aux1
             if c.sneak and c.dig then reload(p,s) elseif c.dig then fire(p,s) end
         else
+            if s.hud then p:hud_change(s.hud,"text","") end
             if s.ads then s.ads=false;p:set_fov(0,false,.25) end
             s.pending=0;s.reload_end=0;s.aux=false
         end
