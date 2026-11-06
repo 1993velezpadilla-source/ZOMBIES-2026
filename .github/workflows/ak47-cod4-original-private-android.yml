@@ -36,7 +36,7 @@ jobs:
           luac5.1 -p sandbox/luanti/ak47_hd_android/init.lua
           lua5.1 sandbox/luanti/ak47_hd_android/test_controls.lua
           lua5.1 sandbox/luanti/ak47_hd_android/test_join.lua
-          python3 -m unittest discover -s sandbox/luanti/ak47_hd_android -p 'test_*.py' -v
+          PYTHONPATH="$PWD/_iw3_pipeline_src/tools:$PWD/sandbox/luanti/iw3_blockstyle" python3 -m unittest discover -s sandbox/luanti/ak47_hd_android -p 'test_*.py' -v
           PYTHONPATH="$PWD/_iw3_pipeline_src/tools:$PWD/sandbox/luanti/iw3_blockstyle" python3 -m unittest discover -s sandbox/luanti/iw3_blockstyle -p 'test_*.py' -v
       - uses: actions/setup-java@v4
         with:
