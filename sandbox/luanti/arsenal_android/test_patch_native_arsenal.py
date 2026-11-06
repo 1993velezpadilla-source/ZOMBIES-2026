@@ -37,7 +37,7 @@ class Camera {
   void updateAK47Viewmodel(f32 frametime);
   u32 m_ak47_last_fired=0;
 };
-""".replace("  void","\\tvoid").replace("  u32","\\tu32"))
+""".replace("  void",chr(9)+"void").replace("  u32",chr(9)+"u32"))
     app=root/"luanti/android/app"
     (app/"src/main/java/net/minetest/minetest").mkdir(parents=True)
     (app/"src/main/res/values").mkdir(parents=True)
