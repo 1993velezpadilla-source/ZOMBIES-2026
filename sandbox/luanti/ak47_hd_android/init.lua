@@ -18,6 +18,7 @@ local function sync(p,s,event)
     if event then s.seq=s.seq+1;meta:set_string("xz_ak_anim",event..s.seq) end
     meta:set_string("xz_ak_ads",s.ads and "1" or "0")
     meta:set_string("xz_ak_empty",s.empty_reload and "1" or "0")
+    meta:set_string("xz_ak_reload_kind",s.empty_reload and "empty" or "normal")
     meta:set_string("xz_ak_fired",tostring(s.fired))
     p:set_wielded_item(stack)
     if s.hud then
@@ -35,9 +36,12 @@ local function start_reload(p,s)
     s.pending=0;s.empty_reload=s.ammo==0
     s.reload_end=now()+(s.empty_reload and EMPTY_RELOAD_DURATION or NORMAL_RELOAD_DURATION)
     s.ads=false;p:set_fov(0,false,.25);sync(p,s,"R")
-    -- Independent time-stretched audio files follow the matching XANIM clip.
-    -- Do not play the 2.32-second original on both longer animations.
-    sound(p,s.empty_reload and "ak47dev_reload_empty" or "ak47dev_reload_normal",.80)
+    -- Select reload by the actual magazine count BEFORE any ammo refill.
+    -- NORMAL: the original-pitch CC0 magazine cue; EMPTY: the same natural
+    -- magazine action plus an additional timed bolt click (no time stretch).
+    local effect=s.empty_reload and "ak47dev_reload_empty" or "ak47dev_reload_normal"
+    s.reload_sound_name=effect
+    sound(p,effect,.80)
 end
 local function reload(p,s)
     if s.reload_end>0 or s.pending>0 or s.ammo>=CAPACITY or s.reserve<=0 then return end
