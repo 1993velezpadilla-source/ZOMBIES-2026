@@ -1,0 +1,49 @@
+name: Publish requested AK47 APK direct download
+on:
+  push:
+    branches: [feature/iw3-ak47-voxelize-all-xanim-20261105]
+    paths: [incoming/ak47-hd-publication.json]
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: ak47-requested-direct-download
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: "!contains(github.event.head_commit.message, '[skip publish]')"
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Fetch the already verified Android build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download 42155462554 --repo "$GITHUB_REPOSITORY" \
+            --name AK47-HD-512-ARM64-private-delivery --dir "$RUNNER_TEMP/apk-publish"
+      - name: Recover and verify only the owner-requested APK
+        run: |
+          python3 -m pip install --quiet --user 'cryptography>=44,<49'
+          python3 .github/scripts/publish_requested_apk.py incoming/ak47-hd-publication.json \
+            "$RUNNER_TEMP/apk-publish/AK47-HD-512-ARM64.apk.enc" \
+            "$RUNNER_TEMP/apk-publish/AK47-HD-512-ARM64.apk"
+      - name: Create direct installable APK prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG=ak47-hd-512-android-39a39be
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo 'Requested release already exists; keeping its existing asset.'
+          else
+            gh release create "$TAG" "$RUNNER_TEMP/apk-publish/AK47-HD-512-ARM64.apk" \
+              --repo "$GITHUB_REPOSITORY" --target 39a39be244b2bee6ca6786f043d98475320faebf \
+              --prerelease --title 'AK47 HD 512 Android ARM64 playtest' \
+              --notes 'Direct APK download requested by the project owner. Package com.xziel.voxelsandbox.ak47hd. Includes HD AK47, 512px texture, hipfire, ADS, firing and both reloads. Signature and contents verified; physical Android play/FPS testing remains pending.'
+          fi
+      - name: Clear transient publication data
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/apk-publish"
