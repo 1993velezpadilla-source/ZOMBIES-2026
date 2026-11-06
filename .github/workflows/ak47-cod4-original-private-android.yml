@@ -96,7 +96,7 @@ jobs:
           export PYTHONPATH="$PWD/_iw3_pipeline_src/tools"
           mkdir -p _iw3_private/native-locals
           export IW3_NATIVE_LOCALS_DIR="$PWD/_iw3_private/native-locals"
-          python3 _iw3_pipeline_src/tools/iw3_weapon_probe.py prepare --with-iwds
+          python3 _iw3_pipeline_src/tools/iw3_weapon_probe.py prepare --with-iwds --zone common_mp --zone mp_crash --zone common
           python3 _iw3_pipeline_src/tools/iw3_weapon_probe.py probe --unlinker "$UNLINKER"
           test -d _iw3_private/dumps/common_mp/model_export
           test -d _iw3_private/dumps/common_mp/xanim
