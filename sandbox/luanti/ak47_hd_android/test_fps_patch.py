@@ -15,11 +15,14 @@ with TemporaryDirectory() as d:
 \t\tsetStaticText(m_guitext, utf8_to_wide(os.str()));
 \t}
 \tm_guitext->setVisible(m_flags.show_minimal_debug);
+\tm_guitext2->setVisible(m_flags.show_basic_debug);
 }
 """)
     patch(root)
     out=(p/'gameui.cpp').read_text()
     assert "AK47_REAL_FPS_METER" in out
+    assert "m_flags.show_basic_debug = false" in out
+    assert "m_guitext2->setVisible(false);" in out
     assert 'm_flags.show_minimal_debug = true;' in out
     assert 'm_guitext->setTextAlignment(gui::EGUIA_LOWERRIGHT' in out
     assert 'm_guitext->setVisible(m_flags.show_minimal_debug);' in out
