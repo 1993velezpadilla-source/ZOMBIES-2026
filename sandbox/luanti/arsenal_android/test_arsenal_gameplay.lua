@@ -59,6 +59,7 @@ local player={
     get_player_name=function() return "Tester" end,
     get_inventory=function() return inventory end,
     get_wielded_item=function() return inventory:get_stack("main",wield_index) end,
+    set_wield_index=function(_,i) assert(i>=1 and i<=#slots);wield_index=i end,
     set_wielded_item=function(_,item) inventory:set_stack("main",wield_index,item) end,
     get_player_control=function() return control end,
     get_properties=function() return {eye_height=1.47} end,
@@ -291,6 +292,8 @@ local oldmessages=#messages
 form_callback(player,"arsenal:picker",{weapon_usp="true"})
 assert(#messages==oldmessages+1,"Choosing a GLB-backed gun shows equip confirmation")
 assert(inventory:contains_item("main","arsenal:usp"))
+assert(player:get_wielded_item():get_name()=="arsenal:usp",
+    "Touch gun selection must immediately EQUIP, not just grant inventory item")
 local previous=#messages
 form_callback(player,"arsenal:picker",{weapon_fake="true"})
 assert(#messages==previous,"Unknown button cannot issue arbitrary inventory item")
