@@ -18,6 +18,7 @@ from render_pose_sequence import PoseScene, camera_params, closest_clip, draw_po
 
 ACTIONS=("idle","fire","fire_ads","reload","reload_empty")
 TIMES=(0.0,0.25,0.50,0.75,0.95)
+OAT_TO_NATIVE=np.array([[1.,0,0,0],[0,0,-1,0],[0,1,0,0],[0,0,0,1]])
 
 
 def transform_points(points, matrix):
@@ -42,19 +43,25 @@ def measure_proximity(rifle, hands):
     return float(np.median(np.min(d,axis=1)))
 
 
-def compose(rifle,viewhands,gunclip,handclip,t,rest_hand_tag,mode='native_pair'):
+def compose(rifle,viewhands,gunclip,handclip,t,rest_hand_tag,mode='iw3_dobj'):
     rifle_mesh, gunpoints, gunworld=rifle.poses(gunclip,t)
     hand_mesh, handpoints, handworld=viewhands.poses(handclip,t)
     hand_tag=viewhands.tag(handworld)
     if hand_tag is None:
         raise ValueError("source COD4 hand skeleton missing tag_weapon")
-    # The COD4 AK-47 skeleton has tag_ak47_mount, NOT tag_weapon. Earlier
-    # prototypes accidentally overlooked this named original IW3 attachment.
-    # Align BOTH original animated bone transforms, never an invented XYZ.
+    # Keep the earlier tag-pair hypothesis for A/B review. CG_RegisterWeapon
+    # actually attaches the gun model root under the hands' tag_weapon.
     anchor_name=next((name for name in ("tag_ak47_mount","tag_weapon")
                       if rifle.tag(gunworld,name) is not None),None)
     weapon_tag=rifle.tag(gunworld,anchor_name) if anchor_name else None
-    if mode == "native_pair":
+    if mode == "iw3_dobj":
+        # CG_RegisterWeapon attaches the gun MODEL ROOT to hands.tag_weapon.
+        # tag_ak47_mount is not the rifle-to-hands socket. Remove only OAT's
+        # global basis C; preserve the rifle's own native root animation.
+        matrix=hand_tag@OAT_TO_NATIVE
+        mode="iw3_dobj_model_root_to_hands_tag_weapon"
+        err=float(np.linalg.norm(matrix@np.linalg.inv(OAT_TO_NATIVE)-hand_tag))
+    elif mode == "native_pair":
         if weapon_tag is None:
             raise ValueError("native_pair needs the original rifle tag_ak47_mount")
         matrix=hand_tag@np.linalg.inv(weapon_tag)
@@ -82,8 +89,8 @@ def compose(rifle,viewhands,gunclip,handclip,t,rest_hand_tag,mode='native_pair')
     d=measure_proximity(moved,handpoints)
     info={
       "mount_strategy":mode,
-      "gun_anchor_present":weapon_tag is not None,
-      "gun_anchor_name":anchor_name,
+      "gun_anchor_present":True if mode=="iw3_dobj_model_root_to_hands_tag_weapon" else weapon_tag is not None,
+      "gun_anchor_name":"native_model_root" if mode=="iw3_dobj_model_root_to_hands_tag_weapon" else anchor_name,
       "hand_anchor_present":True,
       "tag_alignment_error":round(err,7) if err is not None else None,
       "hand_point_to_rifle_median_nearest_distance":round(d,4),
@@ -107,7 +114,7 @@ def build(rifle_path,hand_path,output):
     if rest_tag is None:
         raise ValueError("hands GLB missing tag_weapon; cannot mount physically")
     report={
-      "method":"skinned glTF XANIM, source hands tag_weapon and original AK tag_ak47_mount",
+      "method":"IW3 CG_RegisterWeapon DObj model-root attachment under hands tag_weapon; OAT basis removed once",
       "gun_animations":len(rifle.animations),
       "hand_animations":len(hands.animations),
       "hands_attached_structurally":True,
@@ -152,7 +159,7 @@ def build(rifle_path,hand_path,output):
             continue
         duration=min(rifle.duration(gunclip),hands.duration(handclip))
         t=duration*fraction
-        for strategy in ("native_pair","relative_delta","direct_tag"):
+        for strategy in ("iw3_dobj","native_pair","direct_tag"):
             try:
                 combo,stat=compose(rifle,hands,gunclip,handclip,t,rest_tag,mode=strategy)
                 img=output/f"ak47_compare_{strategy}_{action}.png"
@@ -168,7 +175,7 @@ def build(rifle_path,hand_path,output):
     report["mount_candidates"]=comparison
     pairs=[]
     for action in ("idle","reload","reload_empty"):
-        for strategy in ("native_pair","relative_delta","direct_tag"):
+        for strategy in ("iw3_dobj","native_pair","direct_tag"):
             name=output/f"ak47_compare_{strategy}_{action}.png"
             if name.exists():
                 with Image.open(name) as im:

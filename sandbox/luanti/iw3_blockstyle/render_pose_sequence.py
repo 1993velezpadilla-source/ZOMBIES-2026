@@ -244,9 +244,9 @@ def draw_pose(scene,action,t,title,output,*,orientation=(28,25),camera=None,geom
     for _,poly,rgb in triangles:d.polygon(poly,fill=rgb)
     d.rectangle((0,0,SCREEN[0],75),fill=(13,17,23))
     d.text((27,15),title,fill=(245,245,247))
-    d.text((27,45),f"XANIM: {action}   frame {t:.3f}s  •  actually transformed vertices",fill=(174,199,218))
+    d.text((27,45),f"XANIM: {action}   frame {t:.3f}s  |  actually transformed vertices",fill=(174,199,218))
     d.rectangle((0,SCREEN[1]-52,SCREEN[0],SCREEN[1]),fill=(13,17,23))
-    d.text((25,SCREEN[1]-35),"REAL ANIMATION DIAGNOSTIC — ADS/RELOAD/GRIP NOT YET APPROVED",fill=(236,196,112))
+    d.text((25,SCREEN[1]-35),"REAL ANIMATION DIAGNOSTIC - ADS/RELOAD/GRIP NOT YET APPROVED",fill=(236,196,112))
     output.parent.mkdir(parents=True,exist_ok=True);im.save(output,optimize=True)
     return {"bbox_min":lo.round(5).tolist(),"bbox_max":hi.round(5).tolist(),
             "faces":len(triangles),"tag_weapon":scene.tag(world) is not None}

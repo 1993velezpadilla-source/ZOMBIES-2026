@@ -7,7 +7,7 @@ import unittest
 import numpy as np
 from PIL import Image
 from iw3_gltf_animation_bridge import add_animation, write_glb
-from oat_coordinates import oat_animation_tracks
+from oat_coordinates import oat_animation_tracks, install_native_rest
 from voxelize import pack_new
 from render_pose_sequence import PoseScene
 from render_fps_camera_probe import projection_basis, render_perspective
@@ -73,6 +73,29 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(converted.bones[0].rotations.values,[(0.,0.,0.,1.)])
         self.assertIsNone(converted.bones[0].translations)
         self.assertEqual(info['no_quat_identity_tracks'],['child'])
+
+    def test_native_runtime_offsets_are_independent_of_exported_bind(self):
+        doc={'nodes':[{'name':'root','children':[1]},
+                      {'name':'child','translation':[10,20,30]}],
+             'skins':[{'joints':[0,1]}]}
+        sidecar={'native_model_locals':True,'bones':[
+            {'name':'root','translation':[0,0,0],'rotation':[0,0,0,1]},
+            {'name':'child','translation':[0,0,0],'rotation':[0,0,0,1]}]}
+        info=install_native_rest(doc,sidecar)
+        self.assertGreater(info['maximum_exported_bind_vs_native_local_translation_difference'],30.)
+        animation=NS(bones=[NS(name='child',rotations=None,translations=track((1,2,3),(2,3,4)))])
+        converted,_=oat_animation_tracks(doc,animation)
+        self.assertEqual(converted.bones[0].translations.values[0],(1,2,3))
+
+    def test_iw3_model_attachment_converts_export_basis_once(self):
+        from render_mounted_viewhands import OAT_TO_NATIVE, transform_points
+        native_point=np.array([[2.,3.,4.]])
+        hand_native=transform([5,6,7],'z',math.pi/3)
+        hand_gltf=C@hand_native
+        exported=transform_points(native_point,C)
+        actual=transform_points(exported,hand_gltf@OAT_TO_NATIVE)
+        expected=transform_points(native_point,C@hand_native)
+        np.testing.assert_allclose(actual,expected,atol=1e-10)
 
     def test_y_up_basis_and_near_plane_render(self):
         right,up,front=projection_basis(1,[1,0,0])

@@ -10,6 +10,29 @@ import math
 from iw3_xanim_v17 import Track
 
 
+def install_native_rest(doc, sidecar):
+    """Use model.trans/model.quats, independently of the skin's global binds."""
+    if not sidecar.get('native_model_locals'):
+        raise ValueError('native IW3 model locals sidecar required')
+    source={b['name'].casefold():b for b in sidecar['bones']}
+    joints={i for skin in doc.get('skins',[]) for i in skin['joints']}
+    parents={c:i for i,n in enumerate(doc['nodes']) for c in n.get('children',[])}
+    differences=[]
+    for i in joints:
+        node=doc['nodes'][i];key=node.get('name','').casefold()
+        if key not in source:raise ValueError('native local absent for '+key)
+        bone=source[key];t=list(bone['translation']);q=list(bone['rotation'])
+        if parents.get(i) not in joints:
+            t=[t[0],t[2],-t[1]]
+            q=multiply_quaternions((-math.sqrt(.5),0.,0.,math.sqrt(.5)),q)
+        old=node.get('translation',[0.,0.,0.])
+        differences.append(math.sqrt(sum((a-b)**2 for a,b in zip(t,old))))
+        node.pop('matrix',None);node['translation']=t;node['rotation']=list(q)
+    return {'native_model_joints':len(joints),
+            'maximum_exported_bind_vs_native_local_translation_difference':max(differences,default=0.),
+            'native_runtime_local_rest_installed':True}
+
+
 def multiply_quaternions(a, b):
     x, y, z, w = a
     X, Y, Z, W = b

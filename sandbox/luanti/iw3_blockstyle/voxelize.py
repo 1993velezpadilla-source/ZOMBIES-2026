@@ -26,7 +26,7 @@ from iw3_gltf_animation_bridge import (
     add_animation, read_glb, write_glb,
 )
 from iw3_xanim_v17 import load_xanim
-from oat_coordinates import oat_animation_tracks
+from oat_coordinates import oat_animation_tracks, install_native_rest
 
 COMPONENT = {
     5121: ("B", 1), 5123: ("H", 2), 5125: ("I", 4), 5126: ("f", 4),
@@ -432,8 +432,9 @@ def compatible(doc, animation) -> int:
     return len(joints & {b.name.casefold() for b in animation.bones})
 
 
-def add_all_animations(base: Path, target: Path, clips):
+def add_all_animations(base: Path, target: Path, clips, native_locals=None):
     doc,b=read_glb(base)
+    native_info=install_native_rest(doc,native_locals) if native_locals else {}
     raw=bytearray(b)
     report={}
     for path,animation in clips:
@@ -450,6 +451,7 @@ def add_all_animations(base: Path, target: Path, clips):
                                "matched_bones":info["matched_bones"],
                                "channels":info["channels"],
                                **coordinate_info,
+                               **native_info,
                                "actions":classify(path.stem)}
         except (ValueError,KeyError,OverflowError) as e:
             report[path.name]={"status":"error","reason":str(e)[:130]}
@@ -460,7 +462,7 @@ def add_all_animations(base: Path, target: Path, clips):
     return report
 
 
-def run(dumps: Path, target: Path):
+def run(dumps: Path, target: Path, native_locals_dir=None):
     source=dumps/"common_mp"
     model_dir=source/"model_export"
     models=sorted(p for p in model_dir.glob("viewmodel_ak47*_lod0.glb") if family(p))
@@ -486,23 +488,29 @@ def run(dumps: Path, target: Path):
         scored.append((sum(x>0 for x in scores),sum(scores),p))
     _,_,chosen=max(scored,key=lambda v:(v[0],v[1],-len(v[2].name)))
     source_doc,_=read_glb(chosen)
+    def native_for(path):
+        if native_locals_dir is None:raise ValueError('native model locals directory required')
+        name=re.sub(r'_lod\d+$','',path.stem)+'.json'
+        return json.loads((Path(native_locals_dir)/name).read_text())
+    rifle_native=native_for(chosen)
     source_mats=[m.get('name','unnamed') for m in source_doc.get('materials',[])]
     source_meshes=[m.get('name','unnamed') for m in source_doc.get('meshes',[])]
     target.mkdir(parents=True,exist_ok=True)
     rifle=target/"AK47_COD4_BLOCKSTYLE_PRIVATE.glb"
     voxel=voxelize(chosen,rifle,density=76,kind='rifle')
     animated=target/"AK47_COD4_BLOCKSTYLE_ALL_XANIM_PRIVATE.glb"
-    gun_clips=add_all_animations(rifle,animated,clips)
+    gun_clips=add_all_animations(rifle,animated,clips,rifle_native)
     hands_path=model_dir/"viewmodel_base_viewhands_lod0.glb"
     hands={}
     hands_voxel=None
     hands_tight_geometry=None
     tight_hands={}
     if hands_path.exists():
+        hands_native=native_for(hands_path)
         hands_voxel=voxelize(hands_path,target/"AK47_COD4_HANDS_BLOCKSTYLE_PRIVATE.glb",density=42,kind="hands")
         hands=add_all_animations(
             target/"AK47_COD4_HANDS_BLOCKSTYLE_PRIVATE.glb",
-            target/"AK47_COD4_HANDS_ALL_XANIM_PRIVATE.glb", clips)
+            target/"AK47_COD4_HANDS_ALL_XANIM_PRIVATE.glb", clips,hands_native)
         # Owner's earlier request: only the first-person HANDS should remain
         # visible, not full-sized forearms obstructing the FPS camera.
         # Preserve original bones/animation; only emit triangles attached to
@@ -512,7 +520,7 @@ def run(dumps: Path, target: Path):
             density=48,kind="hands_tight")
         tight_hands=add_all_animations(
             target/"AK47_COD4_HANDSONLY_BLOCKSTYLE_PRIVATE.glb",
-            target/"AK47_COD4_HANDSONLY_ALL_XANIM_PRIVATE.glb", clips)
+            target/"AK47_COD4_HANDSONLY_ALL_XANIM_PRIVATE.glb", clips,hands_native)
         if hands_tight_geometry["cuboids"]<50 or not any(
             item["status"]=="attached" for item in tight_hands.values()):
             raise ValueError("hand-only option produced insufficient skinned geometry")
@@ -550,8 +558,9 @@ def main():
     parser.add_argument("--dumps",type=Path,default=Path("_iw3_private/dumps"))
     parser.add_argument("--output",type=Path,default=Path("_iw3_private/blockstyle"))
     parser.add_argument("--report",type=Path,default=Path("_iw3_reports/ak47-blockstyle.json"))
+    parser.add_argument("--native-locals",type=Path,default=Path("_iw3_private/native-locals"))
     args=parser.parse_args()
-    result=run(args.dumps,args.output)
+    result=run(args.dumps,args.output,args.native_locals)
     args.report.parent.mkdir(parents=True,exist_ok=True)
     args.report.write_text(json.dumps(result,indent=2,ensure_ascii=False)+"\n")
     print(json.dumps({"rifle_cuboids":result["rifle_geometry"]["cuboids"],

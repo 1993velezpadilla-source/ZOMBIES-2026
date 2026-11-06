@@ -16,7 +16,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 from render_pose_sequence import PoseScene, closest_clip
-from render_mounted_viewhands import compose
+from render_mounted_viewhands import compose, OAT_TO_NATIVE
 
 WIDTH, HEIGHT = 1100, 640
 FOV = 75.0
@@ -143,16 +143,16 @@ def render_perspective(geometry, camera, sign, label, outfile, fov=FOV, forward_
         rendered_faces+=1
     draw.rectangle((0,0,WIDTH,76),fill=(14,17,22))
     draw.text((18,16),label,fill=(233,238,246))
-    direction="tag_flash→muzzle" if forward_override is not None else ('+X' if sign>0 else '-X')
+    direction=("native +X" if np.allclose(basis[2],[1.,0.,0.]) else "source muzzle") if forward_override is not None else ('+X' if sign>0 else '-X')
     draw.text((18,43),f"original XANIM voxel mesh | {fov:g}deg FOV | Y-up | {direction} forward | roll {roll_degrees} deg",fill=(179,196,210))
     draw.rectangle((0,HEIGHT-50,WIDTH,HEIGHT),fill=(14,17,22))
-    draw.text((18,HEIGHT-32),"PERSPECTIVE PROBE • NOT VERIFIED FPS ADS/RELOAD • NOT A GAME SCREENSHOT",fill=(237,186,109))
+    draw.text((18,HEIGHT-32),"PERSPECTIVE PROBE | NOT VERIFIED FPS ADS/RELOAD | NOT A GAME SCREENSHOT",fill=(237,186,109))
     outfile.parent.mkdir(parents=True,exist_ok=True)
     im.save(outfile,optimize=True)
     return {"source_faces":source_faces,"drawn_faces":rendered_faces,
             "source_vertices_in_front":near_front, "near":NEAR,
             "camera_origin":[round(float(v),4) for v in camera],
-            "camera_forward":'tag_flash→muzzle' if forward_override is not None else ('+X' if sign>0 else '-X'),
+            "camera_forward":'source muzzle' if forward_override is not None else ('+X' if sign>0 else '-X'),
             "camera_roll_degrees":float(roll_degrees)}
 
 
@@ -201,12 +201,12 @@ def run(rifle_path, hands_path, output):
     flash=rifle.tag(gw,"tag_flash")
     if mount is None or flash is None:
         raise ValueError("real original AK mount / muzzle tags absent")
-    rel=hg@np.linalg.inv(mount)
+    rel=hg@OAT_TO_NATIVE
     muzzle=(rel@flash)[:3,3]
     anchor=hg[:3,3]
     muzzle_direction=muzzle-anchor
     muzzle_direction/=max(1e-8,float(np.linalg.norm(muzzle_direction)))
-    native_mesh,_=compose(rifle,hands,gun_idle,hand_idle,0.,hg,mode="native_pair")
+    native_mesh,_=compose(rifle,hands,gun_idle,hand_idle,0.,hg,mode="iw3_dobj")
     rifle_xyz=np.vstack([part[0] for part in native_mesh[:len(rifle.geometry)]])
     axial=rifle_xyz@muzzle_direction
     min_axis=float(np.min(axial))
@@ -236,9 +236,9 @@ def run(rifle_path, hands_path, output):
             if any(w in n.get("name","").lower() for w in ('camera','weapon','wrist','hand'))][:40],
     }
     results=[]
-    for strategy in ("native_pair","relative_delta","direct_tag"):
+    for strategy in ("iw3_dobj","native_pair","direct_tag"):
         for view,origin in candidates.items():
-            # Original source +X/-X versus the rig's own tag_flash→muzzle.
+            # Original source +X/-X versus the rig's own source muzzle.
             for axis in ("muzzle","posx","negx"):
                 sign=1 if axis!="negx" else -1
                 direction=muzzle_direction if axis=="muzzle" else None
@@ -262,7 +262,7 @@ def run(rifle_path, hands_path, output):
     # Original model still uses its genuine animated arm and gun poses.
     # NO camera candidate here is certified for hipfire/ADS yet.
     sweep=[]
-    neutral,meta=compose(rifle,hands,gun_idle,hand_idle,0.,hand_rest,mode="native_pair")
+    neutral,meta=compose(rifle,hands,gun_idle,hand_idle,0.,hand_rest,mode="iw3_dobj")
     spine=np.array([0.,1.,0.],dtype=float)
     for above in (0.0,.12,.25):
         eye=behind+spine*(span*above)
@@ -281,13 +281,13 @@ def run(rifle_path, hands_path, output):
     make_grid(output,sweep_names,"ak47_native_fps_roll_and_height_sweep.png",3)
     output.mkdir(parents=True,exist_ok=True)
     # Each contact sheet compares idle/reload on two camera positions/directions.
-    for strategy in ("native_pair","relative_delta","direct_tag"):
+    for strategy in ("iw3_dobj","native_pair","direct_tag"):
         names=[f"{strategy}_{view}_{axis}_{action}.png"
                 for view in candidates for axis in ("muzzle","posx","negx")
                 for action in ("idle","reload")]
         make_grid(output,names,"ak47_fps_"+strategy+"_camera_comparison.png",2)
     audit={"source": "real privately converted COD4 skinned XANIM voxel rifle + viewhands",
-           "original_mount_pair": ["hands:tag_weapon","rifle:tag_ak47_mount"],
+           "original_mount_pair": ["hands:tag_weapon","rifle:native model root"],
            "muzzle_direction_from_original_tag_flash":[round(float(v),5) for v in muzzle_direction],
            "source_tags":source_tags,"camera_candidates":list(candidates),
            "projections":results,"fps_camera_roll_sweep":sweep,

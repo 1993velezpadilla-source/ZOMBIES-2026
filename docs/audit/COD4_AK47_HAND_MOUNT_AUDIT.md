@@ -1,5 +1,12 @@
 # COD4 AK-47 voxel + original viewhands — real mounted-pose gate
 
+**Superseded attachment hypothesis:** the tag_weapon→tag_ak47_mount pairing
+described below was not the engine's assembly rule. The later source audit
+found CG_RegisterWeapon attaches the rifle MODEL ROOT to hands.tag_weapon.
+Native model.trans/model.quats also differ from glTF-derived bind locals for
+the hands. See [the current native-pose audit](COD4_AK47_COORDINATE_FRAME.md).
+This page preserves the earlier diagnostic results, not current instructions.
+
 Date: 2026-11-05. Branch `feature/iw3-ak47-voxelize-all-xanim-20261105`, PR #14.
 
 ## What was actually executed
@@ -42,3 +49,4 @@ The real dual-tag pairing has zero mathematical anchor-position error and improv
 4. Re-author visually recognizable AK-family cuboid rifle and hands with properly weighted block segments before using in a published/monetized game. COD4-derived resources cannot be shipped publicly without permission.
 
 No APK has been created from this experiment. Commercial licensing remains uncleared.
+

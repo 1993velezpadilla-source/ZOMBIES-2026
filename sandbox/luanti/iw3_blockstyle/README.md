@@ -1,5 +1,12 @@
 # COD4 AK-47 -> Minecraft-style block geometry + every XANIM
 
+> Current native-rig path: build the pinned OAT exporter with
+> `patch_oat_native_locals.py` and set `IW3_NATIVE_LOCALS_DIR` while extracting.
+> Pass those private sidecars with `voxelize.py --native-locals DIR`.
+> The native model rest fields are independent of the glTF skin bind pose.
+> The rifle model root attaches to hands.tag_weapon; tag_ak47_mount is not
+> the hand socket. See [native-pose verification](../../../docs/audit/COD4_AK47_COORDINATE_FRAME.md).
+
 **Engineering prototype, not an asset release and not an APK.**
 
 ## Converter selection
@@ -71,3 +78,4 @@ a commercially cleared game asset.
   metadata JSON report.
 
 **Do not equate unit-tests GREEN with gameplay/ADS/reload verified.**
+

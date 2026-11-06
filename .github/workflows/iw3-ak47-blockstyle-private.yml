@@ -30,7 +30,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 -m pip install --quiet --user Pillow==12.0.0 numpy==2.3.4
-          python3 -m py_compile sandbox/luanti/iw3_blockstyle/voxelize.py sandbox/luanti/iw3_blockstyle/render_previews.py sandbox/luanti/iw3_blockstyle/render_pose_sequence.py sandbox/luanti/iw3_blockstyle/render_mounted_viewhands.py sandbox/luanti/iw3_blockstyle/render_fps_camera_probe.py sandbox/luanti/iw3_blockstyle/fps_composition_gate.py
+          python3 -m py_compile sandbox/luanti/iw3_blockstyle/*.py
           PYTHONPATH="$PWD/_iw3_pipeline_src/tools:$PWD/sandbox/luanti/iw3_blockstyle" python3 -m unittest discover -s sandbox/luanti/iw3_blockstyle -p 'test_*.py' -v
           python3 sandbox/luanti/v3/build_ak47_assets.py /tmp/original-ak-test
           PYTHONPATH="$PWD/_iw3_pipeline_src/tools:$PWD/sandbox/luanti/iw3_blockstyle" python3 - <<'PY'
@@ -85,7 +85,7 @@ jobs:
   real-cod4-private:
     name: Convert actual COD4 AK + ALL matched original reload/ADS/fire/idle tracks
     needs: synthetic-geometry
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
@@ -96,19 +96,37 @@ jobs:
           ref: feature/iw3-arsenal-extraction-audit-20261102
           path: _iw3_pipeline_src
           persist-credentials: false
-      - name: OpenAssetTools v0.34.0 from project upstream
+      - name: Cache native-local OAT exporter (open-source binary only)
+        id: native_oat_cache
+        uses: actions/cache@v4
+        with:
+          path: _native_oat/Unlinker
+          key: oat-native-locals-v034-x64-${{ hashFiles('sandbox/luanti/iw3_blockstyle/patch_oat_native_locals.py') }}
+      - uses: actions/checkout@v4
+        if: steps.native_oat_cache.outputs.cache-hit != 'true'
+        with:
+          repository: Laupetin/OpenAssetTools
+          ref: 28b14ea0ee41844cfad9875176f9dc693db045cf
+          path: _oat_native_src
+          submodules: recursive
+          persist-credentials: false
+      - name: Build pinned x64 OAT with private native model-local sidecars
+        if: steps.native_oat_cache.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
           sudo apt-get update -qq
-          sudo apt-get install -y -qq --no-install-recommends libc6-i386 lib32stdc++6
-          mkdir -p _oat
-          curl --fail --location --retry 3 --output /tmp/oat.tar.gz \
-            https://github.com/Laupetin/OpenAssetTools/releases/download/v0.34.0/oat-linux.tar.gz
-          tar -xzf /tmp/oat.tar.gz -C _oat
-          UNLINKER="$(find _oat -type f -name Unlinker -print -quit)"
-          test -n "$UNLINKER"
-          chmod +x "$UNLINKER"
-          echo "UNLINKER=$PWD/$UNLINKER" >> "$GITHUB_ENV"
+          sudo apt-get install -y -qq --no-install-recommends g++-14
+          python3 sandbox/luanti/iw3_blockstyle/patch_oat_native_locals.py _oat_native_src
+          export PREMAKE_NO_PROMPT=1
+          (cd _oat_native_src && ./generate.sh --cc=gcc)
+          CC=gcc-14 CXX=g++-14 make -C _oat_native_src/build -j"$(nproc)" config=release_x64 UnlinkerCli
+          mkdir -p _native_oat
+          cp _oat_native_src/build/bin/Release_x64/Unlinker _native_oat/Unlinker
+          chmod +x _native_oat/Unlinker
+      - name: Select native-local source exporter
+        run: |
+          chmod +x _native_oat/Unlinker
+          echo "UNLINKER=$PWD/_native_oat/Unlinker" >> "$GITHUB_ENV"
       - name: Stage private original 7 GB archive and verify checksum
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -123,6 +141,8 @@ jobs:
         run: |
           set -euo pipefail
           export PYTHONPATH="$PWD/_iw3_pipeline_src/tools"
+          mkdir -p _iw3_private/native-locals
+          export IW3_NATIVE_LOCALS_DIR="$PWD/_iw3_private/native-locals"
           python3 _iw3_pipeline_src/tools/iw3_weapon_probe.py prepare --with-iwds
           python3 _iw3_pipeline_src/tools/iw3_weapon_probe.py probe --unlinker "$UNLINKER"
           test -d _iw3_private/dumps/common_mp/model_export
@@ -200,8 +220,8 @@ jobs:
           assert len(audit["frames"])>=6,audit["errors"]
           assert all(frame["hand_anchor_present"] for frame in audit["frames"])
           assert any(frame["action"]=="reload" for frame in audit["frames"])
-          assert all(frame["gun_anchor_name"]=="tag_ak47_mount" for frame in audit["frames"]),audit["errors"]
-          assert all(frame["mount_strategy"]=="original_tag_weapon_to_tag_ak47_mount" for frame in audit["frames"])
+          assert all(frame["gun_anchor_name"]=="native_model_root" for frame in audit["frames"]),audit["errors"]
+          assert all(frame["mount_strategy"]=="iw3_dobj_model_root_to_hands_tag_weapon" for frame in audit["frames"])
           assert all(frame["tag_alignment_error"] < .00001 for frame in audit["frames"])
           assert not audit["hand_grip_verified"],"Do not call a structural tag match a functional grip"
           print("Real original COD4 hands+AK frames:",len(audit["frames"]))
@@ -223,11 +243,11 @@ jobs:
           old=json.loads(Path("_iw3_reports/mounted-frames/mount-audit.json").read_text())
           new=json.loads(Path("_iw3_reports/mounted-hands-only/mount-audit.json").read_text())
           assert new["frames"] and len(new["frames"])==len(old["frames"])
-          assert all(f["gun_anchor_name"]=="tag_ak47_mount" for f in new["frames"])
+          assert all(f["gun_anchor_name"]=="native_model_root" for f in new["frames"])
           assert all(f["tag_alignment_error"]<.00001 for f in new["frames"])
           print("HAND-ONLY AK SOURCE XANIM FRAMES:",len(new["frames"]))
           PY
-      - name: Rank fixed Y-up FPS camera across full reload and render source poses at 24 fps
+      - name: Verify native IW3 rig with fixed FPS camera across full reload at 24 fps
         run: |
           set -euo pipefail
           PYTHONPATH="$PWD/_iw3_pipeline_src/tools" python3 \
@@ -242,7 +262,8 @@ jobs:
           import json
           from pathlib import Path
           a=json.loads(Path('_iw3_reports/fps-hipfire-qa/fps-framing-audit.json').read_text())
-          assert a["candidates_tested"]>=20, a
+          assert a["candidates_tested"]>=3, a
+          assert a["rifle_core_visible_95pct"],a["full_render_minimum_core_visible_fraction"]
           assert len([f for f in a["frames"] if f["action"]=="reload" and "file" in f])>=60
           assert a["camera_fixed_for_all_animation_frames"]
           assert not a["ads_iron_sight_verified"] and not a["hand_grip_verified"]
