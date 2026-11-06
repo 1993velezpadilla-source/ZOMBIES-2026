@@ -54,7 +54,14 @@ end
 local function fire(p,s)
     local time=now()
     if s.reload_end>0 or s.pending>0 or time<s.next_fire then return end
-    if s.ammo==0 then sound(p,"ak47dev_dry",.5);reload(p,s);return end
+    if s.ammo==0 then
+        -- Original COD4 AK47 first-person emptyFireSoundPlayer=weap_dryfire_smg_plr.
+        -- The click lasts 0.216s; throttle held FIRE to prevent 60 clicks/s.
+        s.next_fire=time+.25
+        sound(p,"ak47dev_dry",.75)
+        if s.reserve>0 then reload(p,s) end
+        return
+    end
     s.next_fire=time+.10;s.ammo=s.ammo-1;s.fired=s.fired+1;sync(p,s,"F");sound(p,"ak47dev_fire",.65)
     local eye=vector.add(p:get_pos(),{x=0,y=p:get_properties().eye_height or 1.47,z=0})
     local direction=p:get_look_dir();local stop=vector.add(eye,vector.multiply(direction,76))
