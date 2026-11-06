@@ -4,14 +4,15 @@ on:
     branches:
       - feature/luanti-real-arsenal-28-source-gate-20261106
     paths:
-      - sandbox/luanti/arsenal_android/**
+      - sandbox/luanti/arsenal_android/expected_cod4_28.json
+      - tools/luanti_real_arsenal_28.py
       - .github/workflows/luanti-arsenal-original-source-private.yml
   workflow_dispatch:
 permissions:
   contents: read
 concurrency:
   group: real-cod4-28-source-private-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   source-audit:
@@ -98,6 +99,14 @@ jobs:
             --dumps _iw3_private/dumps \
             --output _iw3_reports/real-28-weapon-source-inventory.json
           test -s _iw3_reports/real-28-weapon-source-inventory.json
+      - name: Parse real original COD4 weapon definition stats (no guesses)
+        run: |
+          set -euo pipefail
+          python3 sandbox/luanti/arsenal_android/read_original_weapon_defs.py \
+            --dumps _iw3_private/dumps \
+            --manifest sandbox/luanti/arsenal_android/expected_cod4_28.json \
+            --output _iw3_reports/real-28-weapon-definition-stats.json
+          test -s _iw3_reports/real-28-weapon-definition-stats.json
       - name: Build REAL skinned 28-weapon source GLBs and first-person hands privately
         run: |
           set -euo pipefail
@@ -138,7 +147,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: COD4-28-original-asset-coverage-metadata-NO-APK
-          path: _iw3_reports/real-28-weapon-source-inventory.json
+          path: |
+            _iw3_reports/real-28-weapon-source-inventory.json
+            _iw3_reports/real-28-weapon-definition-stats.json
+            _iw3_reports/real-28-source-animated-gate.json
           if-no-files-found: warn
           retention-days: 7
       - name: Securely delete staged original source data
