@@ -37,8 +37,9 @@ local function start_reload(p,s)
     s.reload_end=now()+(s.empty_reload and EMPTY_RELOAD_DURATION or NORMAL_RELOAD_DURATION)
     s.ads=false;p:set_fov(0,false,.25);sync(p,s,"R")
     -- Select reload by the actual magazine count BEFORE any ammo refill.
-    -- NORMAL: the original-pitch CC0 magazine cue; EMPTY: the same natural
-    -- magazine action plus an additional timed bolt click (no time stretch).
+    -- NORMAL: *independent* SpringySpringo CC0 assault-rifle tactical reload.
+    -- EMPTY: different GunLib CC0 AK-47 full mag reload + bolt click.
+    -- We never reuse GunLib empty recording on the normal reload.
     local effect=s.empty_reload and "ak47dev_reload_empty" or "ak47dev_reload_normal"
     s.reload_sound_name=effect
     sound(p,effect,.80)
