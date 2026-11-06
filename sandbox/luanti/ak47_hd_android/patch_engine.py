@@ -49,12 +49,12 @@ def patch(root,assets):
     app=root/'android/app'
     # MainActivity re-extracts bundled game assets when VERSION_CODE changes.
     checked(root/'android/build.gradle','project.ext.set("versionBuild", 0)',
-            'project.ext.set("versionBuild", 6)')
+            'project.ext.set("versionBuild", 7)')
     for path in [app/'build.gradle',app/'src/main/AndroidManifest.xml',
                  app/'src/main/java/net/minetest/minetest/GameActivity.java']:
         text=path.read_text();assert 'com.xziel.voxelsandbox.v33' in text
-        path.write_text(text.replace('com.xziel.voxelsandbox.v33','com.xziel.voxelsandbox.ak47photoaudio'))
-    checked(app/'src/main/res/values/strings.xml','Voxel Sandbox AK V33','AK47 Photoreal Audio Test')
+        path.write_text(text.replace('com.xziel.voxelsandbox.v33','com.xziel.voxelsandbox.ak47steelv4'))
+    checked(app/'src/main/res/values/strings.xml','Voxel Sandbox AK V33','AK47 Dark Steel V4')
     checked(root/'src/defaultsettings.cpp','settings->setDefault("touch_interaction_style", "tap");',
             'settings->setDefault("touch_interaction_style", "buttons_crosshair");')
     font=ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',23)
