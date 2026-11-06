@@ -300,23 +300,13 @@ void __cdecl CM_LoadStaticModels()
                     }
                     else if (Com_IsLegacyXModelName(value))
                     {
-                        v5 = &value[7];
-                        v4 = modelName;
-                        do
-                        {
-                            v3 = *v5;
-                            *v4++ = *v5++;
-                        } while (v3);
+                        // BSP entity tokens can exceed the 64-byte model name buffer.
+                        // Preserve the original legacy prefix removal without overflow.
+                        I_strncpyz(modelName, &value[7], sizeof(modelName));
                     }
                     else
                     {
-                        v2 = value;
-                        v1 = modelName;
-                        do
-                        {
-                            v0 = *v2;
-                            *v1++ = *v2++;
-                        } while (v0);
+                        I_strncpyz(modelName, value, sizeof(modelName));
                     }
                 }
                 else if (!I_stricmp(value, "misc_model"))
