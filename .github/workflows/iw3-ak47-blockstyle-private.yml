@@ -100,8 +100,8 @@ jobs:
         id: native_oat_cache
         uses: actions/cache@v4
         with:
-          path: _native_oat/Unlinker
-          key: oat-native-locals-v034-x64-${{ hashFiles('sandbox/luanti/iw3_blockstyle/patch_oat_native_locals.py') }}
+          path: _native_oat
+          key: oat-native-locals-v034-x64-v2-${{ hashFiles('sandbox/luanti/iw3_blockstyle/patch_oat_native_locals.py') }}
       - uses: actions/checkout@v4
         if: steps.native_oat_cache.outputs.cache-hit != 'true'
         with:
@@ -122,6 +122,7 @@ jobs:
           CC=gcc-14 CXX=g++-14 make -C _oat_native_src/build -j"$(nproc)" config=release_x64 UnlinkerCli
           mkdir -p _native_oat
           cp _oat_native_src/build/bin/Release_x64/Unlinker _native_oat/Unlinker
+          cp -a _oat_native_src/build/bin/Release_x64/raw _native_oat/raw
           chmod +x _native_oat/Unlinker
       - name: Select native-local source exporter
         run: |
