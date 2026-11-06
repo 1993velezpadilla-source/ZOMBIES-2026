@@ -37,9 +37,10 @@ local function start_reload(p,s)
     s.reload_end=now()+(s.empty_reload and EMPTY_RELOAD_DURATION or NORMAL_RELOAD_DURATION)
     s.ads=false;p:set_fov(0,false,.25);sync(p,s,"R")
     -- Select reload by the actual magazine count BEFORE any ammo refill.
-    -- NORMAL: *independent* SpringySpringo CC0 assault-rifle tactical reload.
-    -- EMPTY: different GunLib CC0 AK-47 full mag reload + bolt click.
-    -- We never reuse GunLib empty recording on the normal reload.
+    -- NORMAL: ORIGINAL COD4 note events at 0/19/57 frames (lift/clipout/clipin).
+    -- EMPTY: SAME authentic magazine Foley plus the original chamber at 77.
+    -- Engine plays separate pre-baked soundtracks, respecting native XANIM cues.
+    -- Never call GunLib or external airsoft reload audio.
     local effect=s.empty_reload and "ak47dev_reload_empty" or "ak47dev_reload_normal"
     s.reload_sound_name=effect
     sound(p,effect,.80)
