@@ -18,8 +18,8 @@ from media_limits import check_media_size,MAX_MEDIAFILE_BYTES
 BLOCK=Path(__file__).resolve().parents[1]/'iw3_blockstyle'
 sys.path.insert(0,str(BLOCK))
 from voxelize import read_glb,read_accessor,pack_new,write_glb,allowed_primitive,is_hand_or_finger_bone
-from texture_atlas import make_atlas, TILES, SIZE, PADDING
-from material_v3 import make_rifle_atlas, make_hand_atlas, hand_uv
+from texture_atlas import make_atlas
+from material_v5 import make_rifle_atlas, make_hand_atlas, hand_uv, TILES, SIZE, PADDING, RIFLE_SIZE, HAND_SIZE
 from render_pose_sequence import PoseScene
 from ads_pipeline import quaternion,NAMES
 from render_mounted_viewhands import OAT_TO_NATIVE
@@ -113,7 +113,7 @@ def export(rifle_path,hands_path,output,*,original_geometry=False):
          'samplers':[{'magFilter':9729,'minFilter':9729,'wrapS':33071,'wrapT':33071}],
          'meshes':[{'name':'AK47_HD_combined','primitives':[]}],
          'nodes':[],'skins':[],'animations':[],
-         'extras':{'external_texture_slots':['ak47hd_512.png','ak47hd_hands.png']}}
+         'extras':{'external_texture_slots':['ak47hd_rifle_2k.png','ak47hd_hands_1k.png']}}
     raw=bytearray();inverse=[]
     for component,scene in enumerate(scenes):
         skin=scene.doc['skins'][0]
@@ -141,7 +141,7 @@ def export(rifle_path,hands_path,output,*,original_geometry=False):
     width=max(width,16)
     colors=np.array(palette+[palette[-1]]*(width-len(palette)),dtype='u1')[None,:,:]
     hand_image=make_hand_atlas() if original_geometry else Image.fromarray(colors)
-    hand_image.save(output/'textures/ak47hd_hands.png')
+    hand_image.save(output/'textures/ak47hd_hands_1k.png')
     color_ids={color:i for i,color in enumerate(palette)}
     rifle_points=np.vstack([geom[1][idx] for _,geom,_,idx in selected[0]])
     rifle_min=rifle_points.min(0);rifle_max=rifle_points.max(0)
@@ -199,7 +199,7 @@ def export(rifle_path,hands_path,output,*,original_geometry=False):
                 buffers+=1;faces+=len(ix)//3
         buffer_counts.append(buffers);triangles.append(faces)
     atlas=make_rifle_atlas() if original_geometry else r.surfaces[0]['image']
-    atlas.save(output/'textures/ak47hd_512.png')
+    atlas.save(output/'textures/ak47hd_rifle_2k.png')
     def joint_frames(name,t):
         rw=r.world(name,t);hw=h.world(name,t);mount=h.tag(hw)@OAT_TO_NATIVE
         return [rw_node for comp,scene,world in [(0,r,rw),(1,h,hw)]
@@ -249,14 +249,15 @@ def export(rifle_path,hands_path,output,*,original_geometry=False):
                 worst=max(worst,float(np.abs(actual[index]-G@want).max()))
     if worst>.005:raise ValueError('flattened source motion mismatch: '+str(worst))
     report={'joint_count':count,'total_nodes':count+2,'original_source_mesh':bool(original_geometry),
-            'rifle_texture_version':'photo_material_v3' if original_geometry else 'blockstyle',
-            'hands_texture_resolution':[512,512] if original_geometry else [width,1],
+            'rifle_texture_version':'photo_material_v5_lit' if original_geometry else 'blockstyle',
+            'hands_texture_resolution':[HAND_SIZE,HAND_SIZE] if original_geometry else [width,1],
             'no_voxel_conversion':bool(original_geometry), 'mesh_buffers':buffer_counts,
             'triangles':triangles,'max_vertices_per_buffer':MAX_VERTICES,
-            'texture_slots':['ak47hd_512.png','ak47hd_hands.png'],'durations':durations,
+            'texture_slots':['ak47hd_rifle_2k.png','ak47hd_hands_1k.png'],'durations':durations,
             'flattened_joint_matrix_maximum_difference':worst,
             'camera_forward_after_loader':'+Z','camera_up':'+Y',
-            'private_model':str(target),'private_outputs':True}
+            'private_model':str(target),'private_outputs':True,
+            'rifle_texture_resolution':[RIFLE_SIZE,RIFLE_SIZE] if original_geometry else [512,512]}
     report.update(media_file_bytes=target.stat().st_size,media_file_limit=MAX_MEDIAFILE_BYTES)
     # Golden deformed vertices for the actual Luanti C++ loader/skinner probe.
     # Kept beside the private model, never in public metadata artifacts.
