@@ -35,9 +35,9 @@ def fixture(complete=True, empty=True):
             "has_required_timing_and_ammo":complete,
             "source_definition_name":"real_gun0_mp",
             "numeric":{
-                "clipSize":30,"maxAmmo":210,"fireTime":100,
-                "reloadTime":2766,"reloadEmptyTime":3533,"damage":40},
-            "strings":{"fireType":"fullauto"}
+                "clipSize":30,"maxAmmo":210,"fireTime":0.085,
+                "reloadTime":2.5,"reloadEmptyTime":3.25,"damage":40},
+            "strings":{"fireType":"Full Auto"}
         }}
     }
     return {"weapons":identities}, animation, original
@@ -99,11 +99,23 @@ class PrivateArsenalTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,"no genuine native model"):
                 stage(expected,animated,original,root/"source",root/"out")
 
-    def test_cod4_integer_ms_values_not_treated_as_seconds(self):
-        self.assertAlmostEqual(source_seconds(100),.1)
-        self.assertAlmostEqual(source_seconds(2766),2.766)
+    def test_real_cod4_weapon_def_times_are_already_seconds(self):
+        self.assertAlmostEqual(source_seconds(.085),.085)
+        self.assertAlmostEqual(source_seconds(2.5),2.5)
+        self.assertAlmostEqual(source_seconds(3.25),3.25)
+        self.assertIsNone(source_seconds(100))
         self.assertIsNone(source_seconds(0))
-        self.assertIsNone(source_seconds(30001))
+
+    def test_real_cod4_firetype_strings_are_preserved(self):
+        _,_,original=fixture()
+        row=original["weapons"]["gun0"]
+        for source_type,expect in [
+                ("Full Auto","auto"),("Single Shot","semi"),
+                ("3-Round Burst","burst")]:
+            row["strings"]["fireType"]=source_type
+            result=source_profile({},row)
+            self.assertIsNotNone(result)
+            self.assertEqual(result["fire_mode"],expect)
 
     def test_unsupported_fire_type_is_not_invented(self):
         _,_,original=fixture()
