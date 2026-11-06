@@ -1,0 +1,51 @@
+"""Inspect the signed APK's actual nested runtime model, texture and controls."""
+import argparse
+from io import BytesIO
+from pathlib import Path
+import hashlib
+import json
+import struct
+from zipfile import ZipFile
+from PIL import Image
+
+def verify(apk):
+    prefix='games/voxelibre/mods/ak47dev/'
+    with ZipFile(apk) as outer:
+        assert any(n.startswith('lib/arm64-v8a/') and n.endswith('.so') for n in outer.namelist())
+        assert not any(n.startswith(('lib/x86/','lib/x86_64/','lib/armeabi-v7a/')) for n in outer.namelist())
+        with ZipFile(BytesIO(outer.read('assets/assets.zip'))) as z:
+            model=z.read(prefix+'models/ak47hd.glb')
+            assert model[:4]==b'glTF' and struct.unpack_from('<I',model,8)[0]==len(model)
+            length,kind=struct.unpack_from('<I4s',model,12);assert kind==b'JSON'
+            d=json.loads(model[20:20+length])
+            assert not d.get('images')
+            assert len(d['skins'])==1 and len(d['skins'][0]['joints'])==38
+            assert len(d['nodes'])<=64 and len(d['animations'])==8
+            names={a['name'] for a in d['animations']}
+            assert {'ak47_ads_enter','ak47_ads_hold','ak47_ads_fire','ak47_ads_exit',
+                    'viewmodel_ak47_reload','viewmodel_ak47_reload_empty'}.issubset(names)
+            faces=0
+            for m in d['meshes']:
+                for p in m['primitives']:
+                    assert d['accessors'][p['attributes']['POSITION']]['count']<65535
+                    assert d['accessors'][p['indices']]['componentType']==5123
+                    faces+=d['accessors'][p['indices']]['count']//3
+            assert faces==144134+12756,faces
+            with Image.open(BytesIO(z.read(prefix+'textures/ak47hd_512.png'))) as im:assert im.size==(512,512)
+            assert z.read(prefix+'textures/ak47hd_hands.png').startswith(b'\x89PNG')
+            lua=z.read(prefix+'init.lua').decode()
+            assert 'c.aux1 and not s.aux' in lua and 's.ammo=s.ammo-1' in lua
+            assert 'ak47hd.glb' in lua and 'ak47dev_fp.glb' not in lua
+            assert z.read(prefix+'sounds/ak47dev_fire.ogg').startswith(b'OggS')
+    report={'package':'com.xziel.voxelsandbox.ak47hd','architecture':'arm64-v8a',
+            'apk_bytes':apk.stat().st_size,'apk_sha256':hashlib.sha256(apk.read_bytes()).hexdigest(),
+            'model_sha256':hashlib.sha256(model).hexdigest(),'triangles':faces,
+            'clips':sorted(names),'weighted_joints':38,'texture':[512,512],
+            'signed_apk_contents_verified':True,'physical_android_device_tested':False}
+    return report
+
+if __name__=='__main__':
+    p=argparse.ArgumentParser();p.add_argument('apk',type=Path);p.add_argument('--report',type=Path)
+    a=p.parse_args();r=verify(a.apk)
+    if a.report:a.report.write_text(json.dumps(r,indent=2)+'\n')
+    print(json.dumps(r))

@@ -1,0 +1,196 @@
+name: AK47 HD 512 native Android private playtest
+on:
+  push:
+    branches: [feature/iw3-ak47-voxelize-all-xanim-20261105]
+    paths:
+      - sandbox/luanti/ak47_hd_android/**
+      - .github/workflows/ak47-hd-private-android.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ak47-hd-private-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/iw3-arsenal-extraction-audit-20261102
+          path: _iw3_pipeline_src
+          persist-credentials: false
+      - name: Source checks and pinned host dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends gettext lua5.1 libjsoncpp-dev libegl1 libgl1-mesa-dri
+          python3 -m pip install --quiet --user Pillow==12.0.0 numpy==2.3.4 moderngl==5.12.0 'cryptography>=44,<49'
+          python3 -m py_compile sandbox/luanti/ak47_hd_android/*.py
+          luac5.1 -p sandbox/luanti/ak47_hd_android/init.lua
+          lua5.1 sandbox/luanti/ak47_hd_android/test_controls.lua
+          python3 -m unittest discover -s sandbox/luanti/ak47_hd_android -p 'test_*.py' -v
+          PYTHONPATH="$PWD/_iw3_pipeline_src/tools:$PWD/sandbox/luanti/iw3_blockstyle" python3 -m unittest discover -s sandbox/luanti/iw3_blockstyle -p 'test_*.py' -v
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Cache native-local OAT exporter (open-source binary only)
+        id: native_oat_cache
+        uses: actions/cache@v4
+        with:
+          path: _native_oat
+          key: oat-native-locals-v034-x64-v2-${{ hashFiles('sandbox/luanti/iw3_blockstyle/patch_oat_native_locals.py') }}
+      - uses: actions/checkout@v4
+        if: steps.native_oat_cache.outputs.cache-hit != 'true'
+        with:
+          repository: Laupetin/OpenAssetTools
+          ref: 28b14ea0ee41844cfad9875176f9dc693db045cf
+          path: _oat_native_src
+          submodules: recursive
+          persist-credentials: false
+      - name: Build pinned x64 OAT with private native model-local sidecars
+        if: steps.native_oat_cache.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends g++-14
+          python3 sandbox/luanti/iw3_blockstyle/patch_oat_native_locals.py _oat_native_src
+          export PREMAKE_NO_PROMPT=1
+          (cd _oat_native_src && ./generate.sh --cc=gcc)
+          CC=gcc-14 CXX=g++-14 make -C _oat_native_src/build -j"$(nproc)" config=release_x64 UnlinkerCli
+          mkdir -p _native_oat
+          cp _oat_native_src/build/bin/Release_x64/Unlinker _native_oat/Unlinker
+          cp -a _oat_native_src/build/bin/Release_x64/raw _native_oat/raw
+          chmod +x _native_oat/Unlinker
+      - name: Select native-local source exporter
+        run: |
+          chmod +x _native_oat/Unlinker
+          echo "UNLINKER=$PWD/_native_oat/Unlinker" >> "$GITHUB_ENV"
+      - name: Stage private original 7 GB archive and verify checksum
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p _release_assets/c4
+          gh release download gofile-p2DdQHsz --repo "$GITHUB_REPOSITORY" \
+            --pattern 'C4-Mocs.zip.part-*' --dir _release_assets/c4
+          actual="$(cat _release_assets/c4/C4-Mocs.zip.part-* | sha256sum | cut -d' ' -f1)"
+          test "$actual" = '6787f2082b39ee76445db7fca92892256bfb97e62bbdebfe63f6ee11de6a8d99'
+      - name: Decode original COD4 GLB and XANIM in ignored scratch directory
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="$PWD/_iw3_pipeline_src/tools"
+          mkdir -p _iw3_private/native-locals
+          export IW3_NATIVE_LOCALS_DIR="$PWD/_iw3_private/native-locals"
+          python3 _iw3_pipeline_src/tools/iw3_weapon_probe.py prepare --with-iwds
+          python3 _iw3_pipeline_src/tools/iw3_weapon_probe.py probe --unlinker "$UNLINKER"
+          test -d _iw3_private/dumps/common_mp/model_export
+          test -d _iw3_private/dumps/common_mp/xanim
+      - name: Preserve native AK animations and prepare the HD runtime
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="$PWD/_iw3_pipeline_src/tools:$PWD/sandbox/luanti/iw3_blockstyle"
+          python3 sandbox/luanti/iw3_blockstyle/voxelize.py \
+            --dumps _iw3_private/dumps --output _iw3_private/blockstyle \
+            --report _iw3_reports/ak47-blockstyle.json
+          python3 sandbox/luanti/ak47_hd_android/prepare_runtime.py \
+            --blockstyle _iw3_private/blockstyle \
+            --weapon _iw3_private/dumps/common_mp/weapons/ak47_mp \
+            --output _iw3_private/runtime
+      - name: Fetch the pinned working game base
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch 5.18.0 https://github.com/luanti-org/luanti.git "$RUNNER_TEMP/luanti"
+          mkdir -p "$RUNNER_TEMP/luanti/games/voxelibre"
+          git -C "$RUNNER_TEMP/luanti/games/voxelibre" init
+          git -C "$RUNNER_TEMP/luanti/games/voxelibre" remote add origin https://github.com/VoxeLibre/VoxeLibre.git
+          git -C "$RUNNER_TEMP/luanti/games/voxelibre" fetch --depth 1 origin 4492ce6ff8d856daa4567abe2ea689f4e7a39842
+          git -C "$RUNNER_TEMP/luanti/games/voxelibre" checkout --detach FETCH_HEAD
+          rm -rf "$RUNNER_TEMP/luanti/games/voxelibre/.git"
+      - name: Test the actual Luanti GLB loader and skinning against source poses
+        run: |
+          set -euo pipefail
+          ENGINE="$RUNNER_TEMP/luanti"
+          g++ -std=c++17 -O1 -ffunction-sections -fdata-sections \
+            -I "$ENGINE/irr/include" -I "$ENGINE/irr/src" -I "$ENGINE/lib/tiniergltf" \
+            -I "$ENGINE/src" -I /usr/include/jsoncpp \
+            sandbox/luanti/ak47_hd_android/native_probe.cpp \
+            "$ENGINE/irr/src/CGLTFMeshFileLoader.cpp" "$ENGINE/irr/src/SkinnedMesh.cpp" \
+            "$ENGINE/irr/src/WeightBuffer.cpp" "$ENGINE/irr/src/CReadFile.cpp" \
+            "$ENGINE/irr/src/HWBuffer.cpp" "$ENGINE/src/util/base64.cpp" \
+            -Wl,--gc-sections -ljsoncpp -o "$RUNNER_TEMP/ak47-native-probe"
+          "$RUNNER_TEMP/ak47-native-probe" _iw3_private/runtime/models/ak47hd.glb \
+            _iw3_private/runtime/GOLDEN_PRIVATE.json | tee _iw3_reports/native-loader.txt
+      - name: Connect real HD assets to the native first-person camera and touch controls
+        run: |
+          set -euo pipefail
+          python3 sandbox/luanti/prepare.py "$RUNNER_TEMP/luanti"
+          python3 sandbox/luanti/v2/patch_v2.py "$RUNNER_TEMP/luanti"
+          python3 sandbox/luanti/v3/patch_v3.py "$RUNNER_TEMP/luanti"
+          python3 sandbox/luanti/v31/patch_v31.py "$RUNNER_TEMP/luanti"
+          python3 sandbox/luanti/v32/patch_v32.py "$RUNNER_TEMP/luanti"
+          python3 sandbox/luanti/v33/patch_v33.py "$RUNNER_TEMP/luanti"
+          python3 sandbox/luanti/ak47_hd_android/patch_engine.py \
+            --root "$RUNNER_TEMP/luanti" --assets _iw3_private/runtime
+          luac5.1 -p "$RUNNER_TEMP/luanti/games/voxelibre/mods/ak47dev/init.lua"
+      - name: Compile separate Android ARM64 HD playtest
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/luanti/android"
+          chmod +x gradlew
+          ./gradlew :app:assembleDebug --no-daemon --stacktrace --max-workers=3
+      - name: Verify APK bytes, real model, textures, clips and Android signature
+        run: |
+          set -euo pipefail
+          APK="$RUNNER_TEMP/luanti/android/app/build/outputs/apk/debug/app-arm64-v8a-debug.apk"
+          python3 sandbox/luanti/ak47_hd_android/verify_apk.py "$APK" --report _iw3_reports/android-build.json
+          TOOLS="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)"
+          "$TOOLS/aapt" dump badging "$APK" > _iw3_reports/android-badging.txt
+          python3 - <<'PY'
+          from pathlib import Path
+          text=Path('_iw3_reports/android-badging.txt').read_text()
+          assert "name='com.xziel.voxelsandbox.ak47hd'" in text
+          assert "native-code: 'arm64-v8a'" in text
+          PY
+          "$TOOLS/apksigner" verify --verbose "$APK" > _iw3_reports/android-signature.txt
+      - name: Encrypt the private APK for direct delivery
+        run: |
+          set -euo pipefail
+          mkdir -p _private_delivery
+          python3 sandbox/luanti/ak47_hd_android/private_delivery.py encrypt \
+            "$RUNNER_TEMP/luanti/android/app/build/outputs/apk/debug/app-arm64-v8a-debug.apk" \
+            _private_delivery/AK47-HD-512-ARM64.apk.enc \
+            sandbox/luanti/ak47_hd_android/delivery_public.pem
+          cp _iw3_reports/android-build.json _private_delivery/android-build.json
+          cp _iw3_reports/native-loader.txt _private_delivery/native-loader.txt
+          cp _iw3_reports/android-signature.txt _private_delivery/android-signature.txt
+      - name: Upload encrypted private build only
+        uses: actions/upload-artifact@v4
+        with:
+          name: AK47-HD-512-ARM64-private-delivery
+          path: _private_delivery/*
+          if-no-files-found: error
+          retention-days: 7
+      - name: Destroy plain APK and source game outputs
+        if: always()
+        run: |
+          rm -rf _iw3_private _release_assets
+          rm -rf "$RUNNER_TEMP/luanti"
+      - name: Upload non-reversible build evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: AK47-HD-Android-build-evidence
+          path: |
+            _iw3_reports/android-build.json
+            _iw3_reports/android-badging.txt
+            _iw3_reports/android-signature.txt
+            _iw3_reports/native-loader.txt
+          if-no-files-found: warn
+          retention-days: 7
