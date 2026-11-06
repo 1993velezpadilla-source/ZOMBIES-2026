@@ -47,3 +47,35 @@ The audit inspects the *actual* signed-APK ZIP structure (but not the cryptograp
 ## Rights and distribution
 
 COD4 models/audio and other third-party weapon assets are not automatically licensed for public redistribution or monetization. Verifier GREEN does not change that. This branch's CI intentionally **does not publish or upload any APK or copyrighted assets**. Do not mark the APK installation, runtime or commercial rights as tested until there is direct evidence.
+
+## Real Bridge V12 proof (2026-11-06; not the final Work Arsenal)
+
+A separate byte-level inspection of the user's previously generated
+`COD4-AK47-M9-BRIDGE-V12-ARM64.apk` (192,693,087 bytes;
+SHA-256 `efea2535768d7e22439f7ea67607af7b10add9ee06d33f38e44c82265e178dbd`)
+finds two registered tools: `ak47dev:ak47` and `ak47dev:m9`.
+There are **22 GLB models**, **52 PNGs** and **20 OGGs** in that mod.
+Most GLBs are accessory/model combinations, **not additional weapons**.
+The shared `ammo.lua` registry is present, but this is not proof that
+ammo-refill interaction works on Android.
+
+To independently inventory a *real* Luanti Android package without using
+the build's claimed model counts:
+
+```bash
+python3 sandbox/luanti/arsenal_android/scan_installed_apk.py \
+  /private/Arsenal.apk --require-tools 28 \
+  --output /private/actual_installed_inventory.json
+```
+
+The source scanner recognizes literal Lua tool registrations and the
+`for item_name,definition in pairs(definitions)` registration used in V12.
+Unknown Lua dynamic registrations are reported as unresolved, not counted
+as a false pass. GLB animation names are inspected as declarations only;
+actual animation playback still needs on-device testing.
+
+The original Work session's stated **28 weapons / 95 models /
+184 configurations** are *not* present in the known V12 APK. Those counts
+remain unverified without the distinct Work-produced APK and authoritative
+catalog. Search of the connected GitHub branch list/releases and Drive did
+not locate that distinct APK. Do not replace it with a renamed V12.
