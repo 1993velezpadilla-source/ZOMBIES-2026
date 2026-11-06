@@ -53,7 +53,7 @@ def patch(root,assets):
     for path in [app/'build.gradle',app/'src/main/AndroidManifest.xml',
                  app/'src/main/java/net/minetest/minetest/GameActivity.java']:
         text=path.read_text();assert 'com.xziel.voxelsandbox.v33' in text
-        path.write_text(text.replace('com.xziel.voxelsandbox.v33','com.xziel.voxelsandbox.ak47fps'))
+        path.write_text(text.replace('com.xziel.voxelsandbox.v33','com.xziel.voxelsandbox.ak47combo2'))
     checked(app/'src/main/res/values/strings.xml','Voxel Sandbox AK V33','AK47 COD4 Materials FPS')
     checked(root/'src/defaultsettings.cpp','settings->setDefault("touch_interaction_style", "tap");',
             'settings->setDefault("touch_interaction_style", "buttons_crosshair");')
