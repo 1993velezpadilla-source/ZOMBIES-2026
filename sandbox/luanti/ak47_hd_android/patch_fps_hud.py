@@ -26,6 +26,7 @@ def patch(root: Path):
         '\t// AK47_REAL_FPS_METER: always show genuine smoothed render FPS.\n'
         '\t// The previous new StaticText control was hidden on the test phone.\n'
         '\tm_flags.show_minimal_debug = true;\n'
+        '\tm_flags.show_basic_debug = false; // no pos/yaw/pitch/seed overlay\n'
         '\ts32 minimal_debug_height = 0;')
     replace_once(cpp,
         '\t\tm_guitext->setRelativePosition(core::rect<s32>(5, 5, screensize.X, screensize.Y));',
@@ -44,7 +45,11 @@ def patch(root: Path):
         '\t\telse\n'
         '\t\t\tmeter << "FPS: --";\n'
         '\t\tsetStaticText(m_guitext, utf8_to_wide(meter.str()));')
-    print('AK47_REAL_FPS_METER: native visible minimal-debug control in top-right')
+    replace_once(cpp,
+        '\tm_guitext2->setVisible(m_flags.show_basic_debug);',
+        '\t// Suppress world/debug telemetry permanently; keep only upper-right FPS.\n'
+        '\tm_guitext2->setVisible(false);')
+    print('AK47_REAL_FPS_METER: FPS only; basic pos/yaw/pitch/seed hidden')
 
 
 if __name__=='__main__':
