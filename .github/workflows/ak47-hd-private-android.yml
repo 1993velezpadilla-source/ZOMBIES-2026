@@ -116,6 +116,8 @@ jobs:
           rm -rf "$RUNNER_TEMP/luanti/games/voxelibre/.git"
       - name: Raise decoded media limit to 32 MiB with bounded compressed transfer
         run: python3 sandbox/luanti/ak47_hd_android/patch_media_limit.py "$RUNNER_TEMP/luanti"
+      - name: Enable optimized native build and cache unchanged software skin poses
+        run: python3 sandbox/luanti/ak47_hd_android/patch_performance.py "$RUNNER_TEMP/luanti"
       - name: Test the actual Luanti GLB loader and skinning against source poses
         run: |
           set -euo pipefail
@@ -134,6 +136,9 @@ jobs:
             _iw3_private/runtime/GOLDEN_PRIVATE.json | tee _iw3_reports/native-loader.txt
           python3 sandbox/luanti/ak47_hd_android/verify_media_transport.py \
             "$RUNNER_TEMP/ak47-native-probe" | tee -a _iw3_reports/native-loader.txt
+          python3 sandbox/luanti/ak47_hd_android/verify_recoil.py \
+            --source third_party/KisakCOD/src/bgame/bg_weapons.cpp \
+            --params _iw3_private/runtime/ak47_weapon_params.h | tee _iw3_reports/recoil-native.txt
       - name: Connect real HD assets to the native first-person camera and touch controls
         run: |
           set -euo pipefail
@@ -151,11 +156,13 @@ jobs:
           set -euo pipefail
           cd "$RUNNER_TEMP/luanti/android"
           chmod +x gradlew
-          ./gradlew :app:assembleDebug --no-daemon --stacktrace --max-workers=3
+          ./gradlew :app:assembleRelease --no-daemon --stacktrace --max-workers=3
+          python3 "$GITHUB_WORKSPACE/sandbox/luanti/ak47_hd_android/verify_native_build.py" \
+            "$RUNNER_TEMP/luanti" --report "$GITHUB_WORKSPACE/_iw3_reports/native-build-mode.json"
       - name: Verify APK bytes, real model, textures, clips and Android signature
         run: |
           set -euo pipefail
-          APK="$RUNNER_TEMP/luanti/android/app/build/outputs/apk/debug/app-arm64-v8a-debug.apk"
+          APK="$RUNNER_TEMP/luanti/android/app/build/outputs/apk/release/app-arm64-v8a-release.apk"
           python3 sandbox/luanti/ak47_hd_android/verify_apk.py "$APK" --report _iw3_reports/android-build.json
           TOOLS="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)"
           "$TOOLS/aapt" dump badging "$APK" > _iw3_reports/android-badging.txt
@@ -163,7 +170,8 @@ jobs:
           from pathlib import Path
           text=Path('_iw3_reports/android-badging.txt').read_text()
           assert "name='com.xziel.voxelsandbox.ak47hd'" in text
-          assert "versionCode='5180002'" in text
+          assert "versionCode='5180003'" in text
+          assert 'application-debuggable' not in text
           assert "native-code: 'arm64-v8a'" in text
           PY
           "$TOOLS/apksigner" verify --verbose "$APK" > _iw3_reports/android-signature.txt
@@ -173,24 +181,25 @@ jobs:
         run: |
           set -euo pipefail
           TAG="ak47-hd-512-android-${GITHUB_SHA:0:7}"
-          APK="$RUNNER_TEMP/luanti/android/app/build/outputs/apk/debug/app-arm64-v8a-debug.apk"
-          DOWNLOAD="$RUNNER_TEMP/luanti/android/app/build/outputs/apk/debug/AK47-HD-512-ARM64.apk"
+          APK="$RUNNER_TEMP/luanti/android/app/build/outputs/apk/release/app-arm64-v8a-release.apk"
+          DOWNLOAD="$RUNNER_TEMP/luanti/android/app/build/outputs/apk/release/AK47-HD-512-ARM64.apk"
           cp "$APK" "$DOWNLOAD"
           gh release create "$TAG" "$DOWNLOAD" \
             --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease \
-            --title 'AK47 HD 512 Android ARM64 — 32 MiB media limit' \
-            --notes 'Raises the engine decoded media limit from 16,700,000 bytes to 32 MiB so the full original 19,956,932-byte model is accepted. Preserves all 156,890 rifle/hand triangles, the 512px texture and eight source animation clips. Reliable transport limits stay unchanged; oversized serialized transfers are rejected safely. The native check exercises real media compression, packet serialization, decoding, mesh loading and skinning. Includes the previous join/inventory fix. Physical Android rendering/FPS confirmation remains pending. This debug build may require uninstalling the previous playtest because the signing key is generated on the build runner.'
+            --title 'AK47 HD 512 Android ARM64 — optimized native build and recoil' \
+            --notes 'Optimized Release native code with actual O3/NDEBUG compilation checks. Removes the redundant static weapon-node mesh and caches unchanged software skin poses. Connects original IW3 gun recoil parameters and source firing clips, with nonzero first-shot samples at low FPS. Keeps the full model, 512px texture, eight clips and 32 MiB media limit. Native source-pose, skin-cache, media-transfer and original recoil-reference tests run before publication. Device FPS improvement still needs confirmation on the test phone. The test signing certificate may differ from the previous APK.'
       - name: Encrypt the private APK for direct delivery
         run: |
           set -euo pipefail
           mkdir -p _private_delivery
           python3 sandbox/luanti/ak47_hd_android/private_delivery.py encrypt \
-            "$RUNNER_TEMP/luanti/android/app/build/outputs/apk/debug/app-arm64-v8a-debug.apk" \
+            "$RUNNER_TEMP/luanti/android/app/build/outputs/apk/release/app-arm64-v8a-release.apk" \
             _private_delivery/AK47-HD-512-ARM64.apk.enc \
             sandbox/luanti/ak47_hd_android/delivery_public.pem
           cp _iw3_reports/android-build.json _private_delivery/android-build.json
           cp _iw3_reports/native-loader.txt _private_delivery/native-loader.txt
           cp _iw3_reports/android-signature.txt _private_delivery/android-signature.txt
+          cp _iw3_reports/native-build-mode.json _private_delivery/native-build-mode.json
       - name: Upload encrypted private build only
         uses: actions/upload-artifact@v4
         with:
@@ -213,5 +222,7 @@ jobs:
             _iw3_reports/android-badging.txt
             _iw3_reports/android-signature.txt
             _iw3_reports/native-loader.txt
+            _iw3_reports/native-build-mode.json
+            _iw3_reports/recoil-native.txt
           if-no-files-found: warn
           retention-days: 7

@@ -7,6 +7,7 @@ sys.path.insert(0,str(HERE.parent/'iw3_blockstyle'))
 from render_pose_sequence import PoseScene
 from ads_pipeline import calibrate,bake,IDLE,UP,FIRE,verify_export
 from export_viewmodel import export
+from weapon_params import write_recoil_header
 
 def prepare(blockstyle,weapon,out):
     out.mkdir(parents=True,exist_ok=True)
@@ -20,7 +21,9 @@ def prepare(blockstyle,weapon,out):
     bake(rifle,rd,hands=False,config=config,durations=duration)
     bake(hands,hd,hands=True,config=config,durations=duration)
     verify_export(r,h,PoseScene(rd),PoseScene(hd),{'calibration':config,'playback_durations':duration})
-    return export(rd,hd,out)
+    report=export(rd,hd,out)
+    write_recoil_header(weapon,out/'ak47_weapon_params.h')
+    return report
 
 if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('--blockstyle',type=Path,required=True)

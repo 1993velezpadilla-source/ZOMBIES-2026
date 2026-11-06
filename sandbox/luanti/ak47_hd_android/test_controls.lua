@@ -24,7 +24,7 @@ minetest={
     get_us_time=function() return clock*1000000 end,
     sound_play=function(n) sounds[n]=(sounds[n] or 0)+1 end,
     raycast=function() return function() return nil end end,
-    register_node=function(n,def) callbacks.node=def end,
+    register_tool=function(n,def) callbacks.node=def end,
     register_on_joinplayer=function(f) callbacks.join=f end,
     register_on_leaveplayer=function() end,
     register_globalstep=function(f) callbacks.step=f end,
@@ -37,6 +37,7 @@ dofile("sandbox/luanti/ak47_hd_android/init.lua")
 callbacks.join(player);clock=1;callbacks.after()
 for i=1,30 do callbacks.node.on_use(stack,player);clock=clock+.101 end
 assert(sounds.ak47dev_fire==30,"30 rounds must fire")
+assert(values.xz_ak_fired=="30","only successful shots increment the recoil counter")
 assert(hud:find("00 / 210",1,true),hud)
 callbacks.node.on_use(stack,player)
 assert(values.xz_ak_empty=="1" and values.xz_ak_anim:sub(1,1)=="R","empty reload event")

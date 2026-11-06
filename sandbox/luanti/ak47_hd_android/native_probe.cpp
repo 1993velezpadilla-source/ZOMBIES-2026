@@ -16,6 +16,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <sstream>
+#include <chrono>
 
 // Test-harness log sink for the actual engine compression implementation.
 class ProbeLogTarget : public LogTarget {
@@ -69,8 +70,10 @@ int main(int argc,char **argv) {
     if(!skin || mesh->getTrackCount()!=8 || mesh->getMeshBufferCount()!=8)
         throw std::runtime_error("native mesh layout mismatch");
     mesh->prepareForAnimation(0);
+    skin->setSkinPoseCache(true);
     Json::Value cases;std::ifstream stream(argv[2]);stream>>cases;
     double worst=0;
+    std::vector<core::matrix4> last_global;
     for(const auto &test:cases) {
         auto id=mesh->getTrackNumber(test["clip"].asString());
         if(!id)throw std::runtime_error("native animation name missing");
@@ -82,17 +85,32 @@ int main(int argc,char **argv) {
             else global.push_back(std::get<core::Transform>(transform).buildMatrix());
         }
         skin->calculateGlobalMatrices(global);skin->skinMesh(global);
+        const auto passes=skin->getSkinPosePasses();
+        skin->skinMesh(global);
+        if(skin->getSkinPosePasses()!=passes)throw std::runtime_error("unchanged pose was reskinned");
+        skin->resetAnimation();skin->skinMesh(global);
+        if(skin->getSkinPosePasses()!=passes+1)throw std::runtime_error("static pose reset did not invalidate skin cache");
+        last_global=global;
         for(const auto &p:test["points"]) {
             const auto xyz=mesh->getMeshBuffer(p["buffer"].asUInt())->getVertexBuffer()->getPosition(p["vertex"].asUInt());
             const double actual[3]={xyz.X,xyz.Y,xyz.Z};
             for(int i=0;i<3;i++)worst=std::max(worst,std::abs(actual[i]-p["xyz"][i].asDouble()));
         }
     }
+    auto benchmark=[&](bool cache) {
+        skin->setSkinPoseCache(cache);skin->skinMesh(last_global);
+        const auto start=std::chrono::steady_clock::now();
+        for(int i=0;i<30;++i)skin->skinMesh(last_global);
+        return std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-start).count();
+    };
+    const double uncached=benchmark(false),cached=benchmark(true);
     std::cout<<"NATIVE_LUANTI_SKIN_CHECK worst_vertex_error="<<worst
              <<" joints="<<skin->getJointCount()<<" buffers="<<mesh->getMeshBufferCount()
              <<" media_bytes="<<media_bytes<<" media_limit="<<MEDIAFILE_MAX_SIZE
              <<" transfer_bytes="<<packet.getSize()<<" transfer_limit="<<MEDIAFILE_TRANSFER_MAX_SIZE
              <<" media_round_trip=exact"<<std::endl;
+    std::cout<<"NATIVE_IDLE_SW_SKIN_CACHE 30_frames_uncached_ms="<<uncached
+             <<" cached_ms="<<cached<<" cache_hits="<<skin->getSkinPoseHits()<<std::endl;
     mesh->drop();
     return worst<.01 ? 0 : 3;
 }

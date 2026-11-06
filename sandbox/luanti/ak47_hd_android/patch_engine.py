@@ -16,20 +16,26 @@ def patch(root,assets):
     shutil.copy2(HERE/'init.lua',mod/'init.lua')
     for folder in ('models','textures'):
         for file in (assets/folder).iterdir():shutil.copy2(file,mod/folder/file.name)
+    shutil.copy2(HERE/'ak47_motion.h',root/'src/client/ak47_motion.h')
+    shutil.copy2(assets/'ak47_weapon_params.h',root/'src/client/ak47_weapon_params.h')
     cpp=root/'src/client/camera.cpp';text=cpp.read_text()
     start=text.index('void Camera::updateAK47Viewmodel(f32 frametime)')
     end=text.index('void Camera::wield(',start)
     cpp.write_text(text[:start]+(HERE/'camera_hd.cpp.inc').read_text()+'\n'+text[end:])
     checked(cpp,'#include "client/texturesource.h"',
-            '#include "client/texturesource.h"\n#include "client/shader.h"')
+            '#include "client/texturesource.h"\n#include "client/shader.h"\n'
+            '#include "SkinnedMesh.h"\n#include "ak47_weapon_params.h"\n#include <cstdlib>')
     header=root/'src/client/camera.h'
+    checked(header,'#include "inventory.h" // ItemStack',
+            '#include "inventory.h" // ItemStack\n#include "ak47_motion.h"')
     checked(header,'\tstd::string m_ak47_last_event;',
         '\tstd::string m_ak47_last_event;\n'
         '\tbool m_ak47_hd_active = false;\n'
         '\tf32 m_ak47_hd_elapsed = 0.0f;\n'
         '\tf32 m_ak47_hd_duration = 0.0f;\n'
         '\tstd::string m_ak47_hd_action;\n'
-        '\tstd::string m_ak47_hd_clip;')
+        '\tstd::string m_ak47_hd_clip;\n'
+        '\tak47::GunRecoil m_ak47_source_recoil;\n\tu32 m_ak47_last_fired=0;')
     checked(cpp,'\tcam->setFOV(72.0*M_PI/180.0);\n\tcam->setNearValue(10);',
         '\tif (m_wield_item_next.name == "ak47dev:ak47" && m_ak47_viewmodel) {\n'
         '\t\tconst f32 horizontal = (75.0f - 25.0f * m_ak47_ads_alpha) * M_PI / 180.0f;\n'
@@ -39,7 +45,7 @@ def patch(root,assets):
     app=root/'android/app'
     # MainActivity re-extracts bundled game assets when VERSION_CODE changes.
     checked(root/'android/build.gradle','project.ext.set("versionBuild", 0)',
-            'project.ext.set("versionBuild", 2)')
+            'project.ext.set("versionBuild", 3)')
     for path in [app/'build.gradle',app/'src/main/AndroidManifest.xml',
                  app/'src/main/java/net/minetest/minetest/GameActivity.java']:
         text=path.read_text();assert 'com.xziel.voxelsandbox.v33' in text

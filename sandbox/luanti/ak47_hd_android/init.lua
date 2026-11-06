@@ -6,7 +6,7 @@ local function now() return minetest.get_us_time()/1000000 end
 local function equipped(p) return p and p:is_player() and p:get_wielded_item():get_name()==AK end
 local function state(p)
     local name=p:get_player_name()
-    if not S[name] then S[name]={ammo=30,reserve=210,ads=false,seq=0,next_fire=0,reload_end=0,pending=0,aux=false} end
+    if not S[name] then S[name]={ammo=30,reserve=210,ads=false,seq=0,fired=0,next_fire=0,reload_end=0,pending=0,aux=false} end
     return S[name]
 end
 local function sync(p,s,event)
@@ -15,6 +15,7 @@ local function sync(p,s,event)
     if event then s.seq=s.seq+1;meta:set_string("xz_ak_anim",event..s.seq) end
     meta:set_string("xz_ak_ads",s.ads and "1" or "0")
     meta:set_string("xz_ak_empty",s.empty_reload and "1" or "0")
+    meta:set_string("xz_ak_fired",tostring(s.fired))
     p:set_wielded_item(stack)
     if s.hud then
         p:hud_change(s.hud,"text",("AK47 HD | %02d / %d | %s"):format(s.ammo,s.reserve,
@@ -43,7 +44,7 @@ local function fire(p,s)
     local time=now()
     if s.reload_end>0 or s.pending>0 or time<s.next_fire then return end
     if s.ammo==0 then sound(p,"ak47dev_dry",.5);reload(p,s);return end
-    s.next_fire=time+.10;s.ammo=s.ammo-1;sync(p,s,"F");sound(p,"ak47dev_fire",.65)
+    s.next_fire=time+.10;s.ammo=s.ammo-1;s.fired=s.fired+1;sync(p,s,"F");sound(p,"ak47dev_fire",.65)
     local eye=vector.add(p:get_pos(),{x=0,y=p:get_properties().eye_height or 1.47,z=0})
     local direction=p:get_look_dir();local stop=vector.add(eye,vector.multiply(direction,76))
     for hit in minetest.raycast(eye,stop,true,false) do
@@ -58,11 +59,10 @@ local function toggle_ads(p)
     local s=state(p);if now()<(s.toggle_after or 0) then return end
     s.toggle_after=now()+.18;ads(p,s,not s.ads)
 end
-minetest.register_node(AK,{
+minetest.register_tool(AK,{
     description="AK47 HD | FIRE: disparar | ADS: apuntar | R: recargar",
-    drawtype="mesh",mesh="ak47hd.glb",tiles={"ak47hd_512.png","ak47hd_hands.png"},
-    inventory_image="ak47dev_icon.png",wield_scale={x=1,y=1,z=1},
-    walkable=false,pointable=false,diggable=false,drop="",stack_max=1,range=0,
+    inventory_image="ak47dev_icon.png",wield_image="ak47dev_icon.png",
+    wield_scale={x=1,y=1,z=1},stack_max=1,range=0,
     groups={weapon=1,weapon_ranged=1,not_in_creative_inventory=1},
     on_use=function(stack,p)
         if equipped(p) then

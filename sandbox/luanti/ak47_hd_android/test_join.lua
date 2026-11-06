@@ -45,7 +45,7 @@ local function scenario(items,selected,connected)
     -- No set_wield_index stub: that method does not exist in the engine.
     minetest={
         get_us_time=function() return 1000000 end,
-        register_node=function() end,
+        register_tool=function() end,
         register_on_joinplayer=function(f) callbacks.join=f end,
         register_on_leaveplayer=function() end,
         register_globalstep=function() end,

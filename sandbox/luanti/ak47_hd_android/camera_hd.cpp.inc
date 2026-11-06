@@ -7,6 +7,7 @@ void Camera::updateAK47Viewmodel(f32 frametime)
         m_ak47_action_left = 0.0f;
         m_ak47_ads_alpha = 0.0f;
         m_ak47_hd_active = false;
+        m_ak47_source_recoil.reset();
         return;
     }
     m_ak47_clock += dt;
@@ -15,6 +16,8 @@ void Camera::updateAK47Viewmodel(f32 frametime)
         m_ak47_clock = 0.0f;
         scene::IAnimatedMesh *mesh = m_client->getMesh("ak47hd.glb");
         if (mesh) {
+            if (auto *skin=dynamic_cast<scene::SkinnedMesh*>(mesh))
+                skin->setSkinPoseCache(true);
             if (mesh->getTrackNumber("ak47_ads_hold") && mesh->getTrackNumber("viewmodel_ak47_reload")) {
                 m_ak47_viewmodel = m_wieldmgr->addAnimatedMeshSceneNode(mesh);
                 auto *textures = m_client->getTextureSource();
@@ -44,21 +47,24 @@ void Camera::updateAK47Viewmodel(f32 frametime)
     if (!m_ak47_viewmodel) return;
     m_ak47_viewmodel->setVisible(true);
     m_ak47_viewmodel->setPosition(v3f(0, 0, 0));
-    m_ak47_viewmodel->setRotation(v3f(0, 0, 0));
     m_ak47_viewmodel->setScale(v3f(1, 1, 1));
 
-    std::string flag, event, empty;
+    std::string flag, event, empty, fired_text;
     m_wield_item_next.metadata.getStringToRef("xz_ak_ads", flag);
     m_wield_item_next.metadata.getStringToRef("xz_ak_anim", event);
     m_wield_item_next.metadata.getStringToRef("xz_ak_empty", empty);
+    m_wield_item_next.metadata.getStringToRef("xz_ak_fired", fired_text);
+    const u32 fired=static_cast<u32>(std::strtoul(fired_text.c_str(),nullptr,10));
     if (!m_ak47_hd_active) {
         m_ak47_last_event = event;
         m_ak47_hd_active = true;
+        m_ak47_last_fired=fired;
     }
     const f32 target = flag == "1" ? 1.0f : 0.0f;
     const f32 step = dt / 0.25f;
     m_ak47_ads_alpha = target > m_ak47_ads_alpha ?
         std::min(target, m_ak47_ads_alpha + step) : std::max(target, m_ak47_ads_alpha - step);
+    m_ak47_source_recoil.advance(ak47::source_recoil,m_ak47_ads_alpha,dt);
 
     m_ak47_hd_elapsed += dt;
     m_ak47_action_left = std::max(0.0f, m_ak47_action_left - dt);
@@ -66,6 +72,7 @@ void Camera::updateAK47Viewmodel(f32 frametime)
     if (!event.empty() && event != m_ak47_last_event) {
         m_ak47_last_event = event;
         if (event[0] == 'R') {
+            m_ak47_source_recoil.reset();
             m_ak47_action_reload = true;
             m_ak47_hd_action = empty == "1" ? "viewmodel_ak47_reload_empty" : "viewmodel_ak47_reload";
             const auto id = mesh->getTrackNumber(m_ak47_hd_action);
@@ -77,9 +84,14 @@ void Camera::updateAK47Viewmodel(f32 frametime)
             m_ak47_hd_action = target > 0.5f ? "ak47_ads_fire" : "viewmodel_ak47_fire";
             m_ak47_hd_duration = 0.10f; // full source curve at the 600 RPM weapon clock
             m_ak47_action_left = m_ak47_hd_duration;
-            m_ak47_hd_elapsed = 0.0f;
+            m_ak47_hd_elapsed = ak47::first_fire_sample(dt,m_ak47_hd_duration);
+            const u32 shots=fired>m_ak47_last_fired ? fired-m_ak47_last_fired : 1u;
+            m_ak47_source_recoil.fire(ak47::source_recoil,m_ak47_ads_alpha,shots);
+            m_ak47_source_recoil.advance(ak47::source_recoil,m_ak47_ads_alpha,.005f);
         }
     }
+    m_ak47_last_fired=fired;
+    m_ak47_viewmodel->setRotation(v3f(m_ak47_source_recoil.pitch,-m_ak47_source_recoil.yaw,0));
     std::string clip;
     f32 fraction = 0.0f;
     if (m_ak47_action_left > 0.0f) {

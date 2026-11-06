@@ -39,7 +39,8 @@ def verify(apk):
             assert z.read(prefix+'textures/ak47hd_hands.png').startswith(b'\x89PNG')
             lua=z.read(prefix+'init.lua').decode()
             assert 'c.aux1 and not s.aux' in lua and 's.ammo=s.ammo-1' in lua
-            assert 'ak47hd.glb' in lua and 'ak47dev_fp.glb' not in lua
+            assert 'minetest.register_tool(AK' in lua and 'wield_image="ak47dev_icon.png"' in lua
+            assert 'drawtype="mesh"' not in lua and 'xz_ak_fired' in lua
             assert 'set_wield_index' not in lua, 'unsupported server-side wield-index setter in APK'
             assert 'player:get_wield_index()' in lua and 'inv:set_stack("main",selected,weapon)' in lua
             assert z.read(prefix+'sounds/ak47dev_fire.ogg').startswith(b'OggS')
