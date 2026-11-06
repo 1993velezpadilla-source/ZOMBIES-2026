@@ -16,6 +16,9 @@ def replace_once(path: Path, before: str, after: str):
 def patch(root: Path):
     header = root / "src/client/gameui.h"
     cpp = root / "src/client/gameui.cpp"
+    # Fail early instead of appending a second FPS widget on repeated runs.
+    if "m_ak47_fps_text" in header.read_text() or "m_ak47_fps_text" in cpp.read_text():
+        raise ValueError("Luanti source already has the dedicated AK47 FPS HUD")
     replace_once(header,
         "\tgui::IGUIStaticText *m_guitext2 = nullptr; // Second line of debug text",
         "\tgui::IGUIStaticText *m_guitext2 = nullptr; // Second line of debug text\n"
