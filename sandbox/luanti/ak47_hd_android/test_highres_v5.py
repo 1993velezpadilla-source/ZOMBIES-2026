@@ -39,7 +39,7 @@ class HighResArtworkTests(unittest.TestCase):
 
     def test_hands_use_consistent_contiguous_skin_islands(self):
         pos=np.array([[1,0,-3],[2,0,-3],[1,1,-3],
-                      [1.1,0,-3],[2,0,-3],[1,1,-3],
+                      [1,0,-3],[2,0,-3],[1,1,-3],
                       [1,0,3],[2,0,3],[1,1,3]],float)
         joints=np.zeros((9,4),int); joints[3:6,0]=1
         weights=np.tile([1.,0.,0.,0.],(9,1))
