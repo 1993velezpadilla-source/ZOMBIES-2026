@@ -6,6 +6,7 @@ import hashlib
 import json
 import struct
 import numpy as np
+import soundfile as sf
 from zipfile import ZipFile
 from PIL import Image
 from media_limits import check_media_size,MAX_MEDIAFILE_BYTES
@@ -78,6 +79,34 @@ def verify(apk, expected_audit=None):
                 for name in ('normal','empty'):
                     sfx=z.read(prefix+f'sounds/ak47dev_reload_{name}.ogg')
                     assert sfx.startswith(b'OggS') and len(sfx)>10000, name
+                provenance=json.loads(z.read(prefix+'sounds/ak47dev_reload_audit_v6.json'))
+                assert provenance['normal']['source_name']=='assaultriflereload1_0.wav'
+                assert provenance['source_normal']['url'].startswith('https://opengameart.org/')
+                assert provenance['source_empty']['url'].endswith('ak47_reload.ogg')
+                assert provenance['source_normal']['sha256']!=provenance['source_empty']['sha256'], (
+                    'V5 shared empty reload source has returned')
+                assert provenance['normal']['shared_source_with_empty'] is False
+                assert provenance['normal']['time_stretch_applied'] is False
+                assert provenance['empty']['time_stretch_applied'] is False
+                # Compare decoded signal, NOT filenames or animation duration.
+                # V5 used exactly the same ~2.3s audio in both files.
+                def mono(name):
+                    arr,rate=sf.read(BytesIO(z.read(prefix+f'sounds/ak47dev_reload_{name}.ogg')),
+                                     dtype='float32',always_2d=True)
+                    out=arr.mean(axis=1)
+                    # approximately 220Hz for efficient duration-agnostic FFT
+                    stride=max(1,round(rate/220))
+                    return out[::stride].astype(float)
+                a,b=mono('normal'),mono('empty')
+                a-=np.mean(a);b-=np.mean(b)
+                size=1<<((len(a)+len(b)-2).bit_length())
+                spectrum_a=np.fft.rfft(a,size)
+                spectrum_b=np.fft.rfft(b,size)
+                cross=np.fft.irfft(spectrum_a*np.conjugate(spectrum_b),size)
+                correlation=float(max(np.max(np.abs(cross[:len(a)])),
+                                      np.max(np.abs(cross[-len(b)+1:])))/
+                                  max(1.e-8,np.linalg.norm(a)*np.linalg.norm(b)))
+                assert correlation<.75, ('normal and empty reloads still sound alike',correlation)
             lua=z.read(prefix+'init.lua').decode()
             assert 'c.aux1 and not s.aux' in lua and 's.ammo=s.ammo-1' in lua
             assert 'minetest.register_tool(AK' in lua and 'wield_image="ak47dev_icon.png"' in lua
@@ -85,7 +114,7 @@ def verify(apk, expected_audit=None):
             assert 'set_wield_index' not in lua, 'unsupported server-side wield-index setter in APK'
             assert 'player:get_wield_index()' in lua and 'inv:set_stack("main",selected,weapon)' in lua
             assert z.read(prefix+'sounds/ak47dev_fire.ogg').startswith(b'OggS')
-    report={'package':'com.xziel.voxelsandbox.ak47hiresv5','architecture':'arm64-v8a',
+    report={'package':'com.xziel.voxelsandbox.ak47reloadv6','architecture':'arm64-v8a',
             'apk_bytes':apk.stat().st_size,'apk_sha256':hashlib.sha256(apk.read_bytes()).hexdigest(),
             'model_sha256':hashlib.sha256(model).hexdigest(),'triangles':faces,
             'model_bytes':len(model),'media_file_limit':MAX_MEDIAFILE_BYTES,
@@ -96,6 +125,7 @@ def verify(apk, expected_audit=None):
             'rifle_texture':'cc0_photo_2048_lit_shader',
             'hands_texture':'cc0_photo_1024_skin_and_cuff',
             'reload_sfx_sync':['83/30','106/30'] if expected else [],
+            'independent_recordings_verified':bool(expected),
             'signed_apk_contents_verified':True,'physical_android_device_tested':False}
     return report
 
