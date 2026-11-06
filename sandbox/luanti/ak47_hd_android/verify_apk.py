@@ -85,7 +85,7 @@ def verify(apk, expected_audit=None):
             assert 'set_wield_index' not in lua, 'unsupported server-side wield-index setter in APK'
             assert 'player:get_wield_index()' in lua and 'inv:set_stack("main",selected,weapon)' in lua
             assert z.read(prefix+'sounds/ak47dev_fire.ogg').startswith(b'OggS')
-    report={'package':'com.xziel.voxelsandbox.ak47combo2','architecture':'arm64-v8a',
+    report={'package':'com.xziel.voxelsandbox.ak47photoaudio','architecture':'arm64-v8a',
             'apk_bytes':apk.stat().st_size,'apk_sha256':hashlib.sha256(apk.read_bytes()).hexdigest(),
             'model_sha256':hashlib.sha256(model).hexdigest(),'triangles':faces,
             'model_bytes':len(model),'media_file_limit':MAX_MEDIAFILE_BYTES,
