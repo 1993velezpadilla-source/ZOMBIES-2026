@@ -7,6 +7,10 @@ UV islands are named material regions, with a separate skin/cuff atlas.
 from __future__ import annotations
 import numpy as np
 from PIL import Image, ImageDraw
+from pathlib import Path
+import sys
+BLOCK=Path(__file__).resolve().parents[1]/'iw3_blockstyle'
+sys.path.insert(0,str(BLOCK))
 from texture_atlas import TILES, SIZE, PADDING
 
 HAND_TILES={'skin':(0,0,512,380),'cuff':(0,380,512,512)}
