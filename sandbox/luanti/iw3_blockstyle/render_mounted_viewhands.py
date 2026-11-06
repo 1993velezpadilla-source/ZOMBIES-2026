@@ -43,9 +43,9 @@ def measure_proximity(rifle, hands):
     return float(np.median(np.min(d,axis=1)))
 
 
-def compose(rifle,viewhands,gunclip,handclip,t,rest_hand_tag,mode='iw3_dobj'):
-    rifle_mesh, gunpoints, gunworld=rifle.poses(gunclip,t)
-    hand_mesh, handpoints, handworld=viewhands.poses(handclip,t)
+def compose(rifle,viewhands,gunclip,handclip,t,rest_hand_tag,mode='iw3_dobj',*,hand_layers=(),gun_layers=()):
+    rifle_mesh, gunpoints, gunworld=rifle.poses(gunclip,t,layers=gun_layers)
+    hand_mesh, handpoints, handworld=viewhands.poses(handclip,t,layers=hand_layers)
     hand_tag=viewhands.tag(handworld)
     if hand_tag is None:
         raise ValueError("source COD4 hand skeleton missing tag_weapon")

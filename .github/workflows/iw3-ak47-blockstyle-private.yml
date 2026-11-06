@@ -295,6 +295,32 @@ jobs:
           print("Full-timeline source-linked Y-up FPS camera candidates:",a["candidates_tested"])
           print("Auto-camera framing metrics:",a["best_candidates"][0])
           PY
+      - name: Bake complete native ADS and verify centered emitted iron sights
+        run: |
+          set -euo pipefail
+          PYTHONPATH="$PWD/_iw3_pipeline_src/tools" python3 \
+            sandbox/luanti/iw3_blockstyle/ads_pipeline.py \
+            --rifle _iw3_private/blockstyle/AK47_COD4_BLOCKSTYLE_ALL_XANIM_PRIVATE.glb \
+            --hands _iw3_private/blockstyle/AK47_COD4_HANDSONLY_ALL_XANIM_PRIVATE.glb \
+            --weapon _iw3_private/dumps/common_mp/weapons/ak47_mp \
+            --output _iw3_private/ads-baked
+          python3 - <<'PY'
+          import json,shutil
+          from pathlib import Path
+          source=Path('_iw3_private/ads-baked')
+          audit=json.loads((source/'ads-audit.json').read_text())
+          assert audit['ads_metrics']['maximum_center_error_pixels']<1
+          assert audit['camera_fixed'] and audit['original_clips_preserved']==[39,49]
+          assert audit['derived_clips_added_per_model']==5
+          assert audit['playback_durations']['enter']==audit['playback_durations']['exit']==.25
+          assert all(f['textured_primitives']==4 and f['geometry_pixels']>100 for f in audit['frames'])
+          assert not audit['runtime_android_verified']
+          target=Path('_iw3_reports/ads-qa');target.mkdir(parents=True,exist_ok=True)
+          for pattern in ('*.png','*.gif','*.json'):
+              for path in source.glob(pattern):shutil.copy2(path,target/path.name)
+          assert not list(target.glob('*.glb'))
+          print('Native composed ADS:',audit['ads_metrics'],audit['gif_frames'])
+          PY
       - name: Upload static and truly animated pose screenshots from real COD4 geometry
         uses: actions/upload-artifact@v4
         with:
@@ -306,6 +332,8 @@ jobs:
             _iw3_reports/mounted-hands-only/*.png
             _iw3_reports/fps-hipfire-qa/*.png
             _iw3_reports/fps-hipfire-qa/*.gif
+            _iw3_reports/ads-qa/*.png
+            _iw3_reports/ads-qa/*.gif
           if-no-files-found: error
           retention-days: 7
       - name: Destroy original archive and all private binary model outputs
@@ -323,6 +351,7 @@ jobs:
             _iw3_reports/mounted-frames/mount-audit.json
             _iw3_reports/mounted-hands-only/mount-audit.json
             _iw3_reports/fps-hipfire-qa/fps-framing-audit.json
+            _iw3_reports/ads-qa/ads-audit.json
           if-no-files-found: warn
           retention-days: 14
 

@@ -102,6 +102,10 @@ def classify_faces(xyz, colors, joint_names, joints, material, lo, hi):
             regions[mask] = 'magazine'
         elif 'bolt' in name or 'trigger' in name:
             regions[mask] = 'steel'
+    # The rear iron sits in the handguard's axial interval, but is steel.
+    # Its notch must not inherit the wood tile from that coarse partition.
+    rear_iron=(centers[:,0]>6.2)&(centers[:,0]<8.2)&(centers[:,1]>2.9)
+    regions[rear_iron]='steel'
     return np.repeat(regions, 4)
 
 

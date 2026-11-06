@@ -10,9 +10,10 @@ from PIL import Image,ImageDraw
 from render_fps_camera_probe import projection_basis
 
 class DepthPreview:
-    def __init__(self,width=1100,height=640):
+    def __init__(self,width=1100,height=640,*,center_y_offset=15.):
         import moderngl
         self.gl=moderngl;self.width=width;self.height=height
+        self.center_y_offset=float(center_y_offset)
         self.ctx=moderngl.create_standalone_context(backend='egl')
         self.backend=self.ctx.info['GL_RENDERER']
         self.program=self.ctx.program(vertex_shader='''#version 330
@@ -117,7 +118,7 @@ class DepthPreview:
         scale=1./math.tan(math.radians(fov*.5))
         projection=np.zeros((4,4));projection[0,0]=scale
         projection[1,1]=scale*self.width/self.height
-        projection[1,2]=-30./self.height
+        projection[1,2]=-2*self.center_y_offset/self.height
         projection[2,2]=(far+near)/(far-near);projection[2,3]=-2*far*near/(far-near)
         projection[3,2]=1.
         _,report=self._draw(geometry,projection@view,label,outfile,

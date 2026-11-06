@@ -1,5 +1,11 @@
 # COD4 AK-47 -> Minecraft-style block geometry + every XANIM
 
+> Complete ADS review/export is now available through `ads_pipeline.py`:
+> five paired clips preserve the idle/fire hand pose while layering the source
+> tag_ads curves. Enter/exit follow the weapon definition's 0.25s timing;
+> iron alignment is calibrated once, with a fixed camera throughout.
+> See [ADS verification and import](../../../docs/audit/COD4_AK47_ADS.md).
+
 > The rifle now has an original **512x512 PNG texture atlas**, embedded in its
 > GLB and mapped through new rest-space UVs. Wood grain, pressed magazine
 > grooves and machined-metal detail are painted at native resolution. The

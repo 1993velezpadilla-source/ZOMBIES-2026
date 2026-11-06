@@ -142,12 +142,18 @@ class PoseScene:
         if name not in self.animations:raise ValueError("missing clip "+name)
         return self.durations[name]
 
-    def world(self,name=None,t=0.0):
+    def local_values(self,name=None,t=0.0,*,layers=()):
         values={}
-        if name is not None:
-            for node,prop,ts,xs,mode in self.tracks[name]:
-                values.setdefault(node,{})[prop]=interp(xs,ts,t,
+        # Sparse ADS clips animate tag_ads only. They override those channels
+        # on the current idle/fire pose instead of resetting untouched fingers.
+        for clip,time in ([(name,t)] if name is not None else [])+list(layers):
+            for node,prop,ts,xs,mode in self.tracks[clip]:
+                values.setdefault(node,{})[prop]=interp(xs,ts,time,
                       rotation=prop=="rotation",mode=mode)
+        return values
+
+    def world(self,name=None,t=0.0,*,layers=()):
+        values=self.local_values(name,t,layers=layers)
         locals_=[local_matrix(n,values.get(i,{})) for i,n in enumerate(self.nodes)]
         memo={}
         def transform(i,depth=0):
@@ -158,8 +164,8 @@ class PoseScene:
             return memo[i]
         return [transform(i) for i in range(len(self.nodes))]
 
-    def poses(self,name,t):
-        world=self.world(name,t)
+    def poses(self,name,t,*,layers=()):
+        world=self.world(name,t,layers=layers)
         rendered=[];allcoords=[]
         for mesh,pos,ix,joints,weights,colors in self.geometry:
             indices=self.mesh_nodes.get(mesh,[None])
