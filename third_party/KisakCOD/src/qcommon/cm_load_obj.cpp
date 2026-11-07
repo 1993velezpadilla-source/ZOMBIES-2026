@@ -531,7 +531,9 @@ void CMod_LoadLeafSurfaces()
     uint32_t count; // [esp+Ch] [ebp-4h] BYREF
 
     in = Com_GetBspLump(LUMP_LEAFSURFACES, 4u, &count);
-    cm.leafsurfaces = (uint32_t*)CM_Hunk_Alloc(4 * count, "CMod_LoadLeafSurfaces", 28);
+    if (count > 0xFFFFFFFFu / sizeof(uint32_t))
+        Com_Error(ERR_DROP, "CMod_LoadLeafSurfaces: allocation exceeds 32-bit hunk limit");
+    cm.leafsurfaces = (uint32_t*)CM_Hunk_Alloc(sizeof(uint32_t) * count, "CMod_LoadLeafSurfaces", 28);
     cm.numLeafSurfaces = count;
     Com_Memcpy(cm.leafsurfaces, in, 4 * count);
 }
@@ -542,7 +544,9 @@ void CMod_LoadCollisionVerts()
     uint32_t count; // [esp+Ch] [ebp-4h] BYREF
 
     in = Com_GetBspLump(LUMP_COLLISIONVERTS, 0xCu, &count);
-    cm.verts = (float(*)[3])CM_Hunk_Alloc(12 * count, "CMod_LoadCollisionVerts", 28);
+    if (count > 0xFFFFFFFFu / sizeof(*cm.verts))
+        Com_Error(ERR_DROP, "CMod_LoadCollisionVerts: allocation exceeds 32-bit hunk limit");
+    cm.verts = (float(*)[3])CM_Hunk_Alloc(sizeof(*cm.verts) * count, "CMod_LoadCollisionVerts", 28);
     cm.vertCount = count;
     Com_Memcpy(cm.verts, in, 12 * count);
 }
