@@ -496,7 +496,7 @@ void CMod_LoadNodes()
     in = Com_GetBspLump(LUMP_NODES, 0x24u, &count);
     if (!count)
         Com_Error(ERR_DROP, "Map has no nodes");
-    cm.nodes = (cNode_t*)CM_Hunk_Alloc(sizeof(cNode_t) * count, "CMod_LoadNodes", 25);
+    // The BSP node count is disk-derived, while CM_Hunk_Alloc accepts uint32_t.\n    // Reject overflow before scaling by the native (pointer-bearing) node size.\n    if (count > UINT32_MAX / sizeof(cNode_t))\n        Com_Error(ERR_DROP, "CMod_LoadNodes: node allocation exceeds 32-bit hunk limit");\n    cm.nodes = (cNode_t*)CM_Hunk_Alloc(sizeof(cNode_t) * count, "CMod_LoadNodes", 25);
     result = (cNode_t*)count;
     cm.numNodes = count;
     out = cm.nodes;
