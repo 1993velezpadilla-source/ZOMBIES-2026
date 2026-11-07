@@ -418,7 +418,11 @@ void __cdecl CMod_LoadPlanes()
         Com_Error(ERR_DROP, "Map with no planes");
     if (count > 0x10000)
         Com_Error(ERR_DROP, "Number of planes exceeds 65536");
-    cm.planes = (cplane_s*)CM_Hunk_Alloc(20 * count, "CMod_LoadPlanes", 25);
+    // Allocate the native in-memory plane layout, not the 16-byte BSP disk layout.
+    // Keep the 32-bit allocator contract explicit on LP64 platforms.
+    if (count > 0xFFFFFFFFu / sizeof(cplane_s))
+        Com_Error(ERR_DROP, "CMod_LoadPlanes: plane allocation exceeds 32-bit hunk limit");
+    cm.planes = (cplane_s*)CM_Hunk_Alloc(sizeof(cplane_s) * count, "CMod_LoadPlanes", 25);
     cm.planeCount = count;
     out = cm.planes;
     for (planeIter = 0; planeIter < count; ++planeIter)
