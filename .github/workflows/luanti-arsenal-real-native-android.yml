@@ -1,7 +1,7 @@
 name: COD4 Arsenal authentic native viewmodels Android (owner-only)
 on:
   push:
-    branches: [feature/luanti-real-arsenal-28-source-gate-20261106]
+    branches: [feature/luanti-real-arsenal-28-source-gate-20261106, feature/luanti-classic-zombies-no-attachments-20261107]
     paths:
       - sandbox/luanti/arsenal_android/arsenal_mod/**
       - sandbox/luanti/ak47_hd_android/make_original_cod4_m9_audio.py
