@@ -1,0 +1,32 @@
+--- a/sandbox/luanti/ak47_hd_android/test_arsenal.lua
++++ b/sandbox/luanti/ak47_hd_android/test_arsenal.lua
+@@ -47,6 +47,26 @@
+ assert(bridge.open_panel(p));fields('cod4:attachments',{att_acog='true'});assert(s.attachment=='acog+silencer+gl');fields('cod4:attachments',{quit='true'})
+ bridge.refill_ammo(p);for id,d in pairs(definitions) do local st=api.state(p,id);assert(st.ammo==d.capacity and st.reserve==d.reserve,id..' supply missing') end
+ local ak=0;for _,stack in ipairs(items) do if stack.name=='ak47dev:ak47' then ak=ak+1 end end;assert(ak==1)
+-assert(commands.armas('arsenal'));assert(forms['cod4:weapons']:find('pick_m1014',1,true));assert(forms['cod4:weapons']:find('pick_m9',1,true))
+-fields('cod4:weapons',{category='6'});assert(forms['cod4:weapons']:find('pick_m1014',1,true));assert(not forms['cod4:weapons']:find('pick_p90',1,true));fields('cod4:weapons',{pick_m1014='true'});assert(p:get_wielded_item():get_name()=='cod4:m1014')
+-print('ARSENAL_PASS: all 26 families fire/refill, auto/semi/3-shot burst, pellets, native intro/loop/interrupted reloads, ADS bolt lock, compatible attachments, GL, universal supply and category selection')
++assert(commands.armas('arsenal'))
++local c=assert(forms['cod4:weapons'])
++assert(c:find('page_next',1,true),'all guns require pagination')
++assert(not c:find('scroll_container[',1,true),'touch scroll_container must be removed')
++fields('cod4:weapons',{category='6'})
++c=assert(forms['cod4:weapons'])
++assert(c:find('pick_m1014',1,true),'shotgun should be visible in category')
++assert(not c:find('pick_p90',1,true))
++-- Android may submit the dropdown field (and quit) in the same button event.
++fields('cod4:weapons',{pick_m1014='true',category='6',quit='true'})
++assert(p:get_wielded_item():get_name()=='cod4:m1014','pick must override category/quit')
++-- Full inventory: selecting another firearm must equip rather than silently fail.
++for i=1,#items do if items[i].name=='' then items[i]=item('cod4:mp5') end end
++assert(commands.armas('arsenal'))
++fields('cod4:weapons',{category='2'})
++fields('cod4:weapons',{pick_m4='true',category='2'})
++assert(p:get_wielded_item():get_name()=='cod4:m4','full inventory firearm replacement failed')
++-- Every first page shows eight large non-scrolling weapon buttons; page buttons work.
++assert(commands.armas('arsenal'))
++assert(forms['cod4:weapons']:find('page_next',1,true))
++fields('cod4:weapons',{page_next='true',category='1'})
++assert(forms['cod4:weapons']:find('Pagina 2',1,true),'page_next did not advance')
++print('ARSENAL_PASS: firearm selection and Android touch conflict handling, full inventory and page navigation')
