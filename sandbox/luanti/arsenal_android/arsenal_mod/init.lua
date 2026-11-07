@@ -537,6 +537,12 @@ minetest.register_globalstep(function(_)
             s.dig=c.dig
             s.aux=c.aux1
         else
+            -- Respect the AK that worked before the 28-gun experiment:
+            -- ATTACH selection should point to the AK source variant,
+            -- not silently jump to the M9 on a first-time user.
+            if stack:get_name()=="ak47dev:ak47" and defs["arsenal:ak47"] then
+                s.last_weapon="ak47"
+            end
             if s.weapon~="" and s.hud then
                 player:hud_change(s.hud,"text","")
             end
