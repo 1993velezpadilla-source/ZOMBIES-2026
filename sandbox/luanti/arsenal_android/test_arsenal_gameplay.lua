@@ -253,16 +253,21 @@ local m9=methods["arsenal:m9"]
 clock=clock+.3
 m9.on_use(player:get_wielded_item(),player)
 assert(ammo(5)==14,"M9 must fire and consume ammo")
+assert(has_audio("arsenal_m9_fire"),"Missing original M9 player fire sound")
 for _=1,14 do
     clock=clock+.06
     m9.on_use(player:get_wielded_item(),player)
 end
 assert(ammo(5)==0,"M9 magazine must reach empty")
 clock=clock+.06
+m9.on_use(player:get_wielded_item(),player)
+assert(has_audio("arsenal_m9_dry"),"M9 zero-bullet click must use original pistol WAV")
+clock=clock+.3
 control.aux1=true
 methods.step(.01)
 assert(player:get_wielded_item():get_meta():get_string("xz_ar_empty")=="1",
     "Empty M9 must trigger fallback reload")
+assert(has_audio("arsenal_m9_reload_empty"),"M9 chamber click and empty Foley missing")
 control.aux1=false
 clock=clock+1.92
 methods.step(.01)
@@ -361,6 +366,13 @@ assert(formshown[#formshown]:find("att_silencer"),"Missing interactive M9 attach
 form_callback(player,"arsenal:attachments",{att_silencer="true"})
 assert(slots[5]:get_meta():get_string("xz_ar_variant")=="silencer",
     "Suppressor not persisted on M9 gun stack")
+wield_index=5
+methods.step(.01)
+clock=clock+.5
+m9.on_use(player:get_wielded_item(),player)
+assert(has_audio("arsenal_m9_silenced_fire"),
+    "Suppressed M9 must have its own original COD4 shot, not AK Foley")
+wield_index=7
 form_callback(player,"arsenal:attachments",{reset="true"})
 assert(slots[5]:get_meta():get_string("xz_ar_variant")=="",
     "Removing suppressor must restore stock M9 model")
