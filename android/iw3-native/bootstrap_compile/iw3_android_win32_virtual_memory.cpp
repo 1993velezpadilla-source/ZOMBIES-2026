@@ -93,9 +93,11 @@ extern "C" int VirtualFree(void *address, std::size_t size, std::uint32_t freeTy
     if (!round_range(addr, size, page_size(), begin, len) || !contained(begin, len)) {
       errno = EINVAL; return 0;
     }
-    if (mprotect(reinterpret_cast<void *>(begin), len, PROT_NONE) != 0) return 0;
-    // Discard physical pages while retaining the original virtual reservation.
-    return madvise(reinterpret_cast<void *>(begin), len, MADV_DONTNEED) == 0;
+    // Discard first: if madvise fails, the previously committed range must
+    // remain accessible instead of becoming unexpectedly PROT_NONE.
+    if (madvise(reinterpret_cast<void *>(begin), len, MADV_DONTNEED) != 0) return 0;
+    // Preserve the reservation while revoking access to decommitted pages.
+    return mprotect(reinterpret_cast<void *>(begin), len, PROT_NONE) == 0;
   }
   errno = EINVAL;
   return 0;
