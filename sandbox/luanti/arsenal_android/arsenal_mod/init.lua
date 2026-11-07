@@ -24,16 +24,30 @@ local AK_SOUND={
     reload_normal="ak47dev_reload_normal",
     reload_empty="ak47dev_reload_empty"
 }
+local M9_SOUND={
+    fire="arsenal_m9_fire",silenced_fire="arsenal_m9_silenced_fire",
+    dry="arsenal_m9_dry",
+    reload_normal="arsenal_m9_reload_normal",
+    reload_empty="arsenal_m9_reload_empty"
+}
 local function source_audio(p,def,event)
-    if def.id~="ak47" then return end
-    local effect=AK_SOUND[event]
     local variant=p:get_wielded_item():get_meta():get_string("xz_ar_variant")
-    if event=="fire" and variant:find("silencer",1,true) then
-        -- No spoofing original loud AK Foley as a suppressed shot.
-        return
+    local sound
+    if def.id=="ak47" then
+        sound=AK_SOUND[event]
+        if event=="fire" and variant:find("silencer",1,true) then
+            -- Avoid playing an unsuppressed AK sound with a suppressor mesh.
+            return
+        end
+    elseif def.id=="m9" then
+        if event=="fire" and variant:find("silencer",1,true) then
+            sound=M9_SOUND.silenced_fire
+        else
+            sound=M9_SOUND[event]
+        end
     end
-    if effect then
-        minetest.sound_play(effect,{to_player=p:get_player_name(),gain=.75},true)
+    if sound then
+        minetest.sound_play(sound,{to_player=p:get_player_name(),gain=.75},true)
     end
 end
 local function state(player)
