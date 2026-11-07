@@ -1,10 +1,9 @@
 #pragma once
-// Compile-only declaration shim for the original KisakCOD com_memory.cpp.
+// Android ARM64 ABI declarations for the original KisakCOD com_memory.cpp.
 // The source uses Win32 VirtualAlloc/VirtualFree directly; Android's NDK
 // does not declare them. These are declarations ONLY, not emulations.
-// The strict --no-undefined link MUST continue to fail until the original
-// memory service is wired to a verified Android mmap/mprotect provider.
-// Do not include this header in a playable runtime build.
+// Implementations are provided by iw3_android_win32_virtual_memory.cpp.
+// This declaration header alone does not prove runtime or link readiness.
 #if !defined(__ANDROID__) || !defined(__aarch64__)
 #error "This declaration shim is only for the Android ARM64 compile audit"
 #endif
