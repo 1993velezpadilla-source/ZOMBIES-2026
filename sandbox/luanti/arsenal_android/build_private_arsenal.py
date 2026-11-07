@@ -135,6 +135,7 @@ def stage(expected, animated, definitions, glbs: Path, output: Path):
     png_solid(textures/"arsenal_flat_hands.png",(165,110,87,255))
     icon_text_png(textures/"arsenal_menu.png","ARSENAL",small="TAP HERE")
     icon_text_png(textures/"arsenal_ammo.png","AMMO",small="REFILL")
+    icon_text_png(textures/"arsenal_attach.png","ATTACH",small="OPTIC/GEAR")
     # Labels are source identities, not guessed 3D previews or screenshots.
     for info in weapons:
         icon_text_png(textures/("arsenal_icon_"+info["id"]+".png"),
@@ -216,6 +217,7 @@ def stage(expected, animated, definitions, glbs: Path, output: Path):
     if not native:
         raise ValueError("no genuine native model pairs: cannot stage fake mod")
     shutil.copy2(Path(__file__).with_name("arsenal_mod")/"init.lua",output/"init.lua")
+    shutil.copy2(Path(__file__).with_name("arsenal_mod")/"attachments.lua",output/"attachments.lua")
     shutil.copy2(Path(__file__).with_name("arsenal_mod")/"mod.conf",output/"mod.conf")
     runtime={
         "schema_version":1,"mode":"private_first_person_source_preview",
