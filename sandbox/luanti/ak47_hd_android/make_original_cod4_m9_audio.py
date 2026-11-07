@@ -14,7 +14,7 @@ from pathlib import Path
 import numpy as np
 import soundfile as sf
 
-from make_original_cod4_reload_v7 import _decode, _animation, _render, RATE
+from make_original_cod4_reload_v7 import _decode, _animation, RATE
 
 FILES={
  "weap_m9_fire_plr":("weap_beretta_slst_3c.wav",
@@ -66,6 +66,29 @@ def write_ogg(dest:Path,audio,report:dict):
         raise ValueError("source M9 OGG output empty")
     report[dest.name]=hashlib.sha256(dest.read_bytes()).hexdigest()
 
+def render_native_notes(samples:dict,anim,events:list[tuple[str,int]],frames:int):
+    # The ORIGINAL M9 clip-in/chamber Foley ends AFTER the corresponding
+    # 49/58-frame XANIM. Preserve every PCM sample; do not truncate, stretch,
+    # or misrepresent the unchanged recorded pitch.
+    full_size=max(round(frames/anim.fps*RATE),
+        max(round(frame/anim.fps*RATE)+len(samples[alias])
+            for alias,frame in events))
+    mixed=np.zeros(full_size,dtype=np.float64)
+    note_report=[]
+    for alias,frame in events:
+        offset=round(frame/anim.fps*RATE)
+        data=samples[alias]
+        mixed[offset:offset+len(data)]+=data
+        note_report.append({"alias":alias,"frame":frame,
+            "second":round(frame/anim.fps,5),
+            "samples_kept":len(data)})
+    peak=np.max(np.abs(mixed))
+    if not np.isfinite(peak) or peak<.005:
+        raise ValueError("Original M9 Foley mixed silence")
+    mixed=np.float32(mixed*(.94/max(.94,peak)))
+    return mixed,note_report
+
+
 def build(loaded:Path,anims:Path,output:Path):
     tracks,evidence=original_samples(loaded)
     output.mkdir(parents=True,exist_ok=True)
@@ -87,7 +110,7 @@ def build(loaded:Path,anims:Path,output:Path):
             raise ValueError("M9 ORIGINAL "+clip+" XANIM notetrack mismatch")
         if len(actual)!=len(anim.notes):
             raise ValueError("M9 original XANIM contains unhandled sound event")
-        track,notes=_render(tracks,anim,events,frames)
+        track,notes=render_native_notes(tracks,anim,events,frames)
         out=output/f"arsenal_m9_reload_{kind}.ogg"
         write_ogg(out,track,hashes)
         report["original_animations"][kind]={"clip":clip,"frames":frames,
