@@ -43,6 +43,10 @@ original_tu(iw3_filesystem qcommon/files.cpp)
 original_tu(iw3_unzip qcommon/unzip.cpp)
 # Genuine IW3 Hunk/PMem provider: expose original memory services to strict link.
 original_tu(iw3_com_memory universal/com_memory.cpp)
+# Compile audit only: declare Win32 memory imports without faking their behavior.
+# The strict link must still report unresolved VirtualAlloc/VirtualFree.
+target_compile_options(iw3_com_memory PRIVATE
+  "-include" "${CMAKE_CURRENT_LIST_DIR}/win32_virtual_memory_declarations.h")
 original_tu(iw3_db_load database/db_file_load.cpp)
 original_tu(iw3_db_registry database/db_registry.cpp)
 original_tu(iw3_client_input client/cl_input.cpp)
