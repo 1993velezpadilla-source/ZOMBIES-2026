@@ -1,0 +1,28 @@
+name: IW3 original VM adapter regression
+on:
+  push:
+    branches:
+      - feature/iw3-native-android-arm64-20261025
+    paths:
+      - 'android/iw3-native/bootstrap_compile/iw3_android_win32_virtual_memory.cpp'
+      - 'android/iw3-native/bootstrap_compile/tests/win32_vm_regression.cpp'
+      - '.github/workflows/iw3-win32-vm-regression.yml'
+  pull_request:
+    paths:
+      - 'android/iw3-native/bootstrap_compile/iw3_android_win32_virtual_memory.cpp'
+      - 'android/iw3-native/bootstrap_compile/tests/win32_vm_regression.cpp'
+      - '.github/workflows/iw3-win32-vm-regression.yml'
+jobs:
+  vm-regression-linux-host:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile authentic-engine Android platform adapter with warnings
+        run: |
+          g++ -std=c++20 -O1 -g -Wall -Wextra -Werror -pthread \
+            -fsanitize=address,undefined -fno-omit-frame-pointer \
+            android/iw3-native/bootstrap_compile/iw3_android_win32_virtual_memory.cpp \
+            android/iw3-native/bootstrap_compile/tests/win32_vm_regression.cpp \
+            -o /tmp/iw3-vm-regression
+      - name: Exercise reserve commit decommit release
+        run: ASAN_OPTIONS=detect_leaks=1 /tmp/iw3-vm-regression
