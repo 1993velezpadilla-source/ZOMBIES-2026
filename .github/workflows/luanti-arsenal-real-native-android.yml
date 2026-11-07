@@ -1,0 +1,375 @@
+name: COD4 Arsenal authentic native viewmodels Android (owner-only)
+on:
+  push:
+    branches: [feature/luanti-real-arsenal-28-source-gate-20261106]
+    paths:
+      - sandbox/luanti/arsenal_android/arsenal_mod/**
+      - sandbox/luanti/ak47_hd_android/make_original_cod4_m9_audio.py
+      - sandbox/luanti/arsenal_android/test_arsenal_gameplay.lua
+      - sandbox/luanti/arsenal_android/patch_native_arsenal.py
+      - sandbox/luanti/arsenal_android/native_arsenal_camera.cpp.inc
+      - sandbox/luanti/arsenal_android/build_private_arsenal.py
+      - sandbox/luanti/arsenal_android/verify_private_arsenal_apk.py
+      - tools/luanti_real_arsenal_28.py
+      - .github/workflows/luanti-arsenal-real-native-android.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: original-arsenal-native-android-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  android:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/iw3-arsenal-extraction-audit-20261102
+          path: _iw3_pipeline_src
+          persist-credentials: false
+      - name: Source checks and pinned host dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends gettext lua5.1 libjsoncpp-dev libzstd-dev libegl1 libgl1-mesa-dri
+          python3 -m pip install --quiet --user Pillow==12.0.0 numpy==2.3.4 soundfile==0.13.1 moderngl==5.12.0 'cryptography>=44,<49'
+          # No downloaded airsoft/GunLib reload: use the user's original
+          # COD4 common.ff LoadedSound and exact native IW3 XANIM notes.
+          python3 -m py_compile sandbox/luanti/ak47_hd_android/*.py
+          python3 sandbox/luanti/ak47_hd_android/test_delivery.py
+          python3 sandbox/luanti/ak47_hd_android/photo_materials.py \
+            --output "$RUNNER_TEMP/ak47-cc0-photos"
+          echo "AK47_CC0_TEXTURE_DIR=$RUNNER_TEMP/ak47-cc0-photos" >> "$GITHUB_ENV"
+          echo "AK47_REQUIRE_CC0_PHOTOS=1" >> "$GITHUB_ENV"
+          python3 sandbox/luanti/ak47_hd_android/test_fps_patch.py
+          luac5.1 -p sandbox/luanti/ak47_hd_android/init.lua
+          lua5.1 sandbox/luanti/ak47_hd_android/test_controls.lua
+          lua5.1 sandbox/luanti/ak47_hd_android/test_join.lua
+          PYTHONPATH="$PWD/_iw3_pipeline_src/tools:$PWD/sandbox/luanti/iw3_blockstyle" python3 -m unittest discover -s sandbox/luanti/ak47_hd_android -p 'test_*.py' -v
+          PYTHONPATH="$PWD/_iw3_pipeline_src/tools:$PWD/sandbox/luanti/iw3_blockstyle" python3 -m unittest discover -s sandbox/luanti/iw3_blockstyle -p 'test_*.py' -v
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Cache native-local OAT exporter (open-source binary only)
+        id: native_oat_cache
+        uses: actions/cache@v4
+        with:
+          path: _native_oat
+          key: oat-native-locals-v034-x64-v2-${{ hashFiles('sandbox/luanti/iw3_blockstyle/patch_oat_native_locals.py') }}
+      - uses: actions/checkout@v4
+        if: steps.native_oat_cache.outputs.cache-hit != 'true'
+        with:
+          repository: Laupetin/OpenAssetTools
+          ref: 28b14ea0ee41844cfad9875176f9dc693db045cf
+          path: _oat_native_src
+          submodules: recursive
+          persist-credentials: false
+      - name: Build pinned x64 OAT with private native model-local sidecars
+        if: steps.native_oat_cache.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends g++-14
+          python3 sandbox/luanti/iw3_blockstyle/patch_oat_native_locals.py _oat_native_src
+          export PREMAKE_NO_PROMPT=1
+          (cd _oat_native_src && ./generate.sh --cc=gcc)
+          CC=gcc-14 CXX=g++-14 make -C _oat_native_src/build -j"$(nproc)" config=release_x64 UnlinkerCli
+          mkdir -p _native_oat
+          cp _oat_native_src/build/bin/Release_x64/Unlinker _native_oat/Unlinker
+          cp -a _oat_native_src/build/bin/Release_x64/raw _native_oat/raw
+          chmod +x _native_oat/Unlinker
+      - name: Select native-local source exporter
+        run: |
+          chmod +x _native_oat/Unlinker
+          echo "UNLINKER=$PWD/_native_oat/Unlinker" >> "$GITHUB_ENV"
+      - name: Stage private original 7 GB archive and verify checksum
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p _release_assets/c4
+          gh release download gofile-p2DdQHsz --repo "$GITHUB_REPOSITORY" \
+            --pattern 'C4-Mocs.zip.part-*' --dir _release_assets/c4
+          actual="$(cat _release_assets/c4/C4-Mocs.zip.part-* | sha256sum | cut -d' ' -f1)"
+          test "$actual" = '6787f2082b39ee76445db7fca92892256bfb97e62bbdebfe63f6ee11de6a8d99'
+      - name: Decode original COD4 GLB and XANIM in ignored scratch directory
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="$PWD/_iw3_pipeline_src/tools"
+          mkdir -p _iw3_private/native-locals
+          export IW3_NATIVE_LOCALS_DIR="$PWD/_iw3_private/native-locals"
+          python3 _iw3_pipeline_src/tools/iw3_weapon_probe.py prepare --with-iwds --zone common_mp --zone mp_crash --zone common
+          python3 _iw3_pipeline_src/tools/iw3_weapon_probe.py probe --unlinker "$UNLINKER"
+          test -d _iw3_private/dumps/common_mp/model_export
+          test -d _iw3_private/dumps/common_mp/xanim
+      - name: Preserve native AK animations and prepare the HD runtime
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="$PWD/_iw3_pipeline_src/tools:$PWD/sandbox/luanti/iw3_blockstyle"
+          python3 sandbox/luanti/iw3_blockstyle/voxelize.py \
+            --dumps _iw3_private/dumps --output _iw3_private/blockstyle \
+            --report _iw3_reports/ak47-blockstyle.json
+          test -s "$AK47_CC0_TEXTURE_DIR/sources.json"
+          python3 sandbox/luanti/ak47_hd_android/prepare_runtime.py \
+            --blockstyle _iw3_private/blockstyle \
+            --weapon _iw3_private/dumps/common_mp/weapons/ak47_mp \
+            --output _iw3_private/runtime --original-source
+          python3 - <<'PY'
+          import json
+          report=json.load(open('_iw3_private/runtime/viewmodel-audit.json'))
+          assert report['original_source_mesh'] and report['no_voxel_conversion'],report
+          assert report['rifle_texture_version']=='photo_material_v5_lit',report
+          print('ORIGINAL_COD4_POLYGON_TRIANGLES',report['triangles'])
+          PY
+      - name: Build genuine 28-gun source coverage and original animated GLB pairs PRIVATELY
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="$PWD/tools:$PWD/_iw3_pipeline_src/tools"
+          mkdir -p _iw3_reports
+          python3 sandbox/luanti/arsenal_android/discover_cod4_original.py \
+            --dumps _iw3_private/dumps \
+            --manifest sandbox/luanti/arsenal_android/expected_cod4_28.json \
+            --output _iw3_reports/arsenal-original-source.json
+          python3 sandbox/luanti/arsenal_android/read_original_weapon_defs.py \
+            --dumps _iw3_private/dumps \
+            --manifest sandbox/luanti/arsenal_android/expected_cod4_28.json \
+            --output _iw3_reports/arsenal-original-defs.json
+          python3 sandbox/luanti/arsenal_android/audit_original_reload_notes.py \
+            --dumps _iw3_private/dumps \
+            --manifest sandbox/luanti/arsenal_android/expected_cod4_28.json \
+            --output _iw3_reports/arsenal-original-reload-notes.json
+          python3 tools/luanti_real_arsenal_28.py \
+            --dumps _iw3_private/dumps \
+            --manifest sandbox/luanti/arsenal_android/expected_cod4_28.json \
+            --private-output _iw3_private/arsenal_source_pairs \
+            --metadata _iw3_reports/arsenal-animated-source.json
+          python3 sandbox/luanti/arsenal_android/build_private_arsenal.py \
+            --expected sandbox/luanti/arsenal_android/expected_cod4_28.json \
+            --animated _iw3_reports/arsenal-animated-source.json \
+            --definitions _iw3_reports/arsenal-original-defs.json \
+            --glbs _iw3_private/arsenal_source_pairs \
+            --private-output _iw3_private/arsenal_native_mod \
+            --metadata _iw3_reports/arsenal-native-mod.json
+          luac5.1 -p _iw3_private/arsenal_native_mod/init.lua
+          lua5.1 sandbox/luanti/arsenal_android/test_arsenal_gameplay.lua
+          python3 - <<'PY'
+          import json
+          d=json.load(open('_iw3_reports/arsenal-native-mod.json'))
+          assert 1<=d['native_models_verified_by_original_binary']<=28
+          assert not d['runtime_pose_verified'] and not d['runtime_sounds_verified']
+          print('REAL_PRIVATE_3D_SOURCE_WEAPON_COUNT',len(d['native_model_ids']))
+          PY
+      - name: Extract original COD4 AK47 Foley and bake RAW XANIM notify events
+        run: |
+          set -euo pipefail
+          SOURCE="$PWD/_iw3_private/zone/spanish/common.ff"
+          test -s "$SOURCE"
+          mkdir -p _iw3_private/original-ak47-foley
+          "$UNLINKER" --no-color --search-path "$PWD/_iw3_private/zone/spanish" \
+            --include-assets loadedsound \
+            --output-folder "$PWD/_iw3_private/original-ak47-foley" \
+            "$SOURCE" > _iw3_reports/cod4-original-foley-dump.txt 2>&1 || {
+              tail -80 _iw3_reports/cod4-original-foley-dump.txt
+              exit 1
+            }
+          PYTHONPATH="$PWD/_iw3_pipeline_src/tools" \
+            python3 sandbox/luanti/ak47_hd_android/make_original_cod4_reload_v7.py \
+              --loaded _iw3_private/original-ak47-foley \
+              --anims _iw3_private/dumps/common_mp/xanim \
+              --output _iw3_private/runtime/sounds
+          python3 sandbox/luanti/ak47_hd_android/make_cod4_dryfire_v8.py \
+            --loaded _iw3_private/original-ak47-foley \
+            --output _iw3_private/runtime/sounds
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          data=json.loads(Path('_iw3_private/runtime/sounds/ak47dev_dry_audit_v8.json').read_text())
+          assert data['player_alias']=='weap_dryfire_smg_plr'
+          assert data['source_wav_sha256']=='561963bfb073ee2b765ed2d3a1b0f8b6722124b87a8950a5170b05727c284c3f'
+          assert abs(data['duration_seconds']-.21626)<.01
+          print('COD4_REAL_AK47_EMPTY_TRIGGER_PLAYER_SOUND_VERIFIED',data['output'],data['duration_seconds'])
+          PY
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('_iw3_private/runtime/sounds/ak47dev_reload_audit_v7.json')
+          a=json.loads(p.read_text())
+          assert a['version']=='COD4_IW3_ORIGINAL_SOUND_NOTETRACK_V7'
+          assert len(a['source_files'])==4
+          normal=[x['alias'] for x in a['animations']['normal']['events']]
+          empty=[x['alias'] for x in a['animations']['empty']['events']]
+          assert len(normal)==3 and len(empty)==4
+          assert 'weap_ak47_chamber_plr' not in normal
+          assert 'weap_ak47_chamber_plr' in empty
+          print('REAL_ORIGINAL_COD4_NORMAL_VS_EMPTY_EVENTS',normal,empty)
+          PY
+      - name: Restore the actual COD4 M9 normal/empty/fire/suppressed Foley
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="$PWD/_iw3_pipeline_src/tools:$PWD/sandbox/luanti/ak47_hd_android"
+          python3 sandbox/luanti/ak47_hd_android/make_original_cod4_m9_audio.py \
+            --loaded _iw3_private/original-ak47-foley \
+            --anims _iw3_private/dumps/common_mp/xanim \
+            --output _iw3_private/arsenal_native_mod/sounds
+          test -s _iw3_private/arsenal_native_mod/sounds/arsenal_m9_reload_normal.ogg
+          test -s _iw3_private/arsenal_native_mod/sounds/arsenal_m9_reload_empty.ogg
+          test -s _iw3_private/arsenal_native_mod/sounds/arsenal_m9_fire.ogg
+          test -s _iw3_private/arsenal_native_mod/sounds/arsenal_m9_silenced_fire.ogg
+          test -s _iw3_private/arsenal_native_mod/sounds/arsenal_m9_dry.ogg
+      - name: Fetch the pinned working game base
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch 5.18.0 https://github.com/luanti-org/luanti.git "$RUNNER_TEMP/luanti"
+          mkdir -p "$RUNNER_TEMP/luanti/games/voxelibre"
+          git -C "$RUNNER_TEMP/luanti/games/voxelibre" init
+          git -C "$RUNNER_TEMP/luanti/games/voxelibre" remote add origin https://github.com/VoxeLibre/VoxeLibre.git
+          git -C "$RUNNER_TEMP/luanti/games/voxelibre" fetch --depth 1 origin 4492ce6ff8d856daa4567abe2ea689f4e7a39842
+          git -C "$RUNNER_TEMP/luanti/games/voxelibre" checkout --detach FETCH_HEAD
+          rm -rf "$RUNNER_TEMP/luanti/games/voxelibre/.git"
+      - name: Raise decoded media limit to 32 MiB with bounded compressed transfer
+        run: python3 sandbox/luanti/ak47_hd_android/patch_media_limit.py "$RUNNER_TEMP/luanti"
+      - name: Enable optimized native build and cache unchanged software skin poses
+        run: python3 sandbox/luanti/ak47_hd_android/patch_performance.py "$RUNNER_TEMP/luanti"
+      - name: Test the actual Luanti GLB loader and skinning against source poses
+        run: |
+          set -euo pipefail
+          ENGINE="$RUNNER_TEMP/luanti"
+          g++ -std=c++17 -O1 -DHAVE_ENDIAN_H=1 -ffunction-sections -fdata-sections \
+            -I "$ENGINE/irr/include" -I "$ENGINE/irr/src" -I "$ENGINE/lib/tiniergltf" \
+            -I "$ENGINE/src" -I /usr/include/jsoncpp \
+            sandbox/luanti/ak47_hd_android/native_probe.cpp \
+            "$ENGINE/irr/src/CGLTFMeshFileLoader.cpp" "$ENGINE/irr/src/SkinnedMesh.cpp" \
+            "$ENGINE/irr/src/WeightBuffer.cpp" "$ENGINE/irr/src/CReadFile.cpp" \
+            "$ENGINE/irr/src/HWBuffer.cpp" "$ENGINE/src/util/base64.cpp" \
+            "$ENGINE/src/serialization.cpp" "$ENGINE/src/network/networkpacket.cpp" \
+            "$ENGINE/src/util/string.cpp" \
+            -Wl,--gc-sections -ljsoncpp -lzstd -o "$RUNNER_TEMP/ak47-native-probe"
+          "$RUNNER_TEMP/ak47-native-probe" _iw3_private/runtime/models/ak47hd.glb \
+            _iw3_private/runtime/GOLDEN_PRIVATE.json | tee _iw3_reports/native-loader.txt
+          python3 sandbox/luanti/ak47_hd_android/verify_media_transport.py \
+            "$RUNNER_TEMP/ak47-native-probe" | tee -a _iw3_reports/native-loader.txt
+          python3 sandbox/luanti/ak47_hd_android/verify_recoil.py \
+            --source third_party/KisakCOD/src/bgame/bg_weapons.cpp \
+            --params _iw3_private/runtime/ak47_weapon_params.h | tee _iw3_reports/recoil-native.txt
+      - name: Connect real HD assets to the native first-person camera and touch controls
+        run: |
+          set -euo pipefail
+          python3 sandbox/luanti/prepare.py "$RUNNER_TEMP/luanti"
+          python3 sandbox/luanti/v2/patch_v2.py "$RUNNER_TEMP/luanti"
+          python3 sandbox/luanti/v3/patch_v3.py "$RUNNER_TEMP/luanti"
+          python3 sandbox/luanti/v31/patch_v31.py "$RUNNER_TEMP/luanti"
+          python3 sandbox/luanti/v32/patch_v32.py "$RUNNER_TEMP/luanti"
+          python3 sandbox/luanti/v33/patch_v33.py "$RUNNER_TEMP/luanti"
+          python3 sandbox/luanti/ak47_hd_android/patch_engine.py \
+            --root "$RUNNER_TEMP/luanti" --assets _iw3_private/runtime
+          python3 sandbox/luanti/arsenal_android/patch_native_arsenal.py \
+            --root "$RUNNER_TEMP/luanti" \
+            --source-mod _iw3_private/arsenal_native_mod \
+            --manifest _iw3_reports/arsenal-native-mod.json
+          luac5.1 -p "$RUNNER_TEMP/luanti/games/voxelibre/mods/arsenal/init.lua"
+          grep -q 'void Camera::updateArsenalViewmodel(f32 frametime)' "$RUNNER_TEMP/luanti/src/client/camera.cpp"
+          grep -q 'AK47_REAL_FPS_METER' "$RUNNER_TEMP/luanti/src/client/gameui.cpp"
+          grep -q 'm_flags.show_minimal_debug = true;' "$RUNNER_TEMP/luanti/src/client/gameui.cpp"
+          grep -q 'm_guitext2->setVisible(false)' "$RUNNER_TEMP/luanti/src/client/gameui.cpp"
+          grep -q 'ak47_lit_model_shader' "$RUNNER_TEMP/luanti/src/client/camera.cpp"
+          grep -q 'normalize(vNormal)' "$RUNNER_TEMP/luanti/client/shaders/ak47_lit_model_shader/opengl_fragment.glsl"
+          grep -q 'normalize(vNormal)' "$RUNNER_TEMP/luanti/client/shaders/ak47_lit_skin_shader/opengl_fragment.glsl"
+          python3 - <<'PY'
+          import soundfile as sf
+          from pathlib import Path
+          sound=Path(__import__('os').environ['RUNNER_TEMP'])/'luanti/games/voxelibre/mods/ak47dev/sounds'
+          for name,target in [('normal',83/30),('empty',106/30)]:
+              info=sf.info(str(sound/f'ak47dev_reload_{name}.ogg'))
+              assert abs(info.duration-target)<.01,(name,info.duration,target)
+              print('ORIGINAL_COD4_RELOAD_AUDIO_VERIFIED',name,info.duration)
+          import json
+          a=json.loads((sound/'ak47dev_reload_audit_v7.json').read_text())
+          assert a['source'].startswith('original user COD4')
+          assert a['animations']['normal']['events'][0]['frame']==0
+          assert a['animations']['empty']['events'][-1]['frame']==77
+          PY
+          luac5.1 -p "$RUNNER_TEMP/luanti/games/voxelibre/mods/ak47dev/init.lua"
+      - name: Compile separate Android ARM64 HD playtest
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/luanti/android"
+          chmod +x gradlew
+          ./gradlew :app:assembleRelease --no-daemon --stacktrace --max-workers=3
+          python3 "$GITHUB_WORKSPACE/sandbox/luanti/ak47_hd_android/verify_native_build.py" \
+            "$RUNNER_TEMP/luanti" --report "$GITHUB_WORKSPACE/_iw3_reports/native-build-mode.json"
+      - name: Verify APK bytes, real model, textures, clips and Android signature
+        run: |
+          set -euo pipefail
+          APK="$RUNNER_TEMP/luanti/android/app/build/outputs/apk/release/app-arm64-v8a-release.apk"
+          python3 sandbox/luanti/arsenal_android/verify_private_arsenal_apk.py \
+            --apk "$APK" \
+            --private-mod _iw3_private/arsenal_native_mod \
+            --manifest _iw3_reports/arsenal-native-mod.json \
+            --output _iw3_reports/android-build.json
+          TOOLS="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)"
+          "$TOOLS/aapt" dump badging "$APK" > _iw3_reports/android-badging.txt
+          python3 - <<'PY'
+          from pathlib import Path
+          text=Path('_iw3_reports/android-badging.txt').read_text()
+          assert "name='com.xziel.voxelsandbox.arsenaltest'" in text
+          assert "versionCode='5180011'" in text
+          assert 'application-debuggable' not in text
+          assert "native-code: 'arm64-v8a'" in text
+          PY
+          "$TOOLS/apksigner" verify --verbose "$APK" > _iw3_reports/android-signature.txt
+      - name: Prepare DIRECT signed Android APK for owner playtest
+        run: |
+          set -euo pipefail
+          mkdir -p _owner_apk
+          APK="$RUNNER_TEMP/luanti/android/app/build/outputs/apk/release/app-arm64-v8a-release.apk"
+          test -s "$APK"
+          cp "$APK" _owner_apk/COD4-ARSENAL-REAL-SOURCE-ARM64.apk
+          sha256sum _owner_apk/COD4-ARSENAL-REAL-SOURCE-ARM64.apk
+          # The actual source-derived weapon count, never a claimed 28.
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          a=json.loads(Path('_iw3_reports/arsenal-native-mod.json').read_text())
+          assert 1 <= a['native_models_verified_by_original_binary'] <= 28
+          print('REAL_SOURCE_GLBS_IN_APK',a['native_models_verified_by_original_binary'])
+          print('GAMEPLAY_ORIGINAL_DEF_ONLY',a['gameplay_logic_with_original_stats_and_empty_reload'])
+          print('ACTUAL_ANDROID_DEVICE_TESTED',False)
+          PY
+      - name: Upload DIRECT APK for mobile installation — 24-hour owner test
+        uses: actions/upload-artifact@v4
+        with:
+          name: COD4-ARSENAL-REAL-SOURCE-ARM64-DIRECT-APK
+          path: _owner_apk/COD4-ARSENAL-REAL-SOURCE-ARM64.apk
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+      - name: Remove raw game source from transient builder
+        if: always()
+        run: |
+          rm -rf _iw3_private _release_assets _owner_apk
+          rm -rf "$RUNNER_TEMP/luanti"
+      - name: Upload non-reversible build evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: AK47-COD4-DRYFIRE-V8-build-evidence
+          path: |
+            _iw3_reports/android-build.json
+            _iw3_reports/android-badging.txt
+            _iw3_reports/android-signature.txt
+            _iw3_reports/native-loader.txt
+            _iw3_reports/native-build-mode.json
+            _iw3_reports/recoil-native.txt
+            _iw3_reports/arsenal-original-source.json
+            _iw3_reports/arsenal-original-defs.json
+            _iw3_reports/arsenal-original-reload-notes.json
+            _iw3_reports/arsenal-animated-source.json
+            _iw3_reports/arsenal-native-mod.json
+          if-no-files-found: warn
+          retention-days: 7

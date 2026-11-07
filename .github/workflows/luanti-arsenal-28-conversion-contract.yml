@@ -1,0 +1,36 @@
+name: Luanti 28 authentic source converter contract (NO GAME)
+on:
+  push:
+    branches:
+      - feature/luanti-real-arsenal-28-source-gate-20261106
+    paths:
+      - tools/luanti_real_arsenal_28.py
+      - tests/test_luanti_real_arsenal_28.py
+      - .github/workflows/luanti-arsenal-28-conversion-contract.yml
+permissions:
+  contents: read
+jobs:
+  contract:
+    name: Validate real-only source rigging guards
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/iw3-arsenal-extraction-audit-20261102
+          path: _iw3_pipeline_src
+          persist-credentials: false
+      - name: Syntax check 28-weapon source-only rigging converter
+        run: |
+          python3 -m py_compile tools/luanti_real_arsenal_28.py tests/test_luanti_real_arsenal_28.py
+      - name: Reject fake source rigs, incorrect weapon families and unskinned models
+        env:
+          PYTHONPATH: "${{ github.workspace }}/tools:${{ github.workspace }}/_iw3_pipeline_src/tools"
+        run: python3 -m unittest discover -s tests -p 'test_luanti_real_arsenal_28.py' -v
+      - name: Do not conflate host tests with Android 28-gun APK
+        run: |
+          echo '28 real source experimental converter unit tests ONLY.'
+          echo 'No 28-weapon APK is built or published in this workflow.'

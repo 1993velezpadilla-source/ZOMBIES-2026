@@ -1,0 +1,467 @@
+{
+  "schema_version": 1,
+  "project": "Luanti Arsenal COD4 owner-supplied private conversion",
+  "target_weapon_count": 28,
+  "source_distribution": "PRIVATE_ONLY_NO_PUBLIC_GAME_ASSETS",
+  "source_license": "commercial_use_not_cleared",
+  "notes": "Expected weapon identities and source model name candidates. NOT an actual extracted model manifest; no unverified gun may be counted as playable. Model alias corrections from actual OAT viewmodel family inventory: M9 -> viewmodel_beretta, gold Deagle -> viewmodel_desert_eagle_gold. Do not use estimated magazine or reserve ammo: require original WeaponDef values. Gold Deagle can reuse original base Desert Eagle XANIM only after bone-overlap validation against the distinct gold viewmodel (never assume matching). Added only candidate original COD4 WeaponDef and XANIM aliases for missing weapon families (Winchester 1200, Benelli, R700, G36, Colt45, Desert Eagle, M249 SAW, M60E4). They must be validated against actual OAT files and joint overlaps; candidates are not proof. 2026-11-06 latest real source census 25/28 gun+hands pairs and 27/28 WeaponDefs (M249 missing), so added source name candidates saw_mp/saw for M249 and M14-family animation candidates for M21. These are probes only: xanim joint overlap and original definition file are still required before enabling any gameplay.",
+  "weapons": [
+    {
+      "id": "ak47",
+      "name": "AK-47",
+      "category": "assault",
+      "fire_mode": "auto",
+      "model_aliases": [
+        "viewmodel_ak47"
+      ],
+      "source_weapon_candidates": [
+        "ak47_mp",
+        "ak47"
+      ],
+      "source_status": "UNVERIFIED"
+    },
+    {
+      "id": "m4",
+      "name": "M4 Carbine",
+      "category": "assault",
+      "fire_mode": "auto",
+      "model_aliases": [
+        "viewmodel_m4",
+        "viewmodel_m4a1"
+      ],
+      "source_weapon_candidates": [
+        "m4_mp",
+        "m4"
+      ],
+      "source_status": "UNVERIFIED"
+    },
+    {
+      "id": "m16",
+      "name": "M16A4",
+      "category": "assault",
+      "fire_mode": "burst",
+      "model_aliases": [
+        "viewmodel_m16",
+        "viewmodel_m16a4"
+      ],
+      "source_weapon_candidates": [
+        "m16_mp",
+        "m16"
+      ],
+      "source_status": "UNVERIFIED"
+    },
+    {
+      "id": "g36c",
+      "name": "G36C",
+      "category": "assault",
+      "fire_mode": "auto",
+      "model_aliases": [
+        "viewmodel_g36c"
+      ],
+      "source_weapon_candidates": [
+        "g36c_mp",
+        "g36c"
+      ],
+      "source_status": "UNVERIFIED",
+      "animation_aliases": [
+        "viewmodel_g36c",
+        "viewmodel_g36"
+      ]
+    },
+    {
+      "id": "mp44",
+      "name": "MP44",
+      "category": "assault",
+      "fire_mode": "auto",
+      "model_aliases": [
+        "viewmodel_mp44"
+      ],
+      "source_weapon_candidates": [
+        "mp44_mp",
+        "mp44"
+      ],
+      "source_status": "UNVERIFIED"
+    },
+    {
+      "id": "g3",
+      "name": "G3",
+      "category": "marksman",
+      "fire_mode": "semi",
+      "model_aliases": [
+        "viewmodel_g3"
+      ],
+      "source_weapon_candidates": [
+        "g3_mp",
+        "g3"
+      ],
+      "source_status": "UNVERIFIED"
+    },
+    {
+      "id": "m14",
+      "name": "M14",
+      "category": "marksman",
+      "fire_mode": "semi",
+      "model_aliases": [
+        "viewmodel_m14"
+      ],
+      "source_weapon_candidates": [
+        "m14_mp",
+        "m14"
+      ],
+      "source_status": "UNVERIFIED"
+    },
+    {
+      "id": "mp5",
+      "name": "MP5",
+      "category": "smg",
+      "fire_mode": "auto",
+      "model_aliases": [
+        "viewmodel_mp5"
+      ],
+      "source_weapon_candidates": [
+        "mp5_mp",
+        "mp5"
+      ],
+      "source_status": "UNVERIFIED"
+    },
+    {
+      "id": "ak74u",
+      "name": "AK-74u",
+      "category": "smg",
+      "fire_mode": "auto",
+      "model_aliases": [
+        "viewmodel_ak74u",
+        "viewmodel_ak74"
+      ],
+      "source_weapon_candidates": [
+        "ak74u_mp",
+        "ak74u"
+      ],
+      "source_status": "UNVERIFIED"
+    },
+    {
+      "id": "skorpion",
+      "name": "Skorpion",
+      "category": "smg",
+      "fire_mode": "auto",
+      "model_aliases": [
+        "viewmodel_skorpion"
+      ],
+      "source_weapon_candidates": [
+        "skorpion_mp",
+        "skorpion"
+      ],
+      "source_status": "UNVERIFIED"
+    },
+    {
+      "id": "uzi",
+      "name": "Mini-Uzi",
+      "category": "smg",
+      "fire_mode": "auto",
+      "model_aliases": [
+        "viewmodel_uzi",
+        "viewmodel_miniuzi"
+      ],
+      "source_weapon_candidates": [
+        "uzi_mp",
+        "uzi"
+      ],
+      "source_status": "UNVERIFIED"
+    },
+    {
+      "id": "p90",
+      "name": "P90",
+      "category": "smg",
+      "fire_mode": "auto",
+      "model_aliases": [
+        "viewmodel_p90"
+      ],
+      "source_weapon_candidates": [
+        "p90_mp",
+        "p90"
+      ],
+      "source_status": "UNVERIFIED"
+    },
+    {
+      "id": "w1200",
+      "name": "W1200",
+      "category": "shotgun",
+      "fire_mode": "pump",
+      "model_aliases": [
+        "viewmodel_winchester1200",
+        "viewmodel_w1200"
+      ],
+      "source_weapon_candidates": [
+        "winchester1200_mp",
+        "w1200_mp",
+        "winchester1200",
+        "w1200"
+      ],
+      "source_status": "UNVERIFIED",
+      "animation_aliases": [
+        "viewmodel_winchester1200",
+        "viewmodel_winchester",
+        "viewmodel_w1200"
+      ]
+    },
+    {
+      "id": "m1014",
+      "name": "M1014",
+      "category": "shotgun",
+      "fire_mode": "semi",
+      "model_aliases": [
+        "viewmodel_benelli_m4",
+        "viewmodel_m1014"
+      ],
+      "source_weapon_candidates": [
+        "m1014_mp",
+        "m1014"
+      ],
+      "source_status": "UNVERIFIED",
+      "animation_aliases": [
+        "viewmodel_benelli_m4",
+        "viewmodel_benelli",
+        "viewmodel_m1014"
+      ]
+    },
+    {
+      "id": "m249",
+      "name": "M249 SAW",
+      "category": "lmg",
+      "fire_mode": "auto",
+      "model_aliases": [
+        "viewmodel_m249",
+        "viewmodel_m249saw"
+      ],
+      "source_weapon_candidates": [
+        "m249saw_mp",
+        "m249_mp",
+        "saw_mp",
+        "m249_saw_mp",
+        "m249saw",
+        "m249",
+        "saw"
+      ],
+      "source_status": "UNVERIFIED"
+    },
+    {
+      "id": "rpd",
+      "name": "RPD",
+      "category": "lmg",
+      "fire_mode": "auto",
+      "model_aliases": [
+        "viewmodel_rpd"
+      ],
+      "source_weapon_candidates": [
+        "rpd_mp",
+        "rpd"
+      ],
+      "source_status": "UNVERIFIED"
+    },
+    {
+      "id": "m60",
+      "name": "M60E4",
+      "category": "lmg",
+      "fire_mode": "auto",
+      "model_aliases": [
+        "viewmodel_m60",
+        "viewmodel_m60e4"
+      ],
+      "source_weapon_candidates": [
+        "m60e4_mp",
+        "m60_mp",
+        "m60e4",
+        "m60"
+      ],
+      "source_status": "UNVERIFIED"
+    },
+    {
+      "id": "m40a3",
+      "name": "M40A3",
+      "category": "sniper",
+      "fire_mode": "bolt",
+      "model_aliases": [
+        "viewmodel_m40a3",
+        "viewmodel_m40"
+      ],
+      "source_weapon_candidates": [
+        "m40a3_mp",
+        "m40a3"
+      ],
+      "source_status": "UNVERIFIED"
+    },
+    {
+      "id": "m21",
+      "name": "M21",
+      "category": "sniper",
+      "fire_mode": "semi",
+      "model_aliases": [
+        "viewmodel_m21"
+      ],
+      "source_weapon_candidates": [
+        "m21_mp",
+        "m21"
+      ],
+      "source_status": "UNVERIFIED",
+      "animation_aliases": [
+        "viewmodel_m21",
+        "viewmodel_m14"
+      ]
+    },
+    {
+      "id": "dragunov",
+      "name": "Dragunov",
+      "category": "sniper",
+      "fire_mode": "semi",
+      "model_aliases": [
+        "viewmodel_dragunov"
+      ],
+      "source_weapon_candidates": [
+        "dragunov_mp",
+        "dragunov"
+      ],
+      "source_status": "UNVERIFIED"
+    },
+    {
+      "id": "r700",
+      "name": "R700",
+      "category": "sniper",
+      "fire_mode": "bolt",
+      "model_aliases": [
+        "viewmodel_r700",
+        "viewmodel_remington700"
+      ],
+      "source_weapon_candidates": [
+        "remington700_mp",
+        "r700_mp",
+        "remington700",
+        "r700"
+      ],
+      "source_status": "UNVERIFIED",
+      "animation_aliases": [
+        "viewmodel_remington700",
+        "viewmodel_remington",
+        "viewmodel_r700"
+      ]
+    },
+    {
+      "id": "barrett",
+      "name": "Barrett .50cal",
+      "category": "sniper",
+      "fire_mode": "semi",
+      "model_aliases": [
+        "viewmodel_barrett",
+        "viewmodel_m82"
+      ],
+      "source_weapon_candidates": [
+        "barrett_mp",
+        "barrett"
+      ],
+      "source_status": "UNVERIFIED"
+    },
+    {
+      "id": "usp",
+      "name": "USP .45",
+      "category": "pistol",
+      "fire_mode": "semi",
+      "model_aliases": [
+        "viewmodel_usp",
+        "viewmodel_usp45"
+      ],
+      "source_weapon_candidates": [
+        "usp_mp",
+        "usp"
+      ],
+      "source_status": "UNVERIFIED"
+    },
+    {
+      "id": "m9",
+      "name": "M9",
+      "category": "pistol",
+      "fire_mode": "semi",
+      "model_aliases": [
+        "viewmodel_beretta",
+        "viewmodel_m9"
+      ],
+      "source_weapon_candidates": [
+        "beretta_mp",
+        "m9_mp",
+        "beretta",
+        "m9"
+      ],
+      "source_status": "UNVERIFIED"
+    },
+    {
+      "id": "m1911",
+      "name": "M1911 .45",
+      "category": "pistol",
+      "fire_mode": "semi",
+      "model_aliases": [
+        "viewmodel_colt45",
+        "viewmodel_m1911"
+      ],
+      "source_weapon_candidates": [
+        "colt45_mp",
+        "m1911_mp",
+        "colt45",
+        "m1911"
+      ],
+      "source_status": "UNVERIFIED"
+    },
+    {
+      "id": "deagle",
+      "name": "Desert Eagle",
+      "category": "pistol",
+      "fire_mode": "semi",
+      "model_aliases": [
+        "viewmodel_deserteagle",
+        "viewmodel_desert_eagle"
+      ],
+      "source_weapon_candidates": [
+        "deserteagle_mp",
+        "desert_eagle_mp",
+        "deagle_mp",
+        "deserteagle",
+        "deagle"
+      ],
+      "source_status": "UNVERIFIED"
+    },
+    {
+      "id": "deaglegold",
+      "name": "Golden Desert Eagle",
+      "category": "pistol",
+      "fire_mode": "semi",
+      "model_aliases": [
+        "viewmodel_desert_eagle_gold",
+        "viewmodel_deserteaglegold",
+        "viewmodel_deserteagle_gold"
+      ],
+      "source_weapon_candidates": [
+        "deserteaglegold_mp",
+        "desert_eagle_gold_mp",
+        "deserteaglegold",
+        "desert_eagle_gold"
+      ],
+      "source_status": "UNVERIFIED",
+      "animation_aliases": [
+        "viewmodel_desert_eagle_gold",
+        "viewmodel_desert_eagle"
+      ]
+    },
+    {
+      "id": "rpg",
+      "name": "RPG-7",
+      "category": "launcher",
+      "fire_mode": "single",
+      "model_aliases": [
+        "viewmodel_rpg",
+        "viewmodel_rpg7"
+      ],
+      "source_weapon_candidates": [
+        "rpg_mp",
+        "rpg"
+      ],
+      "source_status": "UNVERIFIED"
+    }
+  ]
+}

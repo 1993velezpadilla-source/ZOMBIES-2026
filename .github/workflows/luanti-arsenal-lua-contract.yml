@@ -1,0 +1,52 @@
+name: Luanti native Arsenal Lua and 3D mod contract (NO APK)
+on:
+  push:
+    branches: [feature/luanti-real-arsenal-28-source-gate-20261106]
+    paths:
+      - sandbox/luanti/arsenal_android/arsenal_mod/**
+      - sandbox/luanti/arsenal_android/test_arsenal_gameplay.lua
+      - sandbox/luanti/arsenal_android/build_private_arsenal.py
+      - sandbox/luanti/arsenal_android/patch_native_arsenal.py
+      - sandbox/luanti/arsenal_android/native_arsenal_camera.cpp.inc
+      - sandbox/luanti/arsenal_android/test_build_private_arsenal.py
+      - sandbox/luanti/arsenal_android/test_patch_native_arsenal.py
+      - .github/workflows/luanti-arsenal-lua-contract.yml
+  pull_request:
+    paths:
+      - sandbox/luanti/arsenal_android/arsenal_mod/**
+      - sandbox/luanti/arsenal_android/build_private_arsenal.py
+      - sandbox/luanti/arsenal_android/patch_native_arsenal.py
+      - sandbox/luanti/arsenal_android/native_arsenal_camera.cpp.inc
+      - sandbox/luanti/arsenal_android/test_build_private_arsenal.py
+      - sandbox/luanti/arsenal_android/test_patch_native_arsenal.py
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  mod:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Compile actual Luanti Lua 5.1 mod
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends lua5.1 python3-pil
+          luac5.1 -p sandbox/luanti/arsenal_android/arsenal_mod/init.lua
+          lua5.1 sandbox/luanti/arsenal_android/test_arsenal_gameplay.lua
+      - name: Validate private models, source stats and native patch regression
+        run: |
+          python3 -m unittest discover -s sandbox/luanti/arsenal_android \
+            -p 'test_build_private_arsenal.py' -v
+          python3 -m unittest discover -s sandbox/luanti/arsenal_android \
+            -p 'test_patch_native_arsenal.py' -v
+          python3 -m py_compile sandbox/luanti/arsenal_android/patch_native_arsenal.py
+          python3 -m py_compile sandbox/luanti/arsenal_android/build_private_arsenal.py
+      - name: Distinguish Lua source tests from actual APK performance
+        run: |
+          echo 'AUTHOR-MADE LUA VERIFIED=YES'
+          echo '20/28 ORIGINAL MODELS STRUCTURALLY GENERATED IN PRIOR RUN'
+          echo 'C++ NATIVE ARM64 BUILD TESTED HERE=NO'
+          echo 'DEVICE FPS/ADS/AUDIO VERIFIED=NO'

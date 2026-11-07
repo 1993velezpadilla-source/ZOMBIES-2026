@@ -1,0 +1,172 @@
+name: COD4 original private 28-weapon source discovery (NO APK)
+on:
+  push:
+    branches:
+      - feature/luanti-real-arsenal-28-source-gate-20261106
+    paths:
+      - sandbox/luanti/arsenal_android/expected_cod4_28.json
+      - tools/luanti_real_arsenal_28.py
+      - .github/workflows/luanti-arsenal-original-source-private.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: real-cod4-28-source-private-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  source-audit:
+    name: Inspect owner COD4 archive; do not publish assets
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/iw3-arsenal-extraction-audit-20261102
+          path: _iw3_pipeline_src
+          persist-credentials: false
+      - name: Verify identity catalog and synthetic failure guards
+        run: |
+          set -euo pipefail
+          python3 -m py_compile sandbox/luanti/arsenal_android/discover_cod4_original.py
+          python3 -m unittest discover -s sandbox/luanti/arsenal_android -p 'test_*.py' -v
+          python3 - <<'PY'
+          import json
+          from collections import Counter
+          r=json.load(open('sandbox/luanti/arsenal_android/expected_cod4_28.json'))
+          w=r['weapons']
+          assert len(w)==len({x['id'] for x in w})==28
+          assert {'assault','smg','shotgun','lmg','sniper','marksman','pistol','launcher'}==set(x['category'] for x in w)
+          assert all(x['source_status']=='UNVERIFIED' for x in w)
+          print('28_EXPECTED_IDENTITIES_NOT_28_EXPORTED_MODELS')
+          PY
+      - name: Install native OAT host dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends gcc-14 g++-14
+      - name: Cache native-local OpenAssetTools exporter
+        id: oat_cache
+        uses: actions/cache@v4
+        with:
+          path: _native_oat
+          key: oat-native-locals-v034-x64-v2-${{ hashFiles('sandbox/luanti/iw3_blockstyle/patch_oat_native_locals.py') }}
+      - uses: actions/checkout@v4
+        if: steps.oat_cache.outputs.cache-hit != 'true'
+        with:
+          repository: Laupetin/OpenAssetTools
+          ref: 28b14ea0ee41844cfad9875176f9dc693db045cf
+          path: _oat_native_src
+          submodules: recursive
+          persist-credentials: false
+      - name: Compile native OAT if not cached
+        if: steps.oat_cache.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          python3 sandbox/luanti/iw3_blockstyle/patch_oat_native_locals.py _oat_native_src
+          export PREMAKE_NO_PROMPT=1
+          (cd _oat_native_src && ./generate.sh --cc=gcc)
+          CC=gcc-14 CXX=g++-14 make -C _oat_native_src/build -j"$(nproc)" config=release_x64 UnlinkerCli
+          mkdir -p _native_oat
+          cp _oat_native_src/build/bin/Release_x64/Unlinker _native_oat/Unlinker
+          cp -a _oat_native_src/build/bin/Release_x64/raw _native_oat/raw
+          chmod +x _native_oat/Unlinker
+      - name: Stage user original 7GB COD4 archive in ephemeral runner
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p _release_assets/c4
+          gh release download gofile-p2DdQHsz --repo "$GITHUB_REPOSITORY" \
+            --pattern 'C4-Mocs.zip.part-*' --dir _release_assets/c4
+          actual="$(cat _release_assets/c4/C4-Mocs.zip.part-* | sha256sum | cut -d' ' -f1)"
+          test "$actual" = '6787f2082b39ee76445db7fca92892256bfb97e62bbdebfe63f6ee11de6a8d99'
+      - name: Export original model and XANIM metadata locally only
+        run: |
+          set -euo pipefail
+          chmod +x _native_oat/Unlinker
+          export PYTHONPATH="$PWD/_iw3_pipeline_src/tools"
+          mkdir -p _iw3_private/native-locals _iw3_reports
+          export IW3_NATIVE_LOCALS_DIR="$PWD/_iw3_private/native-locals"
+          python3 _iw3_pipeline_src/tools/iw3_weapon_probe.py prepare \
+            --with-iwds --zone common_mp --zone mp_crash --zone common
+          python3 _iw3_pipeline_src/tools/iw3_weapon_probe.py probe \
+            --unlinker "$PWD/_native_oat/Unlinker"
+          python3 sandbox/luanti/arsenal_android/discover_cod4_original.py \
+            --manifest sandbox/luanti/arsenal_android/expected_cod4_28.json \
+            --dumps _iw3_private/dumps \
+            --output _iw3_reports/real-28-weapon-source-inventory.json
+          test -s _iw3_reports/real-28-weapon-source-inventory.json
+      - name: Parse real original COD4 weapon definition stats (no guesses)
+        run: |
+          set -euo pipefail
+          python3 sandbox/luanti/arsenal_android/read_original_weapon_defs.py \
+            --dumps _iw3_private/dumps \
+            --manifest sandbox/luanti/arsenal_android/expected_cod4_28.json \
+            --output _iw3_reports/real-28-weapon-definition-stats.json
+          test -s _iw3_reports/real-28-weapon-definition-stats.json
+      - name: Decode original normal vs empty reload notetrack differences
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="$PWD/_iw3_pipeline_src/tools"
+          python3 sandbox/luanti/arsenal_android/audit_original_reload_notes.py \
+            --dumps _iw3_private/dumps \
+            --manifest sandbox/luanti/arsenal_android/expected_cod4_28.json \
+            --output _iw3_reports/real-28-original-reload-notetracks.json
+          test -s _iw3_reports/real-28-original-reload-notetracks.json
+      - name: Build REAL skinned 28-weapon source GLBs and first-person hands privately
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="$PWD/tools:$PWD/_iw3_pipeline_src/tools"
+          python3 tools/luanti_real_arsenal_28.py \
+            --dumps _iw3_private/dumps \
+            --manifest sandbox/luanti/arsenal_android/expected_cod4_28.json \
+            --private-output _iw3_private/arsenal_28_animated_source \
+            --metadata _iw3_reports/real-28-source-animated-gate.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('_iw3_reports/real-28-source-animated-gate.json').read_text())
+          assert r['target_unique_weapon_count']==28
+          assert r['android_runtime_playtested'] is False
+          assert r['rendered_and_ads_calibrated'] is False
+          count=r['weapon_source_animated_pair_count']
+          assert count==sum(1 for p in Path('_iw3_private/arsenal_28_animated_source').glob('*_real_source_experimental.glb'))
+          assert count==sum(1 for p in Path('_iw3_private/arsenal_28_animated_source').glob('*_hands_source_experimental.glb'))
+          print('REAL_ASSET_GENERATOR_OUTPUT',count,'animated weapon + original hand source pairs')
+          PY
+      - name: Check metadata is source only and never a false APK claim
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          a=json.load(open('_iw3_reports/real-28-weapon-source-inventory.json'))
+          assert a['manifest_target']==28
+          assert a['full_arsenal_playable'] is False
+          assert len(a['weapons'])==28
+          assert all(x['glb_animation_retargeted'] is False for x in a['weapons'])
+          assert all(x['android_playtest_confirmed'] is False for x in a['weapons'])
+          print('REAL_SOURCE_AVAILABILITY',a['unique_weapon_identities_with_skinned_model'], '/28')
+          print('NO_MODEL_OR_XANIM_FILES_IN_ARTIFACT')
+          PY
+      - name: Upload only names and counts, not copyrighted game data
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: COD4-28-original-asset-coverage-metadata-NO-APK
+          path: |
+            _iw3_reports/real-28-weapon-source-inventory.json
+            _iw3_reports/real-28-weapon-definition-stats.json
+            _iw3_reports/real-28-original-reload-notetracks.json
+            _iw3_reports/real-28-source-animated-gate.json
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Securely delete staged original source data
+        if: always()
+        run: |
+          # Keep open-source _native_oat until the post-job cache-save step.
+          # Deleting it here caused every run to recompile OAT for 16+ minutes.
+          rm -rf _release_assets _iw3_private _oat_native_src
+          echo 'Private original COD4 game data not committed or redistributed.'
