@@ -27,6 +27,11 @@ local AK_SOUND={
 local function source_audio(p,def,event)
     if def.id~="ak47" then return end
     local effect=AK_SOUND[event]
+    local variant=p:get_wielded_item():get_meta():get_string("xz_ar_variant")
+    if event=="fire" and variant:find("silencer",1,true) then
+        -- No spoofing original loud AK Foley as a suppressed shot.
+        return
+    end
     if effect then
         minetest.sound_play(effect,{to_player=p:get_player_name(),gain=.75},true)
     end
@@ -37,7 +42,7 @@ local function state(player)
         players[username] = {
             weapon = "", seq = 0, last_action = "", next_fire = 0,
             reload_end = 0, reloading = false, ads = false,
-            dig = false, aux = false, burst = 0, burst_guard = false, hud = nil
+            dig = false, aux = false, burst = 0, burst_guard = false, hud = nil, last_weapon = ""
         }
     end
     return players[username]
@@ -72,6 +77,8 @@ local function status(p, def, stack, s)
     else
         label=def.name.." | SOURCE MODEL PREVIEW ONLY"
     end
+    local variant=stack:get_meta():get_string("xz_ar_variant")
+    if variant~="" then label=label.." ["..variant.."]" end
     p:hud_change(s.hud, "text", label)
 end
 local function send(p,stack,def,s,event)
@@ -93,6 +100,7 @@ end
 local function change(p, def, stack, s)
     if s.weapon == def.id then return end
     s.weapon=def.id
+    s.last_weapon=def.id
     s.last_action=""
     s.ads=false
     s.reloading=false
@@ -109,7 +117,10 @@ local function ads(p,def,stack,s)
     s.ads=not s.ads
     -- The local first-person renderer performs model ADS animation.
     -- 0.80 is a preview-only camera FOV, NOT calibrated iron sights.
-    p:set_fov(s.ads and .80 or 0,s.ads,.22)
+    local variant=stack:get_meta():get_string("xz_ar_variant")
+    local scale=variant:find("acog",1,true) and .52 or
+        variant:find("reflex",1,true) and .76 or .80
+    p:set_fov(s.ads and scale or 0,s.ads,.22)
     return send(p,stack,def,s)
 end
 local function start_reload(p,def,stack,s)
@@ -286,6 +297,8 @@ for _,def in ipairs(manifest.weapons) do
     end
 end
 
+-- Android test/PvP attachment selector. Classic Zombies map will omit it.
+local attachments=dofile(path.."/attachments.lua").register(defs,state)
 -- Mobile-first Arsenal test picker; no custom Gunsmith in Classic Zombies.
 -- Only actually present, source-verified GLB pairs become selectable.
 local categories={
@@ -475,7 +488,9 @@ minetest.register_on_joinplayer(function(player)
         -- inventory insertion behind a full desktop-style hotbar.
         give_if_missing(p,"arsenal:tablet")
         if defs["arsenal:m9"] then give_if_missing(p,"arsenal:m9") end
+        if defs["arsenal:ak47"] then give_if_missing(p,"arsenal:ak47") end
         if defs["arsenal:m4"] then give_if_missing(p,"arsenal:m4") end
+        give_if_missing(p,"arsenal:attach_tool")
         give_if_missing(p,"arsenal:ammo_box")
     end)
 end)
