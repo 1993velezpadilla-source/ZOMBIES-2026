@@ -247,6 +247,10 @@ void __cdecl CM_LoadStaticModels()
     }
     if (numStaticModels)
     {
+        // CM_Hunk_Alloc takes a 32-bit byte count. Check before multiplication
+        // so a malformed BSP entity list cannot wrap the native struct size.
+        if (numStaticModels > 0xFFFFFFFFu / sizeof(cStaticModel_s))
+            Com_Error(ERR_DROP, "Too many static models in BSP entity list");
         cm.staticModelList = (cStaticModel_s *)CM_Hunk_Alloc(sizeof(cStaticModel_s) * numStaticModels, "CM_CreateStaticModel", 27);
         ptr = Com_EntityString(0);
         iassert( ptr );
