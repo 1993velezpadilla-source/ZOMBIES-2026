@@ -4,6 +4,7 @@ on:
     branches: [feature/luanti-real-arsenal-28-source-gate-20261106]
     paths:
       - sandbox/luanti/arsenal_android/arsenal_mod/**
+      - sandbox/luanti/ak47_hd_android/make_original_cod4_m9_audio.py
       - sandbox/luanti/arsenal_android/test_arsenal_gameplay.lua
       - sandbox/luanti/arsenal_android/patch_native_arsenal.py
       - sandbox/luanti/arsenal_android/native_arsenal_camera.cpp.inc
@@ -208,6 +209,19 @@ jobs:
           assert 'weap_ak47_chamber_plr' in empty
           print('REAL_ORIGINAL_COD4_NORMAL_VS_EMPTY_EVENTS',normal,empty)
           PY
+      - name: Restore the actual COD4 M9 normal/empty/fire/suppressed Foley
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="$PWD/_iw3_pipeline_src/tools:$PWD/sandbox/luanti/ak47_hd_android"
+          python3 sandbox/luanti/ak47_hd_android/make_original_cod4_m9_audio.py \
+            --loaded _iw3_private/original-ak47-foley \
+            --anims _iw3_private/dumps/common_mp/xanim \
+            --output _iw3_private/arsenal_native_mod/sounds
+          test -s _iw3_private/arsenal_native_mod/sounds/arsenal_m9_reload_normal.ogg
+          test -s _iw3_private/arsenal_native_mod/sounds/arsenal_m9_reload_empty.ogg
+          test -s _iw3_private/arsenal_native_mod/sounds/arsenal_m9_fire.ogg
+          test -s _iw3_private/arsenal_native_mod/sounds/arsenal_m9_silenced_fire.ogg
+          test -s _iw3_private/arsenal_native_mod/sounds/arsenal_m9_dry.ogg
       - name: Fetch the pinned working game base
         run: |
           set -euo pipefail
