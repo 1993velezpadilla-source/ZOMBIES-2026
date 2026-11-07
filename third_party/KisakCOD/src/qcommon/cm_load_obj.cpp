@@ -831,7 +831,7 @@ uint32_t CMod_LoadSubmodels()
     in = (DiskBrushModel *)Com_GetBspLump(LUMP_MODELS, 0x30u, &count);
     if (!count)
         Com_Error(ERR_DROP, "Map with no brush models (should at least have the world model)");
-    cm.cmodels = (cmodel_t*)CM_Hunk_Alloc(72 * count, "CMod_LoadSubmodels", 26);
+    cm.cmodels = (cmodel_t*)CM_Hunk_Alloc(sizeof(cmodel_t) * count, "CMod_LoadSubmodels", 26);
     cm.numSubModels = count;
     if (count > 0xFFF)
         Com_Error(ERR_DROP, "MAX_SUBMODELS exceeded");
