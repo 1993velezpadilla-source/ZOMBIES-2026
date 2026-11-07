@@ -47,8 +47,9 @@ original_tu(iw3_com_memory universal/com_memory.cpp)
 # Do NOT link iw3_android_hunk_virtual.cpp here: it duplicates Z_Virtual* in com_memory.cpp.
 add_library(iw3_android_win32_vm OBJECT "${CMAKE_CURRENT_LIST_DIR}/iw3_android_win32_virtual_memory.cpp")
 target_compile_options(iw3_android_win32_vm PRIVATE -Wall -Wextra -Werror)
-# Compile audit only: declare Win32 memory imports without faking their behavior.
-# The strict link must still report unresolved VirtualAlloc/VirtualFree.
+# Original com_memory.cpp retains its Win32 ABI imports; declare them for NDK compilation.
+# iw3_android_win32_vm supplies real mmap/mprotect-backed implementations to the
+# strict link probe. This does not resolve the rest of the original engine closure.
 target_compile_options(iw3_com_memory PRIVATE
   "-include" "${CMAKE_CURRENT_LIST_DIR}/win32_virtual_memory_declarations.h")
 original_tu(iw3_db_load database/db_file_load.cpp)
