@@ -41,6 +41,8 @@ original_tu(iw3_files universal/com_files.cpp)
 original_tu(iw3_filesystem qcommon/files.cpp)
 # Genuine IW3 IWD/ZIP reader; expose original unz* providers to strict link.
 original_tu(iw3_unzip qcommon/unzip.cpp)
+# Genuine IW3 Hunk/PMem provider: expose original memory services to strict link.
+original_tu(iw3_com_memory universal/com_memory.cpp)
 original_tu(iw3_db_load database/db_file_load.cpp)
 original_tu(iw3_db_registry database/db_registry.cpp)
 original_tu(iw3_client_input client/cl_input.cpp)
@@ -60,7 +62,7 @@ original_tu(iw3_cm_load_obj qcommon/cm_load_obj.cpp)
 original_tu(iw3_client_main client/cl_main.cpp)
 target_include_directories(iw3_client_main BEFORE PRIVATE "${PORT}/common_compat")
 target_compile_definitions(iw3_client_main PRIVATE IW3_ANDROID_DISABLE_SCRIPT_DEBUGGER=1 IW3_ANDROID_COMMON_HEADER_ONLY_OPENAL=1)
-add_custom_target(iw3_sp_bootstrap_compile DEPENDS iw3_common iw3_cmd iw3_math iw3_files iw3_filesystem iw3_unzip iw3_db_load iw3_db_registry iw3_client_input iw3_screen iw3_sv_ccmds iw3_sv_game iw3_sv_init iw3_cm_load iw3_cm_load_obj iw3_client_main)
+add_custom_target(iw3_sp_bootstrap_compile DEPENDS iw3_common iw3_cmd iw3_math iw3_files iw3_filesystem iw3_unzip iw3_com_memory iw3_db_load iw3_db_registry iw3_client_input iw3_screen iw3_sv_ccmds iw3_sv_game iw3_sv_init iw3_cm_load iw3_cm_load_obj iw3_client_main)
 
 # Explicit, opt-in genuine link probe. This target deliberately fails until all
 # original engine dependencies are provided; it must NEVER be packaged as an APK.
@@ -72,6 +74,7 @@ add_library(iw3_sp_link_probe SHARED
   $<TARGET_OBJECTS:iw3_files>
   $<TARGET_OBJECTS:iw3_filesystem>
   $<TARGET_OBJECTS:iw3_unzip>
+  $<TARGET_OBJECTS:iw3_com_memory>
   $<TARGET_OBJECTS:iw3_db_load>
   $<TARGET_OBJECTS:iw3_db_registry>
   $<TARGET_OBJECTS:iw3_client_input>
