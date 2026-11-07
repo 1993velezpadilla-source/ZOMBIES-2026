@@ -64,7 +64,10 @@ def confirm(apk:Path, mod:Path, manifest:dict) -> dict:
                         raise ValueError("Source model has no skin or mesh "+filename)
                     present.append(path)
             base="games/voxelibre/mods/arsenal/"
-            for required in ["init.lua","mod.conf","arsenal_runtime.json",
+            for required in ["init.lua","attachments.lua","mod.conf",
+                             "arsenal_runtime.json","textures/arsenal_menu.png",
+                             "textures/arsenal_attach.png",
+                             "textures/arsenal_ammo.png",
                              "textures/arsenal_flat_metal.png",
                              "textures/arsenal_flat_hands.png"]:
                 if base+required not in names:
@@ -72,6 +75,25 @@ def confirm(apk:Path, mod:Path, manifest:dict) -> dict:
             runtime=json.loads(nested.read(base+"arsenal_runtime.json"))
             if runtime["native_model_ids"] != valid:
                 raise ValueError("Bundled manifest differs from source verified runtime")
+            for row in runtime.get("weapons",[]):
+                identity=row.get("id")
+                if identity not in valid:
+                    raise ValueError("Unknown weapon in runtime metadata")
+                icon=base+"textures/arsenal_icon_"+identity+".png"
+                if icon not in names:
+                    raise ValueError("Missing individual hotbar gun icon: "+identity)
+                for kind,filename in row.get("source_attachment_models",{}).items():
+                    if not kind or any(ch not in "abcdefghijklmnopqrstuvwxyz0123456789_"
+                                       for ch in kind):
+                        raise ValueError("Unsafe original attachment ID")
+                    if filename != "arsenal_"+identity+"_"+kind+"_gun.glb":
+                        raise ValueError("Source GLB variant name mismatch")
+                    target=base+"models/"+filename
+                    src=mod/"models"/filename
+                    if target not in names or not src.is_file():
+                        raise ValueError("Missing genuine source 3D attachment: "+filename)
+                    if hashlib.sha256(nested.read(target)).digest()!=hashlib.sha256(src.read_bytes()).digest():
+                        raise ValueError("Changed original source attachment bytes: "+filename)
     return {
         "apk_name":apk.name,"sha256":hashlib.sha256(apk.read_bytes()).hexdigest(),
         "source_verified_native_weapon_pairs":len(valid),
