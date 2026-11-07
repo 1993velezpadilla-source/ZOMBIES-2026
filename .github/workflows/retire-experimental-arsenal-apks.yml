@@ -1,0 +1,28 @@
+name: Retire experimental Arsenal APK artifacts (owner requested)
+on:
+  push:
+    branches:
+      - feature/luanti-classic-zombies-no-attachments-20261107
+    paths:
+      - .github/workflows/retire-experimental-arsenal-apks.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  retire-only-these-two-apks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete non-V13 experimental Arsenal binaries only
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          for ARTIFACT in 13549166286 13580153570; do
+            echo "Retiring experimental artifact $ARTIFACT"
+            gh api -X DELETE "repos/$REPO/actions/artifacts/$ARTIFACT"
+          done
+          echo 'Done: only two experimental Android Arsenal build artifacts targeted.'
