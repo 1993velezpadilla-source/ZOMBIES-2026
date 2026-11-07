@@ -320,13 +320,11 @@ void __cdecl CM_LoadStaticModels()
             }
             if (bMiscModel)
             {
+                // The entity string is parsed twice. A changed or malformed second
+                // pass must never write beyond the first pass's allocation.
+                // An assertion alone does not stop execution in release builds.
                 if (cm.numStaticModels >= numStaticModels)
-                    MyAssertHandler(
-                        ".\\qcommon\\cm_staticmodel_load_obj.cpp",
-                        207,
-                        0,
-                        "%s",
-                        "cm.numStaticModels < numStaticModels");
+                    Com_Error(ERR_DROP, "Static model count exceeds BSP allocation");
                 if (CM_CreateStaticModel(&cm.staticModelList[cm.numStaticModels], modelName, origin, angles, scale))
                     ++cm.numStaticModels;
             }
