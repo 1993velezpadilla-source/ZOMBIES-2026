@@ -1,7 +1,7 @@
 -- Original Luanti Arsenal private source-render test (not a shipped Zombies game).
 -- Register only guns whose actual gun+hands GLB files were verified in CI.
 -- Original WeaponDef data gates all damage/ammo; no made-up magazine stats.
--- Classic Zombies deliberately has NO user Gunsmith attachments.
+-- Zombies-only: no Gunsmith or custom attachment selection; keep archived assets for PvP later.
 local path = minetest.get_modpath("arsenal")
 local input = io.open(path .. "/arsenal_runtime.json", "rb")
 if not input then error("[arsenal] missing private generated asset manifest") end
@@ -31,25 +31,18 @@ local M9_SOUND={
     reload_empty="arsenal_m9_reload_empty"
 }
 local function source_audio(p,def,event)
-    local variant=p:get_wielded_item():get_meta():get_string("xz_ar_variant")
+    -- Classic Zombies uses unmodified, original unsuppressed weapon audio.
     local sound
     if def.id=="ak47" then
         sound=AK_SOUND[event]
-        if event=="fire" and variant:find("silencer",1,true) then
-            -- Avoid playing an unsuppressed AK sound with a suppressor mesh.
-            return
-        end
     elseif def.id=="m9" then
-        if event=="fire" and variant:find("silencer",1,true) then
-            sound=M9_SOUND.silenced_fire
-        else
-            sound=M9_SOUND[event]
-        end
+        sound=M9_SOUND[event]
     end
     if sound then
         minetest.sound_play(sound,{to_player=p:get_player_name(),gain=.75},true)
     end
 end
+
 local function state(player)
     local username = player:get_player_name()
     if not players[username] then
@@ -67,6 +60,10 @@ local function is_weapon(stack)
 end
 local function initialize(stack, def)
     local meta = stack:get_meta()
+    -- Upgrade previously saved weapon stacks to the stock iron-sight model.
+    if meta:get_string("xz_ar_variant") ~= "" then
+        meta:set_string("xz_ar_variant", "")
+    end
     if meta:get_string("ar_init") == "1" then return stack end
     meta:set_string("ar_init", "1")
     meta:set_int("ar_clip", def.gameplay_logic_enabled and def.magazine_capacity or 0)
@@ -91,8 +88,6 @@ local function status(p, def, stack, s)
     else
         label=def.name.." | SOURCE MODEL PREVIEW ONLY"
     end
-    local variant=stack:get_meta():get_string("xz_ar_variant")
-    if variant~="" then label=label.." ["..variant.."]" end
     p:hud_change(s.hud, "text", label)
 end
 local function send(p,stack,def,s,event)
@@ -131,10 +126,7 @@ local function ads(p,def,stack,s)
     s.ads=not s.ads
     -- The local first-person renderer performs model ADS animation.
     -- 0.80 is a preview-only camera FOV, NOT calibrated iron sights.
-    local variant=stack:get_meta():get_string("xz_ar_variant")
-    local scale=variant:find("acog",1,true) and .52 or
-        variant:find("reflex",1,true) and .76 or .80
-    p:set_fov(s.ads and scale or 0,s.ads,.22)
+    p:set_fov(s.ads and .80 or 0,s.ads,.22)
     return send(p,stack,def,s)
 end
 local function start_reload(p,def,stack,s)
@@ -311,9 +303,16 @@ for _,def in ipairs(manifest.weapons) do
     end
 end
 
--- Android test/PvP attachment selector. Classic Zombies map will omit it.
-local attachments=dofile(path.."/attachments.lua").register(defs,state)
--- Mobile-first Arsenal test picker; no custom Gunsmith in Classic Zombies.
+-- No attachment selector registered for Zombies. Keep attachments.lua in
+-- source control only for a possible future PvP implementation.
+-- A hidden legacy tool allows old saves to load without an unknown item.
+minetest.register_craftitem("arsenal:attach_tool",{
+    description="Legacy attachment selector (disabled in Zombies)",
+    inventory_image="arsenal_attach.png",
+    groups={not_in_creative_inventory=1},
+    on_use=function() return ItemStack("") end
+})
+-- Mobile-first weapon picker; no custom Gunsmith in Classic Zombies.
 -- Only actually present, source-verified GLB pairs become selectable.
 local categories={
     {key="assault",label="Assault"},
@@ -504,7 +503,13 @@ minetest.register_on_joinplayer(function(player)
         if defs["arsenal:m9"] then give_if_missing(p,"arsenal:m9") end
         if defs["arsenal:ak47"] then give_if_missing(p,"arsenal:ak47") end
         if defs["arsenal:m4"] then give_if_missing(p,"arsenal:m4") end
-        give_if_missing(p,"arsenal:attach_tool")
+        -- Remove leftover ATTACH buttons from existing Android saves.
+        local inv=p:get_inventory()
+        for i=1,inv:get_size("main") do
+            if inv:get_stack("main",i):get_name()=="arsenal:attach_tool" then
+                inv:set_stack("main",i,ItemStack(""))
+            end
+        end
         give_if_missing(p,"arsenal:ammo_box")
     end)
 end)
@@ -520,6 +525,12 @@ minetest.register_globalstep(function(_)
         local def=is_weapon(stack)
         local s=state(player)
         if def then
+            -- Also clear a pre-FIX save's active optic without requiring a shot.
+            local meta=stack:get_meta()
+            if meta:get_string("xz_ar_variant")~="" then
+                meta:set_string("xz_ar_variant","")
+                player:set_wielded_item(stack)
+            end
             change(player,def,stack,s)
             if s.reloading then reload_completed(player,def,stack,s) end
             local c=player:get_player_control()
@@ -551,9 +562,7 @@ minetest.register_globalstep(function(_)
             s.dig=c.dig
             s.aux=c.aux1
         else
-            -- Respect the AK that worked before the 28-gun experiment:
-            -- ATTACH selection should point to the AK source variant,
-            -- not silently jump to the M9 on a first-time user.
+            -- Preserve the selected legacy AK when switching between guns.
             if stack:get_name()=="ak47dev:ak47" and defs["arsenal:ak47"] then
                 s.last_weapon="ak47"
             end
@@ -572,4 +581,4 @@ minetest.register_globalstep(function(_)
         end
     end
 end)
-minetest.log("action","[arsenal] real source preview mod loaded; no custom attachments in Classic Zombies")
+minetest.log("action","[arsenal] Zombies-only stock weapons; attachment selector disabled")

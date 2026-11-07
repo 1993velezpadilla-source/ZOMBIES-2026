@@ -186,7 +186,8 @@ assert(methods["arsenal:ak47"] and methods["arsenal:m4"] and
 assert(methods["arsenal:ammo_box"] and methods["/arsenalammo"])
 assert(methods["/arsenal"])
 assert(methods["/arsenalmenu"] and methods["arsenal:tablet"])
-assert(methods["arsenal:attach_tool"])
+assert(methods["arsenal:attach_tool"],
+       "Legacy item must be registered but inert for old saved worlds")
 assert(type(form_callback)=="function")
 methods.join(player)
 assert(inventory:contains_item("main","arsenal:m9"),
@@ -337,8 +338,8 @@ assert(ok)
 ok,msg=methods["/arsenalammo"].func("Tester")
 assert(ok)
 assert(inventory:contains_item("main","arsenal:ammo_box"))
-assert(inventory:contains_item("main","arsenal:attach_tool"),
-       "No visible ATTACH button on Android hotbar")
+assert(not inventory:contains_item("main","arsenal:attach_tool"),
+       "Zombies must not place ATTACH on Android hotbar")
 -- Mobile formspec can switch categories and select only real GLB-backed guns.
 local before=#formshown
 ok,msg=methods["/arsenalmenu"].func("Tester")
@@ -358,27 +359,34 @@ assert(#messages==oldmessages+1,"Choosing a GLB-backed gun shows equip confirmat
 assert(inventory:contains_item("main","arsenal:usp"))
 assert(player:get_wielded_item():get_name()=="arsenal:usp",
     "Touch gun selection must immediately EQUIP, not just grant inventory item")
--- M9 suppressor uses an authentic source GLB attachment, not an icon-only checkbox.
+-- Saved attachment settings must be migrated to the iron-sight base model,
+-- without destroying ammunition, the weapon itself or the old world.
 equip("arsenal:m9",5)
-equip("arsenal:attach_tool",7)
-methods["arsenal:attach_tool"].on_use(make_stack("arsenal:attach_tool"),player)
-assert(formshown[#formshown]:find("att_silencer"),"Missing interactive M9 attachment checkbox")
-form_callback(player,"arsenal:attachments",{att_silencer="true"})
-assert(slots[5]:get_meta():get_string("xz_ar_variant")=="silencer",
-    "Suppressor not persisted on M9 gun stack")
-wield_index=5
+slots[5]:get_meta():set_string("xz_ar_variant","silencer")
+local clip_before,reserve_before=ammo(5)
 methods.step(.01)
+assert(slots[5]:get_meta():get_string("xz_ar_variant")=="",
+    "Existing M9 attachments must be reset to stock for Classic Zombies")
+local clip_after,reserve_after=ammo(5)
+assert(clip_after==clip_before and reserve_after==reserve_before,
+    "Migrating attachments must not change ammo")
+local previous_forms=#formshown
+local old_button=methods["arsenal:attach_tool"].on_use(
+    make_stack("arsenal:attach_tool"),player)
+assert(old_button:is_empty() and #formshown==previous_forms,
+    "Old ATTACH inventory button must be inert and self-remove")
+assert(not form_callback(player,"arsenal:attachments",{att_silencer="true"}),
+    "Zombies must not accept attachment forms")
+assert(#formshown==previous_forms,"Zombies attachment form unexpectedly opened")
 clock=clock+.5
 m9.on_use(player:get_wielded_item(),player)
-assert(has_audio("arsenal_m9_silenced_fire"),
-    "Suppressed M9 must have its own original COD4 shot, not AK Foley")
-wield_index=7
-form_callback(player,"arsenal:attachments",{reset="true"})
-assert(slots[5]:get_meta():get_string("xz_ar_variant")=="",
-    "Removing suppressor must restore stock M9 model")
+assert(has_audio("arsenal_m9_fire"),
+    "Classic M9 must use original unsuppressed gunfire")
+assert(not has_audio("arsenal_m9_silenced_fire"),
+    "Silencer audio must never play in stock Zombies")
 local previous=#messages
 form_callback(player,"arsenal:picker",{weapon_fake="true"})
 assert(#messages==previous,"Unknown button cannot issue arbitrary inventory item")
 methods.leave(player)
 io.open=original_open
-print("ARSENAL_LUA_REAL_CALLBACK_GAUNTLET=PASS; weapons=3, magazine/dry/ADS/reload/crate/touch")
+print("ARSENAL_LUA_REAL_CALLBACK_GAUNTLET=PASS; zombies_stock_only, weapons=3, magazine/dry/ADS/reload/crate/touch")

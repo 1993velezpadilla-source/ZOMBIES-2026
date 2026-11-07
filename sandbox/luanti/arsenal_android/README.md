@@ -1,3 +1,17 @@
+# Classic Zombies stock-only configuration (2026-11-07)
+
+This branch disables the in-game ATTACH/Gunsmith menu in the **Arsenal source-test mod**, while retaining the accessory source files for future PvP work. It does **not** rebuild or alter the earlier 462 MB FIX22 APK.
+
+- Stock, non-suppressed firearm sounds and iron-sight ADS; no selectable red dots, ACOGs, barrels, grips or silencers.
+- Previously saved `xz_ar_variant` metadata gets cleared to the weapon's original model, without changing ammunition.
+- The attachment button is no longer granted and old saved hotbar buttons are removed on join; a hidden inert compatibility item prevents unknown-item fallout.
+- Weapon picker, ammo box, reload and existing Arsenal code remain available for source-level testing.
+- Zombies rounds, perks, wall buys, Mystery Box and Pack-a-Punch are **future gameplay tasks**, not claimed to be implemented by this source patch.
+- Requires Lua regression and real Android testing before any release; no new APK built or uploaded here.
+- Third-party COD4 game assets still require appropriate redistribution rights before a public release.
+
+---
+
 # Luanti Arsenal Android: evidence gate (not gameplay sign-off)
 
 The Work screenshot reports **95 new models**, **28 weapons**, **184 configurations**, a universal ammo refill box and category picker. These counts are **targets** until the actual APK and its authoritative catalog can be read. The connected GitHub PR #15 currently holds a separate *private COD4 AK-47* implementation, not the 28-weapon Arsenal files.
