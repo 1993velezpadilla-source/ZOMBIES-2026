@@ -1,0 +1,136 @@
+--- a/sandbox/luanti/ak47_hd_android/arsenal.lua
++++ b/sandbox/luanti/ak47_hd_android/arsenal.lua
+@@ -122,29 +122,67 @@
+  catalogue[#catalogue+1]={item='ak47dev:ak47',label='AK-47',category='Rifles',icon='ak47dev_icon.png',id='ak47'}
+  catalogue[#catalogue+1]={item='ak47dev:m9',label='M9',category='Pistolas',icon='m9_icon.png',id='m9'}
+  table.sort(catalogue,function(a,b) return a.label<b.label end)
+- local function catalog_form(which,message)
+-  local entries={};for _,d in ipairs(catalogue) do if which==1 or d.category==categories[which] then entries[#entries+1]=d end end
+-  local height=math.ceil(#entries/4)*1.55;local f={'formspec_version[6]size[12.8,9.1]bgcolor[#111922F5;true]label[0.4,0.3;ARSENAL COD4]',
+-   ('dropdown[0.4,0.8;6.3,0.7;category;%s;%d;true]'):format(table.concat(categories,','),which),'label[6.9,1.0;Toca un arma para equiparla]',
+-   ('scrollbaroptions[min=0;max=%d;smallstep=4;largestep=20]'):format(math.max(0,math.ceil((height-6.2)*10))),
+-   'scrollbar[12.1,1.8;0.35,6.2;vertical;weaponscroll;0]scroll_container[0.4,1.8;11.5,6.2;weaponscroll;vertical;0.1]'}
+-  for i,d in ipairs(entries) do local x=((i-1)%4)*2.85;local y=math.floor((i-1)/4)*1.55;f[#f+1]=('image_button[%f,%f;2.6,1.1;%s;pick_%s;;false;false]label[%f,%f;%s]'):format(x,y,d.icon,d.id,x,y+1.12,d.label) end
+-  f[#f+1]='scroll_container_end[]button_exit[9.0,8.25;3.3,0.6;done;VOLVER AL JUEGO]';if message then f[#f+1]='label[0.4,8.4;'..message..']' end;return table.concat(f)
++ local PAGE_SIZE=8
++ local function catalog_form(which,message,page)
++  local entries={}
++  for _,d in ipairs(catalogue) do
++   if which==1 or d.category==categories[which] then entries[#entries+1]=d end
++  end
++  local pages=math.max(1,math.ceil(#entries/PAGE_SIZE))
++  page=math.max(1,math.min(page or 1,pages))
++  local f={'formspec_version[6]size[12.8,9.1]bgcolor[#111922F5;true]label[0.4,0.3;ARSENAL COD4]',
++   ('dropdown[0.4,0.8;6.3,0.7;category;%s;%d;true]'):format(table.concat(categories,','),which),
++   'label[6.9,1.0;Toca un arma para equiparla]'}
++  local first=(page-1)*PAGE_SIZE+1
++  for i=first,math.min(#entries,first+PAGE_SIZE-1) do
++   local d=entries[i]
++   local index=i-first
++   local x=0.4+(index%4)*3.04
++   local y=1.8+math.floor(index/4)*2.5
++   -- A plain button (not an image_button inside scroll_container) is reliable on Android touch.
++   f[#f+1]=('button[%f,%f;2.8,2.15;pick_%s;%s]'):format(x,y,d.id,d.label)
++  end
++  f[#f+1]=('label[5.2,7.2;Pagina %d / %d]'):format(page,pages)
++  if page>1 then f[#f+1]='button[0.4,7.05;3.0,0.8;page_prev;ANTERIOR]' end
++  if page<pages then f[#f+1]='button[9.2,7.05;3.0,0.8;page_next;SIGUIENTE]' end
++  f[#f+1]='button_exit[9.0,8.2;3.3,0.6;done;VOLVER AL JUEGO]'
++  if message then f[#f+1]='label[0.4,8.38;'..message..']' end
++  return table.concat(f)
+  end
+  local function open_catalogue(p)
+-  local s=state(p);if s then cancel(p,s);s.panel=true;s.block_fire=true;sync(p,s,'E') end
+-  local who=p:get_player_name();browser[who]=1;minetest.show_formspec(who,CATALOG,catalog_form(1));return true
++  local s=state(p)
++  if s then cancel(p,s);s.panel=true;s.block_fire=true;sync(p,s,'E') end
++  local who=p:get_player_name()
++  browser[who]={category=1,page=1}
++  minetest.show_formspec(who,CATALOG,catalog_form(1,nil,1))
++  return true
+  end
+  local function equip(p,id)
+-  local inv=p:get_inventory();local selected=p:get_wield_index();local current=p:get_wielded_item();local found,empty
+-  for slot=1,inv:get_size('main') do local item=inv:get_stack('main',slot);if item:get_name()==id then found=slot end;if item:get_name()=='' and not empty then empty=slot end end
+-  if found and found~=selected then inv:set_stack('main',selected,inv:get_stack('main',found));inv:set_stack('main',found,current)
+-  elseif not found then
+-   if current:get_name()~='' and not empty then return false end
+-   if current:get_name()~='' then inv:set_stack('main',empty,current) end
++  local inv=p:get_inventory()
++  local selected=p:get_wield_index()
++  if not inv or not selected or selected<1 or selected>inv:get_size('main') then return false end
++  local current=p:get_wielded_item()
++  local current_id=current:get_name()
++  if current_id==id then return true end
++  local found,empty
++  for slot=1,inv:get_size('main') do
++   local item=inv:get_stack('main',slot)
++   if item:get_name()==id then found=slot end
++   if item:get_name()=='' and not empty then empty=slot end
++  end
++  if found then
++   inv:set_stack('main',selected,inv:get_stack('main',found))
++   inv:set_stack('main',found,current)
++  else
++   -- Replacing a selected firearm is safe even when the inventory is full:
++   -- every gun remains available from the catalogue. Never discard non-weapon items.
++   local held_gun=definitions[current_id] or current_id=='ak47dev:ak47' or current_id=='ak47dev:m9'
++   if current_id~='' and not empty and not held_gun then return false end
++   if current_id~='' and empty then inv:set_stack('main',empty,current) end
+    inv:set_stack('main',selected,ItemStack(id))
+   end
+-  return true
++  p:set_wielded_item(inv:get_stack('main',selected))
++  return p:get_wielded_item():get_name()==id
+  end
+  for id,d in pairs(definitions) do
+   minetest.register_tool(':'..id,{description=d.label..' | FIRE / ADS / R',inventory_image=d.icon,wield_image=d.icon,stack_max=1,range=5,groups={weapon=1,weapon_ranged=1,not_in_creative_inventory=1},
+@@ -161,15 +199,41 @@
+  minetest.register_on_player_receive_fields(function(p,name,fields)
+   local who=p:get_player_name()
+   if name==CATALOG then
+-   if not browser[who] then return true end
+-   if fields.quit then browser[who]=nil;local s=state(p);if s then s.panel=false;s.block_fire=true end;return true end
++   local view=browser[who]
++   if not view then return true end
++   -- Button fields take precedence over `quit` and the dropdown's category
++   -- field, which some Android form clients submit together with the tap.
++   for _,d in ipairs(catalogue) do
++    if fields['pick_'..d.id] then
++     if equip(p,d.item) then
++      browser[who]=nil
++      minetest.show_formspec(who,name,'')
++      local s=state(p)
++      if s then s.panel=false;s.was_equipped=false end
++     else
++      minetest.show_formspec(who,name,catalog_form(view.category,'Inventario lleno: selecciona un arma para reemplazar.',view.page))
++     end
++     return true
++    end
++   end
++   if fields.page_prev or fields.page_next then
++    view.page=view.page+(fields.page_next and 1 or -1)
++    minetest.show_formspec(who,name,catalog_form(view.category,nil,view.page))
++    return true
++   end
++   if fields.quit then
++    browser[who]=nil
++    local s=state(p)
++    if s then s.panel=false;s.block_fire=true end
++    return true
++   end
+    local category=tonumber(fields.category)
+-   if category and categories[category] then browser[who]=category;minetest.show_formspec(who,name,catalog_form(category));return true end
+-   for _,d in ipairs(catalogue) do if fields['pick_'..d.id] then
+-    if equip(p,d.item) then browser[who]=nil;minetest.show_formspec(who,name,'');local s=state(p);if s then s.panel=false;s.was_equipped=false end
+-    else minetest.show_formspec(who,name,catalog_form(browser[who],'Libera un espacio del inventario')) end
++   if category and categories[category] and category~=view.category then
++    view.category=category
++    view.page=1
++    minetest.show_formspec(who,name,catalog_form(category,nil,1))
+     return true
+-   end end
++   end
+    return true
+   end
+   if name~=FORM then return false end
