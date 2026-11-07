@@ -557,7 +557,11 @@ void CMod_LoadCollisionTriangles()
     uint32_t count; // [esp+Ch] [ebp-4h] BYREF
 
     in = Com_GetBspLump(LUMP_COLLISIONTRIS, 2u, &count);
-    cm.triIndices = (unsigned short*)CM_Hunk_Alloc(2 * count, "CMod_LoadCollisionTriangles", 28);
+    // BSP index count is disk-derived; the original hunk allocator takes uint32_t bytes.
+    // Reject overflow before allocation and the subsequent copy on 64-bit targets.
+    if (count > 0xFFFFFFFFu / sizeof(*cm.triIndices))
+        Com_Error(ERR_DROP, "CMod_LoadCollisionTriangles: index allocation exceeds 32-bit hunk limit");
+    cm.triIndices = (unsigned short*)CM_Hunk_Alloc(sizeof(*cm.triIndices) * count, "CMod_LoadCollisionTriangles", 28);
     cm.triCount = count / 3;
     Com_Memcpy(cm.triIndices, in, 2 * count);
 }
