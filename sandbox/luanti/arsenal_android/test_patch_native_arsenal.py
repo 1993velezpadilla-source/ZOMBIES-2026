@@ -70,7 +70,7 @@ class PatchTests(unittest.TestCase):
             cpp=(root/"src/client/camera.cpp").read_text()
             self.assertIn("void Camera::updateArsenalViewmodel(f32 frametime)",cpp)
             self.assertIn("updateArsenalViewmodel(frametime);",cpp)
-            self.assertIn('m_client->getMesh("arsenal_" + id + "_gun.glb")',cpp)
+            self.assertIn('m_client->getMesh("arsenal_" + model_key + "_gun.glb")',cpp)
             self.assertIn('m_client->getMesh("arsenal_" + id + "_hands.glb")',cpp)
             self.assertIn('updateAK47Viewmodel(f32 frametime)',cpp)
             self.assertIn("com.xziel.voxelsandbox.arsenaltest",
