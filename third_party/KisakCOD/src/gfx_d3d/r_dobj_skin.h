@@ -1,7 +1,7 @@
 #pragma once
 #include "r_scene.h"
 
-struct GfxModelSurfaceInfo // sizeof=0xC
+struct GfxModelSurfaceInfo // Win32 sizeof=0xC; LP64 sizeof=0x10
 {                                       // ...
     const struct DObjAnimMat *baseMat;
     uint8_t boneIndex;
@@ -11,8 +11,9 @@ struct GfxModelSurfaceInfo // sizeof=0xC
     // padding byte
     // padding byte
 };
+static_assert(sizeof(GfxModelSurfaceInfo) == (sizeof(void *) == 8 ? 16u : 12u));
 
-struct GfxModelSkinnedSurface // sizeof=0x18
+struct GfxModelSkinnedSurface // Win32 sizeof=0x18; LP64 sizeof=0x28
 {                                       // ...
     int skinnedCachedOffset;
     XSurface *xsurf;
@@ -24,14 +25,14 @@ struct GfxModelSkinnedSurface // sizeof=0x18
         int oldSkinnedCachedOffset;
     };
 };
-static_assert(sizeof(GfxModelSkinnedSurface) == 24);
+static_assert(sizeof(GfxModelSkinnedSurface) == (sizeof(void *) == 8 ? 40u : 24u));
 
-struct GfxModelRigidSurface // sizeof=0x38
+struct GfxModelRigidSurface // Win32 sizeof=0x38; LP64 sizeof=0x48
 {
     GfxModelSkinnedSurface surf;
     GfxScaledPlacement placement;
 };
-static_assert(sizeof(GfxModelRigidSurface) == 56);
+static_assert(sizeof(GfxModelRigidSurface) == (sizeof(void *) == 8 ? 72u : 56u));
 
 struct SkinXModelCmd // sizeof=0x1C
 {                                       // ...

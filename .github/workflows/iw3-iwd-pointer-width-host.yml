@@ -1,0 +1,32 @@
+name: IW3 original IWD pointer width host sanitizer (NOT GAME)
+
+on:
+  push:
+    branches:
+      - feature/iw3-native-android-arm64-20261025
+  pull_request:
+    paths:
+      - 'third_party/KisakCOD/src/qcommon/files.cpp'
+      - 'tests/test_iw3_android_iwd_pointer_width.py'
+      - '.github/workflows/iw3-iwd-pointer-width-host.yml'
+  workflow_dispatch:
+
+jobs:
+  original-iwd-pointers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify original IW3 64-bit IWD pointers and FF bounds under sanitizers
+        run: |
+          python3 -m unittest discover -s tests -p 'test_iw3_android_iwd_pointer_width.py' -v
+      - name: Runtime proof boundary
+        run: |
+          echo 'Original IW3 host ASan/UBSan regression only, NOT Android gameplay'
+          echo 'IW3_ORIGINAL_ENGINE_RUNTIME_LINKED=false'
+          echo 'IW3_FS_STARTUP_RUNTIME_INVOKED=false'
+          echo 'IW3_REAL_MAP_LOADED=false'
+          echo 'IW3_RENDERER_FRAME_PROVEN=false'
+          echo 'IW3_ORIGINAL_TOUCH_CLIENT_PROVEN=false'
+          echo 'IW3_GAMEPLAY_PROVEN=false'
+          echo 'IW3_PLAYABLE_APK=false'

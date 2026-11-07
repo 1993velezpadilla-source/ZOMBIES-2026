@@ -202,7 +202,14 @@ struct GfxWorld // sizeof=0x2DC
     GfxWorldDpvsStatic dpvs;            // ...
     GfxWorldDpvsDynamic dpvsDyn;        // ...
 };
+#if defined(__ANDROID__)
+// Native LP64 engine layout. FastFile disk offsets remain 32-bit and are
+// relocated by the original database loader; this assertion covers the
+// in-memory runtime structure only.
+static_assert(sizeof(GfxWorld) == 1032);
+#else
 static_assert(sizeof(GfxWorld) == 0x2DC);
+#endif
 
 // r_bsp
 void __cdecl R_ReloadWorld();

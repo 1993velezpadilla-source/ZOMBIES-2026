@@ -1,0 +1,238 @@
+"""Guard the real KisakCOD filesystem TU's Android portability boundary."""
+from pathlib import Path
+import unittest
+
+ROOT = Path(__file__).resolve().parents[1]
+SOURCE = ROOT / "third_party/KisakCOD/src/universal/com_files.cpp"
+STATE = ROOT / "third_party/KisakCOD/src/universal/com_files_state.cpp"
+HEADER = ROOT / "third_party/KisakCOD/src/universal/com_files.h"
+CMAKE = ROOT / "android/iw3-native/CMakeLists.txt"
+GFX = ROOT / "third_party/KisakCOD/src/gfx_d3d/r_gfx.h"
+MATERIAL = ROOT / "third_party/KisakCOD/src/gfx_d3d/r_material.h"
+D3D9_OPAQUE = ROOT / "third_party/KisakCOD/src/gfx_d3d/r_d3d9_opaque.h"
+FS_COMPAT = ROOT / "android/iw3-native/iw3_android_filesystem_compat.h"
+PLATFORM_CPP = ROOT / "android/iw3-native/iw3_android_platform.cpp"
+PLATFORM_HEADER = ROOT / "android/iw3-native/iw3_android_platform.h"
+WORKFLOW = ROOT / ".github/workflows/iw3-original-native-android.yml"
+CHECKSUM_HEADER = ROOT / "third_party/KisakCOD/src/qcommon/com_checksum.h"
+SND_STOP_HEADER = ROOT / "third_party/KisakCOD/src/sound/snd_stopsounds.h"
+SND_PUBLIC = ROOT / "third_party/KisakCOD/src/sound/snd_public.h"
+
+
+def function_body(source: str, signature: str) -> str:
+    start = source.find(signature)
+    if start < 0 or source.find(signature, start + 1) >= 0:
+        raise AssertionError(f"expected exactly one function signature: {signature}")
+    opening = source.find("{", start)
+    if opening < 0:
+        raise AssertionError("function opening brace missing")
+    depth = 0
+    for index in range(opening, len(source)):
+        if source[index] == "{":
+            depth += 1
+        elif source[index] == "}":
+            depth -= 1
+            if depth == 0:
+                return source[opening + 1:index]
+    raise AssertionError("function closing brace missing")
+
+
+class OriginalFilesystemAndroidPortTests(unittest.TestCase):
+    def test_directinput_header_is_excluded_from_android_translation_unit(self):
+        source = SOURCE.read_text(encoding="utf-8")
+        self.assertIn(
+            '#if defined(__ANDROID__)\n'
+            '#include "iw3_android_platform.h"\n'
+            '#include "iw3_android_filesystem_compat.h"\n'
+            '#include <sys/stat.h>\n'
+            '#include <unistd.h>',
+            source,
+        )
+        self.assertIn(
+            '#else\n#include <win32/win_local.h>\n#endif',
+            source,
+        )
+
+    def test_android_overwrite_uses_rooted_fd_not_win32_attributes(self):
+        source = SOURCE.read_text(encoding="utf-8")
+        body = function_body(source, "int __cdecl FS_OpenFileOverwrite(char *qpath)")
+        android = body.split("#if defined(__ANDROID__)", 1)[1].split("#else", 1)[0]
+        windows = body.split("#else", 1)[1].split("#endif", 1)[0]
+        self.assertIn("z2026_platform_open_engine_path_fd(ospath)", android)
+        self.assertIn("fstat(attributesFd, &oldAttributes)", android)
+        self.assertIn("fchmod(attributesFd", android)
+        self.assertNotIn("GetFileAttributesA", android)
+        self.assertIn("GetFileAttributesA(ospath)", windows)
+        self.assertIn("SetFileAttributesA(ospath, attributes)", windows)
+
+    def test_filesystem_tu_does_not_import_unused_bsp_renderer_dependency(self):
+        source = SOURCE.read_text(encoding="utf-8")
+        self.assertNotIn("#include <qcommon/com_bsp.h>", source)
+        self.assertIn("void __cdecl Com_GetBspFilename(char *filename, uint32_t size, const char *mapname)", source)
+
+    def test_thread_context_abi_is_shared_without_win32_or_d3d_headers(self):
+        threads = (ROOT / "third_party/KisakCOD/src/qcommon/threads.h").read_text(encoding="utf-8")
+        backend = (ROOT / "third_party/KisakCOD/src/gfx_d3d/rb_backend.h").read_text(encoding="utf-8")
+        context = (ROOT / "third_party/KisakCOD/src/qcommon/thread_context.h").read_text(encoding="utf-8")
+        self.assertIn("#include <qcommon/thread_context.h>", threads)
+        self.assertIn("#else\n#include <Windows.h>\n#include <gfx_d3d/rb_backend.h>", threads)
+        self.assertIn("#if defined(__ANDROID__)", threads)
+        self.assertIn("using DWORD = std::uint32_t;", threads)
+        self.assertIn("using HANDLE = void *;", threads)
+        self.assertIn("#include <Windows.h>", threads)
+        self.assertIn("#include <qcommon/thread_context.h>", backend)
+        self.assertNotIn("enum ThreadContext_t", backend)
+        self.assertIn("THREAD_CONTEXT_COUNT = 12", context)
+        self.assertIn("THREAD_CONTEXT_COUNT        = 0x7", context)
+
+    def test_android_gate_compiles_complete_original_filesystem_source(self):
+        cmake = CMAKE.read_text(encoding="utf-8")
+        self.assertIn('add_library(iw3_sp_full_filesystem OBJECT', cmake)
+        self.assertIn('"${IW3_ENGINE_SOURCE_ROOT}/universal/com_files.cpp"', cmake)
+        self.assertIn('"${IW3_ENGINE_SOURCE_ROOT}/universal/com_files_state.cpp"', cmake)
+        self.assertIn('"${IW3_ENGINE_SOURCE_ROOT}/universal/com_files_handle_table.cpp"', cmake)
+        self.assertIn("target_compile_definitions(iw3_sp_full_filesystem PRIVATE KISAK_SP=1)", cmake)
+
+
+    def test_android_shared_engine_layouts_do_not_require_d3d9_sdk(self):
+        conditional_include = (
+            '#if defined(__ANDROID__)\n'
+            '#include "r_d3d9_opaque.h"\n'
+            '#else\n'
+            '#include <d3d9.h>\n'
+            '#endif'
+        )
+        for path in (GFX, MATERIAL):
+            header = path.read_text(encoding="utf-8")
+            self.assertIn(conditional_include, header)
+            self.assertIn("#include <d3d9.h>", header)
+        opaque = D3D9_OPAQUE.read_text(encoding="utf-8")
+        for interface in (
+            "IDirect3DVertexBuffer9",
+            "IDirect3DIndexBuffer9",
+            "IDirect3DBaseTexture9",
+            "IDirect3DTexture9",
+            "IDirect3DVolumeTexture9",
+            "IDirect3DCubeTexture9",
+            "IDirect3DQuery9",
+            "IDirect3DSurface9",
+            "IDirect3DVertexDeclaration9",
+            "IDirect3DVertexShader9",
+            "IDirect3DPixelShader9",
+        ):
+            self.assertIn(f"struct {interface};", opaque)
+        self.assertIn("enum _D3DFORMAT : int", opaque)
+        self.assertIn("D3DFMT_D24S8 = 75", opaque)
+        self.assertIn("D3DFMT_D24X8 = 77", opaque)
+        self.assertIn("D3DFMT_D16 = 80", opaque)
+        self.assertIn("sizeof(_D3DFORMAT) == sizeof(int)", opaque)
+
+
+    def test_android_filesystem_uses_native_services_and_portable_apis(self):
+        source = SOURCE.read_text(encoding="utf-8")
+        self.assertIn('#include "iw3_android_filesystem_compat.h"', source)
+        self.assertIn("z2026_iw3_interlocked_compare_exchange(&iwd->hasOpenFile, 1u, 0u)", source)
+        self.assertIn("vsnprintf(string, 0x1000u, fmt, va);", source)
+        self.assertIn("sizeof(descPath) / sizeof(descPath[0])", source)
+        self.assertNotIn("ARRAYSIZE(descPath)", source)
+        compat = FS_COMPAT.read_text(encoding="utf-8")
+        for service in (
+            "Sys_Mkdir",
+            "Sys_CountFileList",
+            "Sys_ListFiles",
+            "Sys_Cwd",
+            "Sys_DefaultCDPath",
+            "Sys_DirectoryHasContents",
+        ):
+            self.assertIn(service, compat)
+        checksum = CHECKSUM_HEADER.read_text(encoding="utf-8")
+        self.assertIn("Com_BlockChecksumKey32", checksum)
+        bsp = (ROOT / "third_party/KisakCOD/src/qcommon/com_bsp.h").read_text(encoding="utf-8")
+        self.assertIn("#include <qcommon/com_checksum.h>", bsp)
+        sound_header = SND_STOP_HEADER.read_text(encoding="utf-8")
+        self.assertIn("SND_STOP_STREAMED = 0x8", sound_header)
+        public_sound = SND_PUBLIC.read_text(encoding="utf-8")
+        self.assertIn('#include "snd_stopsounds.h"', public_sound)
+        self.assertNotIn("enum snd_stopsounds_arg_t : __int32", public_sound)
+
+    def test_filesystem_global_state_has_one_canonical_original_owner(self):
+        source = SOURCE.read_text(encoding="utf-8")
+        state = STATE.read_text(encoding="utf-8")
+        header = HEADER.read_text(encoding="utf-8")
+        symbols = (
+            "fs_remotePCDirectory", "fs_remotePCName", "fs_homepath",
+            "fs_debug", "fs_restrict", "fs_ignoreLocalized", "fs_basepath",
+            "fs_copyfiles", "fs_cdpath", "fs_gameDirVar", "fs_basegame",
+            "fs_fakeChkSum", "fs_numServerIwds", "fs_serverIwds",
+            "g_writeLogEvent", "marker_com_files", "g_writeLogCompleteEvent",
+            "fs_serverIwdNames", "lastValidBase", "lastValidGame",
+        )
+        def top_level_declarations(text, symbol):
+            return [
+                line for line in text.splitlines()
+                if line and not line[0].isspace() and symbol in line
+                and line.rstrip().endswith(";")
+            ]
+        for symbol in symbols:
+            with self.subTest(symbol=symbol):
+                self.assertEqual(len(top_level_declarations(state, symbol)), 1)
+                self.assertEqual(len(top_level_declarations(source, symbol)), 0)
+        self.assertIn("extern int fs_fakeChkSum;", header)
+        self.assertIn("extern char lastValidBase[256];", header)
+        self.assertIn("extern char lastValidGame[256];", header)
+
+
+    def test_android_delete_and_rename_paths_use_rooted_engine_mutation_services(self):
+        source = SOURCE.read_text(encoding="utf-8")
+        cases = (
+            ("bool __cdecl FS_Delete(const char *filename)", "z2026_platform_remove_engine_path", "remove(ospath)"),
+            ("bool __cdecl FS_DeleteInDir(char *filename, char *dir)", "z2026_platform_remove_engine_path", "remove(ospath)"),
+            ("void __cdecl FS_Remove(const char *osPath)", "z2026_platform_remove_engine_path", "remove(osPath)"),
+            ("void __cdecl FS_SV_Rename(char *from, char *to)", "z2026_platform_rename_engine_path", "rename(from_ospath, to_ospath)"),
+            ("void __cdecl FS_Rename(char *from, char *fromDir, char *to, char *toDir)", "z2026_platform_rename_engine_path", "rename(from_ospath, to_ospath)"),
+        )
+        for signature, android_service, windows_call in cases:
+            with self.subTest(signature=signature):
+                body = function_body(source, signature)
+                android = body.split("#if defined(__ANDROID__)", 1)[1].split("#else", 1)[0]
+                windows = body.split("#else", 1)[1].split("#endif", 1)[0]
+                self.assertIn(android_service, android)
+                self.assertNotIn(windows_call, android)
+                self.assertIn(windows_call, windows)
+
+    def test_rooted_engine_mutation_providers_are_descriptor_relative_and_nofollow(self):
+        platform = PLATFORM_CPP.read_text(encoding="utf-8")
+        remove_body = function_body(
+            platform, 'extern "C" IW3_ANDROID_EXPORT int z2026_platform_remove_engine_path('
+        )
+        self.assertIn("normalize_engine_path", remove_body)
+        self.assertIn("open_parent_beneath_root", remove_body)
+        self.assertIn("fstatat(parent, leaf, &entry, AT_SYMLINK_NOFOLLOW)", remove_body)
+        self.assertIn("unlinkat(parent, leaf, flags)", remove_body)
+
+        rename_body = function_body(
+            platform, 'extern "C" IW3_ANDROID_EXPORT int z2026_platform_rename_engine_path('
+        )
+        self.assertIn("normalize_engine_path", rename_body)
+        self.assertIn("open_parent_beneath_root", rename_body)
+        self.assertIn("fstatat(from_parent, from_leaf, &source_entry, AT_SYMLINK_NOFOLLOW)", rename_body)
+        self.assertIn("renameat(from_parent, from_leaf, to_parent, to_leaf)", rename_body)
+        header = PLATFORM_HEADER.read_text(encoding="utf-8")
+        self.assertIn("z2026_platform_remove_engine_path", header)
+        self.assertIn("z2026_platform_rename_engine_path", header)
+
+    def test_ndk_gate_links_original_filesystem_mutations_to_android_root_provider(self):
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn("iw3_sp_full_filesystem.dir", workflow)
+        self.assertIn("libiw3_sp_iwd_directory_services.a", workflow)
+        self.assertIn("IW3_ORIGINAL_FILESYSTEM_ROOTED_MUTATION_RELOCATABLE_LINK_PASS", workflow)
+        self.assertIn("IW3_FULL_FILESYSTEM_RUNTIME_LINKED=false", workflow)
+        self.assertIn("IW3_ORIGINAL_SYSLISTFILES_PROVIDER_RESOLVED", workflow)
+        self.assertIn("Com_FilterPath", workflow)
+        self.assertIn("iw3-original-filesystem-rooted-mutations-aarch64-NOT-APK", workflow)
+        self.assertIn("${{ runner.temp }}/iw3-original-filesystem-rooted-mutations-arm64.o", workflow)
+        self.assertNotIn("\\${{ runner.temp }}", workflow)
+
+
+if __name__ == "__main__":
+    unittest.main()

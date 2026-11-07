@@ -85,7 +85,9 @@ void __cdecl CM_Shutdown()
     const char *savedName; // [esp+0h] [ebp-4h]
 
     savedName = cm.name;
-    Com_Memset((uint32_t *)&cm, 0, 284);
+    // Clear the native clipMap_t, not the 284-byte 32-bit IW3 layout.
+    // Preserve the map name pointer as the original shutdown path requires.
+    Com_Memset(&cm, 0, sizeof(cm));
     cm.name = savedName;
     iassert( !cm.isInUse );
 }

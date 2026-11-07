@@ -2,6 +2,17 @@ name: ZOMBIES-2026 offline SP killhouse native runtime diagnostic
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'third_party/KisakCOD/src/**'
+      - 'third_party/KisakCOD/scripts/sp/**'
+      - 'tools/zombies_offline/instrument_sp_level.py'
+      - 'tools/zombies_offline/instrument_sp_combat.py'
+      - 'tools/zombies_offline/instrument_sp_loadout.py'
+      - 'tools/zombies_offline/instrument_sp_input.py'
+      - 'tools/zombies_offline/probe_sp_runtime.ps1'
+      - 'tests/test_zombies_offline_input.py'
+      - '.github/workflows/iw3-offline-sp-runtime.yml'
   push:
     branches:
       - 'feature/zombies-offline-sp-weapons-20261024'

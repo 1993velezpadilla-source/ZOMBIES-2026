@@ -8,10 +8,20 @@
 #include <EffectsCore/fx_system.h>
 
 #include <string.h>
+#include <ctype.h>
 #include <gfx_d3d/r_model.h>
 #include "com_sndalias.h"
 
 #include <setjmp.h>
+
+#if defined(__ANDROID__)
+// Bionic exports the bounded C99 formatter, not MSVC's _vsnprintf.
+// C99 returns the required length on truncation, which differs from MSVC's
+// -1 result; Com_sprintfPos below must account for that distinction.
+#ifndef _vsnprintf
+#define _vsnprintf vsnprintf
+#endif
+#endif
 
 //Line 53466:  0006 : 02bc009c       int marker_q_shared      8537009c     q_shared.obj
 //Line 53467 : 0006 : 02bc58d0       struct TraceThreadInfo *g_traceThreadInfo 853758d0     q_shared.obj
@@ -64,8 +74,8 @@ const char *__cdecl I_stristr(const char *s0, const char *substr)
         {
             if (!substr[++substrChar])
                 return &s0[s0Char];
-            v3 = tolower(s0[substrChar + s0Char]);
-        } while (v3 == tolower(substr[substrChar]));
+            v3 = tolower(static_cast<unsigned char>(s0[substrChar + s0Char]));
+        } while (v3 == tolower(static_cast<unsigned char>(substr[substrChar])));
     }
 
     return 0;
@@ -424,8 +434,8 @@ int __cdecl I_stricmpwild(const char *wild, const char *s)
             charRef = *s++;
             if (charWild != charRef && charWild != 63)
             {
-                v3 = tolower(charWild);
-                delta = v3 - tolower(charRef);
+                v3 = tolower(static_cast<unsigned char>(charWild));
+                delta = v3 - tolower(static_cast<unsigned char>(charRef));
                 if (delta)
                     return 2 * (delta >= 0) - 1;
             }
@@ -538,7 +548,13 @@ int Com_sprintfPos(char *dest, int destSize, int *destPos, const char *fmt, ...)
     destModSize = destSize - *destPos;
     len = _vsnprintf(destMod, destModSize, fmt, va);
     destMod[destModSize - 1] = 0;
+#if defined(__ANDROID__)
+    // vsnprintf returns the *would-have-written* byte count on truncation.
+    // Treat every truncated result as full rather than advancing past dest.
+    if (len < 0 || static_cast<uint32_t>(len) >= destModSize)
+#else
     if (len == destModSize || len == -1)
+#endif
         *destPos = destSize - 1;
     else
         *destPos += len;
@@ -767,24 +783,24 @@ void __cdecl Info_RemoveKey_Big(char *s, const char *key)
 
 bool __cdecl Info_Validate(const char *s)
 {
-    int v1; // eax
-    int v3; // eax
+    const char *v1;
+    const char *v3;
 
-    v1 = (int)strchr(s, 0x22u);
+    v1 = strchr(s, 0x22u);
 
     if (v1)
         return 0;
 
-    v3 = (int)strchr(s, 0x3Bu);
+    v3 = strchr(s, 0x3Bu);
 
     return v3 == 0;
 }
 
 void __cdecl Info_SetValueForKey(char *s, const char *key, const char *value)
 {
-    int v3; // eax
-    int v4; // eax
-    int v5; // eax
+    const char *v3;
+    const char *v4;
+    const char *v5;
     int j; // [esp+54h] [ebp-818h]
     char c; // [esp+5Bh] [ebp-811h]
     char cleanValue[1028]; // [esp+5Ch] [ebp-810h] BYREF
@@ -812,21 +828,21 @@ void __cdecl Info_SetValueForKey(char *s, const char *key, const char *value)
         if (j >= 1024)
             MyAssertHandler(".\\universal\\q_shared.cpp", 1275, 0, "%s", "j < MAX_INFO_STRING");
         cleanValue[j] = 0;
-        v3 = (int)strchr(key, 0x5Cu);
+        v3 = strchr(key, 0x5Cu);
         if (v3)
         {
             Com_Printf(CON_CHANNEL_SYSTEM, "Can't use keys with a \\ key: %s value: %s", key, value);
         }
         else
         {
-            v4 = (int)strchr(key, 0x3Bu);
+            v4 = strchr(key, 0x3Bu);
             if (v4)
             {
                 Com_Printf(CON_CHANNEL_SYSTEM, "Can't use keys with a semicolon. key: %s value: %s", key, value);
             }
             else
             {
-                v5 = (int)strchr(key, 0x22u);
+                v5 = strchr(key, 0x22u);
                 if (v5)
                 {
                     Com_Printf(CON_CHANNEL_SYSTEM, "Can't use keys with a \". key: %s value: %s", key, value);
@@ -1030,19 +1046,21 @@ bool __cdecl ParseConfigStringToStructCustomSize(
                     v15 = atof(src);
                     *(uint32_t *)&pStruct[v20->iOffset] = (int)(v15 * 1000.0);
                     break;
+                // Asset references occupy a native pointer slot, not a 32-bit int.
+                // memcpy preserves full LP64 addresses without strict-aliasing UB.
                 case CSPFT_FX:
 #ifdef KISAK_MP
                     if (!com_dedicated->current.integer)
 #endif
                     {
                         v9 = FX_Register(src);
-                        *(uint32_t *)&pStruct[v20->iOffset] = (uint32_t)v9;
+                        memcpy(&pStruct[v20->iOffset], &v9, sizeof(v9));
                     }
                     break;
                 case CSPFT_XMODEL:
                     I_strncpyz(dest, src, 0x2000);
                     v22 = R_RegisterModel(dest);
-                    *(uint32_t *)&pStruct[v20->iOffset] = (uint32_t)v22;
+                    memcpy(&pStruct[v20->iOffset], &v22, sizeof(v22));
                     if (!v22)
                         v18 = 1;
                     break;
@@ -1052,12 +1070,12 @@ bool __cdecl ParseConfigStringToStructCustomSize(
 #endif
                     {
                         v10 = Material_RegisterHandle(src, IMAGE_TRACK_MISC);
-                        *(uint32_t *)&pStruct[v20->iOffset] = (uint32_t)v10;
+                        memcpy(&pStruct[v20->iOffset], &v10, sizeof(v10));
                     }
                     break;
                 case CSPFT_SOUND:
                     SoundAlias = Com_FindSoundAlias(src);
-                    *(uint32_t *)&pStruct[v20->iOffset] = (uint32_t)SoundAlias;
+                    memcpy(&pStruct[v20->iOffset], &SoundAlias, sizeof(SoundAlias));
                     break;
                 default:
                     if (v20->iFieldType >= CSPFT_STRING)

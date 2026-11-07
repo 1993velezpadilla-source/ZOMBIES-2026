@@ -8,7 +8,42 @@
 #include <qcommon/msg.h>
 #include <universal/memfile.h>
 #endif
+#if !defined(__ANDROID__)
 #include <gfx_d3d/r_debug.h>
+#else
+// Android command-input builds need client state declarations, not the
+// Direct3D resource ABI (whose static assertions intentionally describe Win32).
+struct Material;
+struct Font_s;
+struct refdef_s;
+struct trDebugString_t;
+struct trDebugLine_t;
+#ifndef KISAK_CLIENT_DEBUG_TYPES_DEFINED
+#define KISAK_CLIENT_DEBUG_TYPES_DEFINED
+struct clientDebugStringInfo_t {
+    int max;
+    int num;
+    trDebugString_t *strings;
+    int *durations;
+};
+struct clientDebugLineInfo_t {
+    int max;
+    int num;
+    trDebugLine_t *lines;
+    int *durations;
+};
+struct clientDebug_t {
+    int prevFromServer;
+    int fromServer;
+    clientDebugStringInfo_t clStrings;
+    clientDebugStringInfo_t svStringsBuffer;
+    clientDebugStringInfo_t svStrings;
+    clientDebugLineInfo_t clLines;
+    clientDebugLineInfo_t svLinesBuffer;
+    clientDebugLineInfo_t svLines;
+};
+#endif
+#endif
 
 struct snd_alias_t;
 

@@ -1,0 +1,31 @@
+name: IW3 original IWD name bounds host sanitizer (NOT GAME)
+
+on:
+  push:
+    branches:
+      - feature/iw3-native-android-arm64-20261025
+  pull_request:
+    paths:
+      - 'third_party/KisakCOD/src/qcommon/files.cpp'
+      - 'tests/test_iw3_android_iwd_name_bounds.py'
+      - '.github/workflows/iw3-iwd-name-bounds-host.yml'
+  workflow_dispatch:
+
+jobs:
+  original-iwd-name-bounds:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Execute original IW3 IWD name parsing with ASan and UBSan
+        run: python3 -m unittest discover -s tests -p 'test_iw3_android_iwd_name_bounds.py' -v
+      - name: Explicit runtime evidence boundary
+        run: |
+          echo 'IW3_ORIGINAL_IWD_NAME_BOUNDS_HOST_ONLY=true'
+          echo 'IW3_ORIGINAL_ENGINE_RUNTIME_LINKED=false'
+          echo 'IW3_FS_STARTUP_RUNTIME_INVOKED=false'
+          echo 'IW3_REAL_MAP_LOADED=false'
+          echo 'IW3_RENDERER_FRAME_PROVEN=false'
+          echo 'IW3_ORIGINAL_TOUCH_CLIENT_PROVEN=false'
+          echo 'IW3_GAMEPLAY_PROVEN=false'
+          echo 'IW3_PLAYABLE_APK=false'

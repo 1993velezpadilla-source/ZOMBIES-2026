@@ -1,0 +1,424 @@
+name: IW3 original command translation unit ARM64 portability (NOT GAME)
+
+on:
+  push:
+    branches:
+      - feature/iw3-native-android-arm64-20261025
+    paths:
+      - '.github/workflows/iw3-command-full-arm64.yml'
+      - 'third_party/KisakCOD/src/qcommon/cmd.cpp'
+      - 'third_party/KisakCOD/src/qcommon/cmd.h'
+      - 'third_party/KisakCOD/src/qcommon/threads.h'
+      - 'third_party/KisakCOD/src/universal/q_shared.cpp'
+      - 'third_party/KisakCOD/src/win32/win_local.h'
+      - 'third_party/KisakCOD/src/script/scr_debugger.h'
+      - 'third_party/KisakCOD/src/script/scr_yacc.h'
+      - 'android/iw3-native/CMakeLists.txt'
+      - 'tests/test_iw3_android_cmd_tokenizer.py'
+      - 'tests/test_iw3_android_cmd_dispatch_runtime.py'
+      - 'tests/test_iw3_android_cmd_bootstrap_graph.py'
+      - 'tests/test_iw3_android_cmd_thread_values.py'
+      - 'tests/test_iw3_android_cmd_qshared_formatter.py'
+      - 'tests/test_iw3_android_cmd_main_shared.py'
+      - 'tests/test_iw3_android_cmd_info_lp64.py'
+      - 'android/iw3-native/iw3_android_thread_values.cpp'
+      - 'android/iw3-native/iw3_android_main_thread_shared.cpp'
+      - 'android/iw3-native/iw3_android_thread_values.h'
+      - 'android/iw3-native/tests/thread_values_native_test.cpp'
+      - 'tests/fixtures/iw3_cmd_dispatch_runtime.cpp'
+      - 'tools/iw3_android/prepare_real_engine_cmd_tokenizer.py'
+  pull_request:
+    branches:
+      - feature/zombies-offline-sp-weapons-20261024
+    paths:
+      - '.github/workflows/iw3-command-full-arm64.yml'
+      - 'third_party/KisakCOD/src/qcommon/cmd.cpp'
+      - 'third_party/KisakCOD/src/qcommon/cmd.h'
+      - 'third_party/KisakCOD/src/qcommon/threads.h'
+      - 'third_party/KisakCOD/src/universal/q_shared.cpp'
+      - 'third_party/KisakCOD/src/win32/win_local.h'
+      - 'third_party/KisakCOD/src/script/scr_debugger.h'
+      - 'third_party/KisakCOD/src/script/scr_yacc.h'
+      - 'android/iw3-native/CMakeLists.txt'
+      - 'tests/test_iw3_android_cmd_tokenizer.py'
+      - 'tests/test_iw3_android_cmd_dispatch_runtime.py'
+      - 'tests/test_iw3_android_cmd_bootstrap_graph.py'
+      - 'tests/test_iw3_android_cmd_thread_values.py'
+      - 'tests/test_iw3_android_cmd_qshared_formatter.py'
+      - 'tests/test_iw3_android_cmd_main_shared.py'
+      - 'tests/test_iw3_android_cmd_info_lp64.py'
+      - 'android/iw3-native/iw3_android_thread_values.cpp'
+      - 'android/iw3-native/iw3_android_main_thread_shared.cpp'
+      - 'android/iw3-native/iw3_android_thread_values.h'
+      - 'android/iw3-native/tests/thread_values_native_test.cpp'
+      - 'tests/fixtures/iw3_cmd_dispatch_runtime.cpp'
+      - 'tools/iw3_android/prepare_real_engine_cmd_tokenizer.py'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: iw3-command-full-arm64-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  original-command-arm64:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      NDK_VER: "27.2.12479018"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify original tokenizer extraction and regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s tests -p 'test_iw3_android_cmd_*.py' -v
+          echo 'IW3_ORIGINAL_INFO_STRING_LP64_HOST_PASS'
+          python3 tools/iw3_android/prepare_real_engine_cmd_tokenizer.py \
+            --engine third_party/KisakCOD \
+            --output "$RUNNER_TEMP/iw3_cmd_tokenizer.cpp" \
+            --report "$RUNNER_TEMP/iw3_cmd_tokenizer.json"
+          grep -F '"original_tokenizer_and_end_functions_preserved_verbatim": true' "$RUNNER_TEMP/iw3_cmd_tokenizer.json"
+          grep -F '"playable_apk": false' "$RUNNER_TEMP/iw3_cmd_tokenizer.json"
+
+      - name: Install pinned Android NDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdk="$RUNNER_TEMP/android-sdk"
+          mkdir -p "$sdk/cmdline-tools/latest"
+          curl -fLsS --retry 3 -o "$RUNNER_TEMP/commandline-tools.zip" \
+            'https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip'
+          unzip -qo "$RUNNER_TEMP/commandline-tools.zip" -d "$RUNNER_TEMP/commandline-tools"
+          mv "$RUNNER_TEMP/commandline-tools/cmdline-tools/"* "$sdk/cmdline-tools/latest/"
+          yes | "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" --licenses >/dev/null || true
+          "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" "ndk;${NDK_VER}"
+          echo "ANDROID_NDK_HOME=$sdk/ndk/${NDK_VER}" >> "$GITHUB_ENV"
+
+      - name: Stage OpenAL Soft headers for the authentic engine compile
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libopenal-dev
+          mkdir -p "$RUNNER_TEMP/iw3-openal-headers"
+          cp -a /usr/include/AL "$RUNNER_TEMP/iw3-openal-headers/"
+          test -s "$RUNNER_TEMP/iw3-openal-headers/AL/al.h"
+          test -s "$RUNNER_TEMP/iw3-openal-headers/AL/alc.h"
+          test -s "$RUNNER_TEMP/iw3-openal-headers/AL/efx.h"
+          echo "IW3_OPENAL_HEADERS=$RUNNER_TEMP/iw3-openal-headers" >> "$GITHUB_ENV"
+          echo "IW3_OPENAL_HEADERS_REAL_API_STAGED_FOR_COMPILE_ONLY"
+
+      - name: Compile the complete original KisakCOD cmd.cpp for Android ARM64
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          source="$GITHUB_WORKSPACE/third_party/KisakCOD/src/qcommon/cmd.cpp"
+          object="$RUNNER_TEMP/iw3-original-cmd-full-aarch64.o"
+          test -s "$source"
+          "$ndk/aarch64-linux-android26-clang++" \
+            -std=c++20 -DKISAK_SP=1 -DKISAK_OPENAL=1 -fms-extensions \
+            -Wall -Wextra -UNDEBUG -O2 -fsigned-char -frounding-math -fno-fast-math \
+            -I "$GITHUB_WORKSPACE/third_party/KisakCOD/src" \
+            -I "$GITHUB_WORKSPACE/third_party/KisakCOD/deps" \
+            -I "$IW3_OPENAL_HEADERS" \
+            -c "$source" -o "$object"
+          "$ndk/llvm-readelf" -h "$object" | tee "$RUNNER_TEMP/iw3-cmd-full-elf.txt"
+          grep -F 'Class:                             ELF64' "$RUNNER_TEMP/iw3-cmd-full-elf.txt"
+          grep -F 'Machine:                           AArch64' "$RUNNER_TEMP/iw3-cmd-full-elf.txt"
+          "$ndk/llvm-nm" -C --defined-only "$object" | tee "$RUNNER_TEMP/iw3-cmd-full-defined.txt"
+          for symbol in 'Cmd_Init()' 'Cmd_AddCommandInternal(' 'Cmd_ExecuteSingleCommand(' 'Cmd_TokenizeString(char*)' 'Cmd_EndTokenizedString()'; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-cmd-full-defined.txt"
+          done
+          "$ndk/llvm-nm" -C -u "$object" | tee "$RUNNER_TEMP/iw3-cmd-full-undefined.txt"
+          echo "IW3_ORIGINAL_CMD_FULL_TU_AARCH64_OBJECT_PASS"
+          echo "IW3_CMD_FULL_TU_RUNTIME_LINKED=false"
+          echo "IW3_CMD_INIT_INVOKED=false"
+          echo "IW3_FS_STARTUP_RUNTIME_INVOKED=false"
+          echo "IW3_REAL_MAP_LOADED=false"
+          echo "IW3_PLAYABLE_APK=false"
+
+      - name: Relocatable link of three complete original engine units (NOT GAME)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          root="$GITHUB_WORKSPACE/third_party/KisakCOD/src"
+          object_dir="$RUNNER_TEMP"
+          cmd="$object_dir/iw3-original-cmd-full-aarch64.o"
+          fs="$object_dir/iw3-original-com-files-full-aarch64.o"
+          dvar="$object_dir/iw3-original-dvar-full-aarch64.o"
+          combined="$object_dir/iw3-original-cmd-files-dvar-aarch64.o"
+          test -s "$cmd"
+          # The actual original translation units, not generated source slices.
+          for entry in "universal/com_files.cpp:$fs" "universal/dvar.cpp:$dvar"; do
+            source="${entry%%:*}"
+            object="${entry#*:}"
+            "$ndk/aarch64-linux-android26-clang++" \
+              -std=c++20 -DKISAK_SP=1 -fms-extensions -UNDEBUG -O2 \
+              -fsigned-char -frounding-math -fno-fast-math \
+              -I "$GITHUB_WORKSPACE/android/iw3-native" \
+              -I "$root" \
+              -I "$GITHUB_WORKSPACE/third_party/KisakCOD/deps" \
+              -c "$root/$source" -o "$object"
+          done
+          for object in "$cmd" "$fs" "$dvar"; do
+            "$ndk/llvm-readelf" -h "$object" | grep -F 'Machine:                           AArch64'
+          done
+          "$ndk/llvm-nm" -C -u "$cmd" > "$object_dir/iw3-original-cmd-before-undefined.txt"
+          "$ndk/llvm-nm" -C -u "$dvar" > "$object_dir/iw3-original-dvar-before-undefined.txt"
+          # Verify genuine cross-unit dependencies existed before linking.
+          grep -F 'FS_FOpenFileRead(char const*, int*)' "$object_dir/iw3-original-cmd-before-undefined.txt"
+          grep -F 'Dvar_FindVar(char const*)' "$object_dir/iw3-original-cmd-before-undefined.txt"
+          grep -F 'Cmd_Argv(int)' "$object_dir/iw3-original-dvar-before-undefined.txt"
+          "$ndk/ld.lld" -m aarch64linux -r "$cmd" "$fs" "$dvar" -o "$combined"
+          "$ndk/llvm-readelf" -h "$combined" | tee "$object_dir/iw3-original-cmd-files-dvar-elf.txt"
+          "$ndk/llvm-nm" -C --defined-only "$combined" > "$object_dir/iw3-original-cmd-files-dvar-defined.txt"
+          "$ndk/llvm-nm" -C -u "$combined" > "$object_dir/iw3-original-cmd-files-dvar-undefined.txt"
+          for symbol in 'Cmd_Init()' 'Cmd_Argv(int)' 'FS_FOpenFileRead(char const*, int*)' 'Dvar_FindVar(char const*)'; do
+            grep -F "$symbol" "$object_dir/iw3-original-cmd-files-dvar-defined.txt"
+            if grep -F " U $symbol" "$object_dir/iw3-original-cmd-files-dvar-undefined.txt"; then
+              echo "Original engine cross-unit dependency unresolved: $symbol" >&2
+              exit 1
+            fi
+          done
+          # Unresolved renderer/server/platform dependencies must remain visible.
+          test -s "$object_dir/iw3-original-cmd-files-dvar-undefined.txt"
+          echo "IW3_ORIGINAL_CMD_FS_DVAR_FULL_TU_RELOCATABLE_LINK_PASS"
+          echo "IW3_ORIGINAL_ENGINE_RUNTIME_LINKED=false"
+          echo "IW3_CMD_INIT_INVOKED=false"
+          echo "IW3_FS_STARTUP_RUNTIME_INVOKED=false"
+          echo "IW3_REAL_MAP_LOADED=false"
+          echo "IW3_RENDERER_FRAME_PROVEN=false"
+          echo "IW3_GAMEPLAY_PROVEN=false"
+          echo "IW3_PLAYABLE_APK=false"
+
+      - name: Link authentic Com_Init with original command, dvar and filesystem units (NOT GAME)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          root="$GITHUB_WORKSPACE/third_party/KisakCOD/src"
+          common="$RUNNER_TEMP/iw3-original-common-full-aarch64.o"
+          combined="$RUNNER_TEMP/iw3-original-common-cmd-files-dvar-aarch64.o"
+          cmd="$RUNNER_TEMP/iw3-original-cmd-full-aarch64.o"
+          fs="$RUNNER_TEMP/iw3-original-com-files-full-aarch64.o"
+          dvar="$RUNNER_TEMP/iw3-original-dvar-full-aarch64.o"
+          # Compile the complete upstream Com_Init/Com_Frame translation unit,
+          # using the same Android-only header overlay as the existing CMake
+          # compile gate. This is not a replacement bootstrap.
+          "$ndk/aarch64-linux-android26-clang++" \
+            -std=c++20 -DKISAK_SP=1 -DKISAK_OPENAL=1 \
+            -DIW3_ANDROID_DISABLE_SCRIPT_DEBUGGER=1 \
+            -DIW3_ANDROID_COMMON_HEADER_ONLY_OPENAL=1 \
+            -fms-extensions -UNDEBUG -O2 -fsigned-char \
+            -frounding-math -fno-fast-math \
+            -I "$GITHUB_WORKSPACE/android/iw3-native/common_compat" \
+            -I "$GITHUB_WORKSPACE/android/iw3-native" \
+            -I "$root" \
+            -I "$GITHUB_WORKSPACE/third_party/KisakCOD/deps" \
+            -I "$IW3_OPENAL_HEADERS" \
+            -c "$root/qcommon/common.cpp" -o "$common"
+          for object in "$common" "$cmd" "$fs" "$dvar"; do
+            test -s "$object"
+            "$ndk/llvm-readelf" -h "$object" | grep -F 'Machine:                           AArch64'
+          done
+          "$ndk/llvm-nm" -C -u "$common" > "$RUNNER_TEMP/iw3-original-common-before-undefined.txt"
+          # The original bootstrap genuinely references these services.
+          grep -F 'Cmd_Init()' "$RUNNER_TEMP/iw3-original-common-before-undefined.txt"
+          grep -F 'FS_InitFilesystem()' "$RUNNER_TEMP/iw3-original-common-before-undefined.txt"
+          "$ndk/ld.lld" -m aarch64linux -r "$common" "$cmd" "$fs" "$dvar" -o "$combined"
+          "$ndk/llvm-readelf" -h "$combined" > "$RUNNER_TEMP/iw3-original-bootstrap-graph-elf.txt"
+          grep -F 'AArch64' "$RUNNER_TEMP/iw3-original-bootstrap-graph-elf.txt"
+          "$ndk/llvm-nm" -C --defined-only "$combined" > "$RUNNER_TEMP/iw3-original-bootstrap-graph-defined.txt"
+          "$ndk/llvm-nm" -C -u "$combined" > "$RUNNER_TEMP/iw3-original-bootstrap-graph-undefined.txt"
+          for symbol in 'Com_Init(char*)' 'Com_Frame()' 'Cmd_Init()' 'Dvar_Init()' 'FS_InitFilesystem()' 'FS_Startup(char*)' 'FS_FOpenFileRead(char const*, int*)'; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-original-bootstrap-graph-defined.txt"
+            if grep -F " U $symbol" "$RUNNER_TEMP/iw3-original-bootstrap-graph-undefined.txt"; then
+              echo "Original bootstrap provider still unresolved: $symbol" >&2
+              exit 1
+            fi
+          done
+          # The authentic FS_InitFilesystem/FS_Startup definitions live in
+          # universal/com_files.cpp and must resolve the Com_Init dependency.
+          # Other platform, renderer, database and game services remain absent;
+          # relocatable linkage alone never runs the engine.
+          test -s "$RUNNER_TEMP/iw3-original-bootstrap-graph-undefined.txt"
+          # A real Android runtime still needs the original thread-local
+          # setjmp context and client renderer providers; do not stub these
+          # just to force a shared-library link.
+          grep -F 'Sys_GetValue(int)' "$RUNNER_TEMP/iw3-original-bootstrap-graph-undefined.txt"
+          grep -F 'CL_InitRenderer()' "$RUNNER_TEMP/iw3-original-bootstrap-graph-undefined.txt"
+          echo "IW3_ORIGINAL_SYS_GETVALUE_RUNTIME_PROVIDER_MISSING"
+          echo "IW3_ORIGINAL_CL_INITRENDERER_RUNTIME_PROVIDER_MISSING"
+          echo "IW3_ORIGINAL_COMMON_CMD_FILES_DVAR_RELOCATABLE_LINK_PASS"
+          echo "IW3_ORIGINAL_FS_INITFILESYSTEM_PROVIDER_RESOLVED"
+          echo "IW3_COMMON_BOOTSTRAP_RUNTIME_LINKED=false"
+          echo "IW3_FS_STARTUP_RUNTIME_INVOKED=false"
+          echo "IW3_RENDERER_FRAME_PROVEN=false"
+          echo "IW3_REAL_MAP_LOADED=false"
+          echo "IW3_GAMEPLAY_PROVEN=false"
+          echo "IW3_PLAYABLE_APK=false"
+
+      - name: Exercise Android thread-value provider and link real bootstrap ABI (NOT GAME)
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$GITHUB_WORKSPACE/third_party/KisakCOD/src"
+          platform="$GITHUB_WORKSPACE/android/iw3-native"
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          # Execute the same platform provider on the host with real
+          # setjmp/longjmp, two distinct IW3 thread contexts and UBSan.
+          c++ -std=c++20 -DKISAK_SP=1 -UNDEBUG -O1 -Wall -Wextra -Werror \
+            -fsanitize=undefined -fno-omit-frame-pointer -pthread \
+            -I "$root" -I "$platform" \
+            "$platform/iw3_android_thread_values.cpp" \
+            "$platform/tests/thread_values_native_test.cpp" \
+            -o "$RUNNER_TEMP/iw3-android-thread-values-host-test"
+          "$RUNNER_TEMP/iw3-android-thread-values-host-test"
+          echo "IW3_ANDROID_THREAD_VALUES_HOST_SETJMP_TLS_PASS"
+          # This is a real AArch64 provider for original Sys_GetValue/SetValue,
+          # not a fake Com_Init and not a complete Android engine runtime.
+          provider="$RUNNER_TEMP/iw3-android-thread-values-aarch64.o"
+          combined="$RUNNER_TEMP/iw3-original-bootstrap-thread-values-aarch64.o"
+          "$ndk/aarch64-linux-android26-clang++" \
+            -std=c++20 -DKISAK_SP=1 -UNDEBUG -O2 -Wall -Wextra -Werror \
+            -I "$root" -I "$platform" \
+            -c "$platform/iw3_android_thread_values.cpp" -o "$provider"
+          "$ndk/llvm-readelf" -h "$provider" | grep -F 'Machine:                           AArch64'
+          "$ndk/ld.lld" -m aarch64linux -r \
+            "$RUNNER_TEMP/iw3-original-common-cmd-files-dvar-aarch64.o" \
+            "$provider" -o "$combined"
+          "$ndk/llvm-nm" -C --defined-only "$combined" \
+            > "$RUNNER_TEMP/iw3-original-bootstrap-thread-values-defined.txt"
+          "$ndk/llvm-nm" -C -u "$combined" \
+            > "$RUNNER_TEMP/iw3-original-bootstrap-thread-values-undefined.txt"
+          for symbol in 'Sys_GetValue(int)' 'Sys_SetValue(int, void*)' 'Com_Init(char*)'; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-original-bootstrap-thread-values-defined.txt"
+            if grep -F " U $symbol" "$RUNNER_TEMP/iw3-original-bootstrap-thread-values-undefined.txt"; then
+              echo "Authentic bootstrap dependency still unresolved: $symbol" >&2
+              exit 1
+            fi
+          done
+          grep -F ' U CL_InitRenderer()' "$RUNNER_TEMP/iw3-original-bootstrap-thread-values-undefined.txt"
+          echo "IW3_ORIGINAL_SYS_GETVALUE_AARCH64_PROVIDER_RESOLVED"
+          echo "IW3_ORIGINAL_RENDERER_RUNTIME_PROVIDER_MISSING"
+          echo "IW3_COMMON_BOOTSTRAP_RUNTIME_LINKED=false"
+          echo "IW3_FS_STARTUP_RUNTIME_INVOKED=false"
+          echo "IW3_RENDERER_FRAME_PROVEN=false"
+          echo "IW3_REAL_MAP_LOADED=false"
+          echo "IW3_GAMEPLAY_PROVEN=false"
+          echo "IW3_PLAYABLE_APK=false"
+
+      - name: Link complete original q_shared thread-data owner to Com_Init graph (NOT GAME)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          root="$GITHUB_WORKSPACE/third_party/KisakCOD/src"
+          original="$root/universal/q_shared.cpp"
+          object="$RUNNER_TEMP/iw3-original-q-shared-full-aarch64.o"
+          combined="$RUNNER_TEMP/iw3-original-bootstrap-thread-init-aarch64.o"
+          "$ndk/aarch64-linux-android26-clang++" \
+            -std=c++20 -DKISAK_SP=1 -DKISAK_OPENAL=1 -fms-extensions \
+            -UNDEBUG -O2 -fsigned-char -frounding-math -fno-fast-math \
+            -I "$GITHUB_WORKSPACE/android/iw3-native/common_compat" \
+            -I "$GITHUB_WORKSPACE/android/iw3-native" \
+            -I "$root" -I "$GITHUB_WORKSPACE/third_party/KisakCOD/deps" \
+            -I "$IW3_OPENAL_HEADERS" \
+            -c "$original" -o "$object"
+          "$ndk/llvm-readelf" -h "$object" | grep -F 'Machine:                           AArch64'
+          "$ndk/llvm-nm" -C --defined-only "$object" > "$RUNNER_TEMP/iw3-original-q-shared-defined.txt"
+          grep -F 'Com_InitThreadData(int)' "$RUNNER_TEMP/iw3-original-q-shared-defined.txt"
+          grep -F 'g_com_error' "$RUNNER_TEMP/iw3-original-q-shared-defined.txt"
+          grep -F 'va_info' "$RUNNER_TEMP/iw3-original-q-shared-defined.txt"
+          "$ndk/ld.lld" -m aarch64linux -r \
+            "$RUNNER_TEMP/iw3-original-bootstrap-thread-values-aarch64.o" \
+            "$object" -o "$combined"
+          # Android MAIN-thread boundary must call the original q_shared.cpp
+          # Com_InitThreadData; do not synthesize a fake jump buffer.
+          adapter="$RUNNER_TEMP/iw3-android-main-thread-shared-aarch64.o"
+          final="$RUNNER_TEMP/iw3-original-bootstrap-main-shared-aarch64.o"
+          "$ndk/aarch64-linux-android26-clang++" \
+            -std=c++20 -DKISAK_SP=1 -fms-extensions -UNDEBUG -O2 \
+            -I "$GITHUB_WORKSPACE/android/iw3-native" \
+            -I "$root" -I "$GITHUB_WORKSPACE/third_party/KisakCOD/deps" \
+            -c "$GITHUB_WORKSPACE/android/iw3-native/iw3_android_main_thread_shared.cpp" \
+            -o "$adapter"
+          "$ndk/llvm-nm" -C -u "$adapter" | grep -F 'Com_InitThreadData(int)'
+          "$ndk/ld.lld" -m aarch64linux -r "$combined" "$adapter" -o "$final"
+          "$ndk/llvm-nm" -C --defined-only "$final" \
+            > "$RUNNER_TEMP/iw3-original-bootstrap-main-shared-defined.txt"
+          "$ndk/llvm-nm" -C -u "$final" \
+            > "$RUNNER_TEMP/iw3-original-bootstrap-main-shared-undefined.txt"
+          grep -F 'IW3_AndroidBindMainThreadSharedData()' \
+            "$RUNNER_TEMP/iw3-original-bootstrap-main-shared-defined.txt"
+          if grep -F ' U Com_InitThreadData(int)' \
+            "$RUNNER_TEMP/iw3-original-bootstrap-main-shared-undefined.txt"; then
+            echo 'Original thread-data owner missing from Android MAIN binding' >&2
+            exit 1
+          fi
+          echo "IW3_ANDROID_MAIN_SHARED_DATA_ORIGINAL_OWNER_LINK_PASS"
+          "$ndk/llvm-nm" -C --defined-only "$combined" > "$RUNNER_TEMP/iw3-original-bootstrap-thread-init-defined.txt"
+          "$ndk/llvm-nm" -C -u "$combined" > "$RUNNER_TEMP/iw3-original-bootstrap-thread-init-undefined.txt"
+          for symbol in 'Com_InitThreadData(int)' 'Com_Init(char*)' 'Sys_GetValue(int)' 'Sys_SetValue(int, void*)'; do
+            grep -F "$symbol" "$RUNNER_TEMP/iw3-original-bootstrap-thread-init-defined.txt"
+            if grep -F " U $symbol" "$RUNNER_TEMP/iw3-original-bootstrap-thread-init-undefined.txt"; then
+              echo "Authentic IW3 thread-init provider unresolved: $symbol" >&2
+              exit 1
+            fi
+          done
+          grep -F ' U CL_InitRenderer()' "$RUNNER_TEMP/iw3-original-bootstrap-thread-init-undefined.txt"
+          echo "IW3_ORIGINAL_COM_INITTHREADDATA_AARCH64_PROVIDER_RESOLVED"
+          echo "IW3_ORIGINAL_RENDERER_RUNTIME_PROVIDER_MISSING"
+          echo "IW3_COMMON_BOOTSTRAP_RUNTIME_LINKED=false"
+          echo "IW3_FS_STARTUP_RUNTIME_INVOKED=false"
+          echo "IW3_RENDERER_FRAME_PROVEN=false"
+          echo "IW3_REAL_MAP_LOADED=false"
+          echo "IW3_GAMEPLAY_PROVEN=false"
+          echo "IW3_PLAYABLE_APK=false"
+
+      - name: Preserve command-system portability evidence (NOT APK)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: iw3-original-command-full-aarch64-NOT-APK
+          path: |
+            ${{ runner.temp }}/iw3-android-main-thread-shared-aarch64.o
+            ${{ runner.temp }}/iw3-original-bootstrap-main-shared-aarch64.o
+            ${{ runner.temp }}/iw3-original-bootstrap-main-shared-defined.txt
+            ${{ runner.temp }}/iw3-original-bootstrap-main-shared-undefined.txt
+            ${{ runner.temp }}/iw3-original-q-shared-full-aarch64.o
+            ${{ runner.temp }}/iw3-original-q-shared-defined.txt
+            ${{ runner.temp }}/iw3-original-bootstrap-thread-init-aarch64.o
+            ${{ runner.temp }}/iw3-original-bootstrap-thread-init-defined.txt
+            ${{ runner.temp }}/iw3-original-bootstrap-thread-init-undefined.txt
+            ${{ runner.temp }}/iw3-original-cmd-full-aarch64.o
+            ${{ runner.temp }}/iw3-original-common-full-aarch64.o
+            ${{ runner.temp }}/iw3-android-thread-values-aarch64.o
+            ${{ runner.temp }}/iw3-original-bootstrap-thread-values-aarch64.o
+            ${{ runner.temp }}/iw3-original-bootstrap-thread-values-defined.txt
+            ${{ runner.temp }}/iw3-original-bootstrap-thread-values-undefined.txt
+            ${{ runner.temp }}/iw3-original-common-cmd-files-dvar-aarch64.o
+            ${{ runner.temp }}/iw3-original-common-before-undefined.txt
+            ${{ runner.temp }}/iw3-original-bootstrap-graph-elf.txt
+            ${{ runner.temp }}/iw3-original-bootstrap-graph-defined.txt
+            ${{ runner.temp }}/iw3-original-bootstrap-graph-undefined.txt
+            ${{ runner.temp }}/iw3-cmd-full-elf.txt
+            ${{ runner.temp }}/iw3-cmd-full-defined.txt
+            ${{ runner.temp }}/iw3-cmd-full-undefined.txt
+            ${{ runner.temp }}/iw3-original-com-files-full-aarch64.o
+            ${{ runner.temp }}/iw3-original-dvar-full-aarch64.o
+            ${{ runner.temp }}/iw3-original-cmd-files-dvar-aarch64.o
+            ${{ runner.temp }}/iw3-original-cmd-before-undefined.txt
+            ${{ runner.temp }}/iw3-original-dvar-before-undefined.txt
+            ${{ runner.temp }}/iw3-original-cmd-files-dvar-elf.txt
+            ${{ runner.temp }}/iw3-original-cmd-files-dvar-defined.txt
+            ${{ runner.temp }}/iw3-original-cmd-files-dvar-undefined.txt
+            ${{ runner.temp }}/iw3_cmd_tokenizer.cpp
+            ${{ runner.temp }}/iw3_cmd_tokenizer.json
+          if-no-files-found: warn
+          retention-days: 30

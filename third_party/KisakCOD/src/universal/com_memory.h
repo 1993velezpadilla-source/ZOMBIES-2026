@@ -1,7 +1,10 @@
 #pragma once
 
+#include <cstddef>
+#include <cstdint>
 #include <script/scr_stringlist.h>
 #include "q_shared.h"
+#include "com_memory_state.h"
 #include <qcommon/mem_track.h>
 
 #define HUNK_MAX_ALIGNEMT 4096
@@ -56,24 +59,32 @@ void __cdecl FreeString(const char* str);
 void Com_InitHunkMemory();
 void __cdecl Com_Meminfo_f();
 
-struct HunkUser // sizeof=0x24
+struct HunkUser
 {
     HunkUser* current;
     HunkUser* next;
     int maxSize;
-    int end;
-    int pos;
+    uintptr_t end;
+    uintptr_t pos;
     const char* name;
     bool fixed;
     bool tempMem;
-    // padding byte
-    // padding byte
+    // Original ILP32 layout has two padding bytes here.
     int type;
+#if UINTPTR_MAX > UINT32_MAX
+    // The LP64 header is 56 bytes before alignment; keep the data area
+    // 32-byte aligned so Hunk_UserAlloc retains the original contract.
+    alignas(32) uint8_t buf[1];
+#else
     uint8_t buf[1];
-    // padding byte
-    // padding byte
-    // padding byte
+#endif
 };
+static_assert(sizeof(void *) != 4 || offsetof(HunkUser, buf) == 0x20,
+              "IW3 ILP32 HunkUser buffer offset changed");
+static_assert(sizeof(void *) != 4 || sizeof(HunkUser) == 0x24,
+              "IW3 ILP32 HunkUser layout changed");
+static_assert(sizeof(void *) == 4 || offsetof(HunkUser, buf) % 32 == 0,
+              "IW3 LP64 HunkUser buffer must be 32-byte aligned");
 
 // KISAKTODO: Move to proper spot?
 struct fileData_s // sizeof=0xC
@@ -93,7 +104,7 @@ void Hunk_Clear();
 int __cdecl Hunk_Used();
 uint8_t* __cdecl Hunk_Alloc(uint32_t size, const char* name, int type);
 uint8_t* __cdecl Hunk_AllocAlign(uint32_t size, int alignment, const char* name, int type);
-uint32_t __cdecl Hunk_AllocateTempMemoryHigh(int size, const char* name);
+uint8_t* __cdecl Hunk_AllocateTempMemoryHigh(int size, const char* name);
 void Hunk_ClearTempMemoryHigh();
 uint8_t* __cdecl Hunk_AllocLow(uint32_t size, const char* name, int type);
 uint8_t* __cdecl Hunk_AllocLowAlign(uint32_t size, int alignment, const char* name, int type);

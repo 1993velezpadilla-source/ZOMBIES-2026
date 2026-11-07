@@ -8,6 +8,7 @@ from pathlib import Path
 import argparse
 
 GAME_FILE = Path("src/game/g_main.cpp")
+FRAME_FILE = Path("src/game/g_runframe.cpp")
 FN_HEADER = "void __cdecl G_InitGame("
 FRAME_HEADER = "int __cdecl G_RunFrame("
 SPAWN_CALL = "    G_SpawnEntitiesFromString();"
@@ -27,48 +28,42 @@ static void Z2026_SPTrace(const char* stage)
 
 
 def instrument(source_root: Path) -> dict:
-    file = source_root / GAME_FILE
+    file, frame_file = source_root / GAME_FILE, source_root / FRAME_FILE
+    if not file.is_file() or not frame_file.is_file():
+        raise ValueError("Missing original SP bootstrap/frame module")
     source = file.read_text(encoding="utf-8")
-    if "Z2026_SPTrace" in source:
+    frame = frame_file.read_text(encoding="utf-8")
+    if "Z2026_SPTrace" in source or "Z2026_SPTrace" in frame:
         raise ValueError("SP instrumentation already applied")
-    for needle in (FN_HEADER, FRAME_HEADER, SPAWN_CALL):
-        if source.count(needle) != 1:
-            raise ValueError(f"Expected unique SP source anchor: {needle}")
-    if not source.startswith("#ifndef KISAK_SP"):
-        raise ValueError("Expected single-player-only game source")
-    # Explicit own C++ header; no guessed linkage or macro assumptions.
-    source = source.replace("#include <universal/q_shared.h>",
-                            "#include <cstdio>\n#include <universal/q_shared.h>",
-                            1)
-    source = source.replace(FN_HEADER, HELPER + "\n" + FN_HEADER, 1)
-    for anchor, stage in (
-        (FN_HEADER, "G_INIT_ENTER"),
-        (FRAME_HEADER, "G_FRAME_ENTER"),
-    ):
-        p = source.index(anchor)
-        brace = source.index("{", p)
-        if source[p:brace].count(";") > 0:
+    for text, needles in ((source, (FN_HEADER, SPAWN_CALL)), (frame, (FRAME_HEADER,))):
+        if not text.startswith("#ifndef KISAK_SP"):
+            raise ValueError("Expected single-player-only game source")
+        for needle in needles:
+            if text.count(needle) != 1:
+                raise ValueError(f"Expected unique SP source anchor: {needle}")
+    def entry(text, anchor, code):
+        pos = text.index(anchor)
+        brace = text.index("{", pos)
+        if ";" in text[pos:brace]:
             raise ValueError("Unexpected function body boundary")
-        code = f'\n    Z2026_SPTrace("{stage}");\n'
-        if stage == "G_FRAME_ENTER":
-            code = ('\n    static bool z2026_first_frame = false;\n'
-                    '    if (!z2026_first_frame)\n'
-                    '    {\n'
-                    '        z2026_first_frame = true;\n'
-                    '        Z2026_SPTrace("G_FRAME_ENTER");\n'
-                    '    }\n')
-        source = source[:brace+1] + code + source[brace+1:]
-    source = source.replace(
-        SPAWN_CALL,
-        SPAWN_CALL + '\n    Z2026_SPTrace("G_SPAWN_ENTITIES_RETURN");',
-        1
-    )
+        text = text[:brace+1] + code + text[brace+1:]
+        text = text.replace(anchor, HELPER + "\n" + anchor, 1)
+        return "#include <cstdio>\n" + text
+    source = entry(source, FN_HEADER, '\n    Z2026_SPTrace("G_INIT_ENTER");\n')
+    frame = entry(frame, FRAME_HEADER,
+                  '\n    static bool z2026_first_frame = false;\n'
+                  '    if (!z2026_first_frame)\n'
+                  '    {\n'
+                  '        z2026_first_frame = true;\n'
+                  '        Z2026_SPTrace("G_FRAME_ENTER");\n'
+                  '    }\n')
+    source = source.replace(SPAWN_CALL,
+                            SPAWN_CALL + '\n    Z2026_SPTrace("G_SPAWN_ENTITIES_RETURN");', 1)
     file.write_text(source, encoding="utf-8")
-    return {"patched": str(file),
-            "stage_markers": ["G_INIT_ENTER", "G_SPAWN_ENTITIES_RETURN",
-                              "G_FRAME_ENTER"],
-            "modifies_multiplayer_auth": False,
-            "changes_gameplay": False}
+    frame_file.write_text(frame, encoding="utf-8")
+    return {"patched": str(file), "frame_patched": str(frame_file),
+            "stage_markers": ["G_INIT_ENTER", "G_SPAWN_ENTITIES_RETURN", "G_FRAME_ENTER"],
+            "modifies_multiplayer_auth": False, "changes_gameplay": False}
 
 
 def main() -> None:

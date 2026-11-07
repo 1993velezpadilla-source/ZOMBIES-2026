@@ -7,6 +7,9 @@
 #include "r_shade.h"
 #include "r_state.h"
 #include "r_draw_bsp.h"
+#if defined(__ANDROID__)
+#include "r_android_vertex_declaration.h"
+#endif
 #include <universal/profile.h>
 
 
@@ -24,6 +27,16 @@ void __cdecl R_SetVertexDecl(GfxCmdBufPrimState *primState, const MaterialVertex
 
     if (primState->vertexDecl != v3)
     {
+#if defined(__ANDROID__)
+        // Select authentic declaration metadata only. GLES3 VAO attribute
+        // routing and shader binding are separate, still-unfinished gates.
+        if (!R_AndroidSelectVertexDeclaration(v3)) {
+            ++g_disableRendering;
+            Com_Error(ERR_FATAL, "Android original vertex declaration is unregistered");
+            return;
+        }
+        primState->vertexDecl = v3;
+#else
         PROF_SCOPED("RB_SetVertexDeclaration");
         device = primState->device;
         iassert(device);
@@ -47,6 +60,7 @@ void __cdecl R_SetVertexDecl(GfxCmdBufPrimState *primState, const MaterialVertex
             }
         } while (alwaysfails);
         primState->vertexDecl = v3;
+#endif
     }
 }
 
@@ -59,6 +73,17 @@ void __cdecl RB_ClearPixelShader()
 
 void __cdecl R_HW_SetPixelShader(IDirect3DDevice9 *device, const MaterialPixelShader *mtlShader)
 {
+#if defined(__ANDROID__)
+    // No D3D9 COM device exists on Android. A non-null original shader
+    // requires authentic bytecode translation and GLES program linkage.
+    // Reject it instead of silently drawing with an unrelated shader.
+    (void)device;
+    if (mtlShader) {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android shader binding requires translated GLES3 program");
+    }
+    return;
+#else
     int v2; // eax
     HRESULT hr; // [esp+4h] [ebp-4h]
 
@@ -91,6 +116,7 @@ void __cdecl R_HW_SetPixelShader(IDirect3DDevice9 *device, const MaterialPixelSh
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl RB_ClearVertexShader()
@@ -102,6 +128,17 @@ void __cdecl RB_ClearVertexShader()
 
 void __cdecl R_HW_SetVertexShader(IDirect3DDevice9 *device, const MaterialVertexShader *mtlShader)
 {
+#if defined(__ANDROID__)
+    // No D3D9 COM device exists on Android. A non-null original shader
+    // requires authentic bytecode translation and GLES program linkage.
+    // Reject it instead of silently drawing with an unrelated shader.
+    (void)device;
+    if (mtlShader) {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android shader binding requires translated GLES3 program");
+    }
+    return;
+#else
     int v2; // eax
     HRESULT hr; // [esp+4h] [ebp-4h]
 
@@ -133,6 +170,7 @@ void __cdecl R_HW_SetVertexShader(IDirect3DDevice9 *device, const MaterialVertex
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl RB_ClearVertexDecl()

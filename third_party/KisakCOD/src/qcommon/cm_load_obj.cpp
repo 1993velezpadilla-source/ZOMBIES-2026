@@ -247,7 +247,11 @@ void __cdecl CM_LoadStaticModels()
     }
     if (numStaticModels)
     {
-        cm.staticModelList = (cStaticModel_s *)CM_Hunk_Alloc(80 * numStaticModels, "CM_CreateStaticModel", 27);
+        // CM_Hunk_Alloc takes a 32-bit byte count. Check before multiplication
+        // so a malformed BSP entity list cannot wrap the native struct size.
+        if (numStaticModels > 0xFFFFFFFFu / sizeof(cStaticModel_s))
+            Com_Error(ERR_DROP, "Too many static models in BSP entity list");
+        cm.staticModelList = (cStaticModel_s *)CM_Hunk_Alloc(sizeof(cStaticModel_s) * numStaticModels, "CM_CreateStaticModel", 27);
         ptr = Com_EntityString(0);
         iassert( ptr );
         ProfLoad_Begin("Create static model collision");
@@ -300,23 +304,13 @@ void __cdecl CM_LoadStaticModels()
                     }
                     else if (Com_IsLegacyXModelName(value))
                     {
-                        v5 = &value[7];
-                        v4 = modelName;
-                        do
-                        {
-                            v3 = *v5;
-                            *v4++ = *v5++;
-                        } while (v3);
+                        // BSP entity tokens can exceed the 64-byte model name buffer.
+                        // Preserve the original legacy prefix removal without overflow.
+                        I_strncpyz(modelName, &value[7], sizeof(modelName));
                     }
                     else
                     {
-                        v2 = value;
-                        v1 = modelName;
-                        do
-                        {
-                            v0 = *v2;
-                            *v1++ = *v2++;
-                        } while (v0);
+                        I_strncpyz(modelName, value, sizeof(modelName));
                     }
                 }
                 else if (!I_stricmp(value, "misc_model"))
@@ -326,13 +320,11 @@ void __cdecl CM_LoadStaticModels()
             }
             if (bMiscModel)
             {
+                // The entity string is parsed twice. A changed or malformed second
+                // pass must never write beyond the first pass's allocation.
+                // An assertion alone does not stop execution in release builds.
                 if (cm.numStaticModels >= numStaticModels)
-                    MyAssertHandler(
-                        ".\\qcommon\\cm_staticmodel_load_obj.cpp",
-                        207,
-                        0,
-                        "%s",
-                        "cm.numStaticModels < numStaticModels");
+                    Com_Error(ERR_DROP, "Static model count exceeds BSP allocation");
                 if (CM_CreateStaticModel(&cm.staticModelList[cm.numStaticModels], modelName, origin, angles, scale))
                     ++cm.numStaticModels;
             }
@@ -426,7 +418,11 @@ void __cdecl CMod_LoadPlanes()
         Com_Error(ERR_DROP, "Map with no planes");
     if (count > 0x10000)
         Com_Error(ERR_DROP, "Number of planes exceeds 65536");
-    cm.planes = (cplane_s*)CM_Hunk_Alloc(20 * count, "CMod_LoadPlanes", 25);
+    // Allocate the native in-memory plane layout, not the 16-byte BSP disk layout.
+    // Keep the 32-bit allocator contract explicit on LP64 platforms.
+    if (count > 0xFFFFFFFFu / sizeof(cplane_s))
+        Com_Error(ERR_DROP, "CMod_LoadPlanes: plane allocation exceeds 32-bit hunk limit");
+    cm.planes = (cplane_s*)CM_Hunk_Alloc(sizeof(cplane_s) * count, "CMod_LoadPlanes", 25);
     cm.planeCount = count;
     out = cm.planes;
     for (planeIter = 0; planeIter < count; ++planeIter)
@@ -482,7 +478,11 @@ void CMod_LoadMaterials()
     in = (dmaterial_t *)Com_GetBspLump(LUMP_MATERIALS, 0x48u, &count);
     if (!count)
         Com_Error(ERR_DROP, "Map with no materials");
-    cm.materials = (dmaterial_t *)(CM_Hunk_Alloc(72 * (count + 1), "CMod_LoadMaterials", 25) + 72);
+    // BSP material counts are untrusted; include the sentinel without wrapping
+    // the 32-bit byte count accepted by the original hunk allocator.
+    if (count >= 0xFFFFFFFFu / sizeof(dmaterial_t))
+        Com_Error(ERR_DROP, "CMod_LoadMaterials: material allocation exceeds 32-bit hunk limit");
+    cm.materials = (dmaterial_t *)(CM_Hunk_Alloc(sizeof(dmaterial_t) * (count + 1), "CMod_LoadMaterials", 25) + sizeof(dmaterial_t));
     cm.numMaterials = count;
     Com_Memcpy(cm.materials->material, in->material, 72 * count);
     for (matIndex = 0; matIndex < cm.numMaterials; ++matIndex)
@@ -502,7 +502,11 @@ void CMod_LoadNodes()
     in = Com_GetBspLump(LUMP_NODES, 0x24u, &count);
     if (!count)
         Com_Error(ERR_DROP, "Map has no nodes");
-    cm.nodes = (cNode_t*)CM_Hunk_Alloc(8 * count, "CMod_LoadNodes", 25);
+    // The BSP node count is disk-derived, while CM_Hunk_Alloc accepts uint32_t.
+    // Reject overflow before scaling by the native (pointer-bearing) node size.
+    if (count > 0xFFFFFFFFu / sizeof(cNode_t))
+        Com_Error(ERR_DROP, "CMod_LoadNodes: node allocation exceeds 32-bit hunk limit");
+    cm.nodes = (cNode_t*)CM_Hunk_Alloc(sizeof(cNode_t) * count, "CMod_LoadNodes", 25);
     result = (cNode_t*)count;
     cm.numNodes = count;
     out = cm.nodes;
@@ -527,7 +531,9 @@ void CMod_LoadLeafSurfaces()
     uint32_t count; // [esp+Ch] [ebp-4h] BYREF
 
     in = Com_GetBspLump(LUMP_LEAFSURFACES, 4u, &count);
-    cm.leafsurfaces = (uint32_t*)CM_Hunk_Alloc(4 * count, "CMod_LoadLeafSurfaces", 28);
+    if (count > 0xFFFFFFFFu / sizeof(uint32_t))
+        Com_Error(ERR_DROP, "CMod_LoadLeafSurfaces: allocation exceeds 32-bit hunk limit");
+    cm.leafsurfaces = (uint32_t*)CM_Hunk_Alloc(sizeof(uint32_t) * count, "CMod_LoadLeafSurfaces", 28);
     cm.numLeafSurfaces = count;
     Com_Memcpy(cm.leafsurfaces, in, 4 * count);
 }
@@ -538,7 +544,9 @@ void CMod_LoadCollisionVerts()
     uint32_t count; // [esp+Ch] [ebp-4h] BYREF
 
     in = Com_GetBspLump(LUMP_COLLISIONVERTS, 0xCu, &count);
-    cm.verts = (float(*)[3])CM_Hunk_Alloc(12 * count, "CMod_LoadCollisionVerts", 28);
+    if (count > 0xFFFFFFFFu / sizeof(*cm.verts))
+        Com_Error(ERR_DROP, "CMod_LoadCollisionVerts: allocation exceeds 32-bit hunk limit");
+    cm.verts = (float(*)[3])CM_Hunk_Alloc(sizeof(*cm.verts) * count, "CMod_LoadCollisionVerts", 28);
     cm.vertCount = count;
     Com_Memcpy(cm.verts, in, 12 * count);
 }
@@ -549,7 +557,11 @@ void CMod_LoadCollisionTriangles()
     uint32_t count; // [esp+Ch] [ebp-4h] BYREF
 
     in = Com_GetBspLump(LUMP_COLLISIONTRIS, 2u, &count);
-    cm.triIndices = (unsigned short*)CM_Hunk_Alloc(2 * count, "CMod_LoadCollisionTriangles", 28);
+    // BSP index count is disk-derived; the original hunk allocator takes uint32_t bytes.
+    // Reject overflow before allocation and the subsequent copy on 64-bit targets.
+    if (count > 0xFFFFFFFFu / sizeof(*cm.triIndices))
+        Com_Error(ERR_DROP, "CMod_LoadCollisionTriangles: index allocation exceeds 32-bit hunk limit");
+    cm.triIndices = (unsigned short*)CM_Hunk_Alloc(sizeof(*cm.triIndices) * count, "CMod_LoadCollisionTriangles", 28);
     cm.triCount = count / 3;
     Com_Memcpy(cm.triIndices, in, 2 * count);
 }
@@ -664,7 +676,7 @@ MapEnts *__cdecl MapEnts_GetFromString(char *name, const char *entityString, int
     const char *begin; // [esp+A38h] [ebp-4h]
     char *entityStringa; // [esp+A48h] [ebp+Ch]
 
-    mapEnts = (MapEnts*)CM_Hunk_Alloc(0xCu, "CMod_LoadEntityString", 30);
+    mapEnts = (MapEnts*)CM_Hunk_Alloc(sizeof(MapEnts), "CMod_LoadEntityString", 30);
     nameLen = strlen(name);
     mapEnts->name = (const char*)CM_Hunk_Alloc(nameLen + 1, "CMod_LoadEntityString", 30);
     memcpy((void*)mapEnts->name, name, nameLen + 1);
@@ -841,7 +853,7 @@ uint32_t CMod_LoadSubmodels()
     in = (DiskBrushModel *)Com_GetBspLump(LUMP_MODELS, 0x30u, &count);
     if (!count)
         Com_Error(ERR_DROP, "Map with no brush models (should at least have the world model)");
-    cm.cmodels = (cmodel_t*)CM_Hunk_Alloc(72 * count, "CMod_LoadSubmodels", 26);
+    cm.cmodels = (cmodel_t*)CM_Hunk_Alloc(sizeof(cmodel_t) * count, "CMod_LoadSubmodels", 26);
     cm.numSubModels = count;
     if (count > 0xFFF)
         Com_Error(ERR_DROP, "MAX_SUBMODELS exceeded");
@@ -979,7 +991,7 @@ void __cdecl CMod_PartionLeafBrushes(uint16_t *leafBrushes, int numLeafBrushes, 
     }
 }
 
-uint32_t __cdecl CM_Hunk_AllocateTempMemoryHigh(int size, const char *name)
+uint8_t* __cdecl CM_Hunk_AllocateTempMemoryHigh(int size, const char *name)
 {
     return Hunk_AllocateTempMemoryHigh(size, name);
 }

@@ -1,4 +1,5 @@
 #include <universal/q_shared.h>
+#include <stddef.h> // offsetof: native GfxCmdDrawText2D text payload on LP64
 #include "r_rendercmds.h"
 #include <qcommon/mem_track.h>
 #include <qcommon/threads.h>
@@ -13,7 +14,14 @@
 #include "r_model.h"
 #include "r_state.h"
 #include "r_workercmds.h"
+// The original renderer command producer only calls R_Cinematic_UpdateFrame.
+// Android does not build the legacy Bink/D3D9 cinematic implementation;
+// do not pull its Windows-only headers into this translation unit.
+#if defined(__ANDROID__)
+void __cdecl R_Cinematic_UpdateFrame();
+#else
 #include "r_cinematic.h"
+#endif
 #include "r_dvars.h"
 #include <client/client.h>
 #include "r_bsp.h"
@@ -49,13 +57,15 @@ GfxCmdArray g_debugFrontEndCmds;
 static uint32_t s_renderCmdBufferSize;
 static int s_renderCmdWarnSize;
 
+// Static renderer globals contain pointers: legacy 32-bit byte totals are
+// incorrect on Android ARM64 and can corrupt memory accounting.
 void __cdecl TRACK_r_rendercmds()
 {
-    track_static_alloc_internal((void *)s_backEndData, 2346752, "s_backEndData", 18);
-    track_static_alloc_internal(g_viewInfo, 212352, "g_viewInfo", 18);
-    track_static_alloc_internal(g_frontEndCmds, 32, "g_frontEndCmds", 18);
-    track_static_alloc_internal(&s_debugFrameGlob, 1173632, "s_debugFrameGlob", 0);
-    track_static_alloc_internal(&g_debugFrontEndCmds, 16, "g_debugFrontEndCmds", 0);
+    track_static_alloc_internal((void *)s_backEndData, sizeof(s_backEndData), "s_backEndData", 18);
+    track_static_alloc_internal(g_viewInfo, sizeof(g_viewInfo), "g_viewInfo", 18);
+    track_static_alloc_internal(g_frontEndCmds, sizeof(g_frontEndCmds), "g_frontEndCmds", 18);
+    track_static_alloc_internal(&s_debugFrameGlob, sizeof(s_debugFrameGlob), "s_debugFrameGlob", 0);
+    track_static_alloc_internal(&g_debugFrontEndCmds, sizeof(g_debugFrontEndCmds), "g_debugFrontEndCmds", 0);
 }
 
 void __cdecl R_FreeGlobalVariable(void *var)
@@ -137,7 +147,15 @@ void __cdecl R_ShutdownDynamicMesh(GfxMeshData *mesh)
             }
             varCopy = mesh->vb.buffer;
             mesh->vb.buffer = 0;
+#if defined(__ANDROID__)
+            // This pointer is a D3D9 vertex-buffer resource, not a GLES VBO.
+            // Never silently discard it or invoke a nonexistent COM Release.
+            // Genuine GLES buffer ownership/destruction must be integrated
+            // before this renderer teardown path can execute on Android.
+            Com_Error(ERR_FATAL, "IW3 Android: dynamic vertex buffer teardown requires real GLES resource ownership");
+#else
             R_ReleaseAndSetNULL<IDirect3DDevice9>((IDirect3DSurface9 *)varCopy, "mesh->vb.buffer", ".\\r_rendercmds.cpp", 246);
+#endif
         } while (alwaysfails);
     }
 }
@@ -621,7 +639,8 @@ void __cdecl R_AddCmdDrawStretchPic(
         actualMaterial = rgp.defaultMaterial;
     }
     iassert( !Material_UsesDepthBuffer( actualMaterial ) );
-    cmd = (GfxCmdStretchPic *)R_GetCommandBuffer(RC_FIRST_NONCRITICAL, 44);
+    // Command records contain pointers; reserve the native ABI size on LP64.
+    cmd = (GfxCmdStretchPic *)R_GetCommandBuffer(RC_FIRST_NONCRITICAL, sizeof(*cmd));
     if (cmd)
     {
         cmd->material = actualMaterial;
@@ -723,7 +742,7 @@ void __cdecl R_AddCmdDrawStretchPicFlipST(
         actualMaterial = rgp.defaultMaterial;
     }
     iassert( !Material_UsesDepthBuffer( actualMaterial ) );
-    cmd = (GfxCmdStretchPic *)R_GetCommandBuffer(RC_STRETCH_PIC_FLIP_ST, 44);
+    cmd = (GfxCmdStretchPic *)R_GetCommandBuffer(RC_STRETCH_PIC_FLIP_ST, sizeof(*cmd));
     if (cmd)
     {
         cmd->material = actualMaterial;
@@ -755,7 +774,7 @@ void __cdecl R_AddCmdDrawStretchPicRotateXY(
     Material *defaultMaterial; // [esp+4h] [ebp-8h]
     GfxCmdStretchPicRotateXY *cmd; // [esp+8h] [ebp-4h]
 
-    cmd = (GfxCmdStretchPicRotateXY *)R_GetCommandBuffer(RC_STRETCH_PIC_ROTATE_XY, 48);
+    cmd = (GfxCmdStretchPicRotateXY *)R_GetCommandBuffer(RC_STRETCH_PIC_ROTATE_XY, sizeof(*cmd));
     if (cmd)
     {
         if (material)
@@ -793,7 +812,7 @@ void __cdecl R_AddCmdDrawStretchPicRotateST(
     Material *defaultMaterial; // [esp+4h] [ebp-8h]
     GfxCmdStretchPicRotateST *cmd; // [esp+8h] [ebp-4h]
 
-    cmd = (GfxCmdStretchPicRotateST *)R_GetCommandBuffer(RC_STRETCH_PIC_ROTATE_ST, 52);
+    cmd = (GfxCmdStretchPicRotateST *)R_GetCommandBuffer(RC_STRETCH_PIC_ROTATE_ST, sizeof(*cmd));
     if (cmd)
     {
         if (material)
@@ -832,6 +851,21 @@ void __cdecl R_AddCmdDrawTextWithCursor(
     AddBaseDrawTextCmd(text, maxChars, font, x, y, xScale, yScale, rotation, color, style, cursorPos, cursor);
 }
 
+// The original 84-byte expression assumed 32-bit pointers in GfxCmdDrawText2D.
+// On Android LP64, the text[] field moves after wider Font/Material pointers;
+// reserving the legacy size lets memcpy and the trailing NUL overrun the cmd.
+// Preserve the original 4-byte command alignment and 16-bit byteCount limit.
+static int R_DrawText2DCommandBytes(size_t textLength)
+{
+    if (textLength > 0xFFFFu)
+        return 0;
+    const size_t textOffset = offsetof(GfxCmdDrawText2D, text);
+    const size_t bytes = (textOffset + textLength + 4u) & ~size_t(3);
+    if (bytes > 0xFFFFu)
+        return 0;
+    return static_cast<int>(bytes);
+}
+
 GfxCmdDrawText2D *__cdecl AddBaseDrawTextCmd(
     const char *text,
     int maxChars,
@@ -854,7 +888,10 @@ GfxCmdDrawText2D *__cdecl AddBaseDrawTextCmd(
     if (!*text && cursorPos < 0)
         return 0;
     v13 = strlen(text);
-    cmd = (GfxCmdDrawText2D *)R_GetCommandBuffer(RC_DRAW_TEXT_2D, (v13 + 84) & 0xFFFFFFFC);
+    const int commandBytes = R_DrawText2DCommandBytes(v13);
+    if (!commandBytes)
+        return 0;
+    cmd = (GfxCmdDrawText2D *)R_GetCommandBuffer(RC_DRAW_TEXT_2D, commandBytes);
     if (!cmd)
         return 0;
     cmd->x = x;
@@ -1064,7 +1101,10 @@ GfxCmdDrawText2D *__cdecl AddBaseDrawConsoleTextCmd(
     iassert( textPool );
     if (!charCount)
         return 0;
-    cmd = (GfxCmdDrawText2D *)R_GetCommandBuffer(RC_DRAW_TEXT_2D, (charCount + 84) & 0xFFFFFFFC);
+    const int commandBytes = charCount > 0 ? R_DrawText2DCommandBytes(static_cast<size_t>(charCount)) : 0;
+    if (!commandBytes)
+        return 0;
+    cmd = (GfxCmdDrawText2D *)R_GetCommandBuffer(RC_DRAW_TEXT_2D, commandBytes);
     if (!cmd)
         return 0;
     cmd->x = x;
@@ -1198,7 +1238,7 @@ void __cdecl R_AddCmdDrawQuadPic(const float (*verts)[2], const float *color, Ma
     int cornerIndex; // [esp+Ch] [ebp-8h]
     GfxCmdDrawQuadPic *cmd; // [esp+10h] [ebp-4h]
 
-    cmd = (GfxCmdDrawQuadPic *)R_GetCommandBuffer(RC_DRAW_QUAD_PIC, 44);
+    cmd = (GfxCmdDrawQuadPic *)R_GetCommandBuffer(RC_DRAW_QUAD_PIC, sizeof(*cmd));
     if (cmd)
     {
         if (material)

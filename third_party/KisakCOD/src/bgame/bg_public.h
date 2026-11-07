@@ -8,6 +8,7 @@
 #endif
 
 #include <game/enthandle.h>
+#include <game/teams.h>
 
 #include <type_traits> // used for enum operators
 
@@ -410,7 +411,7 @@ static const char *eventnames[135] =
 };
 
 #ifdef KISAK_SP
-struct __declspec(align(4)) pmove_t
+struct alignas(alignof(void*)) pmove_t
 {
     playerState_s *ps;
     usercmd_s cmd;
@@ -587,7 +588,7 @@ enum MissileFlightMode : __int32
     MISSILEFLIGHTMODE_DIRECT = 0x1,
 };
 
-enum team_t;
+enum team_t : __int32;
 #ifdef KISAK_MP
 struct corpse_ent_t // sizeof=0x4
 {                                       // ...

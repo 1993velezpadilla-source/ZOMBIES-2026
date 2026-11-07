@@ -1,0 +1,31 @@
+name: IW3 original map basename bounds host regression (NOT GAME)
+
+on:
+  push:
+    paths:
+      - 'third_party/KisakCOD/src/qcommon/files.cpp'
+      - 'tests/test_iw3_android_map_base_name.py'
+      - 'tools/iw3_android/prepare_g_runframe_prereqs.py'
+      - '.github/workflows/iw3-map-basename-host.yml'
+  pull_request:
+    paths:
+      - 'third_party/KisakCOD/src/qcommon/files.cpp'
+      - 'tests/test_iw3_android_map_base_name.py'
+      - 'tools/iw3_android/prepare_g_runframe_prereqs.py'
+      - '.github/workflows/iw3-map-basename-host.yml'
+  workflow_dispatch:
+
+jobs:
+  original-map-basename:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile and execute authentic IW3 map basename body under ASan/UBSan
+        run: |
+          python3 -m unittest discover -s tests -p 'test_iw3_android_map_base_name.py' -v
+          echo 'IW3_ORIGINAL_MAP_BASENAME_HOST_SANITIZER_PASS'
+          echo 'IW3_REAL_MAP_LOADED=false'
+          echo 'IW3_RENDERER_FRAME_PROVEN=false'
+          echo 'IW3_GAMEPLAY_PROVEN=false'
+          echo 'IW3_PLAYABLE_APK=false'

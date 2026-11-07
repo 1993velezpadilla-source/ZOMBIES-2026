@@ -1164,7 +1164,7 @@ struct SpawnVar // sizeof=0xA0C
     int32_t numSpawnVarChars;
     char spawnVarChars[2048];
 };
-static_assert(sizeof(SpawnVar) == 0xA0C);
+static_assert(sizeof(SpawnVar) == (sizeof(void*) == 8 ? 0xC10 : 0xA0C));
 
 void __cdecl CM_LoadMapData_LoadObj(const char *name);
 struct cplane_s *__cdecl CM_GetPlanes();
@@ -1590,47 +1590,5 @@ inline T Buf_Read(unsigned char **pos)
     return value;
 }
 
-#include <xmmintrin.h>  // SSE
-#include <intrin.h>
-
-// (https://github.com/SwagSoftware/KisakCOD/issues/52)
-// 
-// IDA SIG: `DD 05 08 CA 85 00` - (227 hits)
-//
-// The SnapFloat Functions mimic Banker's rounding(nearest)  for float→int (`fistp`(x87 fpu) or `cvtss_s132` (SSE))
-//
-// IMPORTANT: most `(int)cast` sites in the original binary compile to a call
-// to `_ftol2_sse` → `cvttsd2si`, which TRUNCATES toward zero — same as a
-// modern MSVC `(int)cast`. Do NOT replace plain `(int)cast`;
-// that would round where the original truncated. Only use at sites where
-// IDA shows inline `fistp` with no nearby `_ftol2_sse` call.
-inline int SnapFloatToInt(float x)
-{
-#if defined(KISAK_PURE) && defined(_WIN32)
-    int i;
-    __asm fld x;
-    __asm fistp i;
-    return i;
-#endif
-
-    int retval = _mm_cvtss_si32(_mm_set_ss(x));
-
-#if defined(_DEBUG) && defined(_WIN32)
-    const float input = x;
-    int32_t output{};
-
-    __asm fld input
-    __asm fistp output
-
-    iassert(retval == output);
-#endif
-
-    return retval;
-}
-
-// Float-returning snap-to-grid (Sys_SnapVector, SnapPointToIntersectingPlanes).
-// same as above, just returns the result as a float
-inline float SnapFloat(float x)
-{
-    return static_cast<float>(SnapFloatToInt(x));
-}
+// Shared original engine snap conversion, with an ARM64 implementation.
+#include "snap_float.h"

@@ -13,7 +13,13 @@
 #include "r_staticmodelcache.h"
 #include "r_cmds.h"
 #include "rb_logfile.h"
+#if defined(__ANDROID__)
+// The original Bink/D3D9 cinematic structures are not used by this translation
+// unit; keep only declarations of the original external entry points.
+#include <gfx_d3d/r_cinematic.h>
+#else
 #include "r_cinematic.h"
+#endif
 #include "rb_drawprofile.h"
 #include "r_image.h"
 #include "r_water.h"
@@ -324,7 +330,14 @@ void __cdecl R_SyncGpu(int(__cdecl *WorkCallback)(unsigned __int64))
     {
         PROF_SCOPED("R_SyncGpu");
         useWorkCallback = WorkCallback != 0;
+        // Original GPU fences use x86 TSC units. A GLES fence/timeout
+        // implementation is required; nanosecond clocks are not equivalent.
+#if defined(__ANDROID__)
+        Sys_Error("IW3 Android: GPU sync requires native GLES fence support");
+        return;
+#else
         dx.gpuSyncStart = __rdtsc();
+#endif
         R_AcquireGpuFenceLock();
         while (!R_GpuFenceTimeout())
         {
@@ -350,20 +363,24 @@ bool __cdecl R_IsUsingAdaptiveGpuSync()
 
 void __cdecl TRACK_r_init()
 {
-    track_static_alloc_internal(&rgp, 8576, "rgp", 18);
-    track_static_alloc_internal(&rg, 33552, "rg", 18);
-    track_static_alloc_internal(&vidConfig, 48, "vidConfig", 18);
+    track_static_alloc_internal(&rgp, sizeof(rgp), "rgp", 18);
+    track_static_alloc_internal(&rg, sizeof(rg), "rg", 18);
+    track_static_alloc_internal(&vidConfig, sizeof(vidConfig), "vidConfig", 18);
     track_static_alloc_internal(&dx, sizeof(dx), "dx", 18);   // 11488 game / 11552 radiant (windows[5]) — use sizeof so the widened array stays self-consistent
 }
 
 void __cdecl Sys_DirectXFatalError()
 {
+#if defined(__ANDROID__)
+    // Android has no Win32 dialogs, localized DirectX help or D3D9 runtime.
+    // Do not call the Windows-only localization path on Android.
+    Sys_Error("IW3 Android: attempted to initialize the Windows Direct3D 9 backend");
+#else
     HWND ActiveWindow; // eax
     char *v1; // [esp-Ch] [ebp-Ch]
     char *v2; // [esp-8h] [ebp-8h]
 
     iassert(0); // lwss add
-
     Sys_EnterCriticalSection(CRITSECT_FATAL_ERROR);
     v2 = Win_LocalizeRef("WIN_DIRECTX_INIT_TITLE");
     v1 = Win_LocalizeRef("WIN_DIRECTX_INIT_BODY");
@@ -371,6 +388,7 @@ void __cdecl Sys_DirectXFatalError()
     MessageBoxA(ActiveWindow, v1, v2, 0x10u);
     ShellExecuteA(0, "open", "Docs\\TechHelp\\Tech Help\\Information\\DirectX.htm", 0, 0, 3);
     exit(-1);
+#endif
 }
 
 const char *__stdcall DXGetErrorDescription9A(int a1)
@@ -2892,21 +2910,32 @@ void R_UnloadGraphicsAssets()
 
 void R_ShutdownDirect3D()
 {
-    IDirect3DSurface9 *var; // [esp+4h] [ebp-8h]
+    IDirect3D9 *var; // [esp+4h] [ebp-8h]
     IDirect3DDevice9 *varCopy; // [esp+8h] [ebp-4h]
 
     if (IsFastFileLoad())
         R_UnloadGraphicsAssets();
     R_Cinematic_Shutdown();
+#if !defined(__ANDROID__)
+    // COM reset resources belong to the desktop D3D9 renderer only.
     R_ReleaseForShutdownOrReset();
+#endif
     while (dx.windowCount)
     {
         if (!dx.windows[--dx.windowCount].hwnd)
             MyAssertHandler(".\\r_init.cpp", 2205, 0, "%s", "dx.windows[dx.windowCount].hwnd");
+#if !defined(__ANDROID__)
+        // Win32 HWND destruction is not an Android Surface lifecycle operation.
         if (IsWindow(dx.windows[dx.windowCount].hwnd))
             DestroyWindow(dx.windows[dx.windowCount].hwnd);
+#endif
         dx.windows[dx.windowCount].hwnd = 0;
     }
+    // Never release a D3D9 COM pointer from the Android EGL backend.
+#if defined(__ANDROID__)
+    if (dx.device || dx.d3d9)
+        Sys_Error("IW3 Android: unexpected Direct3D9 object at shutdown");
+#else
     if (dx.device)
     {
         do
@@ -2915,7 +2944,7 @@ void R_ShutdownDirect3D()
                 RB_LogPrint("dx.device->Release()\n");
             varCopy = dx.device;
             dx.device = 0;
-            R_ReleaseAndSetNULL<IDirect3DDevice9>((IDirect3DSurface9 *)varCopy, "dx.device", ".\\r_init.cpp", 2214);
+            R_ReleaseAndSetNULL<IDirect3DDevice9>(varCopy, "dx.device", ".\\r_init.cpp", 2214);
         } while (alwaysfails);
     }
     if (dx.d3d9)
@@ -2924,11 +2953,12 @@ void R_ShutdownDirect3D()
         {
             if (r_logFile && r_logFile->current.integer)
                 RB_LogPrint("dx.d3d9->Release()\n");
-            var = (IDirect3DSurface9 *)dx.d3d9;
+            var = dx.d3d9;
             dx.d3d9 = 0;
-            R_ReleaseAndSetNULL<IDirect3DDevice9>(var, "dx.d3d9", ".\\r_init.cpp", 2217);
+            R_ReleaseAndSetNULL<IDirect3D9>(var, "dx.d3d9", ".\\r_init.cpp", 2217);
         } while (alwaysfails);
     }
+#endif
 }
 
 void __cdecl R_UnloadWorld()
@@ -2963,6 +2993,8 @@ void R_Init()
     R_InitGraphicsApi();
     RB_RegisterBackendAssets();
     R_InitWater();
+    // D3D9 device-loss checks cannot run against an EGL/GLES context.
+#if !defined(__ANDROID__)
     if (!dx.deviceLost)
     {
         hr = dx.device->TestCooperativeLevel();
@@ -2976,6 +3008,7 @@ void R_Init()
             }
         }
     }
+#endif
     RB_ProfileInit();
 }
 
@@ -3010,6 +3043,13 @@ char __cdecl R_ReduceWindowSettings()
 
 void R_InitGraphicsApi()
 {
+#if defined(__ANDROID__)
+    // The original path below creates a Win32 window and D3D9 device.
+    // Do not continue into R_InitSystems or claim renderer registration
+    // until a native EGL/GLES implementation executes IW3 draw commands.
+    Sys_Error("IW3 Android: R_InitGraphicsApi requires authentic GLES renderer backend");
+    return;
+#else
     GfxWindowParms wndParms; // [esp+4h] [ebp-28h] BYREF
 
     iassert( (dx.device != NULL) == (dx.d3d9 != NULL) );
@@ -3029,6 +3069,7 @@ void R_InitGraphicsApi()
                 R_FatalInitError("Couldn't initialize renderer");
         }
     }
+#endif // !__ANDROID__: Win32 window and D3D9 renderer startup
 }
 
 void R_InitSystems()
@@ -3043,43 +3084,63 @@ void R_InitSystems()
     rg.registered = 1;
 }
 
-int __cdecl R_CompareRefreshRates(_DWORD *e0, _DWORD *e1)
+int __cdecl R_CompareRefreshRates(const void *lhs, const void *rhs)
 {
-    return *e0 - *e1;
+    // qsort calls through int (*)(const void *, const void *). Do not cast an
+    // incompatible typed function pointer: that is undefined behavior in C++.
+    const uint32_t rate0 = *static_cast<const uint32_t *>(lhs);
+    const uint32_t rate1 = *static_cast<const uint32_t *>(rhs);
+    // Subtraction can overflow for valid 32-bit refresh-rate values.
+    return (rate0 > rate1) - (rate0 < rate1);
 }
 
 int __cdecl R_AddValidResolution(int width, int height, int resolutionCount, int (*availableResolutions)[2])
 {
     iassert( (resolutionCount >= 0) );
     if (resolutionCount > 0
-        && (*availableResolutions)[2 * resolutionCount - 2] == width
-        && (*availableResolutions)[2 * resolutionCount - 1] == height)
+        && availableResolutions[resolutionCount - 1][0] == width
+        && availableResolutions[resolutionCount - 1][1] == height)
     {
         return resolutionCount;
     }
+    // Desktop IW3 uses a 640x480 minimum. Android native surfaces can be
+    // portrait/narrower than 640 pixels; rejecting them leaves r_mode empty.
+#if defined(__ANDROID__)
+    if (width < 320 || height < 320)
+#else
     if (width < 640 || height < 480)
+#endif
         return resolutionCount;
-    (*availableResolutions)[2 * resolutionCount] = width;
-    (*availableResolutions)[2 * resolutionCount + 1] = height;
+    // The caller's original fixed-size table has 256 resolution pairs.
+    // Keep this helper safe even when it is called with a full table.
+    if (resolutionCount >= 256)
+        return resolutionCount;
+    availableResolutions[resolutionCount][0] = width;
+    availableResolutions[resolutionCount][1] = height;
     return resolutionCount + 1;
 }
 
-int __cdecl R_CompareDisplayModes(_DWORD *e0, _DWORD *e1)
+int __cdecl R_CompareDisplayModes(const void *lhs, const void *rhs)
 {
-    int delta; // [esp+0h] [ebp-Ch]
-
-    delta = *e0 - *e1;
-    if (*e0 == *e1)
-    {
-        delta = e0[1] - e1[1];
-        if (!delta)
-            return e0[2] - e1[2];
-    }
-    return delta;
+    // Compare actual display-mode members, not a uint32_t array cast:
+    // pointer arithmetic across struct members would violate C++ object rules.
+    // Keep the original Width, Height, RefreshRate lexicographic order.
+    const _D3DDISPLAYMODE *e0 = static_cast<const _D3DDISPLAYMODE *>(lhs);
+    const _D3DDISPLAYMODE *e1 = static_cast<const _D3DDISPLAYMODE *>(rhs);
+    if (e0->Width != e1->Width)
+        return (e0->Width > e1->Width) - (e0->Width < e1->Width);
+    if (e0->Height != e1->Height)
+        return (e0->Height > e1->Height) - (e0->Height < e1->Height);
+    return (e0->RefreshRate > e1->RefreshRate) - (e0->RefreshRate < e1->RefreshRate);
 }
 
 int __cdecl R_AddValidRefreshRate(int refreshRate, int rateCount, int *availableRefreshRates)
 {
+    iassert( (rateCount >= 0) );
+    // R_EnumDisplayModes provides 257 slots. Do not shift or append past
+    // the final slot if this helper receives an already-full table.
+    if (rateCount >= 257)
+        return rateCount;
     int rateIndex; // [esp+4h] [ebp-4h]
     int rateIndexa; // [esp+4h] [ebp-4h]
 
@@ -3094,68 +3155,76 @@ int __cdecl R_AddValidRefreshRate(int refreshRate, int rateCount, int *available
     return rateCount + 1;
 }
 
-void __cdecl R_EnumDisplayModes(uint32_t adapterIndex)
+// The original IW3 mode sorting, dvar registration and text formatting do not
+// require Direct3D. Keep them separate from the D3D9 adapter enumeration so a
+// future Android native-window provider can supply REAL OS modes here without
+// a fake IDirect3D9 implementation. No Android provider is linked yet.
+void __cdecl R_BuildDisplayModeDvars()
 {
-    const char *v1; // eax
-    int v2; // eax
-    int v3; // eax
-    int refreshRateCount; // [esp+0h] [ebp-C30h]
-    int resolutionCount; // [esp+4h] [ebp-C2Ch]
-    int availableResolutions[256][2]; // [esp+8h] [ebp-C28h] BYREF
-    HRESULT hr; // [esp+80Ch] [ebp-424h]
-    uint32_t modeCountReported; // [esp+810h] [ebp-420h]
-    uint32_t modeIndex; // [esp+814h] [ebp-41Ch]
-    int resolutionIndex; // [esp+818h] [ebp-418h]
-    int defaultRefreshRateIndex; // [esp+81Ch] [ebp-414h]
-    int availableRefreshRates[257]; // [esp+820h] [ebp-410h] BYREF
-    char *modeText; // [esp+C24h] [ebp-Ch]
-    int refreshRateIndex; // [esp+C28h] [ebp-8h]
-    int defaultResolutionIndex; // [esp+C2Ch] [ebp-4h]
+    const char *v1;
+    int v2, v3;
+    int refreshRateCount, resolutionCount;
+    int availableResolutions[256][2];
+    uint32_t modeIndex;
+    int resolutionIndex, defaultRefreshRateIndex;
+    int availableRefreshRates[257];
+    char *modeText;
+    int refreshRateIndex, defaultResolutionIndex;
 
-    modeCountReported = dx.d3d9->GetAdapterModeCount(adapterIndex, D3DFMT_X8R8G8B8);
-    dx.displayModeCount = 0;
-    for (modeIndex = 0; modeIndex < modeCountReported && dx.displayModeCount < 0x100; ++modeIndex)
+    // dx.displayModes has 256 slots. The platform provider must not make the
+    // genuine renderer sort or iterate beyond this fixed engine-owned array.
+    if (dx.displayModeCount > 256u)
     {
-        hr = dx.d3d9->EnumAdapterModes(
-            adapterIndex,
-            D3DFMT_X8R8G8B8,
-            modeIndex,
-            &dx.displayModes[dx.displayModeCount]);
-        if (hr >= 0)
-        {
-            if (!dx.resolutionNameTable[4 * dx.displayModeCount - 1022])
-                dx.resolutionNameTable[4 * dx.displayModeCount - 1022] = (const char *)60;
-            ++dx.displayModeCount;
-        }
+        R_FatalInitError("Display mode count exceeds renderer capacity");
+        return;
     }
-    qsort(dx.displayModes, dx.displayModeCount, 0x10u, (int(__cdecl *)(const void *, const void *))R_CompareDisplayModes);
+    qsort(dx.displayModes, dx.displayModeCount, sizeof(dx.displayModes[0]), R_CompareDisplayModes);
     resolutionCount = 0;
     refreshRateCount = 0;
     for (modeIndex = 0; modeIndex < dx.displayModeCount; ++modeIndex)
     {
         resolutionCount = R_AddValidResolution(
             dx.displayModes[modeIndex].Width,
-            (int)dx.resolutionNameTable[4 * modeIndex - 1023],
+            static_cast<int>(dx.displayModes[modeIndex].Height),
             resolutionCount,
             availableResolutions);
         refreshRateCount = R_AddValidRefreshRate(
-            (int)dx.resolutionNameTable[4 * modeIndex - 1022],
+            static_cast<int>(dx.displayModes[modeIndex].RefreshRate),
             refreshRateCount,
             availableRefreshRates);
     }
     modeText = dx.modeText;
     if (!resolutionCount)
     {
+        // Keep the desktop minimum while allowing genuine Android phone
+        // portrait and landscape framebuffer dimensions.
+#if defined(__ANDROID__)
+        v1 = va("No valid resolutions of %i x %i or above found", 320, 320);
+#else
         v1 = va("No valid resolutions of %i x %i or above found", 640, 480);
+#endif
         R_FatalInitError(v1);
+        return;
     }
     defaultResolutionIndex = 0;
     for (resolutionIndex = 0; resolutionIndex < resolutionCount; ++resolutionIndex)
     {
         dx.resolutionNameTable[resolutionIndex] = modeText;
-        v2 = snprintf(modeText, ARRAYSIZE(dx.modeText), "%ix%i", availableResolutions[resolutionIndex][0], availableResolutions[resolutionIndex][1]);
+        const size_t modeTextRemaining = sizeof(dx.modeText) - static_cast<size_t>(modeText - dx.modeText);
+        v2 = snprintf(modeText, modeTextRemaining, "%ix%i", availableResolutions[resolutionIndex][0], availableResolutions[resolutionIndex][1]);
+        if (v2 < 0 || static_cast<size_t>(v2) >= modeTextRemaining)
+        {
+            R_FatalInitError("Display resolution name buffer exhausted");
+            return;
+        }
         modeText += v2 + 1;
+        // Preserve the original desktop default-mode selection. On Android,
+        // each accepted mode is valid even when the device is in portrait.
+#if defined(__ANDROID__)
+        if (availableResolutions[defaultResolutionIndex][0] < 320 || availableResolutions[defaultResolutionIndex][1] < 320)
+#else
         if (availableResolutions[defaultResolutionIndex][0] < 640 || availableResolutions[defaultResolutionIndex][1] < 480)
+#endif
             defaultResolutionIndex = resolutionIndex;
     }
     dx.resolutionNameTable[resolutionIndex] = 0;
@@ -3165,12 +3234,18 @@ void __cdecl R_EnumDisplayModes(uint32_t adapterIndex)
         defaultResolutionIndex,
         DVAR_ARCHIVE | DVAR_LATCH,
         "Direct X resolution mode");
-    qsort(availableRefreshRates, refreshRateCount, 4u, (int(__cdecl *)(const void *, const void *))R_CompareRefreshRates);
+    qsort(availableRefreshRates, refreshRateCount, sizeof(availableRefreshRates[0]), R_CompareRefreshRates);
     defaultRefreshRateIndex = 0;
     for (refreshRateIndex = 0; refreshRateIndex < refreshRateCount; ++refreshRateIndex)
     {
         dx.refreshRateNameTable[refreshRateIndex] = modeText;
-        v3 = snprintf(modeText, ARRAYSIZE(dx.modeText) - (v2 + 1), "%i Hz", availableRefreshRates[refreshRateIndex]); // TODO: Validate this is what is correct
+        const size_t refreshTextRemaining = sizeof(dx.modeText) - static_cast<size_t>(modeText - dx.modeText);
+        v3 = snprintf(modeText, refreshTextRemaining, "%i Hz", availableRefreshRates[refreshRateIndex]);
+        if (v3 < 0 || static_cast<size_t>(v3) >= refreshTextRemaining)
+        {
+            R_FatalInitError("Display refresh rate name buffer exhausted");
+            return;
+        }
         modeText += v3 + 1;
         if (availableRefreshRates[defaultRefreshRateIndex] < 60)
             defaultRefreshRateIndex = refreshRateIndex;
@@ -3186,8 +3261,55 @@ void __cdecl R_EnumDisplayModes(uint32_t adapterIndex)
     r_noborder = Dvar_RegisterBool("r_noborder", false, DVAR_ARCHIVE, "Do not use a border in windowed mode");
 }
 
+void __cdecl R_EnumDisplayModes(uint32_t adapterIndex)
+{
+#if defined(__ANDROID__)
+    // Android's real Surface/Display snapshot must be applied on the renderer
+    // thread by R_AndroidApplySurfaceMode before enumerating modes. D3D9
+    // adapter enumeration does not exist on Android.
+    (void)adapterIndex;
+    // R_AndroidApplySurfaceMode already registered these dvars. Never
+    // register the same dvars twice during the Android startup handoff.
+    if (dx.displayModeCount == 0 || dx.displayModeCount > 0x100
+        || !r_mode || !r_displayRefresh)
+    {
+        R_FatalInitError("Android renderer Surface mode must be applied first");
+        return;
+    }
+#else
+    HRESULT hr;
+    uint32_t modeCountReported;
+    uint32_t modeIndex;
+
+    modeCountReported = dx.d3d9->GetAdapterModeCount(adapterIndex, D3DFMT_X8R8G8B8);
+    dx.displayModeCount = 0;
+    for (modeIndex = 0; modeIndex < modeCountReported && dx.displayModeCount < 0x100; ++modeIndex)
+    {
+        hr = dx.d3d9->EnumAdapterModes(
+            adapterIndex,
+            D3DFMT_X8R8G8B8,
+            modeIndex,
+            &dx.displayModes[dx.displayModeCount]);
+        if (hr >= 0)
+        {
+            ++dx.displayModeCount;
+        }
+    }
+    R_BuildDisplayModeDvars();
+
+#endif
+}
+
 char __cdecl R_PreCreateWindow()
 {
+#if defined(__ANDROID__)
+    // The desktop D3D9 startup cannot initialize the Android EGL context.
+    // Do not report a usable renderer until real IW3 draw commands are
+    // connected to GLES; the Surface mode provider is NOT that backend.
+    Com_Printf(CON_CHANNEL_GFX,
+        "IW3 Android: authentic GLES renderer command backend not integrated.\n");
+    return 0;
+#else
     if (dx.d3d9)
     {
         if (!alwaysfails)
@@ -3207,6 +3329,8 @@ char __cdecl R_PreCreateWindow()
     R_StoreDirect3DCaps(dx.adapterIndex);
     R_EnumDisplayModes(dx.adapterIndex);
     return 1;
+
+#endif
 }
 
 void __cdecl R_RespondToMissingCaps(DxCapsResponse response, const char *msg, int *allowedPaths)
@@ -3246,6 +3370,10 @@ void __cdecl R_RespondToMissingCaps(DxCapsResponse response, const char *msg, in
     }
 }
 
+// D3D9 capability bitfields and shader-model selection belong to Windows.
+// GLES3 capabilities must be queried from the actual Android GL context;
+// these COM routines cannot be compiled or reused as a GLES capability probe.
+#if !defined(__ANDROID__)
 int __cdecl R_CheckDxCaps(const _D3DCAPS9 *caps)
 {
     uint32_t integer; // [esp+0h] [ebp-10h]
@@ -3273,6 +3401,8 @@ int __cdecl R_CheckDxCaps(const _D3DCAPS9 *caps)
     return allowedPaths;
 }
 
+#endif // !__ANDROID__: D3D9 capability bitfield validation
+
 const char *__cdecl R_DescribeRenderer(int renderer)
 {
     if (renderer == 1)
@@ -3281,6 +3411,10 @@ const char *__cdecl R_DescribeRenderer(int renderer)
     return "Shader model 2.0";
 }
 
+// The entire desktop adapter/monitor/window initialization chain uses
+// D3D9 COM and Win32 handles. Do not create a fake Android adapter or claim
+// a renderer until original IW3 draw commands have a real GLES backend.
+#if !defined(__ANDROID__)
 void __cdecl R_PickRenderer(_D3DCAPS9 *caps)
 {
     const char *v1; // eax
@@ -3640,6 +3774,8 @@ char __cdecl R_CreateGameWindow(GfxWindowParms *wndParms)
     return 1;
 }
 
+#endif // !__ANDROID__: D3D9 adapter, capabilities and Win32 window chain
+
 void R_LoadGraphicsAssets()
 {
     XZoneInfo zoneInfo[6]{ 0 }; // [esp+0h] [ebp-50h] BYREF
@@ -3734,6 +3870,14 @@ void __cdecl R_FinishAttachingToWindow(const GfxWindowParms *wndParms)
 
 char __cdecl R_InitHardware(const GfxWindowParms *wndParms)
 {
+#if defined(__ANDROID__)
+    // The original hardware initialization below owns D3D9 device, queries,
+    // render targets and draw commands. EGL context creation alone does not
+    // implement them. Reject startup until the real GLES backend is wired.
+    Com_Printf(CON_CHANNEL_GFX,
+        "IW3 Android: original renderer hardware requires GLES draw backend; D3D9 unavailable\n");
+    return 0;
+#else
     uint32_t workerIndex; // [esp+4h] [ebp-4h]
 
     if (!R_CreateDevice(wndParms))
@@ -3762,6 +3906,7 @@ char __cdecl R_InitHardware(const GfxWindowParms *wndParms)
             Sys_ResumeThread((ThreadContext_t)(workerIndex + 2));
     }
     return 1;
+#endif // __ANDROID__: no D3D9 hardware startup
 }
 
 void __cdecl R_StoreWindowSettings(const GfxWindowParms *wndParms)
@@ -3838,6 +3983,9 @@ void R_InitGamma()
     Dvar_SetModified((dvar_s*)r_gamma);
 }
 
+#if !defined(__ANDROID__)
+// Genuine desktop D3D9 resource, query and device creation. Android must
+// implement these semantics in GLES rather than instantiate opaque COM types.
 char __cdecl R_CreateForInitOrReset()
 {
     const char *v0; // eax
@@ -4085,8 +4233,16 @@ int __cdecl R_GetDeviceType()
     }
 }
 
+#endif // !__ANDROID__: D3D9 queries and device creation
+
 bool __cdecl R_SetCustomResolution(GfxWindowParms *wndParms)
 {
+#if defined(__ANDROID__)
+    // Android dimensions come from the actual Surface/Display handoff, not
+    // Win32 monitor enumeration or the desktop custom window mode.
+    (void)wndParms;
+    return false;
+#else
     int monitorHeight; // [esp+0h] [ebp-8h] BYREF
     int monitorWidth; // [esp+4h] [ebp-4h] BYREF
 
@@ -4094,6 +4250,7 @@ bool __cdecl R_SetCustomResolution(GfxWindowParms *wndParms)
         return 0;
     return !R_GetMonitorDimensions(&monitorWidth, &monitorHeight)
         || wndParms->displayWidth <= monitorWidth && wndParms->displayHeight <= monitorHeight;
+#endif
 }
 
 const char *__cdecl R_ClosestRefreshRateForMode(uint32_t width, uint32_t height, int refreshRate)
@@ -4243,12 +4400,18 @@ void __cdecl R_ComErrorCleanup()
     R_SyncRenderThread();
     if (dx.inScene)
     {
+#if defined(__ANDROID__)
+        // A D3D9 EndScene call is not an EGL/GLES command-buffer flush.
+        Sys_Error("IW3 Android: in-scene error cleanup requires native GLES backend");
+#else
         //((void(__thiscall *)(IDirect3DDevice9 *, IDirect3DDevice9 *))dx.device->EndScene)(dx.device, dx.device);
         dx.device->EndScene();
         dx.inScene = 0;
+#endif
     }
 }
 
+#if !defined(__ANDROID__)
 bool __cdecl R_CanRecoverLostDevice()
 {
     HRESULT hr; // [esp+0h] [ebp-4h]
@@ -4260,11 +4423,19 @@ bool __cdecl R_CanRecoverLostDevice()
     return hr != -2005530520;
 }
 
+#endif // !__ANDROID__: D3D9 cooperative-level recovery
+
 void R_ReleaseForShutdownOrReset()
 {
-    IDirect3DSurface9 *pixelCountQuery; // [esp+0h] [ebp-18h]
-    IDirect3DSurface9 *v1; // [esp+4h] [ebp-14h]
-    IDirect3DSurface9 *var; // [esp+8h] [ebp-10h]
+#if defined(__ANDROID__)
+    // The D3D9 reset/release sequence is not an EGL resource lifecycle.
+    // Do not claim cleanup until a native renderer owns those resources.
+    Sys_Error("IW3 Android: D3D9 reset cleanup requires a GLES backend");
+    return;
+#else
+    IDirect3DQuery9 *pixelCountQuery; // [esp+0h] [ebp-18h]
+    IDirect3DQuery9 *v1; // [esp+4h] [ebp-14h]
+    IDirect3DQuery9 *var; // [esp+8h] [ebp-10h]
     IDirect3DSwapChain9 *varCopy; // [esp+Ch] [ebp-Ch]
     uint32_t fenceIter; // [esp+10h] [ebp-8h]
     int windowIndex; // [esp+14h] [ebp-4h]
@@ -4280,8 +4451,8 @@ void R_ReleaseForShutdownOrReset()
             }
             varCopy = dx.windows[windowIndex].swapChain;
             dx.windows[windowIndex].swapChain = 0;
-            R_ReleaseAndSetNULL<IDirect3DDevice9>(
-                (IDirect3DSurface9 *)varCopy,
+            R_ReleaseAndSetNULL<IDirect3DSwapChain9>(
+                varCopy,
                 "dx.windows[windowIndex].swapChain",
                 ".\\r_init.cpp",
                 1009);
@@ -4301,9 +4472,9 @@ void R_ReleaseForShutdownOrReset()
         {
             if (r_logFile && r_logFile->current.integer)
                 RB_LogPrint("dx.flushGpuQuery->Release()\n");
-            var = (IDirect3DSurface9 *)dx.flushGpuQuery;
+            var = dx.flushGpuQuery;
             dx.flushGpuQuery = 0;
-            R_ReleaseAndSetNULL<IDirect3DDevice9>(var, "dx.flushGpuQuery", ".\\r_init.cpp", 1026);
+            R_ReleaseAndSetNULL<IDirect3DQuery9>(var, "dx.flushGpuQuery", ".\\r_init.cpp", 1026);
         } while (alwaysfails);
     }
     for (fenceIter = 0; fenceIter < 8; ++fenceIter)
@@ -4314,9 +4485,9 @@ void R_ReleaseForShutdownOrReset()
             {
                 if (r_logFile && r_logFile->current.integer)
                     RB_LogPrint("dx.fencePool[fenceIter]->Release()\n");
-                v1 = (IDirect3DSurface9 *)dx.fencePool[fenceIter];
+                v1 = dx.fencePool[fenceIter];
                 dx.fencePool[fenceIter] = 0;
-                R_ReleaseAndSetNULL<IDirect3DDevice9>(v1, "dx.fencePool[fenceIter]", ".\\r_init.cpp", 1031);
+                R_ReleaseAndSetNULL<IDirect3DQuery9>(v1, "dx.fencePool[fenceIter]", ".\\r_init.cpp", 1031);
             } while (alwaysfails);
         }
     }
@@ -4327,9 +4498,9 @@ void R_ReleaseForShutdownOrReset()
         {
             if (r_logFile && r_logFile->current.integer)
                 RB_LogPrint("gfxAssets.pixelCountQuery->Release()\n");
-            pixelCountQuery = (IDirect3DSurface9 *)gfxAssets.pixelCountQuery;
+            pixelCountQuery = gfxAssets.pixelCountQuery;
             gfxAssets.pixelCountQuery = 0;
-            R_ReleaseAndSetNULL<IDirect3DDevice9>(pixelCountQuery, "gfxAssets.pixelCountQuery", ".\\r_init.cpp", 1039);
+            R_ReleaseAndSetNULL<IDirect3DQuery9>(pixelCountQuery, "gfxAssets.pixelCountQuery", ".\\r_init.cpp", 1039);
         } while (alwaysfails);
     }
 #ifdef KISAK_RADIANT
@@ -4341,8 +4512,12 @@ void R_ReleaseForShutdownOrReset()
     extern void Editor_VB_ReleaseForReset();
     Editor_VB_ReleaseForReset();
 #endif
+#endif // !__ANDROID__
 }
 
+#if !defined(__ANDROID__)
+// The original D3D9 Reset/CooperativeLevel device-loss state machine does not
+// describe Android EGL context loss. A real GLES recovery path is still needed.
 void R_ResetDevice()
 {
     const char *v0; // eax
@@ -4462,6 +4637,8 @@ bool R_CheckLostDevice()
     
     return false;
 }
+
+#endif // !__ANDROID__: D3D9 reset and lost-device recovery
 
 void __cdecl R_MakeDedicated(const GfxConfiguration *config)
 {

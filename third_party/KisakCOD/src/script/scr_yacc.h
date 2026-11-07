@@ -1,7 +1,8 @@
 #pragma once
 #include "scr_stringlist.h"
 #include <cstdio> // FILE
-#include <Windows.h>
+// The flex allocator's LPVOID return is ABI-equivalent to void*; keep this
+// parser declaration independent of the Windows SDK for Android builds.
 
 // LWSS: this enum name is kinda retarded
 enum Enum_t : __int32
@@ -122,7 +123,7 @@ int __cdecl yy_try_NUL_trans(int yy_current_state);
 void __cdecl yy_load_buffer_state();
 void __cdecl yy_flush_buffer(yy_buffer_state *b);
 void __cdecl  yy_fatal_error(const char *msg);
-LPVOID __cdecl yy_flex_alloc(uint32_t size);
+void *__cdecl yy_flex_alloc(uint32_t size);
 void *__cdecl yy_flex_realloc(void *ptr, uint32_t size);
 //int __cdecl yyerror();
 void __cdecl ScriptParse(union sval_u *parseData, unsigned char user);

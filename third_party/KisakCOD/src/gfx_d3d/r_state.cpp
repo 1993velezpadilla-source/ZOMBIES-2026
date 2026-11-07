@@ -9,6 +9,20 @@
 #include "r_rendertarget.h"
 #include "r_utils.h"
 #include "r_reflection_probe.h"
+#if defined(__ANDROID__)
+#include "r_android_target.h"
+#include "r_android_hw_viewport.h"
+#include "r_android_indexed_draw.h"
+#include "r_android_vertex_stream.h"
+#include "r_android_initial_state.h"
+#include "r_android_render_state.h"
+#include "r_android_blend.h"
+#include "r_android_depth_state.h"
+#include "r_android_stencil_state.h"
+#include "r_android_sampler_state.h"
+#include "r_android_texture_unbind.h"
+#include "r_android_clear.h"
+#endif
 
 //float const *const shadowmapClearColor 820ebb50     gfx_d3d : r_state.obj
 //BOOL g_renderTargetIsOverridden 85b5dd38     gfx_d3d : r_state.obj
@@ -40,6 +54,14 @@ void __cdecl R_ChangeIndices(GfxCmdBufPrimState *state, IDirect3DIndexBuffer9 *i
 
     iassert( ib != state->indexBuffer );
     state->indexBuffer = ib;
+#if defined(__ANDROID__)
+    if (!R_AndroidGlesBindIndexBuffer(ib))
+    {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android: original index buffer has no valid GLES3 resource binding");
+    }
+    return;
+#else
     device = state->device;
     iassert( device );
     do
@@ -65,6 +87,7 @@ void __cdecl R_ChangeIndices(GfxCmdBufPrimState *state, IDirect3DIndexBuffer9 *i
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl R_ChangeStreamSource(
@@ -77,11 +100,29 @@ void __cdecl R_ChangeStreamSource(
     int hr; // [esp+0h] [ebp-8h]
     IDirect3DDevice9 *device; // [esp+4h] [ebp-4h]
 
+#if defined(__ANDROID__)
+    // Validate before touching the original two-element stream array.
+    if (streamIndex >= 2)
+    {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android: original vertex stream index out of bounds");
+        return;
+    }
+#endif
+
     iassert(state->streams[streamIndex].vb != vb || state->streams[streamIndex].offset != vertexOffset || state->streams[streamIndex].stride != vertexStride);
 
     state->streams[streamIndex].vb = vb;
     state->streams[streamIndex].offset = vertexOffset;
     state->streams[streamIndex].stride = vertexStride;
+#if defined(__ANDROID__)
+    if (!R_AndroidGlesChangeStreamSource(streamIndex, vb, vertexOffset, vertexStride))
+    {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android: original vertex stream lacks a registered GLES3 VBO");
+    }
+    return;
+#else
     device = state->device;
 
     iassert(device);
@@ -104,6 +145,7 @@ void __cdecl R_ChangeStreamSource(
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl R_SetTexFilter()
@@ -247,6 +289,17 @@ void __cdecl R_SetTexFilter()
 
 void __cdecl R_SetInitialContextState(IDirect3DDevice9 *device)
 {
+#if defined(__ANDROID__)
+    // GLES3 exposes separate alpha blend and front/back stencil natively.
+    // The original D3D9 initialization also disables depth testing.
+    (void)device;
+    if (!R_AndroidGlesSetInitialContextState())
+    {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android: original initial context GLES3 state failed");
+    }
+    return;
+#else
     const char *v1; // eax
     const char *v2; // eax
     const char *v3; // eax
@@ -313,6 +366,7 @@ void __cdecl R_SetInitialContextState(IDirect3DDevice9 *device)
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl R_ChangeDepthHackNearClip(GfxCmdBufSourceState *source, uint32_t depthHackFlags)
@@ -548,7 +602,9 @@ void  R_GenerateWorldOutdoorLookupMatrix(
 
     MatrixMultiply44(worldMatrix.m, rgp.world->outdoorLookupMatrix, *(mat4x4*)outMatrix);
 
-    Vec4Add(&(*outMatrix)[12], worldOffset, &(*outMatrix)[12]);
+    // outMatrix points to four float[4] rows; index the fourth row,
+    // not 12 elements past the first row (undefined behavior under UBSan).
+    Vec4Add(outMatrix[3], worldOffset, outMatrix[3]);
 
     source->constVersions[86] = source->matrixVersions[7];
 }
@@ -699,6 +755,20 @@ void __cdecl R_ChangeDepthRange(GfxCmdBufState *state, GfxDepthRangeType depthRa
 
 void __cdecl R_HW_SetViewport(IDirect3DDevice9 *device, const GfxViewport *viewport, float nearValue, float farValue)
 {
+#if defined(__ANDROID__)
+    // Original IW3 hardware viewport path, not the RC_SET_VIEWPORT shortcut.
+    // Use the dimensions of the currently bound authentic IW3 render target.
+    (void)device;
+    if (!viewport || !R_AndroidGlesHardwareViewport(
+            viewport->x, viewport->y, viewport->width, viewport->height,
+            nearValue, farValue))
+    {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL,
+                  "IW3 Android: original R_HW_SetViewport GLES3 binding/depth range failed");
+    }
+#else
+
     const char *v4; // eax
     int hr; // [esp+10h] [ebp-1Ch]
     _D3DVIEWPORT9 d3dViewport; // [esp+14h] [ebp-18h] BYREF
@@ -736,6 +806,7 @@ void __cdecl R_HW_SetViewport(IDirect3DDevice9 *device, const GfxViewport *viewp
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 int __cdecl R_BeginMaterial(GfxCmdBufState *state, const Material *material, MaterialTechniqueType techType)
@@ -781,9 +852,19 @@ void __cdecl R_DrawIndexedPrimitive(GfxCmdBufPrimState *state, const GfxDrawPrim
     {
         if (r_skipDrawTris->current.enabled)
             triCount = 1;
+        // Original IW3 draw accounting is preserved on both platforms.
+#if !defined(__ANDROID__)
         device = state->device;
         iassert( device );
+#endif
         RB_TrackDrawPrimCall(triCount);
+#if defined(__ANDROID__)
+        if (!R_AndroidGlesDrawIndexed(args->baseIndex, triCount, args->vertexCount))
+        {
+            ++g_disableRendering;
+            Com_Error(ERR_FATAL, "IW3 Android: original indexed draw lacks valid GLES3 indices, VAO, shader or vertex stream");
+        }
+#else
         do
         {
             if (r_logFile && r_logFile->current.integer)
@@ -804,6 +885,7 @@ void __cdecl R_DrawIndexedPrimitive(GfxCmdBufPrimState *state, const GfxDrawPrim
                 } while (alwaysfails);
             }
         } while (alwaysfails);
+#endif
     }
 }
 
@@ -872,6 +954,17 @@ void __cdecl R_ChangeState_0(GfxCmdBufState *state, uint32_t stateBits0)
 
 void __cdecl R_HW_SetAlphaTestEnable(IDirect3DDevice9 *device, __int16 stateBits0)
 {
+#if defined(__ANDROID__)
+    // GLES3 has no fixed-function alpha test. Reject enabled materials until
+    // the original fragment-shader path supplies equivalent discard logic.
+    (void)device;
+    if (!R_AndroidGlesSetAlphaTestEnable(static_cast<uint16_t>(stateBits0)))
+    {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android: alpha-tested material requires original shader discard port");
+    }
+    return;
+#else
     const char *v2; // eax
     int hr; // [esp+0h] [ebp-4h]
 
@@ -897,10 +990,20 @@ void __cdecl R_HW_SetAlphaTestEnable(IDirect3DDevice9 *device, __int16 stateBits
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl R_HW_SetColorMask(IDirect3DDevice9 *device, uint32_t stateBits0)
 {
+#if defined(__ANDROID__)
+    (void)device;
+    if (!R_AndroidGlesSetColorMask(stateBits0))
+    {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android: original color write mask GLES3 state failed");
+    }
+    return;
+#else
     const char *v2; // eax
     int hr; // [esp+0h] [ebp-8h]
 
@@ -925,10 +1028,21 @@ void __cdecl R_HW_SetColorMask(IDirect3DDevice9 *device, uint32_t stateBits0)
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl R_HW_SetCullFace(IDirect3DDevice9 *device, __int16 stateBits0)
 {
+#if defined(__ANDROID__)
+    // IW3 D3DCULL_CCW (BACK) and D3DCULL_CW (FRONT) are translated
+    // using D3D9's clockwise-front winding, not GL's CCW default.
+    (void)device;
+    if (!R_AndroidGlesSetCullFace(static_cast<uint16_t>(stateBits0)))
+    {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android: original cull mode GLES3 translation failed");
+    }
+#else
     const char *v2; // eax
     int hr; // [esp+0h] [ebp-4h]
 
@@ -960,10 +1074,20 @@ void __cdecl R_HW_SetCullFace(IDirect3DDevice9 *device, __int16 stateBits0)
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl R_HW_SetPolygonMode(IDirect3DDevice9 *device, signed int stateBits0)
 {
+#if defined(__ANDROID__)
+    // GLES3 has no glPolygonMode; never silently treat IW3 wireframe as solid.
+    (void)device;
+    if (!R_AndroidGlesSetPolygonMode(static_cast<uint32_t>(stateBits0)))
+    {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android: original wireframe polygon mode requires an explicit GLES3 implementation");
+    }
+#else
     const char *v2; // eax
     int hr; // [esp+0h] [ebp-4h]
 
@@ -990,10 +1114,20 @@ void __cdecl R_HW_SetPolygonMode(IDirect3DDevice9 *device, signed int stateBits0
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl R_HW_DisableBlend(IDirect3DDevice9 *device)
 {
+#if defined(__ANDROID__)
+    (void)device;
+    if (!R_AndroidGlesDisableBlend())
+    {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android: original blend disable GLES3 translation failed");
+    }
+    return;
+#else
     const char *v1; // eax
     int hr; // [esp+0h] [ebp-4h]
 
@@ -1016,6 +1150,7 @@ void __cdecl R_HW_DisableBlend(IDirect3DDevice9 *device)
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl R_HW_SetBlend(
@@ -1024,6 +1159,19 @@ void __cdecl R_HW_SetBlend(
     uint32_t changedBits,
     uint32_t stateBits0)
 {
+#if defined(__ANDROID__)
+    (void)device;
+    (void)blendWasEnabled;
+    (void)changedBits;
+    // R_ChangeState_0 has already normalized alpha state bits to RGB
+    // where the original material omitted a separate alpha equation.
+    if (!R_AndroidGlesSetBlend(stateBits0))
+    {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android: original RGB/alpha blend GLES3 translation failed");
+    }
+    return;
+#else
     const char *v4; // eax
     const char *v5; // eax
     const char *v6; // eax
@@ -1211,10 +1359,20 @@ void __cdecl R_HW_SetBlend(
             }
         } while (alwaysfails);
     }
+#endif
 }
 
 void __cdecl R_SetAlphaTestFunction(GfxCmdBufState *state, __int16 stateBits0)
 {
+#if defined(__ANDROID__)
+    // D3D9 ALPHAFUNC/ALPHAREF cannot be emulated by GLES3 fixed state.
+    // The original material fragment shader must implement discard first.
+    (void)state;
+    (void)stateBits0;
+    ++g_disableRendering;
+    Com_Error(ERR_FATAL, "IW3 Android: original alpha comparison shader discard not implemented");
+    return;
+#else
     const char *v2; // eax
     const char *v3; // eax
     int v4; // [esp+0h] [ebp-14h]
@@ -1289,6 +1447,7 @@ void __cdecl R_SetAlphaTestFunction(GfxCmdBufState *state, __int16 stateBits0)
         } while (alwaysfails);
         state->alphaRef = ref;
     }
+#endif
 }
 
 void __cdecl R_ChangeState_1(GfxCmdBufState *state, uint32_t stateBits1)
@@ -1357,6 +1516,15 @@ void __cdecl R_ChangeState_1(GfxCmdBufState *state, uint32_t stateBits1)
 
 void __cdecl R_HW_SetDepthWriteEnable(IDirect3DDevice9 *device, char stateBits1)
 {
+#if defined(__ANDROID__)
+    (void)device;
+    if (!R_AndroidGlesSetDepthWrite(static_cast<uint8_t>(stateBits1)))
+    {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android: original depth write GLES3 state failed");
+    }
+    return;
+#else
     const char *v2; // eax
     int hr; // [esp+0h] [ebp-4h]
 
@@ -1382,10 +1550,20 @@ void __cdecl R_HW_SetDepthWriteEnable(IDirect3DDevice9 *device, char stateBits1)
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl R_HW_SetDepthTestEnable(IDirect3DDevice9 *device, char stateBits1)
 {
+#if defined(__ANDROID__)
+    (void)device;
+    if (!R_AndroidGlesSetDepthTest(static_cast<uint8_t>(stateBits1)))
+    {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android: original depth test GLES3 state failed");
+    }
+    return;
+#else
     const char *v2; // eax
     int hr; // [esp+0h] [ebp-4h]
 
@@ -1411,10 +1589,20 @@ void __cdecl R_HW_SetDepthTestEnable(IDirect3DDevice9 *device, char stateBits1)
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl R_HW_SetDepthTestFunction(IDirect3DDevice9 *device, char stateBits1)
 {
+#if defined(__ANDROID__)
+    (void)device;
+    if (!R_AndroidGlesSetDepthFunc(static_cast<uint8_t>(stateBits1)))
+    {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android: original depth comparison GLES3 state failed");
+    }
+    return;
+#else
     const char *v2; // eax
     int hr; // [esp+0h] [ebp-4h]
 
@@ -1439,10 +1627,16 @@ void __cdecl R_HW_SetDepthTestFunction(IDirect3DDevice9 *device, char stateBits1
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl R_HW_EnableStencil(IDirect3DDevice9 *device)
 {
+#if defined(__ANDROID__)
+    (void)device;
+    if (!R_AndroidGlesEnableStencil(true)) { ++g_disableRendering; Com_Error(ERR_FATAL, "IW3 Android: GLES3 stencil enable failed"); }
+    return;
+#else
     const char *v1; // eax
     int hr; // [esp+0h] [ebp-4h]
 
@@ -1465,10 +1659,16 @@ void __cdecl R_HW_EnableStencil(IDirect3DDevice9 *device)
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl R_HW_DisableStencil(IDirect3DDevice9 *device)
 {
+#if defined(__ANDROID__)
+    (void)device;
+    if (!R_AndroidGlesEnableStencil(false)) { ++g_disableRendering; Com_Error(ERR_FATAL, "IW3 Android: GLES3 stencil disable failed"); }
+    return;
+#else
     const char *v1; // eax
     int hr; // [esp+0h] [ebp-4h]
 
@@ -1491,6 +1691,7 @@ void __cdecl R_HW_DisableStencil(IDirect3DDevice9 *device)
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl R_HW_SetFrontStencilOp(
@@ -1499,6 +1700,12 @@ void __cdecl R_HW_SetFrontStencilOp(
     uint32_t stencilOpFail,
     uint32_t stencilOpZFail)
 {
+#if defined(__ANDROID__)
+    (void)device;
+    if (!R_AndroidGlesSetStencilOp(false, stencilOpPass, stencilOpFail, stencilOpZFail))
+    { ++g_disableRendering; Com_Error(ERR_FATAL, "IW3 Android: GLES3 front stencil operation failed"); }
+    return;
+#else
     const char *v4; // eax
     const char *v5; // eax
     const char *v6; // eax
@@ -1566,6 +1773,7 @@ void __cdecl R_HW_SetFrontStencilOp(
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl R_HW_SetBackStencilOp(
@@ -1574,6 +1782,12 @@ void __cdecl R_HW_SetBackStencilOp(
     uint32_t stencilOpFail,
     uint32_t stencilOpZFail)
 {
+#if defined(__ANDROID__)
+    (void)device;
+    if (!R_AndroidGlesSetStencilOp(true, stencilOpPass, stencilOpFail, stencilOpZFail))
+    { ++g_disableRendering; Com_Error(ERR_FATAL, "IW3 Android: GLES3 back stencil operation failed"); }
+    return;
+#else
     const char *v4; // eax
     const char *v5; // eax
     const char *v6; // eax
@@ -1641,10 +1855,17 @@ void __cdecl R_HW_SetBackStencilOp(
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl R_HW_SetFrontStencilFunc(IDirect3DDevice9 *device, uint32_t stencilFunc)
 {
+#if defined(__ANDROID__)
+    (void)device;
+    if (!R_AndroidGlesSetStencilFunc(false, stencilFunc))
+    { ++g_disableRendering; Com_Error(ERR_FATAL, "IW3 Android: GLES3 front stencil comparison failed"); }
+    return;
+#else
     const char *v2; // eax
     int hr; // [esp+0h] [ebp-4h]
 
@@ -1668,10 +1889,17 @@ void __cdecl R_HW_SetFrontStencilFunc(IDirect3DDevice9 *device, uint32_t stencil
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl R_HW_SetBackStencilFunc(IDirect3DDevice9 *device, uint32_t stencilFunc)
 {
+#if defined(__ANDROID__)
+    (void)device;
+    if (!R_AndroidGlesSetStencilFunc(true, stencilFunc))
+    { ++g_disableRendering; Com_Error(ERR_FATAL, "IW3 Android: GLES3 back stencil comparison failed"); }
+    return;
+#else
     const char *v2; // eax
     int hr; // [esp+0h] [ebp-4h]
 
@@ -1695,6 +1923,7 @@ void __cdecl R_HW_SetBackStencilFunc(IDirect3DDevice9 *device, uint32_t stencilF
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl R_SetSampler(
@@ -1735,6 +1964,18 @@ uint32_t __cdecl R_HW_SetSamplerState(
     uint32_t samplerState,
     uint32_t oldSamplerState)
 {
+#if defined(__ANDROID__)
+    (void)device;
+    uint32_t appliedState = oldSamplerState;
+    if (!R_AndroidGlesSetSamplerState(samplerIndex, samplerState,
+                                      oldSamplerState, &appliedState))
+    {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android: original sampler state cannot be represented by GLES3 (unit %u)", samplerIndex);
+        return oldSamplerState;
+    }
+    return appliedState;
+#else
     const char *v4; // eax
     const char *v5; // eax
     const char *v6; // eax
@@ -1933,6 +2174,7 @@ uint32_t __cdecl R_HW_SetSamplerState(
         }
     }
     return finalSamplerState;
+#endif
 }
 
 uint32_t __cdecl R_DecodeSamplerState(uint8_t samplerState)
@@ -2195,6 +2437,17 @@ void __cdecl R_DisableSampler(GfxCmdBufState *state, uint32_t samplerIndex)
 
 void __cdecl R_HW_DisableSampler(IDirect3DDevice9 *device, uint32_t samplerIndex)
 {
+#if defined(__ANDROID__)
+    // Original R_DisableSampler has already cleared the CPU-side image slot.
+    // D3D9 SetTexture(unit, nullptr) unbinds the GPU resource, not its sampler
+    // filtering state. Preserve that distinction with the GLES3 bridge.
+    (void)device;
+    if (!R_AndroidGlesDisableSamplerTexture(samplerIndex))
+    {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android: original sampler texture unbind failed (unit %u)", samplerIndex);
+    }
+#else
     const char *v2; // eax
     int hr; // [esp+0h] [ebp-4h]
 
@@ -2219,6 +2472,7 @@ void __cdecl R_HW_DisableSampler(IDirect3DDevice9 *device, uint32_t samplerIndex
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl R_UnbindImage(GfxCmdBufState *state, const GfxImage *image)
@@ -2328,6 +2582,27 @@ void __cdecl R_SetRenderTarget(GfxCmdBufContext context, GfxRenderTargetId newTa
 
 void __cdecl R_HW_SetRenderTarget(GfxCmdBufState *state, GfxRenderTargetId newTargetId)
 {
+#if defined(__ANDROID__)
+    // Original IW3 target IDs and dimensions are authoritative. The GLES3
+    // bridge binds EGL's default framebuffer or an FBO registered by the
+    // genuine IW3 image backend. Unregistered offscreen targets fail closed.
+    if (!R_AndroidGlesBindTarget(static_cast<int>(newTargetId),
+                                 gfxRenderTargets[newTargetId].width,
+                                 gfxRenderTargets[newTargetId].height))
+    {
+        Com_Error(ERR_FATAL,
+                  "IW3 Android: original R_HW_SetRenderTarget GLES3 binding failed (target %d)\n",
+                  static_cast<int>(newTargetId));
+        return;
+    }
+    state->viewport.x = 0;
+    state->viewport.y = 0;
+    state->viewport.width = gfxRenderTargets[newTargetId].width;
+    state->viewport.height = gfxRenderTargets[newTargetId].height;
+    state->depthRangeType = GFX_DEPTH_RANGE_FULL;
+    state->depthRangeNear = 0.0f;
+    state->depthRangeFar = 1.0f;
+#else
     int hr; // [esp+4h] [ebp-8h]
     IDirect3DDevice9 *device; // [esp+8h] [ebp-4h]
 
@@ -2388,6 +2663,7 @@ void __cdecl R_HW_SetRenderTarget(GfxCmdBufState *state, GfxRenderTargetId newTa
             }
         } while (alwaysfails);
     }
+#endif
 }
 
 void __cdecl R_UpdateStatsTarget(int newTargetId)
@@ -2413,6 +2689,17 @@ void __cdecl R_ClearScreenInternal(
     int hr; // [esp+9Ch] [ebp-8h]
     GfxColor nativeColor; // [esp+A0h] [ebp-4h] BYREF
 
+#if defined(__ANDROID__)
+    // Genuine IW3 direct clear path. The Android renderer has no D3D9 device;
+    // GLES3 clears the active framebuffer, restricted to the current viewport.
+    // The original implementation only accepts a null explicit viewport.
+    if (viewport || !R_AndroidGlesClear(whichToClear, color, depth, stencil))
+    {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android: original R_ClearScreenInternal GLES3 clear failed");
+    }
+    return;
+#else
     iassert( device );
     if (r_logFile->current.integer)
     {
@@ -2462,6 +2749,7 @@ void __cdecl R_ClearScreenInternal(
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl R_ClearScreen(
@@ -2511,6 +2799,15 @@ void __cdecl R_ForceSetPolygonOffset(IDirect3DDevice9 *device, char stateBits1)
 
 void __cdecl R_HW_SetPolygonOffset(IDirect3DDevice9 *device, float scale, float bias)
 {
+#if defined(__ANDROID__)
+    (void)device;
+    if (!R_AndroidGlesSetPolygonOffset(scale, bias))
+    {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android: original polygon depth offset has no valid GLES3 equivalent");
+    }
+    return;
+#else
     const char *v3; // eax
     const char *v4; // eax
     int v5; // [esp+8h] [ebp-8h]
@@ -2563,6 +2860,7 @@ void __cdecl R_HW_SetPolygonOffset(IDirect3DDevice9 *device, float scale, float 
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }
 
 void __cdecl R_SetMeshStream(GfxCmdBufState *state, GfxMeshData *mesh)
@@ -2702,6 +3000,16 @@ void __cdecl R_UpdateCodeConstant(
 
 void __cdecl R_SetAlphaAntiAliasingState(IDirect3DDevice9 *device, __int16 stateBits0)
 {
+#if defined(__ANDROID__)
+    (void)device;
+    if (!r_aaAlpha || !R_AndroidGlesSetAlphaCoverage(static_cast<uint16_t>(stateBits0),
+                                                     r_aaAlpha->current.integer))
+    {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android: original alpha coverage state unsupported by GLES3");
+    }
+    return;
+#else
     const char *v2; // eax
     int hr; // [esp+0h] [ebp-Ch]
     _D3DFORMAT aaAlphaFormat; // [esp+4h] [ebp-8h]
@@ -2737,4 +3045,5 @@ void __cdecl R_SetAlphaAntiAliasingState(IDirect3DDevice9 *device, __int16 state
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 }

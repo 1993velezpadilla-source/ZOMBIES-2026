@@ -1,5 +1,11 @@
 #pragma once
+#if defined(__ANDROID__)
+// Only opaque D3D9 pointer types are needed by this original header.
+// Android has no Direct3D SDK; the implementation must use a real GLES backend.
+#include "r_d3d9_opaque.h"
+#else
 #include <d3d9.h>
+#endif
 #include "rb_backend.h"
 
 enum $F8BAC180992631E19A574A0F352E600A : __int32
