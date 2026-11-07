@@ -9,11 +9,11 @@ import pathlib
 import sys
 
 
-def read_symbols(path):
+def read_symbols(path, allowed_types):
     result = set()
     for line in pathlib.Path(path).read_text(errors="replace").splitlines():
         parts = line.split()
-        if len(parts) >= 2 and parts[1] in {"U", "T", "t", "W", "w", "D", "d", "B", "b", "R", "r", "V", "v"}:
+        if len(parts) >= 2 and parts[1] in allowed_types:
             result.add(parts[0])
     return result
 
@@ -21,8 +21,8 @@ def read_symbols(path):
 def main(argv):
     if len(argv) != 4:
         raise SystemExit("usage: audit_bootstrap_symbols.py UNDEFINED DEFINED REPORT")
-    undefined = read_symbols(argv[1])
-    defined = read_symbols(argv[2])
+    undefined = read_symbols(argv[1], {"U"})
+    defined = read_symbols(argv[2], {"T", "t", "W", "w", "D", "d", "B", "b", "R", "r", "V", "v", "C", "G", "g", "S", "s", "I", "i"})
     unresolved = sorted(undefined - defined)
     report = pathlib.Path(argv[3])
     report.write_text(
