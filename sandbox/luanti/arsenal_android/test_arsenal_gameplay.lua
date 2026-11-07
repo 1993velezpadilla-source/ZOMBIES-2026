@@ -77,7 +77,10 @@ local catalog={
          gun_model="arsenal_ak47_gun.glb",hands_model="arsenal_ak47_hands.glb",
          gameplay_logic_enabled=true,magazine_capacity=30,reserve_max=180,
          fire_interval_seconds=.085,reload_seconds=2.5,reload_empty_seconds=3.25,
-         damage=40,distinct_empty_reload_animation=true,fire_mode="auto"},
+         damage=40,distinct_empty_reload_animation=true,fire_mode="auto",
+         source_attachment_models={reflex="arsenal_ak47_reflex_gun.glb",
+                                   silencer="arsenal_ak47_silencer_gun.glb",
+                                   reflex_silencer="arsenal_ak47_reflex_silencer_gun.glb"}},
         {id="m4",name="M4",category="assault",
          gun_model="arsenal_m4_gun.glb",hands_model="arsenal_m4_hands.glb",
          gameplay_logic_enabled=true,magazine_capacity=30,reserve_max=180,
@@ -92,7 +95,8 @@ local catalog={
          gun_model="arsenal_m9_gun.glb",hands_model="arsenal_m9_hands.glb",
          gameplay_logic_enabled=true,magazine_capacity=15,reserve_max=90,
          fire_interval_seconds=.05,reload_seconds=1.629,reload_empty_seconds=1.917,
-         damage=40,distinct_empty_reload_animation=false,fire_mode="semi"},
+         damage=40,distinct_empty_reload_animation=false,fire_mode="semi",
+         source_attachment_models={silencer="arsenal_m9_silencer_gun.glb"}},
         {id="usp",name="USP PREVIEW",category="pistol",
          gun_model="arsenal_usp_gun.glb",hands_model="arsenal_usp_hands.glb",
          gameplay_logic_enabled=false,distinct_empty_reload_animation=false,
@@ -116,6 +120,7 @@ local played={}
 local formshown={}
 local messages={}
 local form_callback
+local form_handlers={}
 local function has_audio(name)
     for _,effect in ipairs(played) do if effect==name then return true end end
     return false
@@ -131,12 +136,20 @@ _G.minetest={
     register_node=function(name,t) methods[name]=t end,
     register_chatcommand=function(name,t) methods["/"..name]=t end,
     register_craftitem=function(name,t) methods[name]=t end,
-    register_on_player_receive_fields=function(fn) form_callback=fn end,
+    register_on_player_receive_fields=function(fn)
+        form_handlers[#form_handlers+1]=fn
+        form_callback=function(p,name,fields)
+            for _,handler in ipairs(form_handlers) do
+                if handler(p,name,fields) then return true end
+            end
+            return false
+        end
+    end,
     formspec_escape=function(s)
         return tostring(s):gsub("\\","\\\\"):gsub("%]","\\]"):gsub("%[","\\[")
     end,
     show_formspec=function(who,name,body)
-        assert(who=="Tester" and name=="arsenal:picker")
+        assert(who=="Tester" and (name=="arsenal:picker" or name=="arsenal:attachments"))
         formshown[#formshown+1]=body
     end,
     chat_send_player=function(who,msg)
@@ -158,13 +171,22 @@ _G.minetest={
     end,
 }
 local mod="sandbox/luanti/arsenal_android/arsenal_mod/init.lua"
+local real_dofile=dofile
+dofile=function(name)
+    if name==fake_mod_root.."/attachments.lua" then
+        return real_dofile("sandbox/luanti/arsenal_android/arsenal_mod/attachments.lua")
+    end
+    return real_dofile(name)
+end
 dofile(mod)
+dofile=real_dofile
 assert(methods["arsenal:ak47"] and methods["arsenal:m4"] and
        methods["arsenal:m9"] and
        methods["arsenal:m16"] and methods["arsenal:usp"])
 assert(methods["arsenal:ammo_box"] and methods["/arsenalammo"])
 assert(methods["/arsenal"])
 assert(methods["/arsenalmenu"] and methods["arsenal:tablet"])
+assert(methods["arsenal:attach_tool"])
 assert(type(form_callback)=="function")
 methods.join(player)
 assert(inventory:contains_item("main","arsenal:m9"),
@@ -310,6 +332,8 @@ assert(ok)
 ok,msg=methods["/arsenalammo"].func("Tester")
 assert(ok)
 assert(inventory:contains_item("main","arsenal:ammo_box"))
+assert(inventory:contains_item("main","arsenal:attach_tool"),
+       "No visible ATTACH button on Android hotbar")
 -- Mobile formspec can switch categories and select only real GLB-backed guns.
 local before=#formshown
 ok,msg=methods["/arsenalmenu"].func("Tester")
@@ -329,6 +353,17 @@ assert(#messages==oldmessages+1,"Choosing a GLB-backed gun shows equip confirmat
 assert(inventory:contains_item("main","arsenal:usp"))
 assert(player:get_wielded_item():get_name()=="arsenal:usp",
     "Touch gun selection must immediately EQUIP, not just grant inventory item")
+-- M9 suppressor uses an authentic source GLB attachment, not an icon-only checkbox.
+equip("arsenal:m9",5)
+equip("arsenal:attach_tool",7)
+methods["arsenal:attach_tool"].on_use(make_stack("arsenal:attach_tool"),player)
+assert(formshown[#formshown]:find("att_silencer"),"Missing interactive M9 attachment checkbox")
+form_callback(player,"arsenal:attachments",{att_silencer="true"})
+assert(slots[5]:get_meta():get_string("xz_ar_variant")=="silencer",
+    "Suppressor not persisted on M9 gun stack")
+form_callback(player,"arsenal:attachments",{reset="true"})
+assert(slots[5]:get_meta():get_string("xz_ar_variant")=="",
+    "Removing suppressor must restore stock M9 model")
 local previous=#messages
 form_callback(player,"arsenal:picker",{weapon_fake="true"})
 assert(#messages==previous,"Unknown button cannot issue arbitrary inventory item")
