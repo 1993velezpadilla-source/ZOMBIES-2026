@@ -47,10 +47,11 @@ extern "C" void *VirtualAlloc(void *address, std::size_t size,
   if (protect != PAGE_READWRITE || size == 0) { errno = EINVAL; return nullptr; }
   const auto page = page_size();
   if (!page) { errno = EINVAL; return nullptr; }
-  if (allocationType == MEM_RESERVE && !address) {
+  if ((allocationType == MEM_RESERVE || allocationType == (MEM_RESERVE | MEM_COMMIT)) && !address) {
     if (size > SIZE_MAX - (page - 1)) { errno = ENOMEM; return nullptr; }
     const std::size_t len = ((size + page - 1) / page) * page;
-    void *p = mmap(nullptr, len, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    const int initial_protection = (allocationType & MEM_COMMIT) ? (PROT_READ | PROT_WRITE) : PROT_NONE;
+    void *p = mmap(nullptr, len, initial_protection, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (p == MAP_FAILED) return nullptr;
     std::lock_guard<std::mutex> lock(regions_mutex);
     if (!regions.emplace(reinterpret_cast<std::uintptr_t>(p), len).second) {
