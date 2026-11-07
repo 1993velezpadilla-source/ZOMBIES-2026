@@ -476,7 +476,11 @@ void CMod_LoadMaterials()
     in = (dmaterial_t *)Com_GetBspLump(LUMP_MATERIALS, 0x48u, &count);
     if (!count)
         Com_Error(ERR_DROP, "Map with no materials");
-    cm.materials = (dmaterial_t *)(CM_Hunk_Alloc(72 * (count + 1), "CMod_LoadMaterials", 25) + 72);
+    // BSP material counts are untrusted; include the sentinel without wrapping
+    // the 32-bit byte count accepted by the original hunk allocator.
+    if (count >= 0xFFFFFFFFu / sizeof(dmaterial_t))
+        Com_Error(ERR_DROP, "CMod_LoadMaterials: material allocation exceeds 32-bit hunk limit");
+    cm.materials = (dmaterial_t *)(CM_Hunk_Alloc(sizeof(dmaterial_t) * (count + 1), "CMod_LoadMaterials", 25) + sizeof(dmaterial_t));
     cm.numMaterials = count;
     Com_Memcpy(cm.materials->material, in->material, 72 * count);
     for (matIndex = 0; matIndex < cm.numMaterials; ++matIndex)
