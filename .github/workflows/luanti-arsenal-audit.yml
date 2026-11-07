@@ -27,7 +27,9 @@ jobs:
       - name: Verify audit script compiles
         run: python3 -m py_compile sandbox/luanti/arsenal_android/audit_apk.py sandbox/luanti/arsenal_android/test_audit_apk.py
       - name: Fail-closed APK fixtures
-        run: python3 -m unittest discover -s sandbox/luanti/arsenal_android -p 'test_*.py' -v
+        run: |
+          python3 -m pip install --quiet Pillow==12.0.0
+          python3 -m unittest discover -s sandbox/luanti/arsenal_android -p 'test_*.py' -v
       - name: Explicitly state limitations
         run: |
           echo 'HOST_AUDITOR_TESTED=YES'
