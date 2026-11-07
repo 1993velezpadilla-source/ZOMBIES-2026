@@ -9,7 +9,10 @@
 #error "This declaration shim is only for the Android ARM64 compile audit"
 #endif
 #include <cstddef>
+#include <cstdint>
+// Win32 DWORD is 32-bit even on a 64-bit target; Android LP64 unsigned long is 64-bit.
+static_assert(sizeof(std::uint32_t) == 4, "Win32 DWORD must be 32-bit");
 extern "C" void *VirtualAlloc(void *address, std::size_t size,
-                              unsigned long allocationType, unsigned long protect);
+                              std::uint32_t allocationType, std::uint32_t protect);
 extern "C" int VirtualFree(void *address, std::size_t size,
-                            unsigned long freeType);
+                            std::uint32_t freeType);
