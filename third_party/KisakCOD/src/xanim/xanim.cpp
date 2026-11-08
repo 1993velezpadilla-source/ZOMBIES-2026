@@ -1122,7 +1122,12 @@ void __cdecl XAnimFreeInfo(XAnimTree_s* tree, uint32_t infoIndex)
     const char* animToModel; // [esp+8h] [ebp-Ch]
     uint32_t prev; // [esp+Ch] [ebp-8h]
 
+#if defined(__ANDROID__)
+    // Android LP64 uses 64-bit long; Win32 InterlockedIncrement expects 32-bit LONG.
+    __atomic_add_fetch(&tree->modifyRefCount, 1L, __ATOMIC_SEQ_CST);
+#else
     InterlockedIncrement(&tree->modifyRefCount);
+#endif
 
     iassert(!tree->calcRefCount);
     iassert(tree);
@@ -1183,7 +1188,11 @@ void __cdecl XAnimFreeInfo(XAnimTree_s* tree, uint32_t infoIndex)
 #endif
 
     iassert(!tree->calcRefCount);
+#if defined(__ANDROID__)
+    __atomic_sub_fetch(&tree->modifyRefCount, 1L, __ATOMIC_SEQ_CST);
+#else
     InterlockedDecrement(&tree->modifyRefCount);
+#endif
 }
 
 void __cdecl XAnimClearServerNotify(XAnimInfo* info)
