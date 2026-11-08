@@ -89,9 +89,10 @@ jobs:
           nm="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm"
           test -x "$nm"
           mapfile -d '' objects < <(find "$RUNNER_TEMP/iw3-bootstrap-build" -type f -name '*.o' -print0)
-          test "${#objects[@]}" -ge 21
+          test "${#objects[@]}" -ge 22
           # Fail the audit if the newly integrated genuine XAnim TU was not built.
           printf '%s\n' "${objects[@]}" | grep -q '/iw3_xanim.dir/'
+          printf '%s\n' "${objects[@]}" | grep -q '/iw3_sv_main.dir/'
           # Verify genuine database memory TU is compiled, and inspect its real providers.
           db_object=$(printf '%s\n' "${objects[@]}" | grep '/iw3_db_memory.dir/' | head -n 1)
           test -n "$db_object"
