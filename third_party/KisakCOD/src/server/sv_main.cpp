@@ -318,7 +318,11 @@ void SV_SendServerCommand(client_t *cl, const char *fmt, ...)
 
     va_start(va, fmt);
 
+#if defined(__ANDROID__)
+    vsnprintf((char *)tempServerCommandBuf, sizeof(tempServerCommandBuf), fmt, va);
+#else
     _vsnprintf((char *)tempServerCommandBuf, 0x20000u, fmt, va);
+#endif
 
     if (cl)
     {
@@ -508,13 +512,13 @@ void __cdecl  SV_ServerThread(unsigned int threadContext)
 
     iassert(threadContext == THREAD_CONTEXT_SERVER);
     Value = Sys_GetValue(2);
-    if (setjmp((int*)Value))
+    if (setjmp(*reinterpret_cast<jmp_buf *>(Value)))
     {
         do
         {
             Profile_Recover(1);
             v2 = Sys_GetValue(2);
-        } while (setjmp((int *)v2));
+        } while (setjmp(*reinterpret_cast<jmp_buf *>(v2)));
     }
     Profile_Guard(1);
     Sys_InitServerEvents();
