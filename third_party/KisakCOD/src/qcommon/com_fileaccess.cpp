@@ -137,10 +137,20 @@ int __cdecl FileWrapper_GetFileSize(FILE *h)
 }
 
 #ifdef KISAK_SP
+#if !defined(__ANDROID__)
 #include <Windows.h>
 #include <fileapi.h>
+#endif
 uint32_t FS_FileTell(FILE *file)
 {
+#if defined(__ANDROID__)
+    // The Android filesystem uses stdio FILE*, not Win32 HANDLEs.
+    // Preserve the genuine engine API while querying the actual stream.
+    ProfLoad_BeginTrackedValue(MAP_PROFILE_FILE_SEEK);
+    const long position = ftell(file);
+    ProfLoad_EndTrackedValue(MAP_PROFILE_FILE_SEEK);
+    return position < 0 ? UINT32_MAX : static_cast<uint32_t>(position);
+#else
     _LARGE_INTEGER v2; // [sp+50h] [-20h] BYREF
 
     ProfLoad_BeginTrackedValue(MAP_PROFILE_FILE_SEEK);
@@ -150,5 +160,6 @@ uint32_t FS_FileTell(FILE *file)
     SetFilePointerEx(0, move, &v2, 1u);
     ProfLoad_EndTrackedValue(MAP_PROFILE_FILE_SEEK);
     return v2.LowPart;
+#endif
 }
 #endif
