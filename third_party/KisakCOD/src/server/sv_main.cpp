@@ -511,6 +511,14 @@ void __cdecl  SV_ServerThread(unsigned int threadContext)
     int v6; // r29
 
     iassert(threadContext == THREAD_CONTEXT_SERVER);
+#if defined(__ANDROID__) && defined(__aarch64__)
+    // The server error handler uses slot 2 for its setjmp/longjmp context.
+    // On Android there is no Windows TLS bootstrap that installs this slot.
+    // Keep the buffer thread-local: aligned as jmp_buf requires, and alive
+    // throughout the server thread's (normally non-returning) event loop.
+    static thread_local jmp_buf androidServerRecovery;
+    Sys_SetValue(2, &androidServerRecovery);
+#endif
     Value = Sys_GetValue(2);
     if (setjmp(*reinterpret_cast<jmp_buf *>(Value)))
     {
