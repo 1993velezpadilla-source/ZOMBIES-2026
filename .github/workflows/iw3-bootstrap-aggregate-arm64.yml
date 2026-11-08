@@ -59,7 +59,7 @@ jobs:
             -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-26 \
             -DCMAKE_BUILD_TYPE=Release \
             2>&1 | tee "$RUNNER_TEMP/bootstrap-build.log"
-      - name: Compile eighteen original translation units and Android VM adapter
+      - name: Compile original bootstrap translation units and Android VM adapter
         shell: bash
         run: |
           set -euo pipefail
@@ -89,9 +89,20 @@ jobs:
           nm="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm"
           test -x "$nm"
           mapfile -d '' objects < <(find "$RUNNER_TEMP/iw3-bootstrap-build" -type f -name '*.o' -print0)
-          test "${#objects[@]}" -ge 19
+          test "${#objects[@]}" -ge 21
           # Fail the audit if the newly integrated genuine XAnim TU was not built.
           printf '%s\n' "${objects[@]}" | grep -q '/iw3_xanim.dir/'
+          # Verify genuine database memory TU is compiled, and inspect its real providers.
+          db_object=$(printf '%s\n' "${objects[@]}" | grep '/iw3_db_memory.dir/' | head -n 1)
+          test -n "$db_object"
+          "$nm" --defined-only --demangle "$db_object" > "$RUNNER_TEMP/bootstrap-db-memory-providers.txt"
+          for symbol in DB_AllocXZoneMemory DB_RecoverGeometryBuffers DB_ReleaseGeometryBuffers; do
+            grep -Fq "$symbol(" "$RUNNER_TEMP/bootstrap-db-memory-providers.txt" || {
+              echo "Missing genuine db_memory provider: $symbol" >&2
+              exit 1
+            }
+          done
+          echo 'IW3_DB_MEMORY_GENUINE_PROVIDERS_PRESENT=true (NOT LINKED GAME)'
           "$nm" --undefined-only --format=posix "${objects[@]}" > "$RUNNER_TEMP/bootstrap-undefined-raw.txt"
           "$nm" --defined-only --format=posix "${objects[@]}" > "$RUNNER_TEMP/bootstrap-defined-raw.txt"
           python3 android/iw3-native/bootstrap_compile/audit_bootstrap_symbols.py \
@@ -108,6 +119,7 @@ jobs:
             ${{ runner.temp }}/bootstrap-link-probe.log
             ${{ runner.temp }}/bootstrap-undefined-raw.txt
             ${{ runner.temp }}/bootstrap-defined-raw.txt
+            ${{ runner.temp }}/bootstrap-db-memory-providers.txt
             ${{ runner.temp }}/bootstrap-unresolved-symbols.txt
           if-no-files-found: warn
           retention-days: 30
