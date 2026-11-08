@@ -56,6 +56,8 @@ target_compile_options(iw3_com_memory PRIVATE
   "-include" "${CMAKE_CURRENT_LIST_DIR}/win32_virtual_memory_declarations.h")
 original_tu(iw3_db_load database/db_file_load.cpp)
 original_tu(iw3_db_registry database/db_registry.cpp)
+# Genuine zone allocation and geometry-buffer lifecycle provider (not a stub).
+original_tu(iw3_db_memory database/db_memory.cpp)
 original_tu(iw3_client_input client/cl_input.cpp)
 original_tu(iw3_screen client/screen_placement.cpp)
 # Original server command provider: advance beyond compile-only client/common closure.
@@ -74,7 +76,7 @@ original_tu(iw3_xanim xanim/xanim.cpp)
 original_tu(iw3_client_main client/cl_main.cpp)
 target_include_directories(iw3_client_main BEFORE PRIVATE "${PORT}/common_compat")
 target_compile_definitions(iw3_client_main PRIVATE IW3_ANDROID_DISABLE_SCRIPT_DEBUGGER=1 IW3_ANDROID_COMMON_HEADER_ONLY_OPENAL=1)
-add_custom_target(iw3_sp_bootstrap_compile DEPENDS iw3_common iw3_cmd iw3_math iw3_files iw3_fileaccess iw3_filesystem iw3_unzip iw3_com_memory iw3_android_win32_vm iw3_db_load iw3_db_registry iw3_client_input iw3_screen iw3_sv_ccmds iw3_sv_game iw3_sv_init iw3_cm_load iw3_cm_load_obj iw3_xanim iw3_client_main)
+add_custom_target(iw3_sp_bootstrap_compile DEPENDS iw3_common iw3_cmd iw3_math iw3_files iw3_fileaccess iw3_filesystem iw3_unzip iw3_com_memory iw3_android_win32_vm iw3_db_load iw3_db_registry iw3_db_memory iw3_client_input iw3_screen iw3_sv_ccmds iw3_sv_game iw3_sv_init iw3_cm_load iw3_cm_load_obj iw3_xanim iw3_client_main)
 
 # Explicit, opt-in genuine link probe. This target deliberately fails until all
 # original engine dependencies are provided; it must NEVER be packaged as an APK.
@@ -91,6 +93,7 @@ add_library(iw3_sp_link_probe SHARED
   $<TARGET_OBJECTS:iw3_android_win32_vm>
   $<TARGET_OBJECTS:iw3_db_load>
   $<TARGET_OBJECTS:iw3_db_registry>
+  $<TARGET_OBJECTS:iw3_db_memory>
   $<TARGET_OBJECTS:iw3_client_input>
   $<TARGET_OBJECTS:iw3_screen>
   $<TARGET_OBJECTS:iw3_sv_ccmds>
