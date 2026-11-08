@@ -104,6 +104,17 @@ jobs:
             }
           done
           echo 'IW3_DB_MEMORY_GENUINE_PROVIDERS_PRESENT=true (NOT LINKED GAME)'
+          # Guard against accidentally compiling XAnim without its authentic allocator.
+          tree_object=$(printf '%s\n' "${objects[@]}" | grep '/iw3_script_memorytree.dir/' | head -n 1)
+          test -n "$tree_object"
+          "$nm" --defined-only --demangle "$tree_object" > "$RUNNER_TEMP/bootstrap-script-memorytree-providers.txt"
+          for symbol in MT_Alloc MT_Free; do
+            grep -Fq "$symbol(" "$RUNNER_TEMP/bootstrap-script-memorytree-providers.txt" || {
+              echo "Missing genuine script memory-tree provider: $symbol" >&2
+              exit 1
+            }
+          done
+          echo 'IW3_SCRIPT_MEMORYTREE_GENUINE_PROVIDERS_PRESENT=true (NOT LINKED GAME)'
           "$nm" --undefined-only --format=posix "${objects[@]}" > "$RUNNER_TEMP/bootstrap-undefined-raw.txt"
           "$nm" --defined-only --format=posix "${objects[@]}" > "$RUNNER_TEMP/bootstrap-defined-raw.txt"
           python3 android/iw3-native/bootstrap_compile/audit_bootstrap_symbols.py \
@@ -121,6 +132,7 @@ jobs:
             ${{ runner.temp }}/bootstrap-undefined-raw.txt
             ${{ runner.temp }}/bootstrap-defined-raw.txt
             ${{ runner.temp }}/bootstrap-db-memory-providers.txt
+            ${{ runner.temp }}/bootstrap-script-memorytree-providers.txt
             ${{ runner.temp }}/bootstrap-unresolved-symbols.txt
           if-no-files-found: warn
           retention-days: 30
