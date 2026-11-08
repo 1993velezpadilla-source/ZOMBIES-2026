@@ -37,6 +37,8 @@ target_compile_definitions(iw3_common PRIVATE IW3_ANDROID_DISABLE_SCRIPT_DEBUGGE
 original_tu(iw3_cmd qcommon/cmd.cpp)
 original_tu(iw3_math universal/com_math.cpp)
 original_tu(iw3_files universal/com_files.cpp)
+# Genuine stdio file-access provider; Android FS_FileTell uses FILE* directly.
+original_tu(iw3_fileaccess qcommon/com_fileaccess.cpp)
 # Original filesystem runtime provider, not a diagnostic substitute.
 original_tu(iw3_filesystem qcommon/files.cpp)
 # Genuine IW3 IWD/ZIP reader; expose original unz* providers to strict link.
@@ -72,7 +74,7 @@ original_tu(iw3_xanim xanim/xanim.cpp)
 original_tu(iw3_client_main client/cl_main.cpp)
 target_include_directories(iw3_client_main BEFORE PRIVATE "${PORT}/common_compat")
 target_compile_definitions(iw3_client_main PRIVATE IW3_ANDROID_DISABLE_SCRIPT_DEBUGGER=1 IW3_ANDROID_COMMON_HEADER_ONLY_OPENAL=1)
-add_custom_target(iw3_sp_bootstrap_compile DEPENDS iw3_common iw3_cmd iw3_math iw3_files iw3_filesystem iw3_unzip iw3_com_memory iw3_android_win32_vm iw3_db_load iw3_db_registry iw3_client_input iw3_screen iw3_sv_ccmds iw3_sv_game iw3_sv_init iw3_cm_load iw3_cm_load_obj iw3_xanim iw3_client_main)
+add_custom_target(iw3_sp_bootstrap_compile DEPENDS iw3_common iw3_cmd iw3_math iw3_files iw3_fileaccess iw3_filesystem iw3_unzip iw3_com_memory iw3_android_win32_vm iw3_db_load iw3_db_registry iw3_client_input iw3_screen iw3_sv_ccmds iw3_sv_game iw3_sv_init iw3_cm_load iw3_cm_load_obj iw3_xanim iw3_client_main)
 
 # Explicit, opt-in genuine link probe. This target deliberately fails until all
 # original engine dependencies are provided; it must NEVER be packaged as an APK.
@@ -82,6 +84,7 @@ add_library(iw3_sp_link_probe SHARED
   $<TARGET_OBJECTS:iw3_cmd>
   $<TARGET_OBJECTS:iw3_math>
   $<TARGET_OBJECTS:iw3_files>
+  $<TARGET_OBJECTS:iw3_fileaccess>
   $<TARGET_OBJECTS:iw3_filesystem>
   $<TARGET_OBJECTS:iw3_unzip>
   $<TARGET_OBJECTS:iw3_com_memory>
