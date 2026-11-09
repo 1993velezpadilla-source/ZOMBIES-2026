@@ -1,0 +1,69 @@
+name: Publish Luanti FIX42 Flat Test APK
+on:
+  push:
+    paths:
+      - 'incoming/luanti-fix42/READY.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: luanti-fix42-flat-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Google Drive downloader
+        run: python3 -m pip install --quiet gdown
+      - name: Reconstruct and verify original FIX42 signed APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/luanti-fix42
+          out="/tmp/luanti-fix42/COD4-CATHEDRAL-FIX42-FLAT-ARM64.apk"
+          : > "$out"
+          ids=(
+            1MUtUUyirw8EmHc0K4311eEm4fkMvnoMB
+            1XJSKSJmYejJQkpKpZvcO8M5WuiSOQnsa
+            1nfgaYX-LV0iKYorv7SMnhn7PonubAU4f
+            1mTBKQArfX1R7iTx5rQR6L5i00TEteI5k
+            1mMDx_Dh_9u3eM8Rjbhy7YLfW38Hpqvtk
+            1Tlvy8d7ZuQOTyGgTMZVYXH1rU7IXaxnp
+            1d1JdFvNTsziAuMG8SBn7nmaEaLPh49hK
+            1F_fHgO0AEa6NU3Am7l6J5K0eC1HsbS5h
+            1isYGHhqPg9U6jTBwcpUsBLDNZ-PhFRAy
+            1sWa-JEhkKQJMlcpFsfE0JnpH0slPbAQ8
+            17D7NGsdBgltCwfPf41MZUmj5dJZzfMN1
+            1V7-SVo7rXuwQOpmW0LVvCC9jezNYQVCz
+          )
+          i=1
+          for id in "${ids[@]}"; do
+            part=$(printf '/tmp/luanti-fix42/FIX42-PART%02d.zip' "$i")
+            member=$(printf 'FIX42_CHUNK_%02d.bin' "$i")
+            echo "Fetching FIX42 part $i / 12"
+            gdown "https://drive.google.com/uc?id=${id}" -O "$part" --quiet
+            unzip -t "$part" >/dev/null
+            unzip -p "$part" "$member" >> "$out"
+            i=$((i+1))
+          done
+          test "$(stat -c '%s' "$out")" -eq 745598731
+          echo "bb8f00cde40b230e8c67cd7cf846b11b3459776f3c7573e9a5c04ae822a64272  $out" | sha256sum -c
+          unzip -t "$out" > /tmp/luanti-fix42/apk-test.txt
+      - name: Publish complete APK to GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          tag="luanti-fix42-cathedral-superflat-performance-20261109"
+          apk="/tmp/luanti-fix42/COD4-CATHEDRAL-FIX42-FLAT-ARM64.apk"
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            gh release create "$tag" --target main --title "Luanti FIX42 - Gothic Cathedral Flat Test (ARM64)" --prerelease --notes "Flat terrain test APK: 745598731 bytes; SHA256 bb8f00cde40b230e8c67cd7cf846b11b3459776f3c7573e9a5c04ae822a64272. Preserves original cathedral and COD4 assets. Actual Android performance requires device testing."
+          fi
+          gh release upload "$tag" "$apk" --clobber
+          gh release view "$tag" --json url,assets
