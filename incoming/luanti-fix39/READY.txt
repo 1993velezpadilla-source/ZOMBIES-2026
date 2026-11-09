@@ -1,0 +1,8 @@
+FIX39 cathedral world coordinate repair release
+drive_folder=https://drive.google.com/drive/folders/1gJx06E5iYF_RSzq0i5eddE27lyvHimHl
+parts=10
+apk=COD4-CATHEDRAL-FIX39-ARM64.apk
+size_bytes=639047250
+sha256=83bbc17927bd5ed31257e5f8c24aba6797855f9290611b8c81bcc791d9ae8736
+sqlite_xyz_mapblocks=6555
+original_game_world_untouched=true
