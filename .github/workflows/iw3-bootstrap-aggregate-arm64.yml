@@ -117,7 +117,7 @@ jobs:
           echo 'IW3_SCRIPT_MEMORYTREE_GENUINE_PROVIDERS_PRESENT=true (NOT LINKED GAME)'
           # Verify the Android POSIX path-rename adapter actually exports its provider.
           # Compilation alone does not establish that the engine's FS rename import resolves.
-          platform_object=$(printf '%s\\n' "${objects[@]}" | grep '/iw3_android_platform.dir/' | head -n 1)
+          platform_object=$(printf '%s\n' "${objects[@]}" | grep '/iw3_android_platform.dir/' | head -n 1)
           test -n "$platform_object"
           "$nm" --defined-only --demangle "$platform_object" > "$RUNNER_TEMP/bootstrap-android-platform-providers.txt"
           grep -Fq 'z2026_platform_rename_engine_path' "$RUNNER_TEMP/bootstrap-android-platform-providers.txt" || {
