@@ -1,0 +1,67 @@
+name: Publish Luanti FIX39 Cathedral Corrected World
+on:
+  push:
+    paths:
+      - 'incoming/luanti-fix39/READY.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: luanti-fix39-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Drive downloader
+        run: python3 -m pip install --quiet gdown
+      - name: Reassemble original signed FIX39 APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/luanti-fix39
+          out="/tmp/luanti-fix39/COD4-CATHEDRAL-FIX39-ARM64.apk"
+          : > "$out"
+          ids=(
+            1RJ8URHizx5Xa81tvwxg4KVO0b18WKK9U
+            1RyMTqhaKYXc4iBNV-_2IpqxS7SvdA-74
+            1XW2S-KeVUFnWlSSZLPf1-cs9hiQIM5JV
+            1AMHNi_oiD3U5OLlzdbVI7mD6YywfkuHW
+            1Jou0A7nMaWFXVjwcP9SXT4gGbm4fbu_0
+            1GsrXahGr5y53qK8xg26kOhLKWIosVHox
+            1R5yFN7Kfl4YfJlKkkJCYYJTtSQZZCPvW
+            1Yb8xrTC0HpeZkCP5w0x9obYzYEf2OOkS
+            1z8Rdun5ertgkCjFPB80JiKSmZLLtdJ-R
+            1f75ECwAABo_hNb01MLi1CB3wZqtrZPZJ
+          )
+          i=1
+          for id in "${ids[@]}"; do
+            part=$(printf '/tmp/luanti-fix39/FIX39-PART%02d.zip' "$i")
+            inner=$(printf 'FIX39_CHUNK_%02d.bin' "$i")
+            echo "Downloading verified FIX39 part $i / 10"
+            gdown "https://drive.google.com/uc?id=${id}" -O "$part" --quiet
+            unzip -t "$part" > /dev/null
+            unzip -p "$part" "$inner" >> "$out"
+            i=$((i+1))
+          done
+          test "$(stat -c '%s' "$out")" -eq 639047250
+          echo "83bbc17927bd5ed31257e5f8c24aba6797855f9290611b8c81bcc791d9ae8736  $out" | sha256sum -c
+          unzip -t "$out" > /tmp/luanti-fix39/apk-zip-test.txt
+      - name: Publish one complete signed APK to Releases
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          tag="luanti-fix39-cathedral-world-render-repair-20261109"
+          file="/tmp/luanti-fix39/COD4-CATHEDRAL-FIX39-ARM64.apk"
+          if ! gh release view "$tag" > /dev/null 2>&1; then
+            gh release create "$tag" --target main --title "Luanti FIX39 - Gothic Cathedral world coordinate repair (ARM64)" --prerelease --notes "FIX39 signed Android APK, 639047250 bytes, SHA256 83bbc17927bd5ed31257e5f8c24aba6797855f9290611b8c81bcc791d9ae8736. Repaired 6555 imported mapblocks previously keyed by invalid masked coordinate hashes; converted the map to Luanti 5.18 XYZ SQLite format. Creates new world 'Gothic Cathedral FIX39' while retaining earlier saved world. Original arsenal, rendering engine and textures unchanged. Device runtime has NOT yet been tested."
+          fi
+          gh release upload "$tag" "$file" --clobber
+          gh release view "$tag" --json url,assets
