@@ -57,7 +57,7 @@ target_compile_options(iw3_com_memory PRIVATE
 # Android POSIX filesystem/touch adapter; real implementation (not a symbol stub).
 # The original filesystem calls z2026_platform_rename_engine_path via this TU.
 add_library(iw3_android_platform OBJECT "${PORT}/iw3_android_platform.cpp")
-target_include_directories(iw3_android_platform PRIVATE "${PORT}")
+target_include_directories(iw3_android_platform PRIVATE ${COMMON_INCLUDES})
 target_compile_options(iw3_android_platform PRIVATE -Wall -Wextra)
 original_tu(iw3_db_load database/db_file_load.cpp)
 original_tu(iw3_db_registry database/db_registry.cpp)
