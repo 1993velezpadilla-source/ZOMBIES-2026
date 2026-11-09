@@ -1,0 +1,5 @@
+FIX38 Android ARM64 original upload
+Drive parts folder: https://drive.google.com/drive/folders/1gJx06E5iYF_RSzq0i5eddE27lyvHimHl
+parts=10
+bytes=634927428
+sha256=c45d600b62b13d85604ea4fc1518d362d8f4cf2d167ab62adb2cc9bfef487b79
