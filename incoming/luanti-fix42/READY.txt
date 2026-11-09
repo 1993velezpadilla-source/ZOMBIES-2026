@@ -1,0 +1,6 @@
+Luanti FIX42 Flat Test release request
+source=https://drive.google.com/drive/folders/14zdKIjc9l5-_X4alC6IUBxFZjCWnrBUe
+pieces=12
+apk_size=745598731
+sha256=bb8f00cde40b230e8c67cd7cf846b11b3459776f3c7573e9a5c04ae822a64272
+Reassemble unchanged APK; verify hash and publish one ARM64 APK.
