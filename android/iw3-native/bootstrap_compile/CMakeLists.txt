@@ -36,6 +36,9 @@ target_include_directories(iw3_common BEFORE PRIVATE "${PORT}/common_compat")
 target_compile_definitions(iw3_common PRIVATE IW3_ANDROID_DISABLE_SCRIPT_DEBUGGER=1 IW3_ANDROID_COMMON_HEADER_ONLY_OPENAL=1)
 original_tu(iw3_cmd qcommon/cmd.cpp)
 original_tu(iw3_math universal/com_math.cpp)
+# Genuine SP dvar registry/modified-flag provider, already cross-compiled in the
+# standalone Android engine gate. Include it in the strict dependency closure.
+original_tu(iw3_dvar universal/dvar.cpp)
 original_tu(iw3_files universal/com_files.cpp)
 # Genuine stdio file-access provider; Android FS_FileTell uses FILE* directly.
 original_tu(iw3_fileaccess qcommon/com_fileaccess.cpp)
@@ -85,7 +88,7 @@ original_tu(iw3_script_memorytree script/scr_memorytree.cpp)
 original_tu(iw3_client_main client/cl_main.cpp)
 target_include_directories(iw3_client_main BEFORE PRIVATE "${PORT}/common_compat")
 target_compile_definitions(iw3_client_main PRIVATE IW3_ANDROID_DISABLE_SCRIPT_DEBUGGER=1 IW3_ANDROID_COMMON_HEADER_ONLY_OPENAL=1)
-add_custom_target(iw3_sp_bootstrap_compile DEPENDS iw3_common iw3_cmd iw3_math iw3_files iw3_fileaccess iw3_filesystem iw3_unzip iw3_com_memory iw3_android_win32_vm iw3_android_platform iw3_db_load iw3_db_registry iw3_db_memory iw3_client_input iw3_screen iw3_sv_ccmds iw3_sv_game iw3_sv_init iw3_sv_main iw3_cm_load iw3_cm_load_obj iw3_xanim iw3_script_memorytree iw3_client_main)
+add_custom_target(iw3_sp_bootstrap_compile DEPENDS iw3_common iw3_cmd iw3_math iw3_dvar iw3_files iw3_fileaccess iw3_filesystem iw3_unzip iw3_com_memory iw3_android_win32_vm iw3_android_platform iw3_db_load iw3_db_registry iw3_db_memory iw3_client_input iw3_screen iw3_sv_ccmds iw3_sv_game iw3_sv_init iw3_sv_main iw3_cm_load iw3_cm_load_obj iw3_xanim iw3_script_memorytree iw3_client_main)
 
 # Explicit, opt-in genuine link probe. This target deliberately fails until all
 # original engine dependencies are provided; it must NEVER be packaged as an APK.
@@ -94,6 +97,7 @@ add_library(iw3_sp_link_probe SHARED
   $<TARGET_OBJECTS:iw3_common>
   $<TARGET_OBJECTS:iw3_cmd>
   $<TARGET_OBJECTS:iw3_math>
+  $<TARGET_OBJECTS:iw3_dvar>
   $<TARGET_OBJECTS:iw3_files>
   $<TARGET_OBJECTS:iw3_fileaccess>
   $<TARGET_OBJECTS:iw3_filesystem>
