@@ -115,6 +115,16 @@ jobs:
             }
           done
           echo 'IW3_SCRIPT_MEMORYTREE_GENUINE_PROVIDERS_PRESENT=true (NOT LINKED GAME)'
+          # Verify the Android POSIX path-rename adapter actually exports its provider.
+          # Compilation alone does not establish that the engine's FS rename import resolves.
+          platform_object=$(printf '%s\\n' "${objects[@]}" | grep '/iw3_android_platform.dir/' | head -n 1)
+          test -n "$platform_object"
+          "$nm" --defined-only --demangle "$platform_object" > "$RUNNER_TEMP/bootstrap-android-platform-providers.txt"
+          grep -Fq 'z2026_platform_rename_engine_path' "$RUNNER_TEMP/bootstrap-android-platform-providers.txt" || {
+            echo 'Missing Android path-rename provider in ARM64 object' >&2
+            exit 1
+          }
+          echo 'IW3_ANDROID_RENAME_PROVIDER_PRESENT=true (NOT LINKED GAME)'
           "$nm" --undefined-only --format=posix "${objects[@]}" > "$RUNNER_TEMP/bootstrap-undefined-raw.txt"
           "$nm" --defined-only --format=posix "${objects[@]}" > "$RUNNER_TEMP/bootstrap-defined-raw.txt"
           python3 android/iw3-native/bootstrap_compile/audit_bootstrap_symbols.py \
@@ -131,6 +141,7 @@ jobs:
             ${{ runner.temp }}/bootstrap-link-probe.log
             ${{ runner.temp }}/bootstrap-undefined-raw.txt
             ${{ runner.temp }}/bootstrap-defined-raw.txt
+            ${{ runner.temp }}/bootstrap-android-platform-providers.txt
             ${{ runner.temp }}/bootstrap-db-memory-providers.txt
             ${{ runner.temp }}/bootstrap-script-memorytree-providers.txt
             ${{ runner.temp }}/bootstrap-unresolved-symbols.txt
