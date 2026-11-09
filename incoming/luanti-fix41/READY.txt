@@ -1,0 +1,7 @@
+Luanti FIX41 signed APK publication request
+source_folder=https://drive.google.com/drive/folders/1gJx06E5iYF_RSzq0i5eddE27lyvHimHl
+parts=12
+apk_name=COD4-CATHEDRAL-FIX41-ARM64.apk
+apk_size=739814338
+apk_sha256=97cab9c646521a70dfe3cb2839302981bb307ff5f84a7cdfca7d03b7cb5a25de
+Do not alter APK bytes. Verify and publish single APK via GitHub Release.
