@@ -1,0 +1,73 @@
+name: Publish Luanti FIX40 Cathedral Performance from Drive
+on:
+  push:
+    paths:
+      - 'incoming/luanti-fix40/READY.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: luanti-fix40-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Drive downloader
+        run: python3 -m pip install --quiet gdown
+      - name: Reassemble and verify exact FIX40 APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/luanti-fix40
+          out="/tmp/luanti-fix40/COD4-CATHEDRAL-FIX40-ARM64.apk"
+          : > "$out"
+          ids=(
+            12BdKbn_DUUo07H8pljxDLjnEk_Tyo3XN
+            13XWw10I3clWWUeEv0BDQJhURNM32JPJN
+            1vUQ-3ZFFAuzRWBPn_tfZIkiJyt0AePyf
+            1yoOcBvWbvxkC8hgW8ys6neU8oO2SKsvg
+            1w1T9wiONkksic3FsEz2PJb0DixGh88rj
+            14vcbNND2YRjWUSXF9J0uUixGqaLX7tlX
+            1SCXDZlPVNrNAQSP4IKPkWsOd-A3cX6Op
+            1RkClBh2IJjbnZIBPHlMkmjV3km7Hi084
+            1XMQFiyOhU2B8OqVwTOIIpP_9jUP49UNO
+            1dyOoPM9TBtMLgZ0XWysRI1bFeGyV6CD0
+            1QXw2syI9c2i4QY5WPG69g-N4MHQbzizx
+            1X9Zs3A122_Cl_R-iQkH4D4wfgvV0BhxD
+          )
+          i=1
+          for id in "${ids[@]}"; do
+            part=$(printf '/tmp/luanti-fix40/FIX40-PART%02d.zip' "$i")
+            inner=$(printf 'FIX40_CHUNK_%02d.bin' "$i")
+            echo "Downloading FIX40 part $i / ${#ids[@]}"
+            gdown "https://drive.google.com/uc?id=${id}" -O "$part" --quiet
+            unzip -t "$part" >/dev/null
+            unzip -p "$part" "$inner" >> "$out"
+            i=$((i+1))
+          done
+          test "$(stat -c '%s' "$out")" -eq 739812023
+          echo "4f50b0c05b248de0bc61b9f36bb3ca15a52b7060ce7836e3bbd5c6d5e8975ac4  $out" | sha256sum -c
+          unzip -t "$out" >/dev/null
+          echo "Full FIX40 APK reconstructed and verified."
+      - name: Publish one APK to GitHub Releases
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          tag="luanti-fix40-cathedral-traversal-performance-20261109"
+          file="/tmp/luanti-fix40/COD4-CATHEDRAL-FIX40-ARM64.apk"
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            gh release create "$tag" --target main \
+              --title "Luanti FIX40 - Gothic Cathedral Traversal Performance (ARM64)" \
+              --prerelease \
+              --notes "FIX40 experimental mobile FPS/frame-pacing settings based on FIX39. Native engine, COD4 weapons, full 1024 textures and original cathedral map data preserved. 739812023 bytes. SHA256 4f50b0c05b248de0bc61b9f36bb3ca15a52b7060ce7836e3bbd5c6d5e8975ac4. Requires Pixel Fold walking-FPS comparison; no FPS improvement is claimed before device testing."
+          fi
+          gh release upload "$tag" "$file" --clobber
+          gh release view "$tag" --json url,assets
