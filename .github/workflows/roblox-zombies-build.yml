@@ -1,0 +1,44 @@
+name: Roblox Xziel Zombies - Rojo build
+on:
+  push:
+    paths:
+      - 'roblox/**'
+      - '.github/workflows/roblox-zombies-build.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Roblox prototype (not published)
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rojo 7.7.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 -sS 'https://github.com/rojo-rbx/rojo/releases/download/v7.7.1/rojo-7.7.1-linux-x86_64.zip' -o "$RUNNER_TEMP/rojo.zip"
+          mkdir -p "$RUNNER_TEMP/rojo-bin"
+          unzip -q "$RUNNER_TEMP/rojo.zip" -d "$RUNNER_TEMP/rojo-bin"
+          bin="$(find "$RUNNER_TEMP/rojo-bin" -type f -name rojo -print -quit)"
+          test -n "$bin"
+          chmod +x "$bin"
+          mkdir -p "$HOME/.local/bin"
+          cp "$bin" "$HOME/.local/bin/rojo"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Build RBXLX
+        shell: bash
+        run: |
+          set -euo pipefail
+          rojo --version
+          rojo build roblox/default.project.json -o roblox/Xziel-Zombies-Prototype.rbxlx
+          test -s roblox/Xziel-Zombies-Prototype.rbxlx
+      - name: Upload Roblox place artifact (not a mobile APK)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Xziel-Zombies-Prototype-RBXLX
+          path: roblox/Xziel-Zombies-Prototype.rbxlx
+          retention-days: 14
