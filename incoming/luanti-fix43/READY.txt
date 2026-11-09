@@ -1,0 +1,7 @@
+Luanti FIX43 flat cathedral compact-resource-marker repair
+Drive=https://drive.google.com/drive/folders/1Q4yd2Fwc-kiPrXOwwyzeYGQRWZJ-SO5L
+parts=12
+apk_bytes=745599062
+sha256=c41a905cf671589d0ec73ec53c767ea8e64503d7556caa286a55c7d5545c428c
+marker=XZ-ASSETS-1:9599
+Create one verified signed APK at GitHub Releases.
