@@ -1,0 +1,8 @@
+FIX37 ORIGINAL RELEASE REQUEST
+timestamp_utc=2026-11-09T16:47:00Z
+source_folder=https://drive.google.com/drive/folders/1gJx06E5iYF_RSzq0i5eddE27lyvHimHl
+pieces=10
+expected_apk_bytes=634927167
+expected_sha256=115b8f20534b3a94a3424dd32cbeea450815e522d8b2f97863ff2abc417267ba
+output=COD4-CATHEDRAL-FIX37-ORIGINAL-ARM64.apk
+notes=Assemble original bytes only; no compression or edits.
