@@ -1,0 +1,7 @@
+Luanti FIX40 movement frame-pacing APK release
+Drive folder: https://drive.google.com/drive/folders/1gJx06E5iYF_RSzq0i5eddE27lyvHimHl
+parts=12
+apk_name=COD4-CATHEDRAL-FIX40-ARM64.apk
+apk_bytes=739812023
+sha256=4f50b0c05b248de0bc61b9f36bb3ca15a52b7060ce7836e3bbd5c6d5e8975ac4
+Performance experiment: preserve textures, weapons, cathedral
