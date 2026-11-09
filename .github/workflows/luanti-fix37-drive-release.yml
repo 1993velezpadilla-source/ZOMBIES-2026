@@ -1,0 +1,67 @@
+name: Publish Luanti FIX37 Original from Drive
+on:
+  push:
+    paths:
+      - 'incoming/luanti-fix37/READY.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: luanti-fix37-original-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Google Drive downloader
+        run: python3 -m pip install --quiet gdown
+      - name: Download, concatenate and verify exact original APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/luanti-fix37
+          out="/tmp/luanti-fix37/COD4-CATHEDRAL-FIX37-ORIGINAL-ARM64.apk"
+          : > "$out"
+          ids=(
+            1scG6h5aRkuwreBQW8OTMIcV8VWQG0FzZ
+            1hVxA1b1mX9nGiX9cRASFmMTclkyUs1al
+            1dWDoCW1YnFBdEeZ1p2d72vnhcDt5NZul
+            1hKbyaDlQtwcjcxNsQPLfDwdNgnTvGeVo
+            1pjvygpt38QvEBSPxSRGn3-bKRA98Cgri
+            175CV4485MtR09GJS7xpv3V2IwBq9AKQW
+            12CRCTZ2FaFT9CfWA3iHyqwPIw3p1IY5T
+            1yf-vQltBU4bEcm3IeTOMR6QSwYrkuSwf
+            1RFiUpCvW2fWgwT4SifpMCUnVHbakGI4S
+            1Md9OdVOfyBDe5HNqsP4--vzLLGuG4Ipz
+          )
+          i=1
+          for id in "${ids[@]}"; do
+            part=$(printf '/tmp/luanti-fix37/FIX37-PART%02d.zip' "$i")
+            inner=$(printf 'FIX37_CHUNK_%02d.bin' "$i")
+            echo "Fetching part $i / 10"
+            gdown "https://drive.google.com/uc?id=${id}" -O "$part" --quiet
+            unzip -t "$part" >/dev/null
+            unzip -p "$part" "$inner" >> "$out"
+            i=$((i+1))
+          done
+          test "$(stat -c '%s' "$out")" -eq 634927167
+          echo "115b8f20534b3a94a3424dd32cbeea450815e522d8b2f97863ff2abc417267ba  $out" | sha256sum -c
+          unzip -t "$out" > /tmp/luanti-fix37/apk-zip-test.txt
+      - name: Publish one unchanged APK on GitHub Releases
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="luanti-fix37-gothic-cathedral-original-20261109"
+          file="/tmp/luanti-fix37/COD4-CATHEDRAL-FIX37-ORIGINAL-ARM64.apk"
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            gh release create "$tag" --target main --title "Luanti FIX37 ORIGINAL - Gothic Cathedral (ARM64)" --prerelease --notes "Exact original FIX37 signed APK, 634927167 bytes; SHA256 115b8f20534b3a94a3424dd32cbeea450815e522d8b2f97863ff2abc417267ba. File was reconstructed byte-for-byte from private Drive transfer slices after verification. Android runtime untested."
+          fi
+          gh release upload "$tag" "$file" --clobber
+          gh release view "$tag" --json url,assets
