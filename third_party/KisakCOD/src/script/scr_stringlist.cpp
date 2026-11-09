@@ -26,6 +26,10 @@ static inline uint32_t SL_AtomicIncrement(volatile uint32_t* value)
 {
     return __atomic_add_fetch(value, uint32_t{1}, __ATOMIC_SEQ_CST);
 }
+static inline uint32_t SL_AtomicDecrement(volatile uint32_t* value)
+{
+    return __atomic_sub_fetch(value, uint32_t{1}, __ATOMIC_SEQ_CST);
+}
 static inline uint32_t SL_AtomicCompareExchange(volatile uint32_t* value, uint32_t replacement, uint32_t expected)
 {
     __atomic_compare_exchange_n(value, &expected, replacement, false,
@@ -33,6 +37,7 @@ static inline uint32_t SL_AtomicCompareExchange(volatile uint32_t* value, uint32
     return expected;
 }
 #define InterlockedIncrement(ptr) SL_AtomicIncrement(ptr)
+#define InterlockedDecrement(ptr) SL_AtomicDecrement(ptr)
 #define InterlockedCompareExchange(ptr, replacement, expected) SL_AtomicCompareExchange(ptr, replacement, expected)
 #endif
 
@@ -522,7 +527,11 @@ uint32_t SL_FindString(const char* str)
 
 void __cdecl SL_TransferRefToUser(uint32_t stringValue, uint32_t user)
 {
+	#if defined(__ANDROID__)
+	volatile uint32_t Comperand;
+	#else
 	volatile LONG Comperand; // [esp+20h] [ebp-28h]
+	#endif
 	RefString *refStr; // [esp+44h] [ebp-4h]
 
 	PROF_SCOPED("SL_TransferRefToUser");
@@ -553,7 +562,7 @@ uint32_t SL_GetStringForVector(const float* v)
 {
 	char tempString[132];
 
-	snprintf(tempString, ARRAYSIZE(tempString), "(%g, %g, %g)", *v, v[1], v[2]);
+	snprintf(tempString, sizeof(tempString), "(%g, %g, %g)", *v, v[1], v[2]);
 	return SL_GetString_(tempString, 0, MT_TYPE_SCRIPT_STRING);
 }
 
@@ -561,7 +570,7 @@ uint32_t SL_GetStringForInt(int i)
 {
 	char tempString[132]; // [esp+0h] [ebp-88h] BYREF
 
-	snprintf(tempString, ARRAYSIZE(tempString), "%i", i);
+	snprintf(tempString, sizeof(tempString), "%i", i);
 	return SL_GetString_(tempString, 0, MT_TYPE_SCRIPT_STRING);
 }
 
@@ -569,7 +578,7 @@ uint32_t SL_GetStringForFloat(float f)
 {
 	char tempString[132]; // [esp+8h] [ebp-88h] BYREF
 
-	snprintf(tempString, ARRAYSIZE(tempString), "%g", f);
+	snprintf(tempString, sizeof(tempString), "%g", f);
 	return SL_GetString_(tempString, 0, MT_TYPE_SCRIPT_STRING);
 }
 
