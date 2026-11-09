@@ -1,0 +1,70 @@
+name: Publish Luanti FIX41 Android install repair
+on:
+  push:
+    paths:
+      - 'incoming/luanti-fix41/READY.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: luanti-fix41-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install public Google Drive downloader
+        run: python3 -m pip install --quiet gdown
+      - name: Restore and verify signed FIX41 APK, unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/luanti-fix41
+          out="/tmp/luanti-fix41/COD4-CATHEDRAL-FIX41-ARM64.apk"
+          : > "$out"
+          ids=(
+            1WKxL_0rN4cch2R5R6oBaMG3WVJYNipar
+            1QcRQh7H6MuyUEhpwVCG4DUKjq3aFgH9V
+            18Ahmu_VOQ__4cA63YdLupF3hMlIhgX6J
+            1jgnuynKMi2bMTTby0cJVv1TOnE24c7Wk
+            1CAzAbn97_8-9duFDSxT6VXjIR5bjDLKw
+            1IE1NTZmZV6M9KgiMbDo3EoC8UGxh9xeH
+            11Lb-iuOF-uyrfSZ4CUD6AkMeGwXhEsHI
+            19-QMm0fYtpR8pNz9Dt9Rr4RVetqV9Yyp
+            1K8KwA8aGVWvL7X82gptYTgK3Cz7pWWZd
+            1BYTAv89JXkuUS3N3JuuCr3haDdAvCEg7
+            1bUydFF-C7gyefi-bxTKfRU_oRlzxHttA
+            1rTU1T7-pN17tI8x10maRRP5vEjfMbxdc
+          )
+          i=1
+          for id in "${ids[@]}"; do
+            part=$(printf '/tmp/luanti-fix41/FIX41-PART%02d.zip' "$i")
+            inner=$(printf 'FIX41_CHUNK_%02d.bin' "$i")
+            echo "Downloading piece $i / 12"
+            gdown "https://drive.google.com/uc?id=${id}" -O "$part" --quiet
+            unzip -t "$part" > /dev/null
+            unzip -p "$part" "$inner" >> "$out"
+            i=$((i+1))
+          done
+          test "$(stat -c '%s' "$out")" -eq 739814338
+          echo "97cab9c646521a70dfe3cb2839302981bb307ff5f84a7cdfca7d03b7cb5a25de  $out" | sha256sum -c
+          unzip -t "$out" > /tmp/luanti-fix41/apk-zip-test.txt
+          echo "FIX41 COMPLETE, size and SHA256 verified"
+      - name: Publish full signed APK to GitHub Releases
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          tag="luanti-fix41-android-install-repair-20261109"
+          apk="/tmp/luanti-fix41/COD4-CATHEDRAL-FIX41-ARM64.apk"
+          if ! gh release view "$tag" > /dev/null 2>&1; then
+            gh release create "$tag" --target main --title "Luanti FIX41 - Android install repair (ARM64)" --prerelease --notes "FIX41 signed APK, 739814338 bytes, SHA256 97cab9c646521a70dfe3cb2839302981bb307ff5f84a7cdfca7d03b7cb5a25de. Corrects APK alignment and Android application label of FIX40. Android device installation not verified yet."
+          fi
+          gh release upload "$tag" "$apk" --clobber
+          gh release view "$tag" --json url,assets
