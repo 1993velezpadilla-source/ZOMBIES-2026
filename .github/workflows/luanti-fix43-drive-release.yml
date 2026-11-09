@@ -1,0 +1,83 @@
+name: Publish Luanti FIX43 Compact Asset Repair
+on:
+  push:
+    paths:
+      - 'incoming/luanti-fix43/READY.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: luanti-fix43-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Google Drive downloader
+        run: python3 -m pip install --quiet gdown
+      - name: Reconstruct and verify FIX43 signed Android APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/luanti-fix43
+          out="/tmp/luanti-fix43/COD4-CATHEDRAL-FIX43-FLAT-ARM64.apk"
+          : > "$out"
+          ids=(
+            1adNdBdRRLoqNSUT83Z-_rhanQw7HuNfU
+            1TKF3NY-J8HtYKz9W__cBDy6QfSryh-PW
+            1C5pReYbXmy4Zu_saXxqsDxVm-FNUkpst
+            1flAGBs1xapujxzYbxWE88KYcvnvJZeEO
+            1sKQZhKz0TqdS9K-pHvKDysWSTiDOt_nV
+            1tP-eAcAXf0SmRF45SP6eEk-DAS5wRZxt
+            1jrhcNBtqTmKNDuTpFOK7aXndOvscdRBd
+            1t7M8OgHC5reYiGWWH3SmcmanUgZz5M0k
+            1fXOzMCVbkf8rVE-TgWcZfmd-PITLiV2w
+            1wjjgs4RoNvp94VTt9WCLOeOOTOpbi_SI
+            1agcqUPbWcshlxMwYkW8ZgRMFHkAIFzdk
+            1gTV9Vk9zkh5vMqF4F7yvzRP-WP9xpi-7
+          )
+          i=1
+          for id in "${ids[@]}"; do
+            part=$(printf '/tmp/luanti-fix43/FIX43-PART%02d.zip' "$i")
+            member=$(printf 'FIX43_CHUNK_%02d.bin' "$i")
+            echo "Fetching FIX43 part $i / 12"
+            gdown "https://drive.google.com/uc?id=${id}" -O "$part" --quiet
+            unzip -t "$part" > /dev/null
+            unzip -p "$part" "$member" >> "$out"
+            i=$((i+1))
+          done
+          test "$(stat -c '%s' "$out")" -eq 745599062
+          echo "c41a905cf671589d0ec73ec53c767ea8e64503d7556caa286a55c7d5545c428c  $out" | sha256sum -c
+          unzip -t "$out" > /tmp/luanti-fix43/apk-test.txt
+          python3 - "$out" <<'PY'
+          import sys,zipfile,struct
+          p=sys.argv[1]
+          with zipfile.ZipFile(p) as z,open(p,'rb') as f:
+              asset=z.getinfo('assets/assets.zip')
+              f.seek(asset.header_offset)
+              h=f.read(30)
+              vals=struct.unpack('<IHHHHHIIIHH',h)
+              assert vals[0]==0x04034b50
+              data=asset.header_offset+30+vals[9]+vals[10]
+              f.seek(data+asset.file_size-16)
+              assert f.read(16)==b'XZ-ASSETS-1:9599'
+          print("Compact Luanti asset count verified")
+          PY
+      - name: Publish full APK to GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          tag="luanti-fix43-cathedral-flat-compact-count-repair-20261109"
+          apk="/tmp/luanti-fix43/COD4-CATHEDRAL-FIX43-FLAT-ARM64.apk"
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            gh release create "$tag" --target main --title "Luanti FIX43 - Flat Cathedral compact asset repair (Android ARM64)" --prerelease --notes "Repairs the exact Missing compact asset entry count startup error in FIX42. ZIP comment XZ-ASSETS-1:9599 restored. Original flat cathedral, weapons, and 1024 textures preserved. APK v2 same certificate, updated Android label/version. Size 745599062 bytes, SHA256 c41a905cf671589d0ec73ec53c767ea8e64503d7556caa286a55c7d5545c428c. Device installation and FPS improvement must be tested."
+          fi
+          gh release upload "$tag" "$apk" --clobber
+          gh release view "$tag" --json url,assets
