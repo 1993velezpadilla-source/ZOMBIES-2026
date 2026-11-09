@@ -93,10 +93,12 @@ original_tu(iw3_cm_load_obj qcommon/cm_load_obj.cpp)
 original_tu(iw3_xanim xanim/xanim.cpp)
 # Genuine script memory-tree allocator supplying MT_Alloc/MT_Free for XAnim.
 original_tu(iw3_script_memorytree script/scr_memorytree.cpp)
+# Genuine script string intern table: SL_Init/SL_GetString and related lifecycle.
+original_tu(iw3_script_stringlist script/scr_stringlist.cpp)
 original_tu(iw3_client_main client/cl_main.cpp)
 target_include_directories(iw3_client_main BEFORE PRIVATE "${PORT}/common_compat")
 target_compile_definitions(iw3_client_main PRIVATE IW3_ANDROID_DISABLE_SCRIPT_DEBUGGER=1 IW3_ANDROID_COMMON_HEADER_ONLY_OPENAL=1)
-add_custom_target(iw3_sp_bootstrap_compile DEPENDS iw3_common iw3_cmd iw3_math iw3_q_shared iw3_q_parse iw3_memfile iw3_dvar iw3_dvar_cmds iw3_files iw3_fileaccess iw3_filesystem iw3_unzip iw3_com_memory iw3_android_win32_vm iw3_android_platform iw3_db_load iw3_db_registry iw3_db_memory iw3_client_input iw3_screen iw3_sv_ccmds iw3_sv_game iw3_sv_init iw3_sv_main iw3_cm_load iw3_cm_load_obj iw3_xanim iw3_script_memorytree iw3_client_main)
+add_custom_target(iw3_sp_bootstrap_compile DEPENDS iw3_common iw3_cmd iw3_math iw3_q_shared iw3_q_parse iw3_memfile iw3_dvar iw3_dvar_cmds iw3_files iw3_fileaccess iw3_filesystem iw3_unzip iw3_com_memory iw3_android_win32_vm iw3_android_platform iw3_db_load iw3_db_registry iw3_db_memory iw3_client_input iw3_screen iw3_sv_ccmds iw3_sv_game iw3_sv_init iw3_sv_main iw3_cm_load iw3_cm_load_obj iw3_xanim iw3_script_memorytree iw3_script_stringlist iw3_client_main)
 
 # Explicit, opt-in genuine link probe. This target deliberately fails until all
 # original engine dependencies are provided; it must NEVER be packaged as an APK.
@@ -130,6 +132,7 @@ add_library(iw3_sp_link_probe SHARED
   $<TARGET_OBJECTS:iw3_cm_load_obj>
   $<TARGET_OBJECTS:iw3_xanim>
   $<TARGET_OBJECTS:iw3_script_memorytree>
+  $<TARGET_OBJECTS:iw3_script_stringlist>
   $<TARGET_OBJECTS:iw3_client_main>
 )
 target_link_libraries(iw3_sp_link_probe PRIVATE z)
