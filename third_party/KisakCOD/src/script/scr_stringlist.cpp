@@ -19,6 +19,23 @@ scrStringDebugGlob_t* scrStringDebugGlob;
 static scrStringDebugGlob_t scrStringDebugGlobBuf;
 static scrStringGlob_t scrStringGlob; // 0x244E300
 
+#if defined(__ANDROID__)
+// The original string-list counters and packed RefString::data are 32-bit.
+// Android has no Win32 Interlocked API; use matching 32-bit atomic RMWs.
+static inline uint32_t SL_AtomicIncrement(volatile uint32_t* value)
+{
+    return __atomic_add_fetch(value, uint32_t{1}, __ATOMIC_SEQ_CST);
+}
+static inline uint32_t SL_AtomicCompareExchange(volatile uint32_t* value, uint32_t replacement, uint32_t expected)
+{
+    __atomic_compare_exchange_n(value, &expected, replacement, false,
+                                __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
+    return expected;
+}
+#define InterlockedIncrement(ptr) SL_AtomicIncrement(ptr)
+#define InterlockedCompareExchange(ptr, replacement, expected) SL_AtomicCompareExchange(ptr, replacement, expected)
+#endif
+
 #define SCR_SYS_GAME 1
 
 static uint32_t __cdecl GetHashCode(const char *str, uint32_t len)
@@ -176,7 +193,7 @@ void SL_ShutdownSystem(uint32_t user)
 			if (((uint8_t)user & refStr->user) == 0)
 				break;
 
-			refStr->data = ((uint8_t)(~(BYTE)user & HIWORD(refStr->data)) << 16) | refStr->data & 0xFF00FFFF;
+			refStr->data = ((uint8_t)(~(uint8_t)user & HIWORD(refStr->data)) << 16) | refStr->data & 0xFF00FFFF;
 
 			scrStringGlob.nextFreeEntry = 0;
 			SL_RemoveRefToString(scrStringGlob.hashTable[hash].u.prev);
@@ -216,7 +233,7 @@ void SL_TransferSystem(uint32_t from, uint32_t to)
 			RefString* refStr = GetRefString(scrStringGlob.hashTable[hash].u.prev);
 			if (((uint8_t)from & refStr->user) != 0)
 			{
-				refStr->data = ((uint8_t)(~(BYTE)from & HIWORD(refStr->data)) << 16) | refStr->data & 0xFF00FFFF;
+				refStr->data = ((uint8_t)(~(uint8_t)from & HIWORD(refStr->data)) << 16) | refStr->data & 0xFF00FFFF;
 				refStr->data = ((uint8_t)(to | HIWORD(refStr->data)) << 16) | refStr->data & 0xFF00FFFF;
 			}
 		}
