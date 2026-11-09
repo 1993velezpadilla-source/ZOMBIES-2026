@@ -1,0 +1,68 @@
+name: Publish Luanti FIX38 from Drive parts
+on:
+  push:
+    paths:
+      - 'incoming/luanti-fix38/READY.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: luanti-fix38-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Drive downloader
+        run: python3 -m pip install --quiet gdown
+      - name: Restore exact FIX38 signed APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/luanti-fix38
+          out="/tmp/luanti-fix38/COD4-CATHEDRAL-FIX38-ARM64.apk"
+          : > "$out"
+          ids=(
+            15qLL-FYZaJivaOj7lyJtliuycoHXxdhQ
+            1VRKHHg5pp0TE-gla2KdezK-0BqFwUbVk
+            1-0fnCL5RqzqEwa3acBM4drQmlhqckw5W
+            19qaD61Kcx1LBwkUKCA4VtMwA6rKV9MBI
+            1tI9ePLEQEyiSK6n3JouOIfPT5dEmUfCb
+            17dOY745v58uG1Siz4f2peXxh7eEPJNHf
+            1MttwNzarRXC4gicoI_9g6qCITO6-2I6m
+            1KpwYP7No2pMsjugRX7oBk_e7yfpNpCB7
+            1CIIIyQmlLXkAwPg-v8Ofg4M3gHd2ElDK
+            1pzAeUBsXpagg2Rs-44PQQfRZviwqvGr8
+          )
+          i=1
+          for id in "${ids[@]}"; do
+            part=$(printf '/tmp/luanti-fix38/FIX38-PART%02d.zip' "$i")
+            inner=$(printf 'FIX38_CHUNK_%02d.bin' "$i")
+            echo "Fetching FIX38 part $i / 10"
+            gdown "https://drive.google.com/uc?id=${id}" -O "$part" --quiet
+            unzip -t "$part" > /dev/null
+            unzip -p "$part" "$inner" >> "$out"
+            i=$((i+1))
+          done
+          test "$(stat -c '%s' "$out")" -eq 634927428
+          echo "c45d600b62b13d85604ea4fc1518d362d8f4cf2d167ab62adb2cc9bfef487b79  $out" | sha256sum -c
+          unzip -t "$out" > /tmp/luanti-fix38/apk-zip-test.txt
+          echo "FIX38 full original APK reconstructed and integrity verified"
+      - name: Publish exact FIX38 APK on GitHub Releases
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          tag="luanti-fix38-gothic-cathedral-entrycount-20261109"
+          file="/tmp/luanti-fix38/COD4-CATHEDRAL-FIX38-ARM64.apk"
+          if ! gh release view "$tag" > /dev/null 2>&1; then
+            gh release create "$tag" --target main --title "Luanti FIX38 - Cathedral startup asset fix (ARM64)" --prerelease --notes "FIX38 signed Android APK (634927428 bytes). SHA256: c45d600b62b13d85604ea4fc1518d362d8f4cf2d167ab62adb2cc9bfef487b79. Addresses compact asset entry count issue seen in FIX37. Android runtime not yet tested on device."
+          fi
+          gh release upload "$tag" "$file" --clobber
+          gh release view "$tag" --json url,assets
