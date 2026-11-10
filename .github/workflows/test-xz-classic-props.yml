@@ -4,6 +4,8 @@ on:
     paths:
       - "mods/xz_classic_props/**"
       - "tests/test_xz_classic_props.lua"
+      - "tests/test_luanti_wallbuy_converter.py"
+      - "tools/create_luanti_wallbuy_gun_only_glbs.py"
       - ".github/workflows/test-xz-classic-props.yml"
   pull_request:
     paths:
@@ -33,3 +35,4 @@ jobs:
           luac -p mods/xz_classic_props/developer.lua
           lua tests/test_xz_classic_props.lua
           lua tests/test_xz_classic_editor.lua
+          python3 tests/test_luanti_wallbuy_converter.py
