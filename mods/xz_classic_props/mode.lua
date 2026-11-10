@@ -285,14 +285,14 @@ local function open_editor(p)
     local label = playing and "PLAY TEST ACTIVE" or "EDIT MODE"
     local button = playing and "STOP_TEST" or "PLAY_TEST"
     core.show_formspec(p:get_player_name(),"xzcp:editor",
-        "formspec_version[4]size[9.5,6.2]"
+        "formspec_version[4]size[9.5,7.2]"
         .. "label[0.5,0.5;XZIEL ZOMBIES - MAP EDITOR]"
         .. "label[0.5,1.25;" .. label .. "]"
         .. "label[0.5,1.85;Utility markers: " .. count .. "]"
         .. "button[0.5,2.65;8.5,1.2;toggle;" .. button .. "]"
         .. "button[0.5,4.1;8.5,0.8;open_blocks;MAP BLOCKS - CATEGORIES]"
         .. (playing and "button[0.5,5.05;8.5,0.7;developer;DEVELOPER]" or "")
-        .. "button_exit[2.5,5.25;4.5,0.65;close;CLOSE]")
+        .. "button_exit[2.5,6.15;4.5,0.65;close;CLOSE]")
 end
 api.open_editor = open_editor
 core.register_craftitem("xz_classic_props:map_editor", {
