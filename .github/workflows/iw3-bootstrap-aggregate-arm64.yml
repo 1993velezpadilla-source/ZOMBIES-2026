@@ -93,6 +93,18 @@ jobs:
           # Fail the audit if the newly integrated genuine XAnim TU was not built.
           printf '%s\n' "${objects[@]}" | grep -q '/iw3_xanim.dir/'
           printf '%s\n' "${objects[@]}" | grep -q '/iw3_sv_main.dir/'
+          # Regression gate: verify the authentic orientation-math TU provides its
+          # functions on AArch64; a successful object compile alone is insufficient.
+          angle_object=$(printf '%s\n' "${objects[@]}" | grep '/iw3_math_anglevectors.dir/' | head -n 1)
+          test -n "$angle_object"
+          "$nm" --defined-only --demangle "$angle_object" > "$RUNNER_TEMP/bootstrap-angle-providers.txt"
+          for symbol in AngleVectors AnglesToAxis; do
+            grep -Fq "$symbol(" "$RUNNER_TEMP/bootstrap-angle-providers.txt" || {
+              echo "Missing genuine ARM64 orientation provider: $symbol" >&2
+              exit 1
+            }
+          done
+          echo 'IW3_ORIGINAL_ANGLE_PROVIDERS_PRESENT=true (NOT LINKED GAME)'
           # Verify genuine database memory TU is compiled, and inspect its real providers.
           db_object=$(printf '%s\n' "${objects[@]}" | grep '/iw3_db_memory.dir/' | head -n 1)
           test -n "$db_object"
@@ -142,6 +154,7 @@ jobs:
             ${{ runner.temp }}/bootstrap-undefined-raw.txt
             ${{ runner.temp }}/bootstrap-defined-raw.txt
             ${{ runner.temp }}/bootstrap-android-platform-providers.txt
+            ${{ runner.temp }}/bootstrap-angle-providers.txt
             ${{ runner.temp }}/bootstrap-db-memory-providers.txt
             ${{ runner.temp }}/bootstrap-script-memorytree-providers.txt
             ${{ runner.temp }}/bootstrap-unresolved-symbols.txt
