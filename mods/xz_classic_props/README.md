@@ -19,7 +19,7 @@ Place Door Buy; enter its price (0–50000), confirm. Re-tap in EDIT to change. 
 Place Player Spawn Marker where the player should appear during PLAY and on respawn. Zombie Spawns mark positions for the later round AI; they do not yet generate live zombies.
 
 ## PLAY / STOP test
-Use the map editor item or /xz_editor, then tap PLAY TEST. All map-helper blocks swap into hidden runtime variants: lights keep emitting, barriers keep blocking, player/zombie spawn positions remain registered. The player moves to Player Spawn. You can test perk, points, door and weapon purchases.
+Use the map editor item or /xz_editor. Tap MAP BLOCKS - CATEGORIES for four sections (Machines, Purchases, Spawns and Utilities); tapping any block gives a placeable item. Then tap PLAY TEST. All map-helper blocks swap into hidden runtime variants: lights keep emitting, barriers keep blocking, player/zombie spawn positions remain registered. The player moves to Player Spawn. You can test perk, points, door and weapon purchases.
 STOP TEST restores temporarily bought doors, starting health, points, main inventory, perk flags and player position. This is NOT a full snapshot of arbitrary block edits. Do not dig or build during PLAY until complete world duplication is implemented.
 The source now includes an experimental low-load wave controller: real marked spawn points, up to 12 simple enemies active, basic chase/attack, health/damage, points for hits and kills, and increasing rounds. This is NOT the final zombie AI, animation or pathfinding and is not yet tested in Android. Exported-map conversion and signed APK integration remain pending.
 

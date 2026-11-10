@@ -284,12 +284,13 @@ local function open_editor(p)
     local label = playing and "PLAY TEST ACTIVE" or "EDIT MODE"
     local button = playing and "STOP_TEST" or "PLAY_TEST"
     core.show_formspec(p:get_player_name(),"xzcp:editor",
-        "formspec_version[4]size[9.5,5]"
+        "formspec_version[4]size[9.5,6.2]"
         .. "label[0.5,0.5;XZIEL ZOMBIES - MAP EDITOR]"
         .. "label[0.5,1.25;" .. label .. "]"
         .. "label[0.5,1.85;Utility markers: " .. count .. "]"
         .. "button[0.5,2.65;8.5,1.2;toggle;" .. button .. "]"
-        .. "button_exit[2.5,4.1;4.5,0.65;close;CLOSE]")
+        .. "button[0.5,4.1;8.5,0.8;open_blocks;MAP BLOCKS - CATEGORIES]"
+        .. "button_exit[2.5,5.25;4.5,0.65;close;CLOSE]")
 end
 core.register_craftitem("xz_classic_props:map_editor", {
     description = "XZIEL Map Editor - PLAY / STOP",
@@ -309,6 +310,10 @@ core.register_chatcommand("xz_editor", {
 })
 core.register_on_player_receive_fields(function(p, formname, fields)
     if formname ~= "xzcp:editor" then return false end
+    if fields.open_blocks and api.can_build(p) and api.is_editing() then
+        api.open_blocks(p)
+        return true
+    end
     if fields.toggle and api.can_build(p) then
         if playing then api.stop_test(p) else api.start_test(p) end
         open_editor(p)
@@ -336,4 +341,88 @@ core.register_on_joinplayer(function(p)
             if player and playing then move_to_spawn(player) end
         end)
     end
+end)
+
+
+-- Touch-friendly built-in palette: no hunting through all VoxeLibre blocks.
+local categories={
+    machines={
+        "power_switch","perk_vitality","perk_revive","perk_speed",
+        "perk_double","mystery_box","pack_a_punch","barricade",
+        "round_display",
+    },
+    purchases={"wall_buy","buyable_door"},
+    spawns={"player_spawn_marker","zombie_spawn_marker"},
+    utilities={
+        "utility_barrier","utility_light_5","utility_light_10",
+        "utility_light_14",
+    },
+}
+local category_names={"machines","purchases","spawns","utilities"}
+local selected_category={}
+function api.open_blocks(p,requested)
+    if not api.can_build(p) or not api.is_editing() then return end
+    local user=p:get_player_name()
+    local cat = categories[requested] and requested
+        or selected_category[user] or "machines"
+    selected_category[user]=cat
+    local f={"formspec_version[4]size[13.2,11.4]",
+        "label[0.55,0.45;XZIEL MAP BLOCKS - "
+            .. core.formspec_escape(cat:upper()) .. "]"}
+    for i,name in ipairs(category_names) do
+        f[#f+1]=("button[%.2f,1.05;2.95,0.65;cat_%s;%s]"):format(
+            0.45+(i-1)*3.15,name,core.formspec_escape(name:upper()))
+    end
+    for i,id in ipairs(categories[cat]) do
+        local name="xz_classic_props:"..id
+        local def=core.registered_items[name]
+        if def then
+            local col=(i-1)%4
+            local row=math.floor((i-1)/4)
+            local x=.55+col*3.16
+            local y=2.0+row*2.67
+            f[#f+1]=("item_image_button[%.2f,%.2f;1.7,1.7;%s;give_%s;]"):format(
+                x,y,name,id)
+            local label=(def.description or id):gsub("\n.*","")
+            if #label>24 then label=label:sub(1,21).."..." end
+            f[#f+1]=("label[%.2f,%.2f;%s]"):format(
+                x,y+1.85,core.formspec_escape(label))
+        end
+    end
+    f[#f+1]="button[0.5,10.35;12.1,0.7;back_editor;BACK TO EDITOR]"
+    core.show_formspec(user,"xzcp:blocks",table.concat(f))
+end
+core.register_on_player_receive_fields(function(p,formname,fields)
+    if formname ~= "xzcp:blocks" then return false end
+    if not api.can_build(p) or not api.is_editing() then return true end
+    if fields.back_editor then
+        open_editor(p)
+        return true
+    end
+    for _,cat in ipairs(category_names) do
+        if fields["cat_"..cat] then
+            api.open_blocks(p,cat)
+            return true
+        end
+    end
+    local cat=selected_category[p:get_player_name()] or "machines"
+    for _,id in ipairs(categories[cat]) do
+        if fields["give_"..id] then
+            local name="xz_classic_props:"..id
+            local inv=p:get_inventory()
+            if core.registered_items[name] and inv
+                and inv:room_for_item("main",name) then
+                inv:add_item("main",name)
+                api.tell(p,"Added " .. id .. " to your inventory.")
+            else
+                api.tell(p,"Inventory full or unknown block.")
+            end
+            api.open_blocks(p,cat)
+            return true
+        end
+    end
+    return true
+end)
+core.register_on_leaveplayer(function(p)
+    selected_category[p:get_player_name()]=nil
 end)
