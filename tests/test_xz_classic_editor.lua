@@ -1,6 +1,6 @@
 -- Focused Lua 5.1 test of the editor, price saving and PLAY/STOP restoration.
 local callbacks, nodes, items, players, node_meta = {}, {}, {}, {}, {}
-local forms, messages, world = {}, {}, {}
+local forms, messages, world, spawned = {}, {}, {}, {}
 local function key(p) return p.x..","..p.y..","..p.z end
 local function meta()
     local ints, strings = {}, {}
@@ -40,7 +40,10 @@ minetest={
     end,
     register_privilege=function() end,
     register_chatcommand=function() end,
-    register_on_joinplayer=function(f) callbacks.join=f end,
+    register_on_joinplayer=function(f)
+        callbacks.join=callbacks.join or {}
+        table.insert(callbacks.join,f)
+    end,
     register_on_dieplayer=function(f) callbacks.die=f end,
     register_on_player_hpchange=function() end,
     register_on_placenode=function(f)
@@ -57,6 +60,28 @@ minetest={
     register_lbm=function() end,
     register_entity=function(n,d) callbacks.entity=d end,
     register_globalstep=function(f) callbacks.globalstep=f end,
+    add_entity=function(pos,id)
+        assert(id=="xz_classic_props:test_zombie")
+        local ref={pos=pos,valid=true,velocity={x=0,y=0,z=0}}
+        function ref:is_valid() return self.valid end
+        function ref:set_properties(props) self.hp_max=props.hp_max end
+        function ref:set_hp(h) self.hp=h end
+        function ref:set_acceleration(accel) self.accel=accel end
+        function ref:get_pos() return self.pos end
+        function ref:get_velocity() return self.velocity end
+        function ref:set_velocity(vel) self.velocity=vel end
+        function ref:remove()
+            if not self.valid then return end
+            self.valid=false
+            self.entity:on_deactivate()
+        end
+        local entity=setmetatable({object=ref},{__index=callbacks.entity})
+        ref.entity=entity
+        entity:on_activate()
+        spawned[#spawned+1]=ref
+        return ref
+    end,
+
     check_player_privs=function() return false end,
     is_singleplayer=function() return true end,
     formspec_escape=function(s) return s end,
@@ -120,7 +145,7 @@ items["arsenal:m9"]={description="M9",groups={weapon=1}}
 
 dofile("mods/xz_classic_props/init.lua")
 local api=xz_classic_props
-callbacks.join(p)
+for _,cb in ipairs(callbacks.join) do cb(p) end
 assert(api.get_points(p)==500)
 local function place(pos,id)
     minetest.set_node(pos,{name="xz_classic_props:"..id})
@@ -168,12 +193,25 @@ assert(minetest.get_node_or_nil(barrier).name=="xz_classic_props:utility_barrier
 assert(nodes["xz_classic_props:utility_barrier_hidden"].walkable==true)
 assert(nodes["xz_classic_props:utility_light_14_hidden"].light_source==14)
 assert(p.pos.x==3 and p.pos.y==1.5,"PLAY should move player to selected marker")
+assert(api.wave_status().pending==6,"Round 1 should queue six zombies")
+callbacks.globalstep(1.1)
+assert(#spawned==1,"marked zombie spawner must produce an enemy")
+assert(api.wave_status().alive==1)
+local beforeHit=api.get_points(p)
+for _=1,3 do
+    spawned[1].entity:on_punch(p,0,{damage_groups={fleshy=40}},nil,40)
+end
+assert(api.wave_status().alive==0,"zombie is killed by source weapon damage")
+assert(api.get_points(p)>beforeHit,"hits and kill must award points")
+p.m:set_int("xzcp:points",5000) -- isolate purchase calculations after combat
+
 nodes["xz_classic_props:wall_buy"].on_rightclick(wall,{},p,{})
 assert(api.get_points(p)==3550)
 assert(#bag.list==1 and bag.list[1]=="arsenal:m9")
 nodes["xz_classic_props:buyable_door"].on_rightclick(door,{},p,{})
 assert(api.get_points(p)==2800 and minetest.get_node_or_nil(door).name=="air")
 assert(api.stop_test(p))
+assert(not api.wave_status().active)
 assert(api.is_editing())
 assert(minetest.get_node_or_nil(zombieSpawn).name=="xz_classic_props:zombie_spawn_marker")
 assert(minetest.get_node_or_nil(barrier).name=="xz_classic_props:utility_barrier")

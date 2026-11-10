@@ -41,7 +41,10 @@ minetest={
     registered_items=items,
     registered_nodes=nodes,
     register_node=function(name, def) nodes[name]=def end,
-    register_on_joinplayer=function(cb) callbacks.join=cb end,
+    register_on_joinplayer=function(cb)
+        callbacks.join=callbacks.join or {}
+        table.insert(callbacks.join,cb)
+    end,
     register_on_dieplayer=function(cb) callbacks.die=cb end,
     register_on_player_hpchange=function(cb, modifier) assert(modifier); callbacks.hp=cb end,
     register_on_placenode=function(cb) callbacks.place=cb end,
@@ -89,7 +92,7 @@ local count=0
 for _ in pairs(nodes) do count=count+1 end
 assert(count==23, "23 nodes required, got " .. count)
 local player=newplayer("tester")
-callbacks.join(player)
+for _,cb in ipairs(callbacks.join) do cb(player) end
 local api=xz_classic_props
 assert(api.get_points(player)==500)
 local pos={x=0,y=0,z=0}

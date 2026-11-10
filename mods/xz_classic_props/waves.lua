@@ -5,6 +5,7 @@ local api = xz_classic_props
 local MAX_ALIVE = 12
 local active, pending, alive, tick, wave_wait = false, 0, 0, 0, 0
 local entities = {}
+local no_spawn_warned = false
 
 local function online()
     local players = {}
@@ -160,7 +161,6 @@ function api.wave_status()
     }
 end
 
-local no_spawn_warned = false
 core.register_globalstep(function(dtime)
     if not active or not api.is_playing() then return end
     tick = tick + dtime
