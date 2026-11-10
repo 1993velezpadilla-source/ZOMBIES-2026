@@ -63,10 +63,13 @@ function api.refresh_wall_preview(pos,player)
     if mesh then
         -- The already-installed Arsenal mod provides one unique gun-only GLB
         -- per weapon (no FPS arms). The native client GLB loader handles it.
+        -- Source guns can contain many separate mesh/material buffers.
+        -- The verified Arsenal supplies this material for every gun buffer.
+        local materials={}
+        for i=1,64 do materials[i]="arsenal_flat_metal.png" end
         obj:set_properties({
             visual="mesh", mesh=mesh,
-            textures={"arsenal_flat_metal.png","arsenal_flat_metal.png",
-                      "arsenal_flat_metal.png","arsenal_flat_metal.png"},
+            textures=materials,
             visual_size={x=0.10,y=0.10,z=0.10},
             physical=false,pointable=false,collide_with_objects=false,
             makes_footstep_sound=false,
@@ -87,6 +90,18 @@ function api.refresh_wall_preview(pos,player)
     return true
 end
 core.override_item("xz_classic_props:wall_buy",{
+    -- A thin non-solid mount instead of a giant machine block.
+    -- The entity is the visible gun, the mount is the click target.
+    drawtype="nodebox",
+    node_box={type="fixed",fixed={-0.41,-0.23,0.435,0.41,0.23,0.49}},
+    selection_box={type="fixed",fixed={-0.49,-0.38,-0.5,0.49,0.38,0.5}},
+    collision_box={type="fixed",fixed={0,0,0,0,0,0}},
+    walkable=false,
+    pointable=true,
+    sunlight_propagates=true,
+    tiles={"xzcp_wall_buy.png"},
+    inventory_image="xzcp_wall_buy.png",
+    wield_image="xzcp_wall_buy.png",
     on_destruct=function(pos)
         for _,obj in ipairs(find_preview(pos)) do obj:remove() end
     end,

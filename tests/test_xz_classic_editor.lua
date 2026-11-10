@@ -312,6 +312,10 @@ for _,id in ipairs(ids) do
     }
 end
 local all_models=api.catalog_wall_models(catalog,items)
+assert(nodes["xz_classic_props:wall_buy"].walkable==false,
+    "Wall Buy mount must not block passage")
+assert(nodes["xz_classic_props:wall_buy"].drawtype=="nodebox",
+    "Wall Buy should use small wall mount rather than full cabinet")
 local verified=0
 for _,id in ipairs(ids) do
     local key="arsenal:"..id
@@ -327,6 +331,7 @@ for _,id in ipairs(ids) do
     assert(obj:is_valid() and obj.visual=="mesh","not rendered as 3D: "..id)
     assert(obj.mesh=="arsenal_"..id.."_gun.glb","wrong real gun mesh: "..id)
     assert(obj.textures[1]=="arsenal_flat_metal.png","source gun material mismatch")
+    assert(#obj.textures==64,"all submeshes receive the source metal texture")
 end
 -- A missing gun MUST fall back to its own item, not reuse the AK.
 items["ak47dev:m9"]={description="legacy M9",groups={weapon=1}}
