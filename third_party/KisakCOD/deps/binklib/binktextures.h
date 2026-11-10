@@ -68,6 +68,16 @@ Should drop in really quickly and it hides a ton of platform specific ugliness!
 
 #include "bink.h"
 
+#if defined(__ANDROID__)
+// The original Bink texture API exposes D3D9 handle types in declarations.
+// Android has no d3d9.h: retain opaque pointer-sized handles for compilation
+// only. This does NOT implement Bink playback or an Android renderer.
+struct IDirect3DTexture9;
+struct IDirect3DDevice9;
+typedef IDirect3DTexture9 *LPDIRECT3DTEXTURE9;
+typedef IDirect3DDevice9 *LPDIRECT3DDEVICE9;
+#endif
+
 #if defined(__RADPS3__) || defined(__RADWII__) || defined(__RADNGC__)
   #define if_used_3d_device // no global 3D device handle on ps3, wii or ngc
 #elif defined(__RADXBOX__)
