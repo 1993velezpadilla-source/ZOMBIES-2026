@@ -107,10 +107,15 @@ original_tu(iw3_ui_shared ui/ui_shared.cpp)
 # Genuine KisakCOD profiling provider. Win32-only inactive QPC code is guarded
 # in the original TU for Android; this does not establish gameplay readiness.
 original_tu(iw3_profile universal/profile.cpp)
+# Android thread-local implementation of original Sys_SetValue/GetValue API.
+add_library(iw3_android_thread_values OBJECT "${CMAKE_CURRENT_LIST_DIR}/iw3_android_thread_values.cpp")
+target_include_directories(iw3_android_thread_values PRIVATE ${COMMON_INCLUDES})
+target_compile_definitions(iw3_android_thread_values PRIVATE KISAK_SP=1 KISAK_OPENAL=1)
+target_compile_options(iw3_android_thread_values PRIVATE -fms-extensions -Wall -Wextra -Werror)
 original_tu(iw3_client_main client/cl_main.cpp)
 target_include_directories(iw3_client_main BEFORE PRIVATE "${PORT}/common_compat")
 target_compile_definitions(iw3_client_main PRIVATE IW3_ANDROID_DISABLE_SCRIPT_DEBUGGER=1 IW3_ANDROID_COMMON_HEADER_ONLY_OPENAL=1)
-add_custom_target(iw3_sp_bootstrap_compile DEPENDS iw3_common iw3_cmd iw3_math iw3_q_shared iw3_q_parse iw3_memfile iw3_dvar iw3_dvar_cmds iw3_files iw3_fileaccess iw3_filesystem iw3_unzip iw3_com_memory iw3_android_win32_vm iw3_android_platform iw3_db_load iw3_db_registry iw3_db_memory iw3_client_input iw3_screen iw3_sv_ccmds iw3_sv_game iw3_sv_init iw3_sv_main iw3_cm_load iw3_cm_load_obj iw3_xanim iw3_script_memorytree iw3_script_stringlist iw3_stringed_hooks iw3_bg_weapons iw3_ui_main iw3_ui_shared iw3_profile iw3_client_main)
+add_custom_target(iw3_sp_bootstrap_compile DEPENDS iw3_common iw3_cmd iw3_math iw3_q_shared iw3_q_parse iw3_memfile iw3_dvar iw3_dvar_cmds iw3_files iw3_fileaccess iw3_filesystem iw3_unzip iw3_com_memory iw3_android_win32_vm iw3_android_platform iw3_db_load iw3_db_registry iw3_db_memory iw3_client_input iw3_screen iw3_sv_ccmds iw3_sv_game iw3_sv_init iw3_sv_main iw3_cm_load iw3_cm_load_obj iw3_xanim iw3_script_memorytree iw3_script_stringlist iw3_stringed_hooks iw3_bg_weapons iw3_ui_main iw3_ui_shared iw3_profile iw3_android_thread_values iw3_client_main)
 
 # Explicit, opt-in genuine link probe. This target deliberately fails until all
 # original engine dependencies are provided; it must NEVER be packaged as an APK.
@@ -150,6 +155,7 @@ add_library(iw3_sp_link_probe SHARED
   $<TARGET_OBJECTS:iw3_ui_main>
   $<TARGET_OBJECTS:iw3_ui_shared>
   $<TARGET_OBJECTS:iw3_profile>
+  $<TARGET_OBJECTS:iw3_android_thread_values>
   $<TARGET_OBJECTS:iw3_client_main>
 )
 target_link_libraries(iw3_sp_link_probe PRIVATE z)
