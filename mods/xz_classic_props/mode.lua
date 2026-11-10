@@ -252,6 +252,7 @@ function api.start_test(p)
     show_markers(false)
     for _, player in ipairs(core.get_connected_players()) do
         move_to_spawn(player)
+        if api.grant_developer_tool then api.grant_developer_tool(player) end
     end
     api.tell(p, "PLAY TEST started. Markers invisible; barriers and lights still work.")
     if not player_spawn() then

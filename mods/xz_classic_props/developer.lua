@@ -15,6 +15,35 @@ local function flags(p)
     return options[name]
 end
 local function notify(p,msg) api.tell(p,"[DEV] "..msg) end
+local TOOL="xz_classic_props:developer_tool"
+core.register_craftitem(TOOL,{
+    description="DEVELOPER - tap during PLAY",
+    inventory_image="xzcp_map_editor.png^[colorize:#dba848:80",
+    stack_max=1,
+    groups={not_in_creative_inventory=1},
+    on_use=function(stack,p)
+        api.open_developer(p)
+        return stack
+    end,
+    on_secondary_use=function(stack,p)
+        api.open_developer(p)
+        return stack
+    end,
+})
+function api.grant_developer_tool(p)
+    if not allowed(p) then return false end
+    local inv=p:get_inventory()
+    if not inv or not inv:room_for_item("main",TOOL) then return false end
+    if inv.contains_item and inv:contains_item("main",TOOL) then return true end
+    local inventory=inv:get_list("main") or {}
+    for _,stack in ipairs(inventory) do
+        if stack == TOOL or (stack.get_name and stack:get_name()==TOOL) then
+            return true
+        end
+    end
+    inv:add_item("main",TOOL)
+    return true
+end
 
 local function label(id)
     local def=core.registered_items[id] or {}

@@ -240,6 +240,7 @@ assert(nodes["xz_classic_props:utility_barrier_hidden"].walkable==true)
 assert(nodes["xz_classic_props:utility_light_14_hidden"].light_source==14)
 assert(p.pos.x==3 and p.pos.y==1.5,"PLAY should move player to selected marker")
 assert(api.wave_status().pending==6,"Round 1 should queue six zombies")
+assert(bag.list[1]=="xz_classic_props:developer_tool","Developer touch hotbar tool granted in PLAY")
 submit("xzcp:editor",{developer=true})
 assert(forms.maker.name=="xzcp:developer","developer button should be visible in PLAY")
 submit("xzcp:developer",{points_1000=true})
@@ -255,7 +256,7 @@ assert(gunstack:get_meta():get_int("ar_clip")==999,"developer ammo refills Arsen
 submit("xzcp:developer",{choose_weapon=true})
 assert(forms.maker.name=="xzcp:developer_weapons","developer weapon selector opens")
 submit("xzcp:developer_weapons",{weapons="CHG:1"})
-assert(#bag.list>0,"developer can choose weapon")
+assert(#bag.list>=2,"developer can choose weapon")
 p.m:set_int("xzcp:points",5000) -- isolate original combat purchases
 
 for _,f in ipairs(callbacks.globalsteps) do f(1.1) end
@@ -271,7 +272,7 @@ p.m:set_int("xzcp:points",5000) -- isolate purchase calculations after combat
 
 nodes["xz_classic_props:wall_buy"].on_rightclick(wall,{},p,{})
 assert(api.get_points(p)==3550)
-assert(#bag.list==1 and bag.list[1]=="arsenal:m9")
+assert(bag.list[#bag.list]=="arsenal:m9","wall buy awards selected M9 weapon")
 nodes["xz_classic_props:buyable_door"].on_rightclick(door,{},p,{})
 assert(api.get_points(p)==2800 and minetest.get_node_or_nil(door).name=="air")
 assert(api.stop_test(p))
