@@ -75,7 +75,7 @@ minetest={
         function ref:is_valid() return self.valid end
         function ref:get_luaentity() return self.entity end
         function ref:set_yaw(v) self.yaw=v end
-        function ref:set_properties(props) self.hp_max=props.hp_max end
+        function ref:set_properties(props) for k,v in pairs(props) do self[k]=v end end
         function ref:set_hp(h) self.hp=h end
         function ref:set_acceleration(accel) self.accel=accel end
         function ref:get_pos() return self.pos end
