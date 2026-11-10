@@ -28,11 +28,16 @@ int main() {
     assert(Sys_WaitForSingleObjectTimeout(&automatic,0));
     assert(!Sys_WaitForSingleObjectTimeout(&automatic,0));
     std::atomic<int> done{0};
-    std::thread a([&]{Sys_WaitForSingleObject(&automatic);++done;});
-    std::thread b([&]{Sys_WaitForSingleObject(&automatic);++done;});
-    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    std::atomic<int> ready{0};
+    std::thread a([&]{++ready; if (Sys_WaitForSingleObjectTimeout(&automatic,2000)) ++done;});
+    std::thread b([&]{++ready; if (Sys_WaitForSingleObjectTimeout(&automatic,2000)) ++done;});
+    auto deadline=std::chrono::steady_clock::now()+std::chrono::seconds(1);
+    while (ready.load()!=2 && std::chrono::steady_clock::now()<deadline)
+        std::this_thread::yield();
+    assert(ready==2);
     Sys_SetEvent(&automatic);
-    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    while (done.load()!=1 && std::chrono::steady_clock::now()<deadline)
+        std::this_thread::yield();
     assert(done==1);
     Sys_SetEvent(&automatic);
     a.join(); b.join();
