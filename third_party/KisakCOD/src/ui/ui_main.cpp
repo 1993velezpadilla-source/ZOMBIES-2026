@@ -2657,7 +2657,7 @@ char *__cdecl UI_ReplaceConversionInt(const char *sourceString, int replaceInt)
     *(_QWORD *)&v5.args[3] = v2;
     *(_QWORD *)&v5.args[5] = v2;
     *(_QWORD *)&v5.args[7] = v2;
-    snprintf(v6, ARRAYSIZE(v6), "%d", replaceInt);
+    snprintf(v6, sizeof(v6), "%d", replaceInt);
     v5.argCount = 1;
     v5.args[0] = v6;
     UI_ReplaceConversions(sourceString, &v5, v7, 0x400u);
