@@ -364,6 +364,7 @@ local modpath = core.get_modpath("xz_classic_props")
 dofile(modpath .. "/mode.lua")
 dofile(modpath .. "/builder.lua")
 dofile(modpath .. "/waves.lua")
+dofile(modpath .. "/wall_models.lua")
 dofile(modpath .. "/decorations.lua")
 dofile(modpath .. "/developer.lua")
 

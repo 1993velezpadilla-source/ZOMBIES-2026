@@ -1,5 +1,5 @@
--- Original Zombies world decorations. Reuses stock registered weapon item visuals,
--- without copying first-person GLB files or weapon animation logic.
+-- Original Zombies world decorations. Gun-only GLB wall previews are dynamically
+-- selected from the registered Arsenal manifest. Never copy or substitute AK meshes.
 local core=minetest
 local api=xz_classic_props
 local preview_name="xz_classic_props:wall_weapon_preview"
@@ -54,16 +54,35 @@ function api.refresh_wall_preview(pos,player)
     local def=core.registered_items[id]
     if not def or not def.groups or def.groups.weapon~=1 then return false end
     local dx,dz=offset(n,player)
-    local at={x=pos.x+dx*0.53,y=pos.y+0.12,z=pos.z+dz*0.53}
+    local at={x=pos.x+dx*0.69,y=pos.y+0.12,z=pos.z+dz*0.69}
     local obj=core.add_entity(at,preview_name)
     if not obj then return false end
     local lua=obj:get_luaentity()
     if lua then lua.wall_key=core.pos_to_string(pos) end
-    obj:set_properties({
-        visual="wielditem",textures={id},visual_size={x=0.44,y=0.44},
-        physical=false,pointable=false,
-    })
-    -- World-facing item miniature: actual full first-person GLB is NOT duplicated.
+    local mesh = api.wall_model_for and api.wall_model_for(id)
+    if mesh then
+        -- The already-installed Arsenal mod provides one unique gun-only GLB
+        -- per weapon (no FPS arms). The native client GLB loader handles it.
+        obj:set_properties({
+            visual="mesh", mesh=mesh,
+            textures={"arsenal_flat_metal.png","arsenal_flat_metal.png",
+                      "arsenal_flat_metal.png","arsenal_flat_metal.png"},
+            visual_size={x=0.10,y=0.10,z=0.10},
+            physical=false,pointable=false,collide_with_objects=false,
+            makes_footstep_sound=false,
+        })
+        -- Display an unmoving source mesh; avoid playing full FPS animations.
+        if obj.set_animation then
+            obj:set_animation({x=0,y=0},0,0,false)
+        end
+    else
+        -- Never use a different gun (especially the AK) as a substitute.
+        -- A legacy item with no source model retains its OWN icon as fallback.
+        obj:set_properties({
+            visual="wielditem",textures={id},visual_size={x=0.44,y=0.44},
+            physical=false,pointable=false,collide_with_objects=false,
+        })
+    end
     if core.dir_to_yaw then obj:set_yaw(core.dir_to_yaw({x=dx,y=0,z=dz}) + math.pi/2) end
     return true
 end

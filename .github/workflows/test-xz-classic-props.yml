@@ -28,6 +28,7 @@ jobs:
           luac -p mods/xz_classic_props/mode.lua
           luac -p mods/xz_classic_props/builder.lua
           luac -p mods/xz_classic_props/waves.lua
+          luac -p mods/xz_classic_props/wall_models.lua
           luac -p mods/xz_classic_props/decorations.lua
           luac -p mods/xz_classic_props/developer.lua
           lua tests/test_xz_classic_props.lua

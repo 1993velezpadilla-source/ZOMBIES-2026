@@ -302,4 +302,40 @@ submit("xzcp:blocks",{cat_purchases=true})
 assert(forms.maker.text:find("WALL BUY") or forms.maker.text:find("Wall Buy"))
 submit("xzcp:blocks",{give_wall_buy=true})
 assert(bag.list[1]=="xz_classic_props:wall_buy","catalog should give requested block")
+local catalog={schema_version=1,weapons={}}
+local ids={"ak47","m4","m16","g36c","mp44","g3","m14","mp5","ak74u","skorpion","uzi","p90","w1200","m1014","m249","rpd","m60","m40a3","m21","dragunov","r700","barrett","usp","m9","m1911","deagle","deaglegold","rpg"}
+for _,id in ipairs(ids) do
+    items["arsenal:"..id]={description=id,groups={weapon=1}}
+    catalog.weapons[#catalog.weapons+1]={
+        id=id,gun_model="arsenal_"..id.."_gun.glb",
+        hands_model="arsenal_"..id.."_hands.glb"
+    }
+end
+local all_models=api.catalog_wall_models(catalog,items)
+local verified=0
+for _,id in ipairs(ids) do
+    local key="arsenal:"..id
+    assert(all_models[key]=="arsenal_"..id.."_gun.glb","wrong GLB mapping for "..id)
+    verified=verified+1
+end
+assert(verified==28,"Expected 28 distinct original source gun GLBs")
+api.wall_models=all_models
+for _,id in ipairs(ids) do
+    minetest.get_meta(wall):set_string("weapon","arsenal:"..id)
+    assert(api.refresh_wall_preview(wall,p),"3D preview must spawn for "..id)
+    local obj=previews[#previews]
+    assert(obj:is_valid() and obj.visual=="mesh","not rendered as 3D: "..id)
+    assert(obj.mesh=="arsenal_"..id.."_gun.glb","wrong real gun mesh: "..id)
+    assert(obj.textures[1]=="arsenal_flat_metal.png","source gun material mismatch")
+end
+-- A missing gun MUST fall back to its own item, not reuse the AK.
+items["ak47dev:m9"]={description="legacy M9",groups={weapon=1}}
+minetest.get_meta(wall):set_string("weapon","ak47dev:m9")
+assert(api.refresh_wall_preview(wall,p))
+assert(previews[#previews].visual=="wielditem")
+assert(previews[#previews].textures[1]=="ak47dev:m9")
+-- Explicitly reject tainted or invented model filenames.
+local bad={schema_version=1,weapons={{id="m9",gun_model="../ak47.glb",hands_model="arsenal_m9_hands.glb"}}}
+assert(next(api.catalog_wall_models(bad,items))==nil)
+print("PASS: 28 unique Arsenal 3D GLB Wall Buy previews, safely validated")
 print("PASS: maker wall selector, custom prices, player spawn, marker hiding, barrier collision and PLAY/STOP rollback")
