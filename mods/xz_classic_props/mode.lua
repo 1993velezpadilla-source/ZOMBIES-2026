@@ -263,6 +263,7 @@ end
 function api.stop_test(p)
     if not api.can_build(p) or not playing then return false end
     if api.waves_stop then api.waves_stop() end
+    if api.reset_developer then api.reset_developer() end
     playing=false
     storage:set_int(MODE_KEY,0)
     restore_doors()
@@ -290,8 +291,10 @@ local function open_editor(p)
         .. "label[0.5,1.85;Utility markers: " .. count .. "]"
         .. "button[0.5,2.65;8.5,1.2;toggle;" .. button .. "]"
         .. "button[0.5,4.1;8.5,0.8;open_blocks;MAP BLOCKS - CATEGORIES]"
+        .. (playing and "button[0.5,5.05;8.5,0.7;developer;DEVELOPER]" or "")
         .. "button_exit[2.5,5.25;4.5,0.65;close;CLOSE]")
 end
+api.open_editor = open_editor
 core.register_craftitem("xz_classic_props:map_editor", {
     description = "XZIEL Map Editor - PLAY / STOP",
     inventory_image = "xzcp_map_editor.png",
@@ -310,6 +313,10 @@ core.register_chatcommand("xz_editor", {
 })
 core.register_on_player_receive_fields(function(p, formname, fields)
     if formname ~= "xzcp:editor" then return false end
+    if fields.developer and api.is_playing() and api.can_build(p) then
+        if api.open_developer then api.open_developer(p) end
+        return true
+    end
     if fields.open_blocks and api.can_build(p) and api.is_editing() then
         api.open_blocks(p)
         return true
@@ -353,12 +360,13 @@ local categories={
     },
     purchases={"wall_buy","buyable_door"},
     spawns={"player_spawn_marker","zombie_spawn_marker"},
+    tools={"map_editor"},
     utilities={
         "utility_barrier","utility_light_5","utility_light_10",
         "utility_light_14",
     },
 }
-local category_names={"machines","purchases","spawns","utilities"}
+local category_names={"machines","purchases","spawns","utilities","tools"}
 local selected_category={}
 function api.open_blocks(p,requested)
     if not api.can_build(p) or not api.is_editing() then return end
@@ -370,8 +378,8 @@ function api.open_blocks(p,requested)
         "label[0.55,0.45;XZIEL MAP BLOCKS - "
             .. core.formspec_escape(cat:upper()) .. "]"}
     for i,name in ipairs(category_names) do
-        f[#f+1]=("button[%.2f,1.05;2.95,0.65;cat_%s;%s]"):format(
-            0.45+(i-1)*3.15,name,core.formspec_escape(name:upper()))
+        f[#f+1]=("button[%.2f,1.05;2.45,0.65;cat_%s;%s]"):format(
+            0.4+(i-1)*2.58,name,core.formspec_escape(name:upper()))
     end
     for i,id in ipairs(categories[cat]) do
         local name="xz_classic_props:"..id

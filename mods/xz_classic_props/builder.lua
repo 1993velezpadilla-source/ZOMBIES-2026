@@ -210,6 +210,7 @@ core.register_on_player_receive_fields(function(p, formname, fields)
             m:set_int("price", cost)
             m:set_string("price_set", "1")
             update_wall_label(s.pos)
+            if api.refresh_wall_preview then api.refresh_wall_preview(s.pos,p) end
             api.tell(p, "Wall Buy saved: " .. label(s.weapon) .. " / " .. cost)
             session[name] = nil
         end

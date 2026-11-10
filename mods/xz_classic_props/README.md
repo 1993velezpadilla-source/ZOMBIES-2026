@@ -35,3 +35,10 @@ The current Arsenal must call the reload, fire interval and damage multipliers e
 - lua tests/test_xz_classic_editor.lua
 
 15 original PNG textures are included. No Activision/NZ:P art or source is included.
+
+## New visual + debug additions
+- Wall Buy configured with a real Arsenal item: a small world-facing item miniature appears floating near the wall. This is the **registered item visual**, not a converted GLB world mesh; the weapon GLB includes first-person hands and is unsuitable for direct wall rendering without a dedicated export/conversion.
+- Mystery Crate: original two-block wooden chest front, using a custom companion node (not VoxeLibre storage chest), still charges 950 points and awards a random registered weapon.
+- Zombie Spawner: editor marker uses `mob_spawner.png` from VoxeLibre but deliberately does NOT start the vanilla spawner timer. Our wave controller retains control; markers hide in PLAY.
+- Developer: inside PLAY, map-maker can open the DEVELOPER panel from editor. Add 1k/10k/50k points, toggle infinite health and ammo, or pick any registered Arsenal weapon. Restricted to `xz_map_builder` / server privilege; resets on STOP. Arsenal ammo implementation uses its original `ar_clip`/`ar_reserve` stack metadata and will need an actual Android integration test.
+- This is GitHub source **not yet part of FIX43 APK** and not Android runtime-validated.

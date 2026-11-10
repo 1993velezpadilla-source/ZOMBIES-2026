@@ -90,7 +90,7 @@ minetest={
 dofile("mods/xz_classic_props/init.lua")
 local count=0
 for _ in pairs(nodes) do count=count+1 end
-assert(count==23, "23 nodes required, got " .. count)
+assert(count==24, "24 nodes required, got " .. count)
 local player=newplayer("tester")
 for _,cb in ipairs(callbacks.join) do cb(player) end
 local api=xz_classic_props
