@@ -80,13 +80,14 @@ for id, def in pairs(marker_names) do
     local visible_name = "xz_classic_props:" .. id
     local hidden_name = visible_name .. "_hidden"
     local tint = def.walkable and "#C84444" or def.light > 0 and "#FFD044" or "#39AFFF"
-    local editor_texture = "mcl_core_stone.png^[colorize:" .. tint .. ":190"
+    local editor_texture = "xzcp_marker.png^[colorize:" .. tint .. ":190"
 
     if id ~= "player_spawn_marker" and id ~= "zombie_spawn_marker" then
         core.register_node(visible_name, {
             description = id:gsub("_", " "):upper() .. " (EDITOR ONLY)",
             tiles = {editor_texture},
             drawtype = "glasslike",
+            use_texture_alpha = "blend",
             paramtype = "light",
             light_source = def.light,
             walkable = def.walkable,
@@ -98,6 +99,7 @@ for id, def in pairs(marker_names) do
         core.override_item(visible_name, {
             tiles = {editor_texture},
             drawtype = "glasslike",
+            use_texture_alpha = "blend",
             walkable = false,
             pointable = true,
             light_source = 0,
@@ -290,7 +292,7 @@ local function open_editor(p)
 end
 core.register_craftitem("xz_classic_props:map_editor", {
     description = "XZIEL Map Editor - PLAY / STOP",
-    inventory_image = "mcl_core_stone.png^[colorize:#32C6B0:180",
+    inventory_image = "xzcp_map_editor.png",
     stack_max = 1,
     on_use = function(stack, p) open_editor(p); return stack end,
     on_secondary_use = function(stack, p) open_editor(p); return stack end,

@@ -25,4 +25,7 @@ jobs:
       - name: Check syntax and purchases
         run: |
           luac -p mods/xz_classic_props/init.lua
+          luac -p mods/xz_classic_props/mode.lua
+          luac -p mods/xz_classic_props/builder.lua
           lua tests/test_xz_classic_props.lua
+          lua tests/test_xz_classic_editor.lua

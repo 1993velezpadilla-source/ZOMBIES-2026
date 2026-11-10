@@ -1,57 +1,36 @@
-# Xziel Classic Zombies — interactable blocks (Luanti)
+# Xziel Zombies — Luanti Classic Map Builder
 
-First source-level gameplay block pack for the existing Luanti/VoxeLibre project. **This is not an APK**, not a claim of on-device testing, and not integrated into the signed FIX43 installer yet.
+PR #22 source prototype, separate from FIX43 APK. Custom Lua logic; NZ:P v26 is a design reference only, not imported code.
 
-## Registered placeable nodes
+## Organised editor inventory
+- Gameplay: Power Switch, four perk dispensers, Mystery Box, Upgrade Station, Barricades, Round Display.
+- Purchases: Wall Buy (choose any installed Arsenal weapon and an individual price), Buyable Door (individual price).
+- Spawns: Player Spawn Marker and Zombie Spawn Marker.
+- Utilities: Invisible-during-PLAY Barrier, Light 5, Light 10, Light 14.
+- Tools: XZIEL Map Editor PLAY/STOP item or /xz_editor.
 
-| Node | Cost | Behavior |
-| --- | ---: | --- |
-| \`xz_classic_props:power_switch\` | Free | Turns world power ON persistently. |
-| \`xz_classic_props:perk_vitality\` | 2,500 | Iron Heart (Jugger-style): +20 max health, heals. |
-| \`xz_classic_props:perk_revive\` | 1,500 | Second Chance (Revive-style): consumes on one lethal hit, self-revives. |
-| \`xz_classic_props:perk_speed\` | 3,000 | Rapid Hands (Speed-style): exposes 0.5 reload-time multiplier. |
-| \`xz_classic_props:perk_double\` | 2,000 | Double Impact (Double Tap-style): exposes 0.85 fire interval / 1.25 damage multipliers. |
-| \`xz_classic_props:mystery_box\` | 950 | Random verified Arsenal weapon from registry; never charges if none is installed. |
-| \`xz_classic_props:wall_buy\` | 1,200 | AK-47 from Arsenal, if present. |
-| \`xz_classic_props:pack_a_punch\` | 5,000 | Tags the held Arsenal weapon, exposes 2x upgraded damage multiplier. |
-| \`xz_classic_props:buyable_door\` | 1,000 | Charges points and opens the blocked passage. |
-| \`xz_classic_props:barricade\` | Free | Repair damaged boards for +10 points each. |
-| \`xz_classic_props:round_display\` | Free | Reports current round and own points. |
-| \`xz_classic_props:zombie_spawn_marker\` | Free | Marker for future AI. |
-| \`xz_classic_props:player_spawn_marker\` | Free | Marker for future mode controller. |
+### Configure wall purchase
+Place Wall Buy in EDIT; an Arsenal weapon list opens. Select one weapon, enter 0–50000 points in the next dialog and tap CONFIRM. Re-tap the wall in EDIT to change its settings. Costs are per block, not global.
 
-**13 nodes total.** Machines are lightweight 1-node cabinets with original low-cost textures. No trademarked textures/audio or copied CoD game data.
+### Configure a door
+Place Door Buy; enter its price (0–50000), confirm. Re-tap in EDIT to change. Each one saves its own price.
 
-## Installation
+### Player and zombie spawns
+Place Player Spawn Marker where the player should appear during PLAY and on respawn. Zombie Spawns mark positions for the later round AI; they do not yet generate live zombies.
 
-Put the \`xz_classic_props\` folder under your **VoxeLibre game mods** directory or in the world's enabled mods. Enable the mod and load the map. New blocks will appear in the creative inventory; right-click/tap the interactive face to use one. The mobile interaction must be tested in an actual Android build.
+## PLAY / STOP test
+Use the map editor item or /xz_editor, then tap PLAY TEST. All map-helper blocks swap into hidden runtime variants: lights keep emitting, barriers keep blocking, player/zombie spawn positions remain registered. The player moves to Player Spawn. You can test perk, points, door and weapon purchases.
+STOP TEST restores temporarily bought doors, starting health, points, main inventory, perk flags and player position. This is NOT a full snapshot of arbitrary block edits. Do not dig or build during PLAY until complete world duplication is implemented.
+Actual round AI, automatic zombie spawns, exported-map conversion, and Android APK integration remain pending. Round 1 is currently a placeholder. We do not claim the game is fully playable yet.
 
-Players start with 500 points once per profile. Real zombie-kill points are intentionally **not fabricated**; the later wave AI must call \`xz_classic_props.award_kill(player, headshot)\`. For safe solo testing, admin command: \`/xzcp_points playername 20000\`.
+## Integration with weapons
+The current Arsenal must call the reload, fire interval and damage multipliers exposed by xz_classic_props for perks and Pack-a-Punch to affect its shooting mechanics. The source mod deliberately does not alter weapon model files.
 
-## Integration contract with existing Arsenal
+## Tests
+- luac -p mods/xz_classic_props/init.lua
+- luac -p mods/xz_classic_props/mode.lua
+- luac -p mods/xz_classic_props/builder.lua
+- lua tests/test_xz_classic_props.lua
+- lua tests/test_xz_classic_editor.lua
 
-The perk state and Pack-a-Punch metadata survive save/reload. The existing \`arsenal\` mod uses private fire/reload functions and must explicitly call:
-
-\`\`\`lua
-local z = rawget(_G, "xz_classic_props")
-local reload_scale = z and z.reload_time_multiplier(player) or 1
-local fire_scale = z and z.fire_interval_multiplier(player) or 1
-local damage_scale = z and z.damage_multiplier(player, weapon_stack) or 1
-\`\`\`
-
-Apply the scales to the *original Arsenal data*, without changing its source animations or normal weapon parameters. **Speed, Double Impact and upgraded weapon damage are not active until this bridge is wired.** No real zombie spawns or round controller exists in this mod, and the Round Counter defaults to round 0.
-
-The existing Arsenal universal ammunition box should stay as-is; this mod doesn't duplicate it. Separate wave AI and an upgraded weapon appearance/sound system can be built later.
-
-## Test
-
-\`\`\`sh
-luac -p mods/xz_classic_props/init.lua
-lua tests/test_xz_classic_props.lua
-\`\`\`
-
-Run with a 5.1-compatible Lua interpreter. This checks registration and point purchase safety; it does **not** test real Android gameplay.
-
-## License
-
-Original Lua and procedurally created textures in this folder are made for this project, released as MIT (see LICENSE). Confirm licensing of all other bundled third-party assets before monetizing or publishing.
+15 original PNG textures are included. No Activision/NZ:P art or source is included.
