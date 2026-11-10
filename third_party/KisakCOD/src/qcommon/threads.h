@@ -27,7 +27,12 @@ char __cdecl Sys_SpawnRenderThread(void(__cdecl* function)(uint32_t));
 void __cdecl Sys_CreateEvent(bool manualReset, bool initialState, void** event);
 void __cdecl Sys_CreateThread(void(__cdecl* function)(uint32_t), ThreadContext_t threadContext);
 void __cdecl SetThreadName(uint32_t threadId, const char* threadName);
+#if defined(__ANDROID__)
+// ARM64 uses the platform ABI; Win32 __stdcall is unsupported by Clang here.
+uint32_t Sys_ThreadMain(ThreadContext_t parameter);
+#else
 uint32_t __stdcall Sys_ThreadMain(ThreadContext_t parameter);
+#endif
 char __cdecl Sys_SpawnDatabaseThread(void(__cdecl* function)(uint32_t));
 void __cdecl Sys_SuspendDatabaseThread(ThreadOwner owner);
 void __cdecl Sys_ResetEvent(void** event);
