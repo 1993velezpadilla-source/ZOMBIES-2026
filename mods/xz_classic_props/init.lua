@@ -213,6 +213,7 @@ end, 3)
 local function eligible_weapon(name, def)
     if not def or not def.groups or def.groups.weapon ~= 1 then return false end
     return name:match("^arsenal:[a-z0-9_]+$") ~= nil
+        or name:match("^cod4:[a-z0-9_]+$") ~= nil
         or name == "ak47dev:ak47" or name == "ak47dev:m9"
 end
 local function weapon_pool()

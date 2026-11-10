@@ -59,18 +59,14 @@ function api.refresh_wall_preview(pos,player)
     if not obj then return false end
     local lua=obj:get_luaentity()
     if lua then lua.wall_key=core.pos_to_string(pos) end
-    local mesh = api.wall_model_for and api.wall_model_for(id)
-    if mesh then
-        -- The already-installed Arsenal mod provides one unique gun-only GLB
-        -- per weapon (no FPS arms). The native client GLB loader handles it.
-        -- Source guns can contain many separate mesh/material buffers.
-        -- The verified Arsenal supplies this material for every gun buffer.
-        local materials={}
-        for i=1,64 do materials[i]="arsenal_flat_metal.png" end
+    local info = api.wall_model_for and api.wall_model_for(id)
+    if info then
+        -- 28 unique baked gun-only static GLBs are added during PRIVATE
+        -- APK packaging. Each is ~1 world block in length, without hands.
         obj:set_properties({
-            visual="mesh", mesh=mesh,
-            textures=materials,
-            visual_size={x=0.10,y=0.10,z=0.10},
+            visual="mesh", mesh=info.mesh,
+            textures={info.texture},
+            visual_size={x=1.0,y=1.0,z=1.0},
             physical=false,pointable=false,collide_with_objects=false,
             makes_footstep_sound=false,
         })

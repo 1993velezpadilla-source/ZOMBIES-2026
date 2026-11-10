@@ -302,45 +302,39 @@ submit("xzcp:blocks",{cat_purchases=true})
 assert(forms.maker.text:find("WALL BUY") or forms.maker.text:find("Wall Buy"))
 submit("xzcp:blocks",{give_wall_buy=true})
 assert(bag.list[1]=="xz_classic_props:wall_buy","catalog should give requested block")
-local catalog={schema_version=1,weapons={}}
-local ids={"ak47","m4","m16","g36c","mp44","g3","m14","mp5","ak74u","skorpion","uzi","p90","w1200","m1014","m249","rpd","m60","m40a3","m21","dragunov","r700","barrett","usp","m9","m1911","deagle","deaglegold","rpg"}
-for _,id in ipairs(ids) do
-    items["arsenal:"..id]={description=id,groups={weapon=1}}
-    catalog.weapons[#catalog.weapons+1]={
-        id=id,gun_model="arsenal_"..id.."_gun.glb",
-        hands_model="arsenal_"..id.."_hands.glb"
-    }
+local catalog={schema_version=1,models={}}
+local ids={"cod4:ak74u","cod4:barrett","cod4:colt45","cod4:deserteagle","cod4:deserteaglegold","cod4:dragunov","cod4:g36c","cod4:g3","cod4:m1014","cod4:m14","cod4:m16","cod4:m21","cod4:m40a3","cod4:m4","cod4:m60e4","cod4:mp44","cod4:mp5","cod4:p90","cod4:remington700","cod4:rpd","cod4:rpg","cod4:saw","cod4:skorpion","cod4:usp","cod4:uzi","cod4:winchester1200","ak47dev:ak47","ak47dev:m9"}
+for _,name in ipairs(ids) do
+    local id=name:match(":(.*)$")
+    local tex=name:match("^cod4:") and "a_"..id.."_shared.png"
+        or id=="ak47" and "ak47hd_rifle.png" or "m9hd_rifle.png"
+    items[name]={description=name,groups={weapon=1}}
+    catalog.models[name]={mesh="xz_wall_"..id..".glb",texture=tex}
 end
+assert(nodes["xz_classic_props:wall_buy"].walkable==false)
+assert(nodes["xz_classic_props:wall_buy"].drawtype=="nodebox")
 local all_models=api.catalog_wall_models(catalog,items)
-assert(nodes["xz_classic_props:wall_buy"].walkable==false,
-    "Wall Buy mount must not block passage")
-assert(nodes["xz_classic_props:wall_buy"].drawtype=="nodebox",
-    "Wall Buy should use small wall mount rather than full cabinet")
-local verified=0
-for _,id in ipairs(ids) do
-    local key="arsenal:"..id
-    assert(all_models[key]=="arsenal_"..id.."_gun.glb","wrong GLB mapping for "..id)
-    verified=verified+1
-end
-assert(verified==28,"Expected 28 distinct original source gun GLBs")
+local n=0
+for _ in pairs(all_models) do n=n+1 end
+assert(n==28,"Exactly 28 registered real gun-only 3D Wall Buy models")
 api.wall_models=all_models
-for _,id in ipairs(ids) do
-    minetest.get_meta(wall):set_string("weapon","arsenal:"..id)
-    assert(api.refresh_wall_preview(wall,p),"3D preview must spawn for "..id)
+local pool=api.weapon_pool()
+assert(#pool>=28,"Real cod4 weapons should appear in Wall Buy picker")
+for _,name in ipairs(ids) do
+    local id=name:match(":(.*)$")
+    minetest.get_meta(wall):set_string("weapon",name)
+    assert(api.refresh_wall_preview(wall,p),"3D mini must appear: "..name)
     local obj=previews[#previews]
-    assert(obj:is_valid() and obj.visual=="mesh","not rendered as 3D: "..id)
-    assert(obj.mesh=="arsenal_"..id.."_gun.glb","wrong real gun mesh: "..id)
-    assert(obj.textures[1]=="arsenal_flat_metal.png","source gun material mismatch")
-    assert(#obj.textures==64,"all submeshes receive the source metal texture")
+    assert(obj:is_valid() and obj.visual=="mesh","not a 3D mesh: "..name)
+    assert(obj.mesh=="xz_wall_"..id..".glb","wrong real gun mesh: "..name)
+    assert(obj.textures[1]==catalog.models[name].texture,"wrong gun atlas: "..name)
+    assert(obj.visual_size.x==1,"baked model needs normalized scale")
 end
--- A missing gun MUST fall back to its own item, not reuse the AK.
-items["ak47dev:m9"]={description="legacy M9",groups={weapon=1}}
-minetest.get_meta(wall):set_string("weapon","ak47dev:m9")
+items["custom:gun"]={description="Custom gun",groups={weapon=1}}
+minetest.get_meta(wall):set_string("weapon","custom:gun")
 assert(api.refresh_wall_preview(wall,p))
-assert(previews[#previews].visual=="wielditem")
-assert(previews[#previews].textures[1]=="ak47dev:m9")
--- Explicitly reject tainted or invented model filenames.
-local bad={schema_version=1,weapons={{id="m9",gun_model="../ak47.glb",hands_model="arsenal_m9_hands.glb"}}}
-assert(next(api.catalog_wall_models(bad,items))==nil)
-print("PASS: 28 unique Arsenal 3D GLB Wall Buy previews, safely validated")
+assert(previews[#previews].visual=="wielditem" and previews[#previews].textures[1]=="custom:gun")
+local fake={schema_version=1,models={["cod4:m4"]={mesh="xz_wall_ak47.glb",texture="a_m4_shared.png"}}}
+assert(next(api.catalog_wall_models(fake,items))==nil,"Reject mismatched model")
+print("PASS: 28 actual FIX43 gun-only mini meshes mapped to own weapon and texture")
 print("PASS: maker wall selector, custom prices, player spawn, marker hiding, barrier collision and PLAY/STOP rollback")
