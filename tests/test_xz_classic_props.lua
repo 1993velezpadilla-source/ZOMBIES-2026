@@ -57,11 +57,35 @@ minetest={
     remove_node=function() end,
     after=function(_,cb) cb() end,
     log=function() end,
+    get_modpath=function() return "mods/xz_classic_props" end,
+    register_privilege=function() end,
+    override_item=function(name,def)
+        assert(nodes[name], "Override missing node: "..name)
+        for k,v in pairs(def) do nodes[name][k]=v end
+    end,
+    register_lbm=function() end,
+    register_on_dignode=function() end,
+    register_on_respawnplayer=function() end,
+    register_on_player_receive_fields=function() end,
+    register_on_leaveplayer=function() end,
+    register_craftitem=function() end,
+    register_on_placenode=function(cb) callbacks.place=cb end,
+    get_connected_players=function() return {} end,
+    check_player_privs=function() return false end,
+    is_singleplayer=function() return true end,
+    deserialize=function() return {} end,
+    serialize=function() return "{}" end,
+    formspec_escape=function(x) return x end,
+    pos_to_string=function(p) return p.x..","..p.y..","..p.z end,
+    string_to_pos=function() return nil end,
+    show_formspec=function() end,
+    swap_node=function() end,
+    set_node=function() end,
 }
 dofile("mods/xz_classic_props/init.lua")
 local count=0
 for _ in pairs(nodes) do count=count+1 end
-assert(count==13, "13 nodes required, got " .. count)
+assert(count==23, "23 nodes required, got " .. count)
 local player=newplayer("tester")
 callbacks.join(player)
 local api=xz_classic_props

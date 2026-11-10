@@ -338,4 +338,30 @@ core.register_chatcommand("xzcp_points", {
         return true, who .. " now has " .. points(target) .. " points."
     end
 })
-core.log("action", "[xz_classic_props] 13 original interactable Zombies props registered")
+
+-- Public bridge for map components, without changing original Arsenal assets.
+api.tell = note
+api.weapon_pool = weapon_pool
+function api.spend_points(p, amount)
+    if not player_ok(p) or type(amount) ~= "number" or amount ~= amount
+        or amount < 0 or amount > 50000 or amount ~= math.floor(amount) then
+        return false
+    end
+    if amount == 0 then return true end
+    return pay(p, amount)
+end
+function api.purchase_weapon(p, weapon, amount)
+    if type(weapon) ~= "string"
+        or not eligible_weapon(weapon, core.registered_items[weapon])
+        or type(amount) ~= "number" or amount < 0 or amount > 50000
+        or amount ~= math.floor(amount) then
+        note(p, "Invalid map weapon or price.")
+        return false
+    end
+    return give_weapon(p, weapon, amount)
+end
+local modpath = core.get_modpath("xz_classic_props")
+dofile(modpath .. "/mode.lua")
+dofile(modpath .. "/builder.lua")
+
+core.log("action", "[xz_classic_props] 17 visible core and 6 hidden utility Zombies props registered")
