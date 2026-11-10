@@ -1,6 +1,6 @@
 -- Focused Lua 5.1 test of the editor, price saving and PLAY/STOP restoration.
 local callbacks, nodes, items, players, node_meta = {}, {}, {}, {}, {}
-local forms, messages, world, spawned = {}, {}, {}, {}
+local forms, messages, world, spawned, previews = {}, {}, {}, {}, {}
 local function key(p) return p.x..","..p.y..","..p.z end
 local function meta()
     local ints, strings = {}, {}
@@ -45,7 +45,10 @@ minetest={
         table.insert(callbacks.join,f)
     end,
     register_on_dieplayer=function(f) callbacks.die=f end,
-    register_on_player_hpchange=function() end,
+    register_on_player_hpchange=function(f)
+        callbacks.hp=callbacks.hp or {}
+        table.insert(callbacks.hp,f)
+    end,
     register_on_placenode=function(f)
         callbacks.placed=callbacks.placed or {}
         table.insert(callbacks.placed,f)
@@ -58,12 +61,20 @@ minetest={
     end,
     register_on_leaveplayer=function() end,
     register_lbm=function() end,
-    register_entity=function(n,d) callbacks.entity=d end,
-    register_globalstep=function(f) callbacks.globalstep=f end,
+    register_entity=function(n,d)
+        callbacks.entities=callbacks.entities or {}
+        callbacks.entities[n]=d
+    end,
+    register_globalstep=function(f)
+        callbacks.globalsteps=callbacks.globalsteps or {}
+        table.insert(callbacks.globalsteps,f)
+    end,
     add_entity=function(pos,id)
-        assert(id=="xz_classic_props:test_zombie")
+        assert(callbacks.entities[id],"unregistered test entity: "..id)
         local ref={pos=pos,valid=true,velocity={x=0,y=0,z=0}}
         function ref:is_valid() return self.valid end
+        function ref:get_luaentity() return self.entity end
+        function ref:set_yaw(v) self.yaw=v end
         function ref:set_properties(props) self.hp_max=props.hp_max end
         function ref:set_hp(h) self.hp=h end
         function ref:set_acceleration(accel) self.accel=accel end
@@ -73,16 +84,23 @@ minetest={
         function ref:remove()
             if not self.valid then return end
             self.valid=false
-            self.entity:on_deactivate()
+            if self.entity.on_deactivate then self.entity:on_deactivate() end
         end
-        local entity=setmetatable({object=ref},{__index=callbacks.entity})
+        local entity=setmetatable({object=ref,name=id},{__index=callbacks.entities[id]})
         ref.entity=entity
-        entity:on_activate()
-        spawned[#spawned+1]=ref
+        entity:on_activate("")
+        if id=="xz_classic_props:wall_weapon_preview" then
+            previews[#previews+1]=ref
+        else
+            spawned[#spawned+1]=ref
+        end
         return ref
     end,
 
     check_player_privs=function() return false end,
+    facedir_to_dir=function() return {x=0,y=0,z=-1} end,
+    dir_to_yaw=function() return 0 end,
+    is_protected=function() return false end,
     is_singleplayer=function() return true end,
     formspec_escape=function(s) return s end,
     show_formspec=function(n,f,s) forms[n]={name=f,text=s} end,
@@ -94,13 +112,31 @@ minetest={
     get_player_by_name=function(n) return players[n] end,
     get_connected_players=connected,
     get_node_or_nil=function(p) return world[key(p)] or {name="air",param2=0} end,
+    get_node=function(p) return world[key(p)] or {name="air",param2=0} end,
+    get_objects_inside_radius=function(pos,radius)
+        local objects={}
+        for _,obj in ipairs(previews) do
+            if obj:is_valid() then
+                local xyz=obj:get_pos()
+                local dx,dy,dz=xyz.x-pos.x,xyz.y-pos.y,xyz.z-pos.z
+                if dx*dx+dy*dy+dz*dz <=radius*radius then objects[#objects+1]=obj end
+            end
+        end
+        return objects
+    end,
     set_node=function(p,n)
         world[key(p)]={name=n.name,param2=n.param2 or 0}
         node_meta[key(p)]=meta()
         if nodes[n.name] and nodes[n.name].on_construct then nodes[n.name].on_construct(p) end
     end,
     swap_node=function(p,n) world[key(p)]={name=n.name,param2=n.param2 or 0} end,
-    remove_node=function(p) world[key(p)]=nil end,
+    remove_node=function(p)
+        local n=world[key(p)]
+        if n and nodes[n.name] and nodes[n.name].on_destruct then
+            nodes[n.name].on_destruct(p)
+        end
+        world[key(p)]=nil
+    end,
     pos_to_string=key,
     string_to_pos=function(s)
         local x,y,z=s:match("^(-?%d+),(-?%d+),(-?%d+)$")
@@ -140,6 +176,8 @@ end
 function p:set_wielded_item(v) self.wield=v end
 players[p.name]=p
 
+items["air"]={buildable_to=true}
+nodes["air"]=items["air"]
 items["arsenal:ak47"]={description="AK-47",groups={weapon=1}}
 items["arsenal:m9"]={description="M9",groups={weapon=1}}
 
@@ -166,6 +204,8 @@ assert(forms.maker.name=="xzcp:set_wall_price","choose weapon triggers price dia
 submit("xzcp:set_wall_price",{save_wall=true,price="1450"})
 assert(minetest.get_meta(wall):get_int("price")==1450)
 assert(minetest.get_meta(wall):get_string("weapon")=="arsenal:m9")
+assert(#previews==1 and previews[1]:is_valid(),"miniature floating weapon must appear")
+assert(previews[1].textures[1]=="arsenal:m9","preview uses actual Arsenal item visual")
 assert(api.get_points(p)==500,"editing must not charge points")
 local door={x=2,y=1,z=0}
 place(door,"buyable_door")
@@ -173,6 +213,12 @@ assert(forms.maker.name=="xzcp:set_door_price")
 submit("xzcp:set_door_price",{save_door=true,price="750"})
 assert(minetest.get_meta(door):get_int("price")==750)
 assert(api.get_points(p)==500)
+local box={x=-2,y=1,z=0}
+place(box,"mystery_box")
+local box2={x=-1,y=1,z=0}
+assert(minetest.get_node(box2).name=="xz_classic_props:mystery_box_right",
+    "Mystery Crate must occupy two wood blocks")
+assert(minetest.get_meta(box2):get_string("origin")==key(box))
 
 local playerSpawn={x=3,y=0,z=1}
 local zombieSpawn={x=-3,y=0,z=1}
@@ -194,7 +240,25 @@ assert(nodes["xz_classic_props:utility_barrier_hidden"].walkable==true)
 assert(nodes["xz_classic_props:utility_light_14_hidden"].light_source==14)
 assert(p.pos.x==3 and p.pos.y==1.5,"PLAY should move player to selected marker")
 assert(api.wave_status().pending==6,"Round 1 should queue six zombies")
-callbacks.globalstep(1.1)
+submit("xzcp:editor",{developer=true})
+assert(forms.maker.name=="xzcp:developer","developer button should be visible in PLAY")
+submit("xzcp:developer",{points_1000=true})
+assert(api.get_points(p)==6000,"developer grants point money")
+submit("xzcp:developer",{health=true})
+assert(api.developer_flags(p).health,"infinite health toggle")
+for _,cb in ipairs(callbacks.hp) do assert(cb(p,-10)==0,"god mode prevents damage") end
+submit("xzcp:developer",{ammo=true})
+assert(api.developer_flags(p).ammo)
+local gunstack=p:get_wielded_item()
+for _,f in ipairs(callbacks.globalsteps) do f(0.3) end
+assert(gunstack:get_meta():get_int("ar_clip")==999,"developer ammo refills Arsenal clip")
+submit("xzcp:developer",{choose_weapon=true})
+assert(forms.maker.name=="xzcp:developer_weapons","developer weapon selector opens")
+submit("xzcp:developer_weapons",{weapons="CHG:1"})
+assert(#bag.list>0,"developer can choose weapon")
+p.m:set_int("xzcp:points",5000) -- isolate original combat purchases
+
+for _,f in ipairs(callbacks.globalsteps) do f(1.1) end
 assert(#spawned==1,"marked zombie spawner must produce an enemy")
 assert(api.wave_status().alive==1)
 local beforeHit=api.get_points(p)
@@ -212,6 +276,7 @@ nodes["xz_classic_props:buyable_door"].on_rightclick(door,{},p,{})
 assert(api.get_points(p)==2800 and minetest.get_node_or_nil(door).name=="air")
 assert(api.stop_test(p))
 assert(not api.wave_status().active)
+assert(not api.developer_flags(p).health and not api.developer_flags(p).ammo,"developer flags OFF after STOP")
 assert(api.is_editing())
 assert(minetest.get_node_or_nil(zombieSpawn).name=="xz_classic_props:zombie_spawn_marker")
 assert(minetest.get_node_or_nil(barrier).name=="xz_classic_props:utility_barrier")
