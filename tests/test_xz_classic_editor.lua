@@ -247,7 +247,12 @@ submit("xzcp:developer",{points_1000=true})
 assert(api.get_points(p)==6000,"developer grants point money")
 submit("xzcp:developer",{health=true})
 assert(api.developer_flags(p).health,"infinite health toggle")
-for _,cb in ipairs(callbacks.hp) do assert(cb(p,-10)==0,"god mode prevents damage") end
+local damage=-10
+for _,cb in ipairs(callbacks.hp) do
+    local result=cb(p,damage)
+    if type(result)=="number" then damage=result end
+end
+assert(damage==0,"god mode prevents damage")
 submit("xzcp:developer",{ammo=true})
 assert(api.developer_flags(p).ammo)
 local gunstack=p:get_wielded_item()
