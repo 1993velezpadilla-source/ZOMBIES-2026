@@ -9,8 +9,21 @@
 #include <client/client.h>
 #include <win32/win_local.h>
 #include <qcommon/cmd.h>
+#if defined(__ANDROID__)
+// The SP UI only needs these original engine entry points. Avoid importing
+// Windows D3D9/Bink types into the Android translation unit; their genuine
+// implementations remain required by the strict engine link.
+bool __cdecl SaveDevice_IsAccessingDevice(void);
+bool __cdecl SaveDevice_IsSaveSuccessful(void);
+void __cdecl R_Cinematic_DrawStretchPic_Letterboxed(void);
+bool __cdecl R_Cinematic_IsNextReady(void);
+void __cdecl R_Cinematic_StartNextPlayback(void);
+void __cdecl R_Cinematic_StopPlayback(void);
+bool __cdecl R_Cinematic_IsFinished(void);
+#else
 #include <game/savedevice.h>
 #include <gfx_d3d/r_cinematic.h>
+#endif
 #include <stringed/stringed_hooks.h>
 #include <client/cl_demo.h>
 #include <cgame/cg_newdraw.h>
