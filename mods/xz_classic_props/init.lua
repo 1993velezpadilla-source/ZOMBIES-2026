@@ -363,5 +363,6 @@ end
 local modpath = core.get_modpath("xz_classic_props")
 dofile(modpath .. "/mode.lua")
 dofile(modpath .. "/builder.lua")
+dofile(modpath .. "/waves.lua")
 
 core.log("action", "[xz_classic_props] 17 visible core and 6 hidden utility Zombies props registered")

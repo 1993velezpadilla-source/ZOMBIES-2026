@@ -257,11 +257,12 @@ function api.start_test(p)
     if not player_spawn() then
         api.tell(p, "No Player Spawner found. Place one in EDIT.")
     end
-    -- Round AI is a separate module; this editor does not fake zombie kills.
+    if api.waves_start then api.waves_start() end
     return true
 end
 function api.stop_test(p)
     if not api.can_build(p) or not playing then return false end
+    if api.waves_stop then api.waves_stop() end
     playing=false
     storage:set_int(MODE_KEY,0)
     restore_doors()
@@ -313,4 +314,26 @@ core.register_on_player_receive_fields(function(p, formname, fields)
         open_editor(p)
     end
     return true
+end)
+
+-- Keep import/export coordinate data independent of marker visibility.
+function api.get_markers(kind)
+    local result = {}
+    if not marker_names[kind] then return result end
+    for key, id in pairs(index) do
+        if id == kind then
+            local pos = core.string_to_pos(key)
+            if pos then result[#result + 1] = pos end
+        end
+    end
+    return result
+end
+core.register_on_joinplayer(function(p)
+    if playing then
+        local name=p:get_player_name()
+        core.after(0.5,function()
+            local player=core.get_player_by_name(name)
+            if player and playing then move_to_spawn(player) end
+        end)
+    end
 end)

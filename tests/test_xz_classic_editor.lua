@@ -55,6 +55,8 @@ minetest={
     end,
     register_on_leaveplayer=function() end,
     register_lbm=function() end,
+    register_entity=function(n,d) callbacks.entity=d end,
+    register_globalstep=function(f) callbacks.globalstep=f end,
     check_player_privs=function() return false end,
     is_singleplayer=function() return true end,
     formspec_escape=function(s) return s end,

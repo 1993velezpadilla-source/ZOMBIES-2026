@@ -64,6 +64,8 @@ minetest={
         for k,v in pairs(def) do nodes[name][k]=v end
     end,
     register_lbm=function() end,
+    register_entity=function() end,
+    register_globalstep=function() end,
     register_on_dignode=function() end,
     register_on_respawnplayer=function() end,
     register_on_player_receive_fields=function() end,

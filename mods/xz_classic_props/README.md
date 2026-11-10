@@ -21,7 +21,7 @@ Place Player Spawn Marker where the player should appear during PLAY and on resp
 ## PLAY / STOP test
 Use the map editor item or /xz_editor, then tap PLAY TEST. All map-helper blocks swap into hidden runtime variants: lights keep emitting, barriers keep blocking, player/zombie spawn positions remain registered. The player moves to Player Spawn. You can test perk, points, door and weapon purchases.
 STOP TEST restores temporarily bought doors, starting health, points, main inventory, perk flags and player position. This is NOT a full snapshot of arbitrary block edits. Do not dig or build during PLAY until complete world duplication is implemented.
-Actual round AI, automatic zombie spawns, exported-map conversion, and Android APK integration remain pending. Round 1 is currently a placeholder. We do not claim the game is fully playable yet.
+The source now includes an experimental low-load wave controller: real marked spawn points, up to 12 simple enemies active, basic chase/attack, health/damage, points for hits and kills, and increasing rounds. This is NOT the final zombie AI, animation or pathfinding and is not yet tested in Android. Exported-map conversion and signed APK integration remain pending.
 
 ## Integration with weapons
 The current Arsenal must call the reload, fire interval and damage multipliers exposed by xz_classic_props for perks and Pack-a-Punch to affect its shooting mechanics. The source mod deliberately does not alter weapon model files.
@@ -30,6 +30,7 @@ The current Arsenal must call the reload, fire interval and damage multipliers e
 - luac -p mods/xz_classic_props/init.lua
 - luac -p mods/xz_classic_props/mode.lua
 - luac -p mods/xz_classic_props/builder.lua
+- luac -p mods/xz_classic_props/waves.lua
 - lua tests/test_xz_classic_props.lua
 - lua tests/test_xz_classic_editor.lua
 

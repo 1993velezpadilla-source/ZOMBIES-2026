@@ -29,6 +29,7 @@ local function next_wave()
 end
 
 local enemy_def = {
+    static_save = false,
     initial_properties = {
         hp_max=100,
         physical=true,
@@ -42,7 +43,6 @@ local enemy_def = {
             "xzcp_zombie_spawn_marker.png","xzcp_zombie_spawn_marker.png",
         },
         makes_footstep_sound=false,
-        static_save=false,
     },
     on_activate = function(self)
         self.health = math.min(2000, math.floor(100 * 1.18 ^ (round_count() - 1)))
@@ -86,7 +86,6 @@ local enemy_def = {
                 y=vy,
                 z=dz_best / distance * speed,
             })
-            self.object:set_yaw(math.atan2(dx_best,dz_best))
         else
             self.object:set_velocity({x=0,y=self.object:get_velocity().y,z=0})
             if distance <= 1.45 then
@@ -130,6 +129,7 @@ core.register_entity("xz_classic_props:test_zombie",enemy_def)
 
 function api.waves_start()
     active = true
+    no_spawn_warned = false
     pending = 0
     alive = 0
     tick = 0
