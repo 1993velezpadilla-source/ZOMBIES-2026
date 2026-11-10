@@ -119,10 +119,13 @@ target_compile_options(iw3_android_thread_values PRIVATE -fms-extensions -Wall -
 # POSIX recursive synchronization for genuine Sys_Enter/LeaveCriticalSection calls.
 add_library(iw3_android_critical_sections OBJECT "${CMAKE_CURRENT_LIST_DIR}/iw3_android_critical_sections.cpp")
 target_compile_options(iw3_android_critical_sections PRIVATE -Wall -Wextra -Werror)
+# POSIX event synchronization preserves Win32 manual/auto-reset semantics.
+add_library(iw3_android_events OBJECT "${CMAKE_CURRENT_LIST_DIR}/iw3_android_events.cpp")
+target_compile_options(iw3_android_events PRIVATE -Wall -Wextra -Werror)
 original_tu(iw3_client_main client/cl_main.cpp)
 target_include_directories(iw3_client_main BEFORE PRIVATE "${PORT}/common_compat")
 target_compile_definitions(iw3_client_main PRIVATE IW3_ANDROID_DISABLE_SCRIPT_DEBUGGER=1 IW3_ANDROID_COMMON_HEADER_ONLY_OPENAL=1)
-add_custom_target(iw3_sp_bootstrap_compile DEPENDS iw3_common iw3_cmd iw3_math iw3_math_anglevectors iw3_mem_track iw3_q_shared iw3_q_parse iw3_memfile iw3_dvar iw3_dvar_cmds iw3_files iw3_fileaccess iw3_filesystem iw3_unzip iw3_com_memory iw3_android_win32_vm iw3_android_platform iw3_db_load iw3_db_registry iw3_db_memory iw3_client_input iw3_screen iw3_sv_ccmds iw3_sv_game iw3_sv_init iw3_sv_main iw3_cm_load iw3_cm_load_obj iw3_xanim iw3_script_memorytree iw3_script_stringlist iw3_stringed_hooks iw3_bg_weapons iw3_ui_main iw3_ui_shared iw3_profile iw3_android_thread_values iw3_android_critical_sections iw3_client_main)
+add_custom_target(iw3_sp_bootstrap_compile DEPENDS iw3_common iw3_cmd iw3_math iw3_math_anglevectors iw3_mem_track iw3_q_shared iw3_q_parse iw3_memfile iw3_dvar iw3_dvar_cmds iw3_files iw3_fileaccess iw3_filesystem iw3_unzip iw3_com_memory iw3_android_win32_vm iw3_android_platform iw3_db_load iw3_db_registry iw3_db_memory iw3_client_input iw3_screen iw3_sv_ccmds iw3_sv_game iw3_sv_init iw3_sv_main iw3_cm_load iw3_cm_load_obj iw3_xanim iw3_script_memorytree iw3_script_stringlist iw3_stringed_hooks iw3_bg_weapons iw3_ui_main iw3_ui_shared iw3_profile iw3_android_thread_values iw3_android_critical_sections iw3_android_events iw3_client_main)
 
 # Explicit, opt-in genuine link probe. This target deliberately fails until all
 # original engine dependencies are provided; it must NEVER be packaged as an APK.
@@ -166,6 +169,7 @@ add_library(iw3_sp_link_probe SHARED
   $<TARGET_OBJECTS:iw3_profile>
   $<TARGET_OBJECTS:iw3_android_thread_values>
   $<TARGET_OBJECTS:iw3_android_critical_sections>
+  $<TARGET_OBJECTS:iw3_android_events>
   $<TARGET_OBJECTS:iw3_client_main>
 )
 target_link_libraries(iw3_sp_link_probe PRIVATE z)
