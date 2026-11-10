@@ -1,0 +1,38 @@
+name: Validate Xziel Classic Zombies Props
+on:
+  push:
+    paths:
+      - "mods/xz_classic_props/**"
+      - "tests/test_xz_classic_props.lua"
+      - "tests/test_luanti_wallbuy_converter.py"
+      - "tools/create_luanti_wallbuy_gun_only_glbs.py"
+      - ".github/workflows/test-xz-classic-props.yml"
+  pull_request:
+    paths:
+      - "mods/xz_classic_props/**"
+      - "tests/test_xz_classic_props.lua"
+      - ".github/workflows/test-xz-classic-props.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lua-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Lua 5.1
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq lua5.1
+      - name: Check syntax and purchases
+        run: |
+          luac -p mods/xz_classic_props/init.lua
+          luac -p mods/xz_classic_props/mode.lua
+          luac -p mods/xz_classic_props/builder.lua
+          luac -p mods/xz_classic_props/waves.lua
+          luac -p mods/xz_classic_props/wall_models.lua
+          luac -p mods/xz_classic_props/decorations.lua
+          luac -p mods/xz_classic_props/developer.lua
+          lua tests/test_xz_classic_props.lua
+          lua tests/test_xz_classic_editor.lua
+          python3 tests/test_luanti_wallbuy_converter.py
