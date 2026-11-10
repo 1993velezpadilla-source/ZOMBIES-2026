@@ -64,7 +64,7 @@ function api.refresh_wall_preview(pos,player)
         physical=false,pointable=false,
     })
     -- World-facing item miniature: actual full first-person GLB is NOT duplicated.
-    if core.dir_to_yaw then obj:set_yaw(core.dir_to_yaw({x=dx,y=0,z=dz})) end
+    if core.dir_to_yaw then obj:set_yaw(core.dir_to_yaw({x=dx,y=0,z=dz}) + math.pi/2) end
     return true
 end
 core.override_item("xz_classic_props:wall_buy",{
