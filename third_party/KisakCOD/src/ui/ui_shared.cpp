@@ -18,13 +18,12 @@
 #include "ui.h"
 #include <cgame/cg_main.h>
 #include <gfx_d3d/r_cinematic.h>
+#ifndef KISAK_XBOX
+#include <server/server.h> // SaveType must be defined before savedevice.h on Clang.
+#endif
 #include <game/savedevice.h>
 #include <game/savememory.h>
 #include <game/g_local.h>
-
-#ifndef KISAK_XBOX
-#include <server/server.h>
-#endif
 
 #endif
 
