@@ -37,9 +37,24 @@ jobs:
             git -C upstream-luanti apply --check "$GITHUB_WORKSPACE/$p"
             git -C upstream-luanti apply "$GITHUB_WORKSPACE/$p"
           done
+          # Keep the FIX49C WebP texture pipeline; it requires libwebp source in CMake.
+          git clone --depth 1 --branch v1.4.0 https://github.com/webmproject/libwebp.git upstream-libwebp
           python3 incoming/luanti-fix50a/native/make_xz_use_btn.py upstream-luanti/textures/base/pack/xz_use_btn.png
           sed -i "s/include 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'/include 'arm64-v8a'/" upstream-luanti/android/native/build.gradle
           sed -i "s/include 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'/include 'arm64-v8a'/" upstream-luanti/android/app/build.gradle
+          # Wire in exact libwebp path and skip obsolete gold-linker LTO detection.
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          p=Path('upstream-luanti/android/native/build.gradle')
+          s=p.read_text()
+          marker='arguments "-DANDROID_STL=c++_shared",'
+          assert s.count(marker)==1
+          webp=os.environ['GITHUB_WORKSPACE']+'/upstream-libwebp'
+          s=s.replace(marker, marker+' "-DXZ_WEBP_SOURCE='+webp+'", "-DENABLE_LTO=OFF",')
+          p.write_text(s)
+          print('Preserved WebP source and disabled obsolete gold LTO')
+          PY
           # Android's Java launcher must notice the upgrade and unpack new Lua/assets.
           sed -i 's/project.ext.set("versionBuild", 13)/project.ext.set("versionBuild", 50)/' upstream-luanti/android/build.gradle
           grep -Fq 'project.ext.set("versionBuild", 50)' upstream-luanti/android/build.gradle
