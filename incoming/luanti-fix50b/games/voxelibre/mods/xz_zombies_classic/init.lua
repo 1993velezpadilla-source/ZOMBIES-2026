@@ -189,7 +189,8 @@ for _,w in ipairs(WEAPONS) do
   walkable=false,pointable=true,buildable_to=false,
   -- FIX49B: visual model is flush with the backing wall (local -Z).
   -- The touch target is deliberately wider than a small pistol mesh.
-  -- A shallow, frame-like hitbox along the surface rather than a cube.\n  selection_box={type='fixed',fixed={-.40,-.21,-.499,.40,.21,-.405}},
+  -- A shallow, frame-like hitbox along the surface rather than a cube.
+  selection_box={type='fixed',fixed={-.40,-.21,-.499,.40,.21,-.405}},
   groups={cracky=3,oddly_breakable_by_hand=1},inventory_image=weapon.icon,
   -- Always face outward from the surface that received the miniature prop.
   -- This fixes props placed sideways when player yaw differs from wall normal.
