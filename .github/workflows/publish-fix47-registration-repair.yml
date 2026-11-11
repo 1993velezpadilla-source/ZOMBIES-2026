@@ -1,0 +1,113 @@
+name: Publish FIX47 Zombies registration prefix repair APK
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-fix47-registration-repair.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fix47-registration-repair
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check exact fixed Lua registration source
+        run: |
+          set -euo pipefail
+          FILE="incoming/luanti-fix47/games/voxelibre/mods/xz_zombies_classic/init.lua"
+          echo "46183e33d699f98d9537d3439a34d1cd38483e5ae49fc9f4d07789762c6cb937  $FILE" | sha256sum -c
+          python3 - "$FILE" <<'PY'
+          from pathlib import Path
+          import sys
+          code=Path(sys.argv[1]).read_text()
+          assert code.count("M.register_node(':xz_zombies:")==5
+          assert code.count("M.register_tool(':xz_zombies:")==1
+          assert "M.register_lbm({label='FIX45 recover Zombies spawners',name='xz_zombies_classic:recover_spawner'," in code
+          assert "M.register_node('xz_zombies:" not in code
+          print('38 registrations verified (37 nodes, one tool)')
+          PY
+
+      - name: Download all twelve FIX47 signed APK pieces
+        shell: bash
+        env:
+          LINK_01: 'https://sdmntpreastus.oaiusercontent.com/files/00000000-8744-81f9-9fcd-fccbf3a5eb31/raw?se=2026-11-11T15%3A37%3A38Z&sp=r&sv=2026-06-06&sr=b&scid=b5a6b6fc-7292-5869-bd02-ff0782d8f3f1&skoid=e96cf01c-9c0f-4e27-b41e-0f2e435e6532&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T02%3A19%3A48Z&ske=2026-11-12T02%3A19%3A48Z&sks=b&skv=2026-06-06&sig=%2BYWkkCcvZlJUV5iggzbg9rz2mXQtq2ceeutxIsvsGlg%3D'
+          LINK_02: 'https://sdmntpreastus2.oaiusercontent.com/files/00000000-2524-81f6-b3cd-91451701619e/raw?se=2026-11-11T15%3A37%3A22Z&sp=r&sv=2026-06-06&sr=b&scid=e4a93efe-bd3a-5c11-ad2f-f4c5e491317f&skoid=dd316919-ffbf-4550-9c54-dfc99f412009&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T00%3A48%3A39Z&ske=2026-11-12T00%3A48%3A39Z&sks=b&skv=2026-06-06&sig=bze%2B0R3Hq4%2BM7VcXG%2BSv3FHsBd3frGXa7kcHaj0FwVI%3D'
+          LINK_03: 'https://sdmntpreastus.oaiusercontent.com/files/00000000-89c8-81f9-87d7-2f56a260cf27/raw?se=2026-11-11T15%3A37%3A21Z&sp=r&sv=2026-06-06&sr=b&scid=040e2bc5-6170-5e7a-87f8-a6d1cfc66973&skoid=e96cf01c-9c0f-4e27-b41e-0f2e435e6532&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T13%3A08%3A48Z&ske=2026-11-12T13%3A08%3A48Z&sks=b&skv=2026-06-06&sig=5KDhW6VdNlQjzQiHuzjs8ZcGx6mFM9AeXmMSY9TLQHw%3D'
+          LINK_04: 'https://sdmntpreastus.oaiusercontent.com/files/00000000-7efc-81f9-9905-e6a484124830/raw?se=2026-11-11T15%3A37%3A22Z&sp=r&sv=2026-06-06&sr=b&scid=1c5da52a-47b0-5962-889e-06b2ea44c1c4&skoid=e96cf01c-9c0f-4e27-b41e-0f2e435e6532&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T01%3A21%3A18Z&ske=2026-11-12T01%3A21%3A18Z&sks=b&skv=2026-06-06&sig=sDd8su6c1VXP4ZtseRoC0zcWQ%2B6iNF3ZZMrcEEpoP2A%3D'
+          LINK_05: 'https://sdmntprcentralus.oaiusercontent.com/files/00000000-7930-81f5-8603-2b3a257685a2/raw?se=2026-11-11T15%3A37%3A49Z&sp=r&sv=2026-06-06&sr=b&scid=08b34630-dc51-5652-85a3-2f647d0be498&skoid=a1be202a-6464-476c-a496-723317c4a4db&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T15%3A10%3A50Z&ske=2026-11-12T15%3A10%3A50Z&sks=b&skv=2026-06-06&sig=37H3N6At2NZaNPgyFBW7HmP2uu14Zf32%2B%2BYaYC3xFeg%3D'
+          LINK_06: 'https://sdmntprcentralus.oaiusercontent.com/files/00000000-9928-81f5-a118-6e504d5ceac2/raw?se=2026-11-11T15%3A38%3A21Z&sp=r&sv=2026-06-06&sr=b&scid=1e78b3fe-73d1-5655-a523-bd42101e5153&skoid=a1be202a-6464-476c-a496-723317c4a4db&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T13%3A27%3A37Z&ske=2026-11-12T13%3A27%3A37Z&sks=b&skv=2026-06-06&sig=BopyjAdKUtgWkTfn/bX%2B6NjWdIze8RO5b0wHTcDFlGE%3D'
+          LINK_07: 'https://sdmntpreastus.oaiusercontent.com/files/00000000-835c-81f9-b576-732684c6fff3/raw?se=2026-11-11T15%3A37%3A27Z&sp=r&sv=2026-06-06&sr=b&scid=daadb960-a96f-5e18-ad2c-dba3a7760915&skoid=e96cf01c-9c0f-4e27-b41e-0f2e435e6532&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T02%3A25%3A34Z&ske=2026-11-12T02%3A25%3A34Z&sks=b&skv=2026-06-06&sig=xTJdqFYLR7V6CR2C7MlISj3I6rMz9umO6fHydbPCHeg%3D'
+          LINK_08: 'https://sdmntprcentralus.oaiusercontent.com/files/00000000-698c-81f5-ad07-209f06d0a0b0/raw?se=2026-11-11T15%3A37%3A42Z&sp=r&sv=2026-06-06&sr=b&scid=5bb0cc49-05d7-5a47-8eff-fbf7d4b3fd6b&skoid=a1be202a-6464-476c-a496-723317c4a4db&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T12%3A33%3A32Z&ske=2026-11-12T12%3A33%3A32Z&sks=b&skv=2026-06-06&sig=ufG/vXhhG%2Bz%2BeqYuBxbHFCA/xXSS2zczyF4RIkUXikw%3D'
+          LINK_09: 'https://sdmntpreastus.oaiusercontent.com/files/00000000-6470-81f9-a3a5-4297c190d3fe/raw?se=2026-11-11T15%3A37%3A33Z&sp=r&sv=2026-06-06&sr=b&scid=4fee2022-67df-5f41-b1ec-6ef072d2daf8&skoid=e96cf01c-9c0f-4e27-b41e-0f2e435e6532&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T02%3A23%3A12Z&ske=2026-11-12T02%3A23%3A12Z&sks=b&skv=2026-06-06&sig=sDcN8fmuQISaLPBKHSQCvNGp3M2WqZiHM6lWjCeBojI%3D'
+          LINK_10: 'https://sdmntpreastus.oaiusercontent.com/files/00000000-1d20-81f9-a43a-bb2670534007/raw?se=2026-11-11T15%3A37%3A38Z&sp=r&sv=2026-06-06&sr=b&scid=6586abce-4cdd-5346-89c3-1d4ec3ddfc46&skoid=e96cf01c-9c0f-4e27-b41e-0f2e435e6532&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T02%3A15%3A07Z&ske=2026-11-12T02%3A15%3A07Z&sks=b&skv=2026-06-06&sig=bcKWFpxyihvrtdA2W18vWx1jgl8La3z6Bij8JFj2LrI%3D'
+          LINK_11: 'https://sdmntpreastus.oaiusercontent.com/files/00000000-b9c8-81f9-9fb1-dc7833883c21/raw?se=2026-11-11T15%3A37%3A43Z&sp=r&sv=2026-06-06&sr=b&scid=ceac6602-3c01-5b0d-aa06-1116a5d6cecc&skoid=e96cf01c-9c0f-4e27-b41e-0f2e435e6532&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T02%3A15%3A07Z&ske=2026-11-12T02%3A15%3A07Z&sks=b&skv=2026-06-06&sig=U5x7wVI//durL/ocJMgTGrpXhTfrvRvkv4kDkeX%2BANU%3D'
+          LINK_12: 'https://sdmntprnorthcentralus.oaiusercontent.com/files/00000000-b968-822f-bd0d-779e905ec6dd/raw?se=2026-11-11T15%3A37%3A45Z&sp=r&sv=2026-06-06&sr=b&scid=0bc4daba-c2b4-5b51-9a1d-e8011312975c&skoid=bbd22fc4-f881-4ea4-b2f3-c12033cf6a8b&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T00%3A55%3A51Z&ske=2026-11-12T00%3A55%3A51Z&sks=b&skv=2026-06-06&sig=iH6N98X4hrrBDyQ5q07fOFphKnpcxcgIDvf1GbRsNTQ%3D'
+        run: |
+          set -euo pipefail
+          mkdir -p parts
+          for n in $(seq -w 1 12); do
+            key="LINK_${n}"
+            curl --fail --location --show-error --retry 5 --retry-delay 3 --connect-timeout 30 \
+              --output "parts/FIX47-APK-PART${n}.bin" "${!key}"
+            expected=62914560
+            if [ "$n" = 12 ]; then expected=58487882; fi
+            actual=$(stat -c%s "parts/FIX47-APK-PART${n}.bin")
+            test "$actual" -eq "$expected" || { echo "::error::Bad part size $n got $actual expected $expected"; exit 1; }
+            echo "Verified part $n / 12"
+          done
+
+      - name: Assemble and verify signed FIX47 APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="COD4-ZOMBIES-FIX47-REGISTRATION-REPAIR-ARM64.apk"
+          cat parts/FIX47-APK-PART{01..12}.bin > "$APK"
+          test "$(stat -c%s "$APK")" -eq 750548042
+          echo "8555b9caf078452d029a0d4bed28c74baeff81f090a5cecfc65182688fcf9d40  $APK" | sha256sum -c
+          unzip -t "$APK" > /dev/null
+          python3 - "$APK" <<'PY'
+          from pathlib import Path
+          import struct,sys,zipfile
+          p=Path(sys.argv[1]);marker=b'XZ-ASSETS-1:9663'
+          with zipfile.ZipFile(p) as z,p.open('rb') as f:
+            assert len(z.infolist())==419
+            entry=z.getinfo('assets/assets.zip')
+            assert entry.compress_type==zipfile.ZIP_STORED
+            f.seek(entry.header_offset)
+            header=f.read(30)
+            vals=struct.unpack('<IHHHHHIIIHH',header)
+            assert vals[0]==0x04034b50
+            at=entry.header_offset+30+vals[9]+vals[10]
+            f.seek(at+entry.file_size-22-len(marker))
+            eocd=f.read(22+len(marker))
+            assert eocd[:4]==b'PK\\x05\\x06'
+            assert struct.unpack_from('<H',eocd,20)[0]==len(marker)
+            assert eocd[-len(marker):]==marker
+          print('FIX47 APK intact; compact marker restored; 419 files')
+          PY
+
+      - name: Publish separate FIX47 Android prerelease
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="fix47-zombies-registration-prefix-repair-arm64"
+          APK="COD4-ZOMBIES-FIX47-REGISTRATION-REPAIR-ARM64.apk"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$APK" --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" "$APK" --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" --prerelease \
+              --title "FIX47 TEST — Luanti Zombies registration prefix repair (Android ARM64)" \
+              --notes "Repairs FIX46 crash: name xz_zombies:wall_ak47 does not follow naming conventions for mod xz_zombies_classic. All 37 node registrations and editor tool now use an explicit leading colon to register their ORIGINAL xz_zombies:* IDs without changing existing worlds. Preserves 28 wall models, native VoxeLibre spawners, 9,663 Luanti resources and compact marker XZ-ASSETS-1:9663. Only games/voxelibre/mods/xz_zombies_classic/init.lua changed. Same Android v2 signing certificate as FIX46 (SHA-256 271890e4f8c663e7ce83cb9f0470f31685ae46264f8304b915dfab77d15f36a5). APK 750548042 bytes; SHA-256 8555b9caf078452d029a0d4bed28c74baeff81f090a5cecfc65182688fcf9d40. Tested Lua registration names with strict naming mock and native spawner simulation. Physical device test not yet confirmed. BACK UP worlds before installing; do not uninstall old version without backup."
+          fi
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json url,assets
