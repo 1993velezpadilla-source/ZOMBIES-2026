@@ -1,0 +1,8 @@
+FIX45 NATIVE ZOMBIE SPAWNERS (Android ARM64)
+
+Source base: FIX44 FULL; only games/voxelibre/mods/xz_zombies_classic/init.lua is modified.
+Zombies use existing VoxeLibre models: mobs_mc:zombie, mobs_mc:husk, mobs_mc:villager_zombie, mobs_mc:baby_zombie.
+PLAY: activate round spawning when player is within 45 nodes of a placed spawner. Right-click spawner while PLAY: instant test. STOP removes round mobs.
+Existing weapon, textures, worlds and 28 wall-buy resources remain untouched. No user-world data is intentionally modified by packaging.
+Runtime installation and Android Pixel Fold test pending. APK signature v2 signed with original cert.
+APK SHA256: c746da5b84fd77fd3b4c77f4e85e5be6d9819e2d2338f243f6c8c8b0cc29a696
