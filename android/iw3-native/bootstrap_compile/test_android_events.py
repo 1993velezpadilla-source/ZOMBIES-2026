@@ -27,6 +27,21 @@ int main() {
     Sys_SetEvent(&automatic);
     assert(Sys_WaitForSingleObjectTimeout(&automatic,0));
     assert(!Sys_WaitForSingleObjectTimeout(&automatic,0));
+    // Win32 INFINITE must wait for a future signal, then auto-consume it.
+    std::atomic<bool> infinite_started{false};
+    std::atomic<bool> infinite_finished{false};
+    std::thread infinite_waiter([&]{
+        infinite_started = true;
+        infinite_finished = Sys_WaitForSingleObjectTimeout(&automatic,UINT32_MAX);
+    });
+    auto infinite_deadline=std::chrono::steady_clock::now()+std::chrono::seconds(1);
+    while (!infinite_started && std::chrono::steady_clock::now()<infinite_deadline)
+        std::this_thread::yield();
+    assert(infinite_started);
+    Sys_SetEvent(&automatic);
+    infinite_waiter.join();
+    assert(infinite_finished);
+    assert(!Sys_WaitForSingleObjectTimeout(&automatic,0));
     std::atomic<int> done{0};
     std::atomic<int> ready{0};
     std::thread a([&]{++ready; if (Sys_WaitForSingleObjectTimeout(&automatic,2000)) ++done;});
