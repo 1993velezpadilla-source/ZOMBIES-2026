@@ -26,7 +26,7 @@ M = {
  formspec_escape=function(x) return tostring(x):gsub(']', '\\]'):gsub(';','\\;') end,
  register_node=function(n,d) assert(n:sub(1,1)==':');nodes[n:sub(2)]=d end,
  register_tool=function(n,d) tools[n:sub(2)]=d end,
- register_lbm=function(def) callbacks.lbm=def end,
+ register_lbm=function(def) callbacks.lbms=callbacks.lbms or {};callbacks.lbms[def.name]=def end,
  register_on_joinplayer=function(fn) callbacks.join=fn end,
  register_on_leaveplayer=function(fn) callbacks.leave=fn end,
  register_on_player_receive_fields=function(fn) callbacks.fields=fn end,
@@ -40,7 +40,7 @@ M = {
  get_node_or_nil=function(pos) return {name=worldnode,param2=0} end,
  get_node=function(pos) return {name=worldnode,param2=0} end,
  swap_node=function(pos,node) handled.swap={pos=pos,node=node} end,
- dir_to_facedir=function(d)assert(d.z==1);return 0 end,
+ dir_to_facedir=function(d) if d.x==1 then return 1 elseif d.x==-1 then return 3 elseif d.z==-1 then return 2 else return 0 end end,
  get_meta=function(pos) return {get_int=function(_,k)return 1200 end,
   set_int=function(_,k,v) handled.price=v end,set_string=function(_,k,v)end}end,
  raycast=function(o,t,obj,liq)
@@ -253,7 +253,8 @@ assert(wp.on_place('WALL_ITEM',p,floor)=='WALL_ITEM')
 assert(handled.mounted==mount,'Ceiling/floor wall buy was created')
 print('PASS: 28 guns retain original PLACE/ADS; native USE with equipped gun; door/wall/crate; no through-wall use; mounted wall placement')
 -- FIX50B: old map Wall Buys only snap if the closest backing is unambiguous.
-assert(callbacks.lbm and callbacks.lbm.name=='xz_zombies:fix50b_reanchor_existing_wall_buys')
+local mount_lbm=callbacks.lbms and callbacks.lbms['xz_zombies:fix50b_reanchor_existing_wall_buys']
+assert(mount_lbm,'wall anchor LBM must coexist with zombie spawner LBM')
 local function key(q) return ('%d/%d/%d'):format(q.x,q.y,q.z) end
 local grid,metas={},{}
 local old={x=4,y=5,z=6}
@@ -271,7 +272,7 @@ M.get_meta=function(q)
   from_table=function(_,t) metas[k]=t end,
  }
 end
-callbacks.lbm.action(old,grid[key(old)])
+mount_lbm.action(old,grid[key(old)])
 assert(grid[key(old)].name=='air','old floating wall buy must be cleared')
 assert(grid[key(dest)] and grid[key(dest)].name=='xz_zombies:wall_ak47','wall buy must snap adjacent to backing')
 assert(grid[key(dest)].param2==0,'wall prop must face outward')
@@ -279,12 +280,12 @@ assert(metas[key(dest)].fields.price=='2000','price metadata must remain')
 local fixed={x=10,y=4,z=10}
 grid[key(fixed)]={name='xz_zombies:wall_ak47',param2=3}
 grid[key({x=10,y=4,z=9})]={name='mcl_core:stone'}
-callbacks.lbm.action(fixed,grid[key(fixed)])
+mount_lbm.action(fixed,grid[key(fixed)])
 assert(grid[key(fixed)].name=='xz_zombies:wall_ak47' and grid[key(fixed)].param2==0)
 local amb={x=20,y=4,z=20}
 grid[key(amb)]={name='xz_zombies:wall_ak47',param2=4}
 grid[key({x=20,y=4,z=18})]={name='mcl_core:stone'}
 grid[key({x=18,y=4,z=20})]={name='mcl_core:stone'}
-callbacks.lbm.action(amb,grid[key(amb)])
+mount_lbm.action(amb,grid[key(amb)])
 assert(grid[key(amb)].name=='xz_zombies:wall_ak47','ambiguous wall geometry must be left intact')
 print('PASS: floating wall prop snap, metadata preservation, safe ambiguous cases')
