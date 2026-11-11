@@ -1,0 +1,69 @@
+name: Publish FIX45 Native Zombies APK
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-fix45-native-zombies.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fix45-native-zombies-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Download FIX45 APK transfer parts
+        shell: bash
+        env:
+          URL_01: 'https://sdmntpreastus.oaiusercontent.com/files/00000000-c348-81f9-afe4-9936231be360/raw?se=2026-11-11T14%3A27%3A18Z&sp=r&sv=2026-06-06&sr=b&scid=d075984a-3733-514d-b3e5-69e68415f31a&skoid=e96cf01c-9c0f-4e27-b41e-0f2e435e6532&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T02%3A16%3A47Z&ske=2026-11-12T02%3A16%3A47Z&sks=b&skv=2026-06-06&sig=siuXZHAvkDHSIF3XNTi1XiD9sVKesrCdcBs9cHvCnao%3D'
+          URL_02: 'https://sdmntprsouthcentralus.oaiusercontent.com/files/00000000-3568-81f7-a4f6-8ddee1ab6034/raw?se=2026-11-11T14%3A27%3A04Z&sp=r&sv=2026-06-06&sr=b&scid=0660d3a1-a636-5fa7-b409-a5b99af57cc4&skoid=c953efd6-2ae8-41b4-a6d6-34b1475ac07c&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T13%3A16%3A43Z&ske=2026-11-12T13%3A16%3A43Z&sks=b&skv=2026-06-06&sig=eg1FLazObJl7j5nS8lMbQEJA28AE4wzsgPyWI0MQeFc%3D'
+          URL_03: 'https://sdmntpreastus2.oaiusercontent.com/files/00000000-815c-81f6-a1ae-74feab2b618c/raw?se=2026-11-11T14%3A27%3A03Z&sp=r&sv=2026-06-06&sr=b&scid=4f2a3f4d-b262-5bcd-860a-93c513f5f0b7&skoid=dd316919-ffbf-4550-9c54-dfc99f412009&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T00%3A50%3A00Z&ske=2026-11-12T00%3A50%3A00Z&sks=b&skv=2026-06-06&sig=2CTxltyCjQE1ezz%2BCXdSvct/n%2BtHUcz8rC1tXNkHt2c%3D'
+          URL_04: 'https://sdmntprcentralus.oaiusercontent.com/files/00000000-867c-81f5-8332-6d1a1394f70f/raw?se=2026-11-11T14%3A27%3A56Z&sp=r&sv=2026-06-06&sr=b&scid=ec363167-158c-53a8-83a9-008aeb57183a&skoid=a1be202a-6464-476c-a496-723317c4a4db&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T12%3A01%3A49Z&ske=2026-11-12T12%3A01%3A49Z&sks=b&skv=2026-06-06&sig=5ZgGigqknJfujVvWHr5HjjTXzejyH3MgPFqRVqwQEXM%3D'
+          URL_05: 'https://sdmntpreastus.oaiusercontent.com/files/00000000-8b58-81f9-8c27-25d4ade22192/raw?se=2026-11-11T14%3A27%3A03Z&sp=r&sv=2026-06-06&sr=b&scid=b0f11c06-5ce4-5976-b68e-f094578a34d8&skoid=e96cf01c-9c0f-4e27-b41e-0f2e435e6532&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T02%3A21%3A31Z&ske=2026-11-12T02%3A21%3A31Z&sks=b&skv=2026-06-06&sig=nyja/O%2Bg/C5TvSyECwvD3hGNeoIAEQ2bLLGr5kHifdc%3D'
+          URL_06: 'https://sdmntpreastus.oaiusercontent.com/files/00000000-c528-81f9-b94d-06b044527233/raw?se=2026-11-11T14%3A27%3A08Z&sp=r&sv=2026-06-06&sr=b&scid=f86e5cd5-9374-54d6-9dce-b207b5ca1207&skoid=e96cf01c-9c0f-4e27-b41e-0f2e435e6532&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T02%3A28%3A34Z&ske=2026-11-12T02%3A28%3A34Z&sks=b&skv=2026-06-06&sig=HAuSOVgZhYhUg3RiabDx6mf5U2QxOEfNkihuhspEwrI%3D'
+          URL_07: 'https://sdmntpreastus2.oaiusercontent.com/files/00000000-436c-81f6-b936-d3458b7c070c/raw?se=2026-11-11T14%3A27%3A08Z&sp=r&sv=2026-06-06&sr=b&scid=a1c0ae2e-1114-5b81-b45c-2bc441326619&skoid=dd316919-ffbf-4550-9c54-dfc99f412009&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T00%3A58%3A05Z&ske=2026-11-12T00%3A58%3A05Z&sks=b&skv=2026-06-06&sig=Z0ToNMcP1RrYkjEsjeJrd1fiJ%2B5CpdFBMmgGAQMRmuk%3D'
+          URL_08: 'https://sdmntprnorthcentralus.oaiusercontent.com/files/00000000-a5c8-822f-9668-23abad3eaab5/raw?se=2026-11-11T14%3A27%3A10Z&sp=r&sv=2026-06-06&sr=b&scid=0157178d-b1aa-58d4-a4b8-855aa333a833&skoid=bbd22fc4-f881-4ea4-b2f3-c12033cf6a8b&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T11%3A07%3A57Z&ske=2026-11-12T11%3A07%3A57Z&sks=b&skv=2026-06-06&sig=0hs7FijWSaVcOtUIg07pSrEvd58GtD5mqsPC%2Blq/Q94%3D'
+          URL_09: 'https://sdmntpreastus.oaiusercontent.com/files/00000000-9cd4-81f9-9525-0589d63f17c1/raw?se=2026-11-11T14%3A28%3A14Z&sp=r&sv=2026-06-06&sr=b&scid=97d5834e-9606-5ae6-9b6e-005ba64e89ff&skoid=e96cf01c-9c0f-4e27-b41e-0f2e435e6532&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T12%3A32%3A02Z&ske=2026-11-12T12%3A32%3A02Z&sks=b&skv=2026-06-06&sig=ewtFdpHtBHgyzckLcz/Meoc8ADPY8T5X9j/IwKJb1Gs%3D'
+          URL_10: 'https://sdmntpreastus3.oaiusercontent.com/files/00000000-900c-8212-aeb9-fceb6347b407/raw?se=2026-11-11T14%3A27%3A13Z&sp=r&sv=2026-06-06&sr=b&scid=7c2d2fe9-63d0-5af7-82ae-091665eb52ac&skoid=c953efd6-2ae8-41b4-a6d6-34b1475ac07c&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T00%3A41%3A35Z&ske=2026-11-12T00%3A41%3A35Z&sks=b&skv=2026-06-06&sig=PHwLDy87WGBEw4qNuKygjJnsZCOBqJ8u5/5%2BVxslUzU%3D'
+          URL_11: 'https://sdmntpreastus.oaiusercontent.com/files/00000000-1934-81f9-ba28-e807e4f442d6/raw?se=2026-11-11T14%3A27%3A15Z&sp=r&sv=2026-06-06&sr=b&scid=f157a7b6-81dd-595c-949d-d07093a1063d&skoid=e96cf01c-9c0f-4e27-b41e-0f2e435e6532&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T01%3A14%3A20Z&ske=2026-11-12T01%3A14%3A20Z&sks=b&skv=2026-06-06&sig=9MpHcJ1PjiYZMBcLjpukbIsr6CwfKAUhqwqkBqzQDP4%3D'
+          URL_12: 'https://sdmntpreastus.oaiusercontent.com/files/00000000-9424-81f9-bba2-8e8f8089df75/raw?se=2026-11-11T14%3A27%3A18Z&sp=r&sv=2026-06-06&sr=b&scid=46200e61-0eb2-58f3-b838-18b37edcf7e5&skoid=e96cf01c-9c0f-4e27-b41e-0f2e435e6532&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T02%3A27%3A01Z&ske=2026-11-12T02%3A27%3A01Z&sks=b&skv=2026-06-06&sig=dXv%2BMltMosr/bLM/GDi81LBbhbhn6KT/kORydeKelEI%3D'
+        run: |
+          set -euo pipefail
+          mkdir -p parts
+          for n in $(seq -w 1 12); do
+            key="URL_${n}"
+            echo "Fetching FIX45 part ${n} of 12"
+            curl --fail --show-error --location --retry 4 --retry-delay 2 --connect-timeout 30 \
+              --output "parts/FIX45-APK-PART${n}.bin" "${!key}"
+            expected=62914560
+            if [ "$n" = "12" ]; then expected=58487870; fi
+            test "$(stat -c%s "parts/FIX45-APK-PART${n}.bin")" -eq "$expected"
+          done
+          APK="COD4-ZOMBIES-FIX45-NATIVE-SPAWNERS-ARM64.apk"
+          cat parts/FIX45-APK-PART{01..12}.bin > "$APK"
+          test "$(stat -c%s "$APK")" -eq 750548030
+          echo "c746da5b84fd77fd3b4c77f4e85e5be6d9819e2d2338f243f6c8c8b0cc29a696  $APK" | sha256sum -c
+          unzip -t "$APK" > /dev/null
+
+      - name: Publish separate FIX45 GitHub prerelease
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="fix45-native-zombie-spawners-android-arm64"
+          APK="COD4-ZOMBIES-FIX45-NATIVE-SPAWNERS-ARM64.apk"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$APK" --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" "$APK" --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" --prerelease \
+              --title "FIX45 TEST — Native VoxeLibre Zombie Spawners (Android ARM64)" \
+              --notes "Separate test build based on FIX44. Uses native VoxeLibre zombies (standard, husk, zombie villager, baby), seeks two-block clearances, supports instant test when tapping a spawner during PLAY, and removes spawned zombies on STOP. Original 9,663 resources and 28 weapons preserved; only xz_zombies_classic/init.lua changed. APK 750548030 bytes, SHA256 c746da5b84fd77fd3b4c77f4e85e5be6d9819e2d2338f243f6c8c8b0cc29a696. Signature v2 validated against FIX44 certificate. Android startup not yet tested. Back up worlds before installation."
+          fi
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json url,assets
