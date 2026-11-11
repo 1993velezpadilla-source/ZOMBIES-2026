@@ -1,0 +1,78 @@
+name: Publish FIX50A native independent USE Android TEST APK
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-fix50a-native-use.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-fix50a-native-use
+  cancel-in-progress: false
+
+jobs:
+  release-signed-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Transfer 9 signed FIX50A APK pieces
+        shell: bash
+        env:
+          PART_00: 'https://sdmntprcentralus.oaiusercontent.com/files/00000000-cb38-81f5-9421-1e3bf44845d6/raw?se=2026-11-11T22%3A52%3A12Z&sp=r&sv=2026-06-06&sr=b&scid=57fab068-2beb-52de-955d-634da480d3bd&skoid=a1be202a-6464-476c-a496-723317c4a4db&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T13%3A06%3A18Z&ske=2026-11-12T13%3A06%3A18Z&sks=b&skv=2026-06-06&sig=xBVcHIHZFuvji0vgUSKiVebvmPf%2BoMXSEOy8zUXIi7s%3D'
+          PART_01: 'https://sdmntpreastus.oaiusercontent.com/files/00000000-e1f0-81f9-9eda-887101b8e2ae/raw?se=2026-11-11T22%3A51%3A54Z&sp=r&sv=2026-06-06&sr=b&scid=8466cfc7-3c73-50e8-b1ef-48144b8c4336&skoid=e96cf01c-9c0f-4e27-b41e-0f2e435e6532&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T02%3A22%3A11Z&ske=2026-11-12T02%3A22%3A11Z&sks=b&skv=2026-06-06&sig=pbKYGlmnxmrVIHLVkcge2cvbMFG8%2Bn%2BqSQtQ%2Bs7vAYU%3D'
+          PART_02: 'https://sdmntpreastus2.oaiusercontent.com/files/00000000-96b4-81f6-b74b-7b7d4e9c2c82/raw?se=2026-11-11T22%3A51%3A56Z&sp=r&sv=2026-06-06&sr=b&scid=4e0ca6a2-27a6-5b80-a896-f8d84d8829e1&skoid=dd316919-ffbf-4550-9c54-dfc99f412009&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T01%3A01%3A59Z&ske=2026-11-12T01%3A01%3A59Z&sks=b&skv=2026-06-06&sig=4d6eY6Ks/uF73eKQVYwl7ljWiL2iLB3I3bqnSKublO8%3D'
+          PART_03: 'https://sdmntpreastus.oaiusercontent.com/files/00000000-712c-81f9-b2e7-04077a34bbf4/raw?se=2026-11-11T22%3A51%3A54Z&sp=r&sv=2026-06-06&sr=b&scid=6517207a-3152-524a-9ebe-f1bf00255085&skoid=e96cf01c-9c0f-4e27-b41e-0f2e435e6532&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T02%3A23%3A12Z&ske=2026-11-12T02%3A23%3A12Z&sks=b&skv=2026-06-06&sig=w271fqvWzD84kAacknuUC45GUNKvr20AOVR0a2WuMWE%3D'
+          PART_04: 'https://sdmntprcentralus.oaiusercontent.com/files/00000000-34f0-81f5-99ed-6f8b2afad176/raw?se=2026-11-11T22%3A51%3A57Z&sp=r&sv=2026-06-06&sr=b&scid=9a54cbce-7d99-5531-8cc9-71efe84a0deb&skoid=a1be202a-6464-476c-a496-723317c4a4db&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T14%3A11%3A39Z&ske=2026-11-12T14%3A11%3A39Z&sks=b&skv=2026-06-06&sig=W8/wsOQzIpIUcZM4XcDvFv5RvQFkJYubpkmopiGDbqU%3D'
+          PART_05: 'https://sdmntpreastus.oaiusercontent.com/files/00000000-a0d8-81f9-9d8a-7ce7cc97f693/raw?se=2026-11-11T22%3A51%3A59Z&sp=r&sv=2026-06-06&sr=b&scid=cdcf2d82-65e7-55a2-a5f3-18a5592ec613&skoid=e96cf01c-9c0f-4e27-b41e-0f2e435e6532&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T02%3A23%3A51Z&ske=2026-11-12T02%3A23%3A51Z&sks=b&skv=2026-06-06&sig=yXYQrP%2BDNRrIzYWpNRkgmK99ZfqtRIrDtt0qN/kUtjM%3D'
+          PART_06: 'https://sdmntpreastus2.oaiusercontent.com/files/00000000-6aa4-81f6-9e72-d1ac5be485d4/raw?se=2026-11-11T22%3A52%3A00Z&sp=r&sv=2026-06-06&sr=b&scid=94d72ce1-6cea-5110-b444-9310481bd359&skoid=dd316919-ffbf-4550-9c54-dfc99f412009&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T00%3A53%3A18Z&ske=2026-11-12T00%3A53%3A18Z&sks=b&skv=2026-06-06&sig=1wJmTKOGPFYWWoYbqcUWbwuMmHPPdgax5hCrJgHGe6w%3D'
+          PART_07: 'https://sdmntpreastus.oaiusercontent.com/files/00000000-c14c-81f9-8dfb-3877001ffa16/raw?se=2026-11-11T22%3A52%3A01Z&sp=r&sv=2026-06-06&sr=b&scid=5f6a320e-904b-5d9d-8c89-6d406555d532&skoid=e96cf01c-9c0f-4e27-b41e-0f2e435e6532&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T02%3A23%3A53Z&ske=2026-11-12T02%3A23%3A53Z&sks=b&skv=2026-06-06&sig=2meKslZJGs1jdbUmk4AIDJ01OvKGN/1veVv66BDRCqw%3D'
+          PART_08: 'https://sdmntpreastus.oaiusercontent.com/files/00000000-14a8-81f9-ba11-105dd45fe6d9/raw?se=2026-11-11T22%3A52%3A00Z&sp=r&sv=2026-06-06&sr=b&scid=2a2c6b9c-27b8-5d3b-a0d0-d56b7fd0630b&skoid=e96cf01c-9c0f-4e27-b41e-0f2e435e6532&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T02%3A19%3A48Z&ske=2026-11-12T02%3A19%3A48Z&sks=b&skv=2026-06-06&sig=ZaZt9nSMC34xWcEloEQhcdTaDrVb7JM0Rydi3TRH2tQ%3D'
+        run: |
+          set -euo pipefail
+          mkdir -p parts
+          for n in {00..08}; do
+            key="PART_${n}"
+            echo "Fetching FIX50A part ${n}"
+            curl --fail --show-error --location --retry 5 --retry-delay 3 --connect-timeout 40 --output "parts/FIX50A-PART${n}.bin" "${!key}"
+            expected=62914560
+            if [ "$n" = "08" ]; then expected=14565941; fi
+            actual=$(stat -c%s "parts/FIX50A-PART${n}.bin")
+            test "$actual" -eq "$expected" || { echo "::error::Part ${n} bad size: ${actual}"; exit 1; }
+          done
+      - name: Assemble and verify signed ARM64 FIX50A APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk="COD4-ZOMBIES-FIX50A-NATIVE-USE-WALL-MOUNT-ARM64.apk"
+          cat parts/FIX50A-PART{00..08}.bin > "$apk"
+          test "$(stat -c%s "$apk")" -eq 517882421
+          echo "514f877761c57bc2e18eabfc461004864109bda518968251955db705238fcf67  $apk" | sha256sum -c
+          unzip -t "$apk" >/dev/null
+          python3 - "$apk" <<'PY'
+          import zipfile,sys,io,struct
+          with zipfile.ZipFile(sys.argv[1]) as z:
+            assert len(z.namelist())==419
+            with zipfile.ZipFile(io.BytesIO(z.read('assets/assets.zip'))) as nested:
+              assert nested.comment==b'XZ-ASSETS-1:9666'
+              assert nested.namelist()==['luanti-assets.zip.xz']
+            elf=z.read('lib/arm64-v8a/libluanti.so')
+            assert elf[:4]==b'\x7fELF' and elf[4]==2 and struct.unpack_from('<H',elf,18)[0]==183
+          print('Archive, new ARM64 native library and resource marker verified.')
+          PY
+      - name: Publish the complete signed APK on GitHub Releases
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="fix50a-native-independent-use-wallbuys-arm64-test"
+          apk="COD4-ZOMBIES-FIX50A-NATIVE-USE-WALL-MOUNT-ARM64.apk"
+          notes="FIX50A TEST Android ARM64. Native NEW touchscreen USE button, separate from ADS, FIRE, PLACE and reload. On tap the engine sends /xz_use, which uses a short server-authoritative raycast to interact with wall-buy weapons, buyable doors, Mystery Boxes, perks and universal ammo crate even while any of 28 weapons is equipped. Existing guns retain native callbacks. New 3D wall-buy items require solid vertical backing and face wall normal, preventing further floating props; previously placed floating props are not automatically moved. Universal formspec editor, 28 guns, 419 APK entries, and 9,664 unchanged Lua/texture/model resources preserved. Only APK entries changed vs FIX49C: assets/assets.zip and lib/arm64-v8a/libluanti.so. LUA mocked integration tests and Luanti 5.18.0 ARM64 NDK compilation GREEN. WARNING ON-DEVICE TOUCHSCREEN TEST STILL REQUIRED; back up worlds and install over FIX49C without uninstalling. Same signing certificate SHA256 271890e4f8c663e7ce83cb9f0470f31685ae46264f8304b915dfab77d15f36a5. APK 517882421 bytes; SHA256 514f877761c57bc2e18eabfc461004864109bda518968251955db705238fcf67. Engine LGPL-2.1-or-later source patch in PR #25."
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$tag" "$apk" --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$tag" "$apk" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease --title "FIX50A TEST — Native USE Button + Solid Wall Buys (ARM64)" --notes "$notes"
+          fi
+          gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json url,assets
