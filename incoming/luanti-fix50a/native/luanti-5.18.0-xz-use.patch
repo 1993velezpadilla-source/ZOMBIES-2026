@@ -1,0 +1,153 @@
+diff --git a/src/gui/touchscreenlayout.h b/src/gui/touchscreenlayout.h
+--- a/src/gui/touchscreenlayout.h
++++ b/src/gui/touchscreenlayout.h
+@@ -61,7 +61,9 @@
+ 	joystick_bg_id,
+ 	joystick_center_id,
+ 
+-	touch_gui_button_id_END,
++	xz_use_id,
++
++	touch_gui_button_id_END,
+ };
+ 
+ extern const char *button_names[];
+diff --git a/src/gui/touchscreenlayout.cpp b/src/gui/touchscreenlayout.cpp
+--- a/src/gui/touchscreenlayout.cpp
++++ b/src/gui/touchscreenlayout.cpp
+@@ -48,8 +48,9 @@
+ 
+ 	"joystick_off",
+ 	"joystick_bg",
+-	"joystick_center",
+-};
++	"joystick_center",
++	"xz_use",
++};
+ 
+ // compare with GUIKeyChangeMenu::init_keys
+ const char *button_titles[] = {
+@@ -78,8 +79,9 @@
+ 
+ 	N_("Joystick"),
+ 	N_("Joystick"),
+-	N_("Joystick"),
+-};
++	N_("Joystick"),
++	N_("USE (Zombies)"),
++};
+ 
+ const char *button_image_names[] = {
+ 	"dig_btn.png",
+@@ -108,8 +110,9 @@
+ 
+ 	"joystick_off.png",
+ 	"joystick_bg.png",
+-	"joystick_center.png",
+-};
++	"joystick_center.png",
++	"xz_use_btn.png",
++};
+ 
+ v2s32 ButtonMeta::getPos(v2u32 screensize, s32 button_size) const
+ {
+@@ -193,11 +196,15 @@
+ 		v2f(1.0f, 1.0f),
+ 		v2f(-0.75f, -2.0f),
+ 	}},
+-	{overflow_id, {
+-		v2f(1.0f, 1.0f),
+-		v2f(-0.75f, -5.0f),
+-	}},
+-};
++	{overflow_id, {
++		v2f(1.0f, 1.0f),
++		v2f(-0.75f, -5.0f),
++	}},
++	{xz_use_id, {
++		v2f(1.0f, 1.0f),
++		v2f(-3.45f, -4.25f),
++	}},
++};
+ 
+ ButtonLayout ButtonLayout::postProcessLoaded(const ButtonMap &data)
+ {
+@@ -209,10 +216,13 @@
+ 		else
+ 			layout.preserved_disallowed.emplace(id, meta);
+ 	}
+-	return layout;
+-}
+-
+-ButtonLayout ButtonLayout::loadDefault()
++	// Always display the dedicated USE action even for an old saved Android layout.
++	if (!layout.layout.count(xz_use_id))
++		layout.layout.emplace(xz_use_id, default_data.at(xz_use_id));
++	return layout;
++}
++
++ButtonLayout ButtonLayout::loadDefault()
+ {
+ 	return postProcessLoaded(default_data);
+ }
+diff --git a/src/gui/touchcontrols.cpp b/src/gui/touchcontrols.cpp
+--- a/src/gui/touchcontrols.cpp
++++ b/src/gui/touchcontrols.cpp
+@@ -119,8 +119,8 @@
+ 	bool has_pointers = false;
+ 
+ 	for (button_info &btn : buttons) {
+-		if (btn.id == dig_id || btn.id == place_id)
+-			continue; // key repeats would cause glitches here
++		if (btn.id == dig_id || btn.id == place_id || btn.id == xz_use_id)
++			continue; // USE is a single edge-triggered action; never repeat purchases
+ 		if (btn.pointer_ids.empty())
+ 			continue;
+ 		has_pointers = true;
+@@ -145,8 +145,10 @@
+ 			return KeyType::ESC;
+ 		case dig_id:
+ 			return KeyType::DIG;
+-		case place_id:
+-			return KeyType::PLACE;
++		case place_id:
++			return KeyType::PLACE;
++		case xz_use_id:
++			return KeyType::XZ_USE;
+ 		case jump_id:
+ 			return KeyType::JUMP;
+ 		case sneak_id:
+diff --git a/src/client/keys.h b/src/client/keys.h
+--- a/src/client/keys.h
++++ b/src/client/keys.h
+@@ -100,7 +100,10 @@
+ 		SLOT_31,
+ 		SLOT_32,
+ 
+-		// Fake keycode for array size and internal checks
++		// Independent Zombies interaction input, separate from PLACE/DIG/ZOOM.
++		XZ_USE,
++
++		// Fake keycode for array size and internal checks
+ 		INTERNAL_ENUM_COUNT
+ 
+ 	};
+diff --git a/src/client/game.cpp b/src/client/game.cpp
+--- a/src/client/game.cpp
++++ b/src/client/game.cpp
+@@ -1425,8 +1425,13 @@
+ }
+ 
+ 
+-void Game::processKeyInput()
+-{
++void Game::processKeyInput()
++{
++	// Dedicated Android USE button. This never invokes the equipped item or ADS.
++	// Server-side /xz_use validates raycast, reach and purchase permissions.
++	if (wasKeyPressed(KeyType::XZ_USE) && client->modsLoaded())
++		client->sendChatMessage(L"/xz_use");
++
+ 	if (wasKeyDown(KeyType::DROP)) {
+ 		dropSelectedItem(isKeyDown(KeyType::SNEAK));
+ 	} else if (wasKeyDown(KeyType::AUTOFORWARD)) {
