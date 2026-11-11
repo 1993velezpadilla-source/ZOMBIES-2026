@@ -1,0 +1,57 @@
+name: FIX50A native USE source and gameplay checks
+on:
+  push:
+    branches:
+      - feature/fix50a-native-use-wall-mount-20261111
+    paths:
+      - 'incoming/luanti-fix50a/**'
+      - '.github/workflows/fix50a-native-use-source-gate.yml'
+  pull_request:
+    paths:
+      - 'incoming/luanti-fix50a/**'
+      - '.github/workflows/fix50a-native-use-source-gate.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  lua-regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lua5.4
+      - name: Validate syntax and simulated Android interactions
+        run: |
+          set -euo pipefail
+          luac5.4 -p incoming/luanti-fix50a/games/voxelibre/mods/xz_zombies_classic/init.lua
+          lua5.4 incoming/luanti-fix50a/tests/test_runtime.lua
+
+  upstream-native-patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch exact Luanti 5.18.0 source
+        run: git clone --depth 1 --branch 5.18.0 https://github.com/luanti-org/luanti.git upstream-luanti
+      - name: Apply dedicated key/button patch cleanly
+        run: |
+          set -euo pipefail
+          patch_file="$GITHUB_WORKSPACE/incoming/luanti-fix50a/native/luanti-5.18.0-xz-use.patch"
+          git -C upstream-luanti apply --check "$patch_file"
+          git -C upstream-luanti apply "$patch_file"
+          grep -q 'KeyType::XZ_USE' upstream-luanti/src/client/game.cpp
+          grep -q 'xz_use_id' upstream-luanti/src/gui/touchcontrols.cpp
+      - name: Generate Android touch asset without external dependencies
+        run: |
+          set -euo pipefail
+          python3 incoming/luanti-fix50a/native/make_xz_use_btn.py upstream-luanti/textures/base/pack/xz_use_btn.png
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('upstream-luanti/textures/base/pack/xz_use_btn.png')
+          assert p.read_bytes().startswith(b'\x89PNG\r\n\x1a\n')
+          assert p.stat().st_size > 200
+          print('Touchscreen icon exists, exact upstream patch applies')
+          PY
