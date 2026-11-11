@@ -23,6 +23,22 @@ int main() {
     void* automatic=nullptr;
     Sys_CreateEvent(false,false,&automatic);
     assert(automatic);
+    // Invalid handles must be safe and must never appear signaled.
+    void* absent=nullptr;
+    assert(!Sys_WaitForSingleObjectTimeout(nullptr,0));
+    assert(!Sys_WaitForSingleObjectTimeout(&absent,0));
+    Sys_SetEvent(nullptr);
+    Sys_ResetEvent(nullptr);
+    Sys_WaitForSingleObject(nullptr);
+    Sys_SetEvent(&absent);
+    Sys_ResetEvent(&absent);
+    Sys_WaitForSingleObject(&absent);
+    // Initially signaled auto-reset handles permit exactly one immediate wait.
+    void* initial_auto=nullptr;
+    Sys_CreateEvent(false,true,&initial_auto);
+    assert(initial_auto);
+    assert(Sys_WaitForSingleObjectTimeout(&initial_auto,0));
+    assert(!Sys_WaitForSingleObjectTimeout(&initial_auto,0));
     assert(!Sys_WaitForSingleObjectTimeout(&automatic,0));
     Sys_SetEvent(&automatic);
     assert(Sys_WaitForSingleObjectTimeout(&automatic,0));
