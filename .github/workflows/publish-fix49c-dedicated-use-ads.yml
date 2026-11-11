@@ -33,7 +33,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p parts
-          for n in $(seq -w 0 9); do
+          for n in {00..09}; do
             key="LINK_${n}"
             echo "Downloading FIX49C piece ${n}"
             curl --fail --show-error --location --retry 5 --retry-delay 3 --connect-timeout 40 --output "parts/PART${n}.bin" "${!key}"
