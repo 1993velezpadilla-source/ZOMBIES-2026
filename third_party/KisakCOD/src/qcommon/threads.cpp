@@ -319,8 +319,15 @@ bool __cdecl Sys_SpawnWorkerThread(void(__cdecl* function)(uint32_t), uint32_t t
 {
     ThreadContext_t threadContext; // [esp+0h] [ebp-4h]
 
-    threadContext = (ThreadContext_t)(threadIndex + 2);
-    if (threadHandle[threadIndex + 2])
+    // Validate before adding the worker-context offset or indexing handles.
+    // An untrusted worker index must never access beyond THREAD_CONTEXT_COUNT.
+    if (threadIndex >= static_cast<uint32_t>(THREAD_CONTEXT_COUNT) - 2u)
+    {
+        iassert(false);
+        return false;
+    }
+    threadContext = (ThreadContext_t)(threadIndex + 2u);
+    if (threadHandle[threadContext])
         MyAssertHandler(
             ".\\qcommon\\threads.cpp",
             1113,
