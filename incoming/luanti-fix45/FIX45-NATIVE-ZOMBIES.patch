@@ -1,0 +1,136 @@
+--- a/games/voxelibre/mods/xz_zombies_classic/init.lua
++++ b/games/voxelibre/mods/xz_zombies_classic/init.lua
+@@ -30,6 +30,59 @@
+ local ACTIVE_STORAGE='active'
+ local saved_spawners = M.deserialize(storage:get_string('spawner_positions')) or {}
+ local function persist_spawners() storage:set_string('spawner_positions', M.serialize(saved_spawners)) end
++-- FIX45 test: use native VoxeLibre entities and their existing mesh, texture and AI.
++local ZOMBIE_MODELS = {
++ 'mobs_mc:zombie', 'mobs_mc:zombie', 'mobs_mc:zombie',
++ 'mobs_mc:husk', 'mobs_mc:villager_zombie', 'mobs_mc:baby_zombie',
++}
++local function native_zombie()
++ local pool={}
++ for _,name in ipairs(ZOMBIE_MODELS) do
++  if M.registered_entities[name] then pool[#pool+1]=name end
++ end
++ if #pool==0 then return nil end
++ return pool[math.random(#pool)]
++end
++local function zombie_spawn_pos(at)
++ -- A spawner can be put on the floor or embedded in a wall. Find space for
++ -- both feet and head, on solid ground, before trying to create the mob.
++ local offsets={{0,1,0},{1,0,0},{-1,0,0},{0,0,1},{0,0,-1},
++                {1,1,0},{-1,1,0},{0,1,1},{0,1,-1},
++                {2,0,0},{-2,0,0},{0,0,2},{0,0,-2}}
++ local function node(p) return M.get_node_or_nil(p) end
++ for _,o in ipairs(offsets) do
++  local p={x=at.x+o[1],y=at.y+o[2],z=at.z+o[3]}
++  local feet=node(p)
++  local head=node({x=p.x,y=p.y+1,z=p.z})
++  local ground=node({x=p.x,y=p.y-1,z=p.z})
++  local floor=ground and M.registered_nodes[ground.name]
++  if feet and head and feet.name=='air' and head.name=='air'
++      and floor and floor.walkable then
++   return {x=p.x,y=p.y+0.05,z=p.z}
++  end
++ end
++ return nil
++end
++local function spawn_native_zombie(at)
++ local name=native_zombie()
++ if not name then return false,'No hay zombis nativos cargados (mobs_mc).' end
++ local p=zombie_spawn_pos(at)
++ if not p then return false,'No hay espacio libre de dos bloques junto al spawner.' end
++ local obj=M.add_entity(p,name)
++ if not obj then return false,'Luanti no pudo crear '..name end
++ -- This is a round-controlled mob: do not despawn or burn before the test.
++ local entity=obj:get_luaentity()
++ if entity then
++  entity.can_despawn=false
++  entity.ignited_by_sunlight=false
++  entity.sunlight_damage=0
++ end
++ obj:set_hp(20+state.round*4)
++ state.zombies[#state.zombies+1]={obj=obj}
++ state.spawned=state.spawned+1
++ return true,name
++end
++
+ local function allowed(p) return p and p:is_player() and (M.is_singleplayer() or M.check_player_privs(p,{server=true})) end
+ local function player_points(p) return p:get_meta():get_int('xz_z_points') end
+ local function set_points(p,n)
+@@ -162,6 +215,28 @@
+   saved_spawners[pos_key(pos)]=vector.new(pos);persist_spawners()
+  end,
+  on_destruct=function(pos) saved_spawners[pos_key(pos)]=nil;persist_spawners() end,
++ on_rightclick=function(pos,node,p)
++  if not p or not p:is_player() then return end
++  if not allowed(p) then return end
++  if not state.active then
++   tell(p,'Spawner preparado. Presiona PLAY para activar zombis de VoxeLibre.')
++   return
++  end
++  if #state.zombies>=12 then tell(p,'Limite de 12 zombis vivos alcanzado.');return end
++  local ok,desc=spawn_native_zombie(pos)
++  if ok then tell(p,'TEST OK: '..desc..' aparecio junto al spawner.')
++  else tell(p,'TEST: '..desc);M.log('warning','[xz_zombies_classic] '..desc) end
++ end,
++})
++-- Restore registered spawners when existing saved worlds emerge from disk.
++M.register_lbm({label='FIX45 recover Zombies spawners',name='xz_zombies_classic:recover_spawner',
++ nodenames={'xz_zombies:spawner'},run_at_every_load=true,
++ action=function(pos)
++  local key=pos_key(pos)
++  if not saved_spawners[key] then
++   saved_spawners[key]=vector.new(pos);persist_spawners()
++  end
++ end,
+ })
+ local function reset_perks(p)
+   local meta=p:get_meta()
+@@ -185,9 +260,15 @@
+ end
+ local function start_game()
+  stop_game()
++ if not native_zombie() then
++  M.chat_send_all('[Zombies] No se encontro el mob de VoxeLibre (mobs_mc). PLAY cancelado.')
++  return
++ end
+  state.active=true;state.round=0;state.next_round=M.get_gametime()+2
++ state.next_spawn=0
+  for _,p in ipairs(M.get_connected_players()) do set_points(p,500) end
+  storage:set_int(ACTIVE_STORAGE,1)
++ M.chat_send_all('[Zombies] PLAY listo. Coloca un Spawner y acercate a menos de 45 bloques. Tocalo para TEST instantaneo.')
+ end
+ local function editor_form(p)
+  local name=p:get_player_name()
+@@ -360,17 +441,13 @@
+   end
+   if #candidates>0 then
+    local at=candidates[math.random(#candidates)]
+-   local spawn={x=at.x,y=at.y+1,z=at.z}
+-   if M.get_node(spawn).name=='air' then
+-    local obj=M.add_entity(spawn,'mobs_mc:zombie')
+-    if obj then
+-     obj:set_hp(20+state.round*4)
+-     state.zombies[#state.zombies+1]={obj=obj}
+-     state.spawned=state.spawned+1
+-    end
++   local ok,reason=spawn_native_zombie(at)
++   if not ok and (not state.last_spawn_warning or t-state.last_spawn_warning>=10) then
++    state.last_spawn_warning=t
++    M.log('warning','[xz_zombies_classic] '..reason)
+    end
+   end
+- elseif state.spawned==total and #state.zombies==0 and state.next_round==0 then
++ elseif state.spawned>=total and #state.zombies==0 and state.next_round==0 then
+   state.next_round=t+5
+  end
+ end
+@@ -421,4 +498,4 @@
+   end
+  end
+ end)
+-M.log('action','[xz_zombies_classic] FIX44 loaded with '..#WEAPONS..' wall-buy 3D models. Existing weapons untouched.')
++M.log('action','[xz_zombies_classic] FIX45 native VoxeLibre zombie spawner test loaded. Original arsenal remains untouched.')
