@@ -1,0 +1,93 @@
+name: Publish FIX46 compact assets count repair APK
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-fix46-compact-repair.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fix46-compact-repair-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Download FIX46 APK chunks
+        shell: bash
+        env:
+          LINK_01: 'https://sdmntpreastus3.oaiusercontent.com/files/00000000-ef0c-8212-8fd7-85f37417a4a5/raw?se=2026-11-11T14%3A57%3A12Z&sp=r&sv=2026-06-06&sr=b&scid=eea2c368-3a2f-54a0-adf8-3bc39426d90d&skoid=c953efd6-2ae8-41b4-a6d6-34b1475ac07c&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T01%3A07%3A44Z&ske=2026-11-12T01%3A07%3A44Z&sks=b&skv=2026-06-06&sig=1Tlp3h8V1Xku8H568/A//1vL55mYUUTLq2QC7EYVFgc%3D'
+          LINK_02: 'https://sdmntpreastus.oaiusercontent.com/files/00000000-1e04-81f9-96e2-ecb05689bc7a/raw?se=2026-11-11T14%3A55%3A47Z&sp=r&sv=2026-06-06&sr=b&scid=7fed5cee-4d7b-56e8-9862-858287245c5c&skoid=e96cf01c-9c0f-4e27-b41e-0f2e435e6532&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T02%3A17%3A28Z&ske=2026-11-12T02%3A17%3A28Z&sks=b&skv=2026-06-06&sig=2Nyk6HNIXbH7JyeT95%2B8u8JAR0AxYUTrwUEpwI68In0%3D'
+          LINK_03: 'https://sdmntpreastus.oaiusercontent.com/files/00000000-3790-81f9-979a-c91553446893/raw?se=2026-11-11T14%3A55%3A47Z&sp=r&sv=2026-06-06&sr=b&scid=3049b442-d460-54bf-afed-e35ddf2080b5&skoid=e96cf01c-9c0f-4e27-b41e-0f2e435e6532&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T01%3A21%3A18Z&ske=2026-11-12T01%3A21%3A18Z&sks=b&skv=2026-06-06&sig=FCcMCUyrea1UhccobnN1kZ/ZUm1q6aa0kHUrIZvTou4%3D'
+          LINK_04: 'https://sdmntpreastus.oaiusercontent.com/files/00000000-fcf0-81f9-ba34-1d1e63be17a5/raw?se=2026-11-11T14%3A55%3A48Z&sp=r&sv=2026-06-06&sr=b&scid=97c5de3b-1245-5ae6-a90f-ce90f30e16b0&skoid=e96cf01c-9c0f-4e27-b41e-0f2e435e6532&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T02%3A27%3A01Z&ske=2026-11-12T02%3A27%3A01Z&sks=b&skv=2026-06-06&sig=mlz7NWhUNFHUE7HpWckYVgSw2t%2BhMRsoRo5UMZLZ5XE%3D'
+          LINK_05: 'https://sdmntpreastus3.oaiusercontent.com/files/00000000-b068-8212-b6df-d1f6ab28831f/raw?se=2026-11-11T14%3A55%3A48Z&sp=r&sv=2026-06-06&sr=b&scid=a5dd933c-a17d-5c1b-b8e4-d2107092dc97&skoid=c953efd6-2ae8-41b4-a6d6-34b1475ac07c&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T01%3A03%3A20Z&ske=2026-11-12T01%3A03%3A20Z&sks=b&skv=2026-06-06&sig=JzMnfmCPTua9k7to81/glZpODFHCgfe8nC5Ia7jvDgE%3D'
+          LINK_06: 'https://sdmntprnortheu.oaiusercontent.com/files/00000000-ced8-81f4-bbe7-412427e2a370/raw?se=2026-11-11T14%3A55%3A59Z&sp=r&sv=2026-06-06&sr=b&scid=caa090f0-aaf1-5ea2-a14a-e6a004352bec&skoid=dd316919-ffbf-4550-9c54-dfc99f412009&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T01%3A01%3A35Z&ske=2026-11-12T01%3A01%3A35Z&sks=b&skv=2026-06-06&sig=yD%2BCwcJRCZbq6nNMw5dvYj5FVu64zEmaulgrmp74rR0%3D'
+          LINK_07: 'https://sdmntprcentralus.oaiusercontent.com/files/00000000-2674-81f5-a5d3-f5dd36021c0f/raw?se=2026-11-11T14%3A56%3A39Z&sp=r&sv=2026-06-06&sr=b&scid=c79366bf-eef9-59c3-8908-846c828bb426&skoid=a1be202a-6464-476c-a496-723317c4a4db&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T14%3A11%3A00Z&ske=2026-11-12T14%3A11%3A00Z&sks=b&skv=2026-06-06&sig=aoow1PPY24qxgEGZwmPPb4YN4blrWUpacAKMKX9Ba04%3D'
+          LINK_08: 'https://sdmntprnorthcentralus.oaiusercontent.com/files/00000000-2260-822f-840e-1c4b5a121ee5/raw?se=2026-11-11T14%3A55%3A56Z&sp=r&sv=2026-06-06&sr=b&scid=62e64b18-aebc-5a15-9878-5eb9b3a5cdd9&skoid=bbd22fc4-f881-4ea4-b2f3-c12033cf6a8b&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T14%3A02%3A19Z&ske=2026-11-12T14%3A02%3A19Z&sks=b&skv=2026-06-06&sig=9QS9XsMFMjhXVlbsQ2ibMrnESAghwfvWPhsSs//sETI%3D'
+          LINK_09: 'https://sdmntpreastus2.oaiusercontent.com/files/00000000-1bd8-81f6-b526-fab2e6daf3d3/raw?se=2026-11-11T14%3A55%3A54Z&sp=r&sv=2026-06-06&sr=b&scid=e0ebfcbe-ab2d-5f8f-813d-5dc4c52284a1&skoid=dd316919-ffbf-4550-9c54-dfc99f412009&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T00%3A55%3A42Z&ske=2026-11-12T00%3A55%3A42Z&sks=b&skv=2026-06-06&sig=DFoWN%2BNgFaH9bdNJm%2BcW6u5kxtHY7gMfr1tQphPa6eo%3D'
+          LINK_10: 'https://sdmntprcentralus.oaiusercontent.com/files/00000000-af54-81f5-a727-af841af66398/raw?se=2026-11-11T14%3A56%3A51Z&sp=r&sv=2026-06-06&sr=b&scid=3e33491e-21bc-5888-a977-6b945a6257d7&skoid=a1be202a-6464-476c-a496-723317c4a4db&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T12%3A45%3A14Z&ske=2026-11-12T12%3A45%3A14Z&sks=b&skv=2026-06-06&sig=LKFti2yz1gSBMJqafMbIcEB3TTkjbzPSW4hQ6vRIbyg%3D'
+          LINK_11: 'https://sdmntprnorthcentralus.oaiusercontent.com/files/00000000-56b8-822f-b823-75e4920bf8b9/raw?se=2026-11-11T14%3A56%3A03Z&sp=r&sv=2026-06-06&sr=b&scid=b1fac377-0cd1-519e-b484-470fffb6cad3&skoid=bbd22fc4-f881-4ea4-b2f3-c12033cf6a8b&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T13%3A26%3A08Z&ske=2026-11-12T13%3A26%3A08Z&sks=b&skv=2026-06-06&sig=Hw%2BraYmX6Ud8l%2BEjBJ/cbIY3TY3vsYPs3zx9totyrhA%3D'
+          LINK_12: 'https://sdmntpreastus.oaiusercontent.com/files/00000000-b2d4-81f9-82c2-b30ab5d98b38/raw?se=2026-11-11T14%3A56%3A05Z&sp=r&sv=2026-06-06&sr=b&scid=9569e0d2-7b6e-584b-8faf-2fb0ede9ba8d&skoid=e96cf01c-9c0f-4e27-b41e-0f2e435e6532&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T10%3A59%3A48Z&ske=2026-11-12T10%3A59%3A48Z&sks=b&skv=2026-06-06&sig=2rHufPipopQSUmqrljmq6kB7dxCH0ZtXBcvOTLVl7AM%3D'
+        run: |
+          set -euo pipefail
+          mkdir -p parts
+          for n in $(seq -w 1 12); do
+            key="LINK_${n}"
+            echo "Fetching FIX46 part ${n} of 12"
+            curl --fail --location --show-error --retry 4 --retry-delay 2 \
+                 --connect-timeout 30 --output "parts/FIX46-APK-PART${n}.bin" "${!key}"
+            expected=62914560
+            if [ "$n" = "12" ]; then expected=58487886; fi
+            actual=$(stat -c%s "parts/FIX46-APK-PART${n}.bin")
+            test "$actual" -eq "$expected" || { echo "::error::Bad part size n=$n got=$actual expected=$expected"; exit 1; }
+          done
+
+      - name: Rebuild and verify FIX46 APK and compact resources marker
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="COD4-ZOMBIES-FIX46-COMPACT-REPAIR-ARM64.apk"
+          cat parts/FIX46-APK-PART{01..12}.bin > "$APK"
+          test "$(stat -c%s "$APK")" -eq 750548046
+          echo "1b863f03256e8313ea2a5cb17606552e6ef43da5b460a379ef4a14f3c83f025c  $APK" | sha256sum -c
+          unzip -t "$APK" >/dev/null
+          python3 - "$APK" <<'PY'
+          import zipfile,sys,struct
+          apk=sys.argv[1]
+          with zipfile.ZipFile(apk) as z,open(apk,'rb') as f:
+              x=z.getinfo('assets/assets.zip')
+              assert x.compress_type == zipfile.ZIP_STORED
+              f.seek(x.header_offset)
+              h=f.read(30)
+              vals=struct.unpack('<IHHHHHIIIHH',h)
+              assert vals[0] == 0x04034b50
+              start=x.header_offset+30+vals[9]+vals[10]
+              f.seek(start+x.file_size-22-16)
+              tail=f.read(22+16)
+              assert tail[:4] == b'PK\x05\x06'
+              assert struct.unpack_from('<H',tail,20)[0] == 16
+              assert tail[-16:] == b'XZ-ASSETS-1:9663'
+          print('FIX46: count marker restored, native resources intact')
+          PY
+
+      - name: Publish FIX46 standalone APK GitHub prerelease
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="fix46-compact-entry-count-repair-arm64"
+          APK="COD4-ZOMBIES-FIX46-COMPACT-REPAIR-ARM64.apk"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$APK" --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" "$APK" --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" --prerelease \
+              --title "FIX46 TEST — compact asset entry count restored (Android ARM64)" \
+              --notes "Hotfix for 'Missing compact asset entry count' shown when launching FIX45. Restores marker XZ-ASSETS-1:9663 inside assets/assets.zip. Preserves all 9,663 Luanti resources and native VoxeLibre zombie spawner update from FIX45; no weapons or worlds removed. APK signed using same Android v2 certificate as FIX45 (SHA256 271890e4f8c663e7ce83cb9f0470f31685ae46264f8304b915dfab77d15f36a5). APK size 750548046 bytes; SHA256 1b863f03256e8313ea2a5cb17606552e6ef43da5b460a379ef4a14f3c83f025c. Android physical device test still pending; back up worlds before installing."
+          fi
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json url,assets
