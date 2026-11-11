@@ -1,0 +1,77 @@
+name: Publish FIX49C dedicated USE + ADS Android test APK
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-fix49c-dedicated-use-ads.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-fix49c-dedicated-use-ads
+  cancel-in-progress: false
+
+jobs:
+  signed-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Fetch 10 signed APK transfer parts
+        shell: bash
+        env:
+          LINK_00: 'https://sdmntpreastus2.oaiusercontent.com/files/00000000-6754-81f6-bb08-b58eaf7bfb5a/raw?se=2026-11-11T20%3A54%3A26Z&sp=r&sv=2026-06-06&sr=b&scid=b568320d-a47c-5ab8-b491-e7077406f928&skoid=dd316919-ffbf-4550-9c54-dfc99f412009&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T00%3A45%3A58Z&ske=2026-11-12T00%3A45%3A58Z&sks=b&skv=2026-06-06&sig=L1hjVhBEJRJVlEAtXNburCDsDRdDKg6oejt9Njgu1LE%3D'
+          LINK_01: 'https://sdmntpreastus.oaiusercontent.com/files/00000000-a09c-81f9-9616-e43f96799064/raw?se=2026-11-11T20%3A54%3A11Z&sp=r&sv=2026-06-06&sr=b&scid=0c7a3d26-32ef-597f-a173-4d4c821eb82c&skoid=e96cf01c-9c0f-4e27-b41e-0f2e435e6532&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T01%3A21%3A18Z&ske=2026-11-12T01%3A21%3A18Z&sks=b&skv=2026-06-06&sig=WAKDQSffYjhY6uIvDjkna8l/JZ3RYFz2WQxppCCUyEI%3D'
+          LINK_02: 'https://sdmntpreastus.oaiusercontent.com/files/00000000-3fa0-81f9-acab-f9a0a0c2b758/raw?se=2026-11-11T20%3A54%3A11Z&sp=r&sv=2026-06-06&sr=b&scid=1977f92a-1a7e-5ff2-8529-bc8376ee771e&skoid=e96cf01c-9c0f-4e27-b41e-0f2e435e6532&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T02%3A17%3A29Z&ske=2026-11-12T02%3A17%3A29Z&sks=b&skv=2026-06-06&sig=G2xdGfo3QbWdQWKYV/0uJVRM/Gp9TllomY%2BoJx7lXNs%3D'
+          LINK_03: 'https://sdmntpreastus3.oaiusercontent.com/files/00000000-064c-8212-89cf-a81302e30236/raw?se=2026-11-11T20%3A54%3A12Z&sp=r&sv=2026-06-06&sr=b&scid=2a54d819-ea46-5981-be13-3365c5e8acaa&skoid=c953efd6-2ae8-41b4-a6d6-34b1475ac07c&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T20%3A45%3A49Z&ske=2026-11-12T20%3A45%3A49Z&sks=b&skv=2026-06-06&sig=fISJvYsZi4p4hNiO0DE6kU2FPLomyts3ijGi2t6cLKE%3D'
+          LINK_04: 'https://sdmntpreastus3.oaiusercontent.com/files/00000000-5ddc-8212-b5fd-6906def1bf23/raw?se=2026-11-11T20%3A54%3A12Z&sp=r&sv=2026-06-06&sr=b&scid=fd5afe73-03c5-5fd4-bdc1-e9c36c9141a0&skoid=c953efd6-2ae8-41b4-a6d6-34b1475ac07c&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T19%3A02%3A39Z&ske=2026-11-12T19%3A02%3A39Z&sks=b&skv=2026-06-06&sig=eU2Ckjb5gZmc2%2BYRWar7RQkeelrg%2BFwuFJn77FUbd3M%3D'
+          LINK_05: 'https://sdmntpreastus.oaiusercontent.com/files/00000000-9550-81f9-b918-09f6d959010c/raw?se=2026-11-11T20%3A54%3A16Z&sp=r&sv=2026-06-06&sr=b&scid=a150bb48-d67b-53a6-8734-cd6552621bbb&skoid=e96cf01c-9c0f-4e27-b41e-0f2e435e6532&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T02%3A15%3A05Z&ske=2026-11-12T02%3A15%3A05Z&sks=b&skv=2026-06-06&sig=gIAb4%2BPQVltBR91xnzF7sgHDrJCEC1B7ifHKefEgUwI%3D'
+          LINK_06: 'https://sdmntprcentralus.oaiusercontent.com/files/00000000-0918-81f5-9c00-6d91a77b1dac/raw?se=2026-11-11T20%3A55%3A08Z&sp=r&sv=2026-06-06&sr=b&scid=f2e35ab9-d96e-5ec6-8aeb-6d1aa9933a09&skoid=a1be202a-6464-476c-a496-723317c4a4db&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T02%3A31%3A21Z&ske=2026-11-12T02%3A31%3A21Z&sks=b&skv=2026-06-06&sig=NJOuwCquqxlXfXwKtKIlRE7Zhxtsp4T0Ed9hhhUU3Vk%3D'
+          LINK_07: 'https://sdmntpreastus2.oaiusercontent.com/files/00000000-6e58-81f6-947c-6722b9c43424/raw?se=2026-11-11T20%3A54%3A18Z&sp=r&sv=2026-06-06&sr=b&scid=341717ad-3187-5c1e-9721-d9c83f0db7fa&skoid=dd316919-ffbf-4550-9c54-dfc99f412009&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T00%3A52%3A52Z&ske=2026-11-12T00%3A52%3A52Z&sks=b&skv=2026-06-06&sig=44nX80vnTJ3ME/mi0I50OA96e8BAwrNKaTV2q9XhUQU%3D'
+          LINK_08: 'https://sdmntprcentralus.oaiusercontent.com/files/00000000-0f2c-81f5-ad7a-f862901cbe66/raw?se=2026-11-11T20%3A54%3A48Z&sp=r&sv=2026-06-06&sr=b&scid=24eadf4e-9b5e-5e09-aab3-2293f6e449de&skoid=a1be202a-6464-476c-a496-723317c4a4db&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T19%3A26%3A32Z&ske=2026-11-12T19%3A26%3A32Z&sks=b&skv=2026-06-06&sig=eoxnGzFGGlJll14oZSPLgxYe5iaUlHs7fkyDUlCGDTM%3D'
+          LINK_09: 'https://sdmntprnorthcentralus.oaiusercontent.com/files/00000000-9bc8-822f-b128-7f60a889f6a0/raw?se=2026-11-11T20%3A54%3A23Z&sp=r&sv=2026-06-06&sr=b&scid=db9e48fa-fa8c-5a28-8bf6-57ed1d46bc78&skoid=bbd22fc4-f881-4ea4-b2f3-c12033cf6a8b&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T20%3A27%3A53Z&ske=2026-11-12T20%3A27%3A53Z&sks=b&skv=2026-06-06&sig=XHoSd98F8ake8/IHGyxXbZ0pl/PbC/M3MKHUzzXynYg%3D'
+        run: |
+          set -euo pipefail
+          mkdir -p parts
+          for n in $(seq -w 0 9); do
+            key="LINK_${n}"
+            echo "Downloading FIX49C piece ${n}"
+            curl --fail --show-error --location --retry 5 --retry-delay 3 --connect-timeout 40 --output "parts/PART${n}.bin" "${!key}"
+            actual=$(stat -c%s "parts/PART${n}.bin")
+            expected=62914560
+            if [ "$n" = "09" ]; then expected=57252006; fi
+            test "$actual" -eq "$expected" || { echo "::error::Unexpected transfer size ${n}: ${actual}";exit 1; }
+          done
+      - name: Assemble and verify FIX49C signature-tested APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk="COD4-ZOMBIES-FIX49C-DEDICATED-USE-ADS-ARM64.apk"
+          cat parts/PART{00..09}.bin > "$apk"
+          test "$(stat -c%s "$apk")" -eq 623483046
+          echo "fc2ce3d7650d1471f6ce066dc5e940d9434a9b080e94cf4d55b751d50f91ec6a  $apk" | sha256sum -c
+          unzip -t "$apk" >/dev/null
+          python3 - "$apk" <<'PY'
+          import sys,zipfile,io
+          with zipfile.ZipFile(sys.argv[1]) as z:
+            assert len(z.namelist())==419
+            with zipfile.ZipFile(io.BytesIO(z.read('assets/assets.zip'))) as inner:
+              assert inner.comment==b'XZ-ASSETS-1:9665'
+              assert inner.namelist()==['luanti-assets.zip.xz']
+          print('APK archive, entry count and XZ payload manifest verified')
+          PY
+      - name: Publish FIX49C signed prerelease
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="fix49c-dedicated-use-ads-android-arm64-test"
+          apk="COD4-ZOMBIES-FIX49C-DEDICATED-USE-ADS-ARM64.apk"
+          notes="TEST Android ARM64 version based on FIX49 responsive editor and FIX49B 28 individually resized wall-prop OBJ models. Dedicated on-screen USE button now uses Luanti PLACE control; independent ADS button uses native ZOOM touch control with explicit ADS texture; FIRE/DIG and R/AUX1 unchanged. All 28 arsenal items intercept USE on Zombies wall buys, buyable doors, mystery box and perks; ammo crate delegate preserved. ADS is edge-triggered only on ZOOM press and does NOT toggle with USE. Includes 9,665 nested resources (previous 9,663 plus two matching zoom icons); 419 APK entries preserved; 28 modified wall models from earlier FIX49B; original first-person guns, sounds, maps and textures unchanged. App signed with EXACT prior FIX48/FIX49 Android certificate; certificate fingerprint SHA256 271890e4f8c663e7ce83cb9f0470f31685ae46264f8304b915dfab77d15f36a5. SHA256: fc2ce3d7650d1471f6ce066dc5e940d9434a9b080e94cf4d55b751d50f91ec6a. Lua 5.4 mocked tests GREEN. Actual device touchscreen button behavior not yet confirmed; backup worlds before updating. FIX49 remains available. No native Android source recompilation performed; existing separate Place and Zoom controls are relabeled and repurposed."
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1;then
+            gh release upload "$tag" "$apk" --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$tag" "$apk" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease --title "FIX49C TEST — Dedicated USE and ADS (ARM64)" --notes "$notes"
+          fi
+          gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json url,assets
