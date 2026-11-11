@@ -5,8 +5,6 @@ on:
       - fix/fix50b-restore-cod4-native-bridge-20261111
     paths:
       - '.github/workflows/fix50b-build-arm64-preserved-engine.yml'
-      - 'incoming/luanti-fix50b/**'
-      - 'incoming/luanti-fix50a/native/**'
   workflow_dispatch:
 permissions:
   contents: read
@@ -39,6 +37,18 @@ jobs:
           done
           # Keep the FIX49C WebP texture pipeline; it requires libwebp source in CMake.
           git clone --depth 1 --branch v1.4.0 https://github.com/webmproject/libwebp.git upstream-libwebp
+          # Restore only byte-identical engine recoil headers, never dummy stubs.
+          cp incoming/luanti-fix50b/native/original_headers/ak47_motion.h upstream-luanti/src/client/ak47_motion.h
+          cp incoming/luanti-fix50b/native/original_headers/ak47_weapon_params.h upstream-luanti/src/client/ak47_weapon_params.h
+          cp incoming/luanti-fix50b/native/original_headers/m9_weapon_params.h upstream-luanti/src/client/m9_weapon_params.h
+          # Fail-closed before Gradle: additional original bridge source is not
+          # present in the public Git tree. Do not silently fake these headers.
+          for header in weapon_bridge.h weapon_hud.h native_attachment_override.h; do
+            if [ ! -s "upstream-luanti/src/client/$header" ]; then
+              echo "::error::Original COD4 native bridge header missing: $header (FIX49C remains valid; FIX50B must not ship)"
+              exit 1
+            fi
+          done
           python3 incoming/luanti-fix50a/native/make_xz_use_btn.py upstream-luanti/textures/base/pack/xz_use_btn.png
           sed -i "s/include 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'/include 'arm64-v8a'/" upstream-luanti/android/native/build.gradle
           sed -i "s/include 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'/include 'arm64-v8a'/" upstream-luanti/android/app/build.gradle
