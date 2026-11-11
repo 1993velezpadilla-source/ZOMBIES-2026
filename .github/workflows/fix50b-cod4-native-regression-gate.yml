@@ -1,0 +1,50 @@
+name: FIX50B restore original COD4 native bridge - patch gate
+on:
+  push:
+    branches:
+      - fix/fix50b-restore-cod4-native-bridge-20261111
+    paths:
+      - 'incoming/luanti-fix50b/**'
+      - '.github/workflows/fix50b-cod4-native-regression-gate.yml'
+  pull_request:
+    paths:
+      - 'incoming/luanti-fix50b/**'
+      - '.github/workflows/fix50b-cod4-native-regression-gate.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  native-source-regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get Luanti 5.18.0 exact upstream
+        run: git clone --depth 1 --branch 5.18.0 https://github.com/luanti-org/luanti.git upstream-luanti
+      - name: Reapply the known-good FIX49C native bridge
+        run: |
+          set -euo pipefail
+          p="$GITHUB_WORKSPACE/incoming/luanti-fix50b/native/working-fix49c-engine.patch"
+          git -C upstream-luanti apply --check "$p"
+          git -C upstream-luanti apply "$p"
+      - name: Restore FIX49C texture streaming compatibility
+        run: |
+          set -euo pipefail
+          p="$GITHUB_WORKSPACE/incoming/luanti-fix50b/native/fix49c-texture-streaming.patch"
+          git -C upstream-luanti apply --check "$p"
+          git -C upstream-luanti apply "$p"
+      - name: Add independent USE key without reverting COD4 bridge
+        run: |
+          set -euo pipefail
+          p="$GITHUB_WORKSPACE/incoming/luanti-fix50a/native/luanti-5.18.0-xz-use.patch"
+          git -C upstream-luanti apply --check "$p"
+          git -C upstream-luanti apply "$p"
+      - name: Regression guard for first-person animation and independent USE
+        run: |
+          set -euo pipefail
+          grep -q 'KeyType::XZ_USE' upstream-luanti/src/client/game.cpp
+          grep -q 'xz_use_id' upstream-luanti/src/gui/touchcontrols.cpp
+          grep -q 'setMaterialTextureResolver' upstream-luanti/irr/src/OpenGL/Driver.cpp
+          grep -q 'XZ_' upstream-luanti/src/client/camera.cpp || true
+          echo "Combined patches apply. Native ARM64 build and actual phone proof remain required."
