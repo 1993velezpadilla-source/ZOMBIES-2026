@@ -41,6 +41,9 @@ int main() {
     assert(done==1);
     Sys_SetEvent(&automatic);
     a.join(); b.join();
+    // Both waiters must have consumed exactly one signal; a timeout is failure.
+    assert(done==2);
+    assert(!Sys_WaitForSingleObjectTimeout(&automatic,0));
     void* manual=nullptr;
     Sys_CreateEvent(true,true,&manual);
     assert(Sys_WaitForSingleObjectTimeout(&manual,0));
