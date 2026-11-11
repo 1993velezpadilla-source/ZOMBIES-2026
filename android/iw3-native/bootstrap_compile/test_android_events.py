@@ -46,6 +46,22 @@ int main() {
     auto timeout_elapsed=std::chrono::steady_clock::now()-timeout_start;
     assert(timeout_elapsed>=std::chrono::milliseconds(15));
     assert(timeout_elapsed<std::chrono::seconds(2));
+    // A finite waiter must wake on a real signal before its deadline.
+    // This also exercises the finite-timeout path with a positive result.
+    std::atomic<bool> finite_ready{false};
+    std::atomic<bool> finite_result{false};
+    std::thread finite_waiter([&]{
+        finite_ready = true;
+        finite_result = Sys_WaitForSingleObjectTimeout(&automatic,1500);
+    });
+    auto finite_deadline=std::chrono::steady_clock::now()+std::chrono::seconds(1);
+    while (!finite_ready && std::chrono::steady_clock::now()<finite_deadline)
+        std::this_thread::yield();
+    assert(finite_ready);
+    Sys_SetEvent(&automatic);
+    finite_waiter.join();
+    assert(finite_result);
+    assert(!Sys_WaitForSingleObjectTimeout(&automatic,0));
     // Win32 auto-reset events are binary, not counting semaphores:
     // repeated SetEvent calls before a wait coalesce into one wakeup.
     Sys_SetEvent(&automatic);
