@@ -88,7 +88,7 @@ jobs:
             at=entry.header_offset+30+vals[9]+vals[10]
             f.seek(at+entry.file_size-22-len(marker))
             eocd=f.read(22+len(marker))
-            assert eocd[:4]==b'PK\\x05\\x06'
+            assert eocd[:4] == bytes.fromhex('504b0506')
             assert struct.unpack_from('<H',eocd,20)[0]==len(marker)
             assert eocd[-len(marker):]==marker
           print('FIX47 APK intact; compact marker restored; 419 files')
