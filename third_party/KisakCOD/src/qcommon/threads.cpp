@@ -553,13 +553,23 @@ bool Sys_IsServerThread()
 
 void __cdecl Sys_SetValue(int valueIndex, void* data)
 {
-    //*(uint32_t*)(*(uint32_t*)(*((uint32_t*)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index) + 4) + 4 * valueIndex) = data;
+    // Each thread context owns exactly four pointer-sized TLS slots.
+    // Reject invalid indices and calls before Sys_InitThread installs TLS.
+    if (valueIndex < 0 || valueIndex >= 4 || !g_threadLocals)
+    {
+        iassert(false);
+        return;
+    }
     g_threadLocals[valueIndex] = data;
 }
 
 void* __cdecl Sys_GetValue(int valueIndex)
 {
-    //return *(void**)(*(uint32_t*)(*((uint32_t*)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index) + 4) + 4 * valueIndex);
+    if (valueIndex < 0 || valueIndex >= 4 || !g_threadLocals)
+    {
+        iassert(false);
+        return nullptr;
+    }
     return g_threadLocals[valueIndex];
 }
 
