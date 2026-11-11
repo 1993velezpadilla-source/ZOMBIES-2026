@@ -1,0 +1,79 @@
+name: Publish FIX49 universal editor Android test APK
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-fix49-universal-editor.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-fix49-universal-editor
+  cancel-in-progress: false
+
+jobs:
+  signed-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Fetch signed APK transfer pieces from Drive
+        shell: bash
+        env:
+          LINK_01: 'https://sdmntprnorthcentralus.oaiusercontent.com/files/00000000-fefc-822f-96a0-34343fd6a966/raw?se=2026-11-11T20%3A12%3A59Z&sp=r&sv=2026-06-06&sr=b&scid=f7d8c9d7-4a1a-5f70-b8df-8401c61de12d&skoid=bbd22fc4-f881-4ea4-b2f3-c12033cf6a8b&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T13%3A36%3A14Z&ske=2026-11-12T13%3A36%3A14Z&sks=b&skv=2026-06-06&sig=NdldemLdnPxYo82NFqIBy1rtSP0On2CCfFTzQJRO%2Bzg%3D'
+          LINK_02: 'https://sdmntpreastus2.oaiusercontent.com/files/00000000-7d00-81f6-b3e1-4856c74aea55/raw?se=2026-11-11T20%3A12%3A44Z&sp=r&sv=2026-06-06&sr=b&scid=2add80b2-845b-5e12-8e44-3d010f50be4f&skoid=dd316919-ffbf-4550-9c54-dfc99f412009&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T00%3A53%3A14Z&ske=2026-11-12T00%3A53%3A14Z&sks=b&skv=2026-06-06&sig=vKgtQaHssBWqh9DDb7QOQzgvH6uPcCCM2/bfRvylGIk%3D'
+          LINK_03: 'https://sdmntprnorthcentralus.oaiusercontent.com/files/00000000-984c-822f-8375-e6a0936172be/raw?se=2026-11-11T20%3A12%3A46Z&sp=r&sv=2026-06-06&sr=b&scid=0b398605-1aa4-5c24-9856-bb62e2877db9&skoid=bbd22fc4-f881-4ea4-b2f3-c12033cf6a8b&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T13%3A11%3A41Z&ske=2026-11-12T13%3A11%3A41Z&sks=b&skv=2026-06-06&sig=bpIZ7DsG2bBxIuutUhJ9uT40X07x4zhLzkrWTRABx50%3D'
+          LINK_04: 'https://sdmntprnorthcentralus.oaiusercontent.com/files/00000000-e130-822f-92a4-3bd146bcc8cb/raw?se=2026-11-11T20%3A12%3A45Z&sp=r&sv=2026-06-06&sr=b&scid=7563ba61-70cd-51d2-b6b1-0d1a419c7fc6&skoid=bbd22fc4-f881-4ea4-b2f3-c12033cf6a8b&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T19%3A50%3A04Z&ske=2026-11-12T19%3A50%3A04Z&sks=b&skv=2026-06-06&sig=o3X870RU8piFqKIaWkVm6yAJuZsAZ4GAptDA7ogExgk%3D'
+          LINK_05: 'https://sdmntpreastus2.oaiusercontent.com/files/00000000-1174-81f6-a9f3-ed84cbe877c4/raw?se=2026-11-11T20%3A13%3A15Z&sp=r&sv=2026-06-06&sr=b&scid=2690f5c5-5307-5c72-a4d1-e7600ee3a8f0&skoid=dd316919-ffbf-4550-9c54-dfc99f412009&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T00%3A53%3A14Z&ske=2026-11-12T00%3A53%3A14Z&sks=b&skv=2026-06-06&sig=pDXgksQqtdaD2KxPLzm9HxcZKzilGu1jZ4DAi3vNozU%3D'
+          LINK_06: 'https://sdmntpreastus.oaiusercontent.com/files/00000000-88a4-81f9-90d3-8fa7b8394815/raw?se=2026-11-11T20%3A12%3A49Z&sp=r&sv=2026-06-06&sr=b&scid=006464f1-c4ac-5138-a871-1fab86914163&skoid=e96cf01c-9c0f-4e27-b41e-0f2e435e6532&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T02%3A21%3A32Z&ske=2026-11-12T02%3A21%3A32Z&sks=b&skv=2026-06-06&sig=HO/cCkLSiFlCN%2B6G53sf7KTMkSAZ8NYPszva4SetWTM%3D'
+          LINK_07: 'https://sdmntpreastus.oaiusercontent.com/files/00000000-2764-81f9-a9d7-50f4336d74cc/raw?se=2026-11-11T20%3A12%3A51Z&sp=r&sv=2026-06-06&sr=b&scid=d0e7f4f4-76e8-5379-a564-799d71b3e412&skoid=e96cf01c-9c0f-4e27-b41e-0f2e435e6532&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T02%3A12%3A45Z&ske=2026-11-12T02%3A12%3A45Z&sks=b&skv=2026-06-06&sig=me1Q8XGJ5PygRRkOwPBXAZSoDRk8TbP30HCAMc%2BzFhg%3D'
+          LINK_08: 'https://sdmntpreastus2.oaiusercontent.com/files/00000000-e088-81f6-80e1-6731ed99c16a/raw?se=2026-11-11T20%3A12%3A53Z&sp=r&sv=2026-06-06&sr=b&scid=5ab7579c-0e13-5e03-ae41-b2c750eb1c99&skoid=dd316919-ffbf-4550-9c54-dfc99f412009&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T00%3A41%3A35Z&ske=2026-11-12T00%3A41%3A35Z&sks=b&skv=2026-06-06&sig=voEAZQeBviilXThAOM3OIYDQQ1ur7KtX/%2B5%2BsJHhRhk%3D'
+          LINK_09: 'https://sdmntpreastus2.oaiusercontent.com/files/00000000-f95c-81f6-b6ce-56dc880ec6ba/raw?se=2026-11-11T20%3A12%3A55Z&sp=r&sv=2026-06-06&sr=b&scid=989d012f-bc3e-571f-ad11-d6b696595d67&skoid=dd316919-ffbf-4550-9c54-dfc99f412009&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T12%3A21%3A52Z&ske=2026-11-12T12%3A21%3A52Z&sks=b&skv=2026-06-06&sig=nnQY5cWwLlcSVa7QqZuPsMO6%2BhXFAGfqkmqC6FJiOME%3D'
+          LINK_10: 'https://sdmntprsouthcentralus.oaiusercontent.com/files/00000000-d174-81f7-b052-3059f0cf89bb/raw?se=2026-11-11T20%3A12%3A57Z&sp=r&sv=2026-06-06&sr=b&scid=b54591ca-7f3b-512d-b921-5776a37a2d29&skoid=c953efd6-2ae8-41b4-a6d6-34b1475ac07c&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T13%3A16%3A47Z&ske=2026-11-12T13%3A16%3A47Z&sks=b&skv=2026-06-06&sig=dNxt1sidY0PDcGAIKK014b4gT%2BVu1UuCUeKVSO0TnoY%3D'
+        run: |
+          set -euo pipefail
+          mkdir -p parts
+          for n in $(seq -w 1 10); do
+            key="LINK_${n}"
+            echo "Receiving FIX49 part ${n}/10"
+            curl --fail --show-error --location --retry 5 --retry-delay 4 --connect-timeout 40 --output "parts/FIX49-APK-PART${n}.bin" "${!key}"
+            expected=62914560
+            if [ "$n" = "10" ]; then expected=57294650; fi
+            actual=$(stat -c%s "parts/FIX49-APK-PART${n}.bin")
+            test "$actual" -eq "$expected" || { echo "::error::Incorrect size ${n}: ${actual}";exit 1; }
+          done
+
+      - name: Assemble and validate FIX49
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="COD4-ZOMBIES-FIX49-UNIVERSAL-EDITOR-ARM64.apk"
+          cat parts/FIX49-APK-PART{01..10}.bin > "$APK"
+          test "$(stat -c%s "$APK")" -eq 623525690
+          echo "19e8d851616f04c1851066b41229e8902c0f887037e8e7c6af14c69d6d523314  $APK" | sha256sum -c
+          unzip -t "$APK" >/dev/null
+          python3 - "$APK" <<'PY'
+          import sys,zipfile,io
+          with zipfile.ZipFile(sys.argv[1]) as apk:
+              assert len(apk.namelist())==419
+              with zipfile.ZipFile(io.BytesIO(apk.read('assets/assets.zip'))) as inner:
+                  assert inner.comment==b'XZ-ASSETS-1:9663'
+                  assert inner.namelist()==['luanti-assets.zip.xz']
+          print('ZIP entries and compact Luanti asset marker verified.')
+          PY
+
+      - name: Publish signed prerelease APK
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="fix49-universal-responsive-editor-test-arm64"
+          apk="COD4-ZOMBIES-FIX49-UNIVERSAL-EDITOR-ARM64.apk"
+          notes="FIX49 Android ARM64 TEST. Universal responsive editor/developer panels, five tabs, scroll-safe content, larger touch buttons, adaptive price form, persisted Normal / Always Day / Always Night world mode. Derived from FIX48; 419 APK files and 9,663 Luanti resources preserved, with ONLY games/voxelibre/mods/xz_zombies_classic/init.lua changed. Signed with same signing certificate as FIX48. Size 623,525,690 bytes. SHA256 19e8d851616f04c1851066b41229e8902c0f887037e8e7c6af14c69d6d523314. Source and automated tests: PR #23. Lua 5.4 mocked tests passed on 5 simulated screen profiles; ON-DEVICE TEST PENDING. CAUTION: native separate USE button, wall buy scale/attachment adjustments, Smart Debris and other future FIX49-53 features are NOT yet included. Back up worlds and install OVER FIX48 without uninstalling."
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1;then
+            gh release upload "$tag" "$apk" --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$tag" "$apk" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease --title "FIX49 TEST — Universal Responsive Zombies Editor (ARM64)" --notes "$notes"
+          fi
+          gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json url,assets
