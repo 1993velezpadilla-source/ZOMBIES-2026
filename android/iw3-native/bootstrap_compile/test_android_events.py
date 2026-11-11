@@ -52,6 +52,22 @@ int main() {
     assert(!Sys_WaitForSingleObjectTimeout(&manual,0));
     Sys_SetEvent(&manual);
     assert(Sys_WaitForSingleObjectTimeout(&manual,0));
+    // Manual-reset must release every waiter and stay signaled until reset.
+    Sys_ResetEvent(&manual);
+    std::atomic<int> manual_ready{0};
+    std::atomic<int> manual_done{0};
+    std::thread m1([&]{++manual_ready; if (Sys_WaitForSingleObjectTimeout(&manual,2000)) ++manual_done;});
+    std::thread m2([&]{++manual_ready; if (Sys_WaitForSingleObjectTimeout(&manual,2000)) ++manual_done;});
+    auto manual_deadline=std::chrono::steady_clock::now()+std::chrono::seconds(1);
+    while (manual_ready.load()!=2 && std::chrono::steady_clock::now()<manual_deadline)
+        std::this_thread::yield();
+    assert(manual_ready==2);
+    Sys_SetEvent(&manual);
+    m1.join(); m2.join();
+    assert(manual_done==2);
+    assert(Sys_WaitForSingleObjectTimeout(&manual,0));
+    Sys_ResetEvent(&manual);
+    assert(!Sys_WaitForSingleObjectTimeout(&manual,0));
 }
 """
         with tempfile.TemporaryDirectory() as temp:
