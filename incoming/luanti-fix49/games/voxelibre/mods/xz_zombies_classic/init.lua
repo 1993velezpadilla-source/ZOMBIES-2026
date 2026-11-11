@@ -137,10 +137,10 @@ local function responsive_size(p, want_w, want_h)
  local maxw = max and tonumber(max.x)
  local maxh = max and tonumber(max.y)
  -- Conservative fallback for older clients that do not report window dimensions.
- if not maxw or maxw < 4 then maxw = 8.4 end
- if not maxh or maxh < 4 then maxh = 6.2 end
- local width = math.max(4.0, math.min(want_w, maxw - 0.25))
- local height = math.max(4.0, math.min(want_h, maxh - 0.25))
+ if not maxw or maxw < 2 then maxw = 8.4 end
+ if not maxh or maxh < 2 then maxh = 6.2 end
+ local width = math.max(3.1, math.min(want_w, maxw - 0.25))
+ local height = math.max(3.4, math.min(want_h, maxh - 0.25))
  return width, height
 end
 local function fs_button(t, x, y, w, h, id, caption)
@@ -335,7 +335,7 @@ local function editor_form(p)
  fs_button(f,w-1.15,0.85,0.9,0.68,'page_next','>')
  -- Every screen uses the same responsive scroll region. No element can overlap
  -- the footer on short/wide phones, and landscape/portrait changes are respected.
- local viewport=math.max(1.35,h-2.60)
+ local viewport=math.max(0.75,h-2.60)
  f[#f+1]='scrollbaroptions[min=0;max=100;smallstep=8;largestep=23]'
  f[#f+1]=('scroll_container[0.08,1.65;%.2f,%.2f;editor_scroll;vertical;0.10;0.25]'):format(w-0.51,viewport)
  local y=0.12
@@ -360,9 +360,16 @@ local function editor_form(p)
   y=y+0.98
   fs_label(f,0.25,y,'Antes de PLAY: toca el objeto para el precio')
  elseif page==3 then
-  fs_button(f,0.25,y,half,0.80,'boxa','MYSTERY BOX A')
-  fs_button(f,0.41+half,y,half,0.80,'boxb','MYSTERY BOX B')
-  y=y+0.93
+  if w >= 6.7 then
+   fs_button(f,0.25,y,half,0.80,'boxa','MYSTERY BOX A')
+   fs_button(f,0.41+half,y,half,0.80,'boxb','MYSTERY BOX B')
+   y=y+0.93
+  else
+   fs_button(f,0.25,y,cw,0.80,'boxa','MYSTERY BOX A')
+   y=y+0.93
+   fs_button(f,0.25,y,cw,0.80,'boxb','MYSTERY BOX B')
+   y=y+0.93
+  end
   fs_button(f,0.25,y,cw,0.80,'door','PUERTA CON PRECIO')
   y=y+0.93
   fs_button(f,0.25,y,cw,0.80,'spawner','ZOMBIE SPAWNER')
@@ -378,13 +385,11 @@ local function editor_form(p)
     fs_button(f,0.25+col*(half+0.16),y+row*0.88,half,0.76,v[1],v[2])
    end
   else
+   -- On very narrow screens all five perks use a full-width touch target.
+   -- Scrolling reveals controls instead of forcing tiny two-column buttons.
    for i,v in ipairs(entries) do
-    -- One perk per page-sized click target; the last item is on a second subpage
-    -- reached via a simple cyclic selection in narrow layouts.
-    if i<=3 then fs_button(f,0.25,y+(i-1)*0.87,cw,0.76,v[1],v[2]) end
+    fs_button(f,0.25,y+(i-1)*0.87,cw,0.76,v[1],v[2])
    end
-   fs_button(f,0.25,y+2.67,half,0.70,'perk_quickrevive','QUICK REVIVE')
-   fs_button(f,0.41+half,y+2.67,half,0.70,'perk_staminup','STAMIN-UP')
   end
  elseif page==5 then
   fs_label(f,0.25,y,'Hora del mundo (para este mapa)')
@@ -411,7 +416,7 @@ local function dev_form(p)
  local half=(w-0.66)/2
  fs_button(f,0.25,0.84,half,0.70,'dev_points','PUNTOS')
  fs_button(f,0.41+half,0.84,half,0.70,'dev_cheats','CHEATS')
- local viewport=math.max(1.30,h-2.66)
+ local viewport=math.max(0.75,h-2.66)
  f[#f+1]='scrollbaroptions[min=0;max=100;smallstep=8;largestep=23]'
  f[#f+1]=('scroll_container[0.08,1.67;%.2f,%.2f;dev_scroll;vertical;0.10;0.25]'):format(w-0.51,viewport)
  if page==1 then
