@@ -41,7 +41,7 @@ jobs:
           sed -i "s/include 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'/include 'arm64-v8a'/" upstream-luanti/android/native/build.gradle
           sed -i "s/include 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'/include 'arm64-v8a'/" upstream-luanti/android/app/build.gradle
           # Android's Java launcher must notice the upgrade and unpack new Lua/assets.
-          sed -i 's/project.ext.set("versionBuild", 0)/project.ext.set("versionBuild", 50)/' upstream-luanti/android/build.gradle
+          sed -i 's/project.ext.set("versionBuild", 13)/project.ext.set("versionBuild", 50)/' upstream-luanti/android/build.gradle
           grep -Fq 'project.ext.set("versionBuild", 50)' upstream-luanti/android/build.gradle
           # The original COD4 renderer, skinning and texture replacement must remain.
           grep -q 'setMaterialTextureResolver' upstream-luanti/irr/src/OpenGL/Driver.cpp
