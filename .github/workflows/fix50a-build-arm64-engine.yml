@@ -1,0 +1,60 @@
+name: FIX50A build ARM64 patched native Luanti engine
+on:
+  push:
+    branches:
+      - feature/fix50a-native-use-wall-mount-20261111
+    paths:
+      - '.github/workflows/fix50a-build-arm64-engine.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android-arm64:
+    runs-on: ubuntu-latest
+    timeout-minutes: 80
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Android native build prerequisites
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends gettext cmake ninja-build
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Clone upstream Luanti 5.18.0 and apply dedicated USE patch
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch 5.18.0 https://github.com/luanti-org/luanti.git upstream-luanti
+          git -C upstream-luanti apply "$GITHUB_WORKSPACE/incoming/luanti-fix50a/native/luanti-5.18.0-xz-use.patch"
+          python3 incoming/luanti-fix50a/native/make_xz_use_btn.py upstream-luanti/textures/base/pack/xz_use_btn.png
+          # This test output is an arm64 native shared library, not a separate unrelated APK.
+          sed -i "s/include 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'/include 'arm64-v8a'/" upstream-luanti/android/native/build.gradle
+          sed -i "s/include 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'/include 'arm64-v8a'/" upstream-luanti/android/app/build.gradle
+      - name: Compile patched ARM64 Android Luanti
+        working-directory: upstream-luanti/android
+        env:
+          GRADLE_OPTS: -Dorg.gradle.daemon=false
+        run: |
+          set -euo pipefail
+          ./gradlew :app:assembleRelease --no-daemon --max-workers=2 --stacktrace
+      - name: Extract patched native library for FIX50A APK rebuild
+        run: |
+          set -euo pipefail
+          mkdir -p fix50a-native
+          find upstream-luanti/android -name libluanti.so -type f -printf '%s %p\n'
+          lib="$(find upstream-luanti/android -name libluanti.so -path '*arm64-v8a*' -type f | head -1)"
+          test -n "$lib" && test -s "$lib"
+          cp "$lib" fix50a-native/libluanti.so
+          file fix50a-native/libluanti.so
+          readelf -h fix50a-native/libluanti.so | grep -E 'AArch64|ELF64'
+          sha256sum fix50a-native/libluanti.so
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FIX50A-ARM64-native-libluanti
+          path: fix50a-native/libluanti.so
+          if-no-files-found: error
+          retention-days: 7
