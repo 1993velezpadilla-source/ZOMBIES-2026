@@ -772,7 +772,8 @@ int Sys_SpawnServerThread(void(*function)(uint32_t))
     serverSnapshotEvent = CreateEventA(0, 0, 0, 0);
     clientMessageReceived = CreateEventA(0, 1, 1, 0);
     Sys_CreateThread(function, THREAD_CONTEXT_SERVER);
-    result = (int)threadHandle[THREAD_CONTEXT_SERVER];
+    // A thread handle is an opaque pointer, not a 32-bit integer on ARM64.
+    result = threadHandle[THREAD_CONTEXT_SERVER] ? 1 : 0;
 
     if (threadHandle[THREAD_CONTEXT_SERVER])
     {
@@ -919,7 +920,8 @@ int Sys_SpawnServerDemoThread(void(*function)(uint32_t))
     g_saveHistoryEvent = CreateEventA(0, 0, 0, 0);
     g_saveHistoryDoneEvent = CreateEventA(0, 0, 0, 0);
     Sys_CreateThread(function, THREAD_CONTEXT_SERVER_DEMO);
-    result = (int)threadHandle[THREAD_CONTEXT_SERVER_DEMO];
+    // Preserve the boolean success contract without truncating a pointer.
+    result = threadHandle[THREAD_CONTEXT_SERVER_DEMO] ? 1 : 0;
     if (threadHandle[THREAD_CONTEXT_SERVER_DEMO])
     {
         //XSetThreadProcessor(threadHandle[11], 2u);
