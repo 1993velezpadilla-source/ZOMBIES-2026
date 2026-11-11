@@ -1,4 +1,5 @@
 #pragma once
+#include "phys_userdata.h"
 #include <xanim/xanim.h>
 #include <xanim/xmodel.h>
 #include <xanim/dobj.h>
@@ -44,13 +45,6 @@ struct BodyState // sizeof=0x70
     int timeLastAsleep;
     int type;
     int enabled; // ODE body awake/enabled flag (dBodyIsEnabled)
-};
-
-enum physStuckState_t : __int32
-{                                       // ...
-    PHYS_OBJ_STATE_POSSIBLY_STUCK = 0x0,
-    PHYS_OBJ_STATE_STUCK = 0x1,
-    PHYS_OBJ_STATE_FREE = 0x2,
 };
 
 union objInfo_u // sizeof=0xC
@@ -162,24 +156,7 @@ struct PhysWorldData // sizeof=0xCC
     // padding byte
     Jitter jitterRegions[5];
 };
-struct PhysObjUserData // sizeof=0x70
-{                                       // ...
-    float translation[3];
-    dxBody *body;
-    float savedPos[3];
-    float savedRot[3][3];
-    int sndClass;
-    float friction;
-    float bounce;
-    physStuckState_t state;
-    float contactCentroid[3];
-    int timeLastAsleep;
-    float awakeTooLongLastPos[3];
-    bool hasDisplayedAwakeTooLongWarning;
-    bool debugContacts;
-    // padding byte
-    // padding byte
-};
+
  struct PhysTriMeshInfo // sizeof=0x14
  {                                       // ...
      float *verts;                       // ...

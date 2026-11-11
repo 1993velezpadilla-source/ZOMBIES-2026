@@ -1,6 +1,15 @@
 #pragma once
 #include "scr_stringlist.h"
 
+// These script VM records embed native pointers. Keep the original Win32
+// assertions intact while recording the real LP64 layout separately. This is
+// a layout/compile gate, not proof that the complete script VM is ported.
+#if defined(__LP64__) || defined(_LP64) || defined(_WIN64)
+#define KISAK_SCRIPT_POINTER_LAYOUT_LP64 1
+#else
+#define KISAK_SCRIPT_POINTER_LAYOUT_LP64 0
+#endif
+
 #undef GetObject
 
 // LWSS: Custom enum typename
@@ -94,7 +103,11 @@ struct VariableStackBuffer // sizeof=0xC
     uint8_t time;
     char buf[1];
 };
+#if KISAK_SCRIPT_POINTER_LAYOUT_LP64
+static_assert(sizeof(VariableStackBuffer) == 0x10);
+#else
 static_assert(sizeof(VariableStackBuffer) == 0xC);
+#endif
 
 union VariableUnion // sizeof=0x4
 {                                       // ...
@@ -128,7 +141,11 @@ union VariableUnion // sizeof=0x4
     VariableStackBuffer *stackValue;
     uint32_t entityOffset;
 };
+#if KISAK_SCRIPT_POINTER_LAYOUT_LP64
+static_assert(sizeof(VariableUnion) == 0x8);
+#else
 static_assert(sizeof(VariableUnion) == 0x4);
+#endif
 
 struct VariableValue // sizeof=0x8
 {   
@@ -136,7 +153,11 @@ struct VariableValue // sizeof=0x8
     VariableUnion u;                    // ...
     Vartype_t type;                           // ...
 };
+#if KISAK_SCRIPT_POINTER_LAYOUT_LP64
+static_assert(sizeof(VariableValue) == 0x10);
+#else
 static_assert(sizeof(VariableValue) == 0x8);
+#endif
 
 union ObjectInfo_u // sizeof=0x2
 {                                       // ...
@@ -187,7 +208,11 @@ union VariableValueInternal_u // sizeof=0x4
     VariableUnion u;
     ObjectInfo o;
 };
+#if KISAK_SCRIPT_POINTER_LAYOUT_LP64
+static_assert(sizeof(VariableValueInternal_u) == 0x8);
+#else
 static_assert(sizeof(VariableValueInternal_u) == 0x4);
+#endif
 
 union VariableValueInternal_w // sizeof=0x4
 {                                       // ...
@@ -216,7 +241,11 @@ struct VariableValueInternal // sizeof=0x10
     VariableValueInternal_v v;          // ...
     uint16_t nextSibling;       // ...
 };
+#if KISAK_SCRIPT_POINTER_LAYOUT_LP64
+static_assert(sizeof(VariableValueInternal) == 0x18);
+#else
 static_assert(sizeof(VariableValueInternal) == 0x10);
+#endif
 
 struct scrVarDebugPub_t // sizeof=0xE0004
 {                                       // ...
@@ -229,13 +258,21 @@ struct scrVarDebugPub_t // sizeof=0xE0004
     // padding byte
     // padding byte
 };
+#if KISAK_SCRIPT_POINTER_LAYOUT_LP64
+static_assert(sizeof(scrVarDebugPub_t) == 0x140008);
+#else
 static_assert(sizeof(scrVarDebugPub_t) == 0xE0004);
+#endif
 
 struct scrVarGlob_t // sizeof=0x180000
 {                                       // ...
     VariableValueInternal variableList[0x18000]; // ...
 };
+#if KISAK_SCRIPT_POINTER_LAYOUT_LP64
+static_assert(sizeof(scrVarGlob_t) == 0x240000);
+#else
 static_assert(sizeof(scrVarGlob_t) == 0x180000);
+#endif
 
 struct scr_entref_t // sizeof=0x4
 {                                       // ...
@@ -271,7 +308,11 @@ struct scr_classStruct_t // sizeof=0xC
     // padding byte
     const char *name;
 };
+#if KISAK_SCRIPT_POINTER_LAYOUT_LP64
+static_assert(sizeof(scr_classStruct_t) == 0x10);
+#else
 static_assert(sizeof(scr_classStruct_t) == 0xC);
+#endif
 
 struct VariableDebugInfo // sizeof=0x10
 {
@@ -280,7 +321,11 @@ struct VariableDebugInfo // sizeof=0x10
     const char *functionName;
     int varUsage;
 };
+#if KISAK_SCRIPT_POINTER_LAYOUT_LP64
+static_assert(sizeof(VariableDebugInfo) == 0x20);
+#else
 static_assert(sizeof(VariableDebugInfo) == 0x10);
+#endif
 
 //void  TRACK_scr_variable(void);
 void __cdecl Scr_Cleanup();
@@ -436,7 +481,12 @@ struct ThreadDebugInfo // sizeof=0x8C
     float varUsage;                     // ...
     float endonUsage;                   // ...
 };
+#if KISAK_SCRIPT_POINTER_LAYOUT_LP64
+static_assert(sizeof(ThreadDebugInfo) == 0x110);
+#else
 static_assert(sizeof(ThreadDebugInfo) == 0x8C);
+#endif
+#undef KISAK_SCRIPT_POINTER_LAYOUT_LP64
 
 void  Scr_DumpScriptThreads(void);
 void  Scr_ShutdownVariables(void);

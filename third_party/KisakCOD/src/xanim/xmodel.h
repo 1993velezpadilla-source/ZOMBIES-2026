@@ -92,14 +92,22 @@ struct XModel // sizeof=0xDC
     struct PhysPreset* physPreset;
     struct PhysGeomList* physGeoms;
 };
+#if defined(__ANDROID__)
+static_assert(sizeof(XModel) == 280);
+#else
 static_assert(sizeof(XModel) == 220);
+#endif
 
 struct XModelPiece // sizeof=0x10
 {
     XModel *model;
     float offset[3];
 };
+#if defined(__ANDROID__)
+static_assert(sizeof(XModelPiece) == 24);
+#else
 static_assert(sizeof(XModelPiece) == 16);
+#endif
 
 struct XModelPieces // sizeof=0xC
 {                                       // ...
@@ -107,7 +115,11 @@ struct XModelPieces // sizeof=0xC
     int numpieces;
     XModelPiece *pieces;
 };
+#if defined(__ANDROID__)
+static_assert(sizeof(XModelPieces) == 24);
+#else
 static_assert(sizeof(XModelPieces) == 12);
+#endif
 
 struct QueueElement // sizeof=0x8
 {                                       // ...
@@ -143,7 +155,11 @@ struct XModelSurfs // sizeof=0x14
     struct XSurface *surfs;                    // ...
     int partBits[4];                    // ...
 };
+#if defined(__ANDROID__)
+static_assert(sizeof(XModelSurfs) == 24);
+#else
 static_assert(sizeof(XModelSurfs) == 20);
+#endif
 
 struct XModelConfigEntry // sizeof=0x404
 {                                       // ...
@@ -175,7 +191,11 @@ struct XModelPartsLoad // sizeof=0x1C
     unsigned __int8 *partClassification;
     DObjAnimMat *baseMat;
 };
+#if defined(__ANDROID__)
+static_assert(sizeof(XModelPartsLoad) == 56);
+#else
 static_assert(sizeof(XModelPartsLoad) == 28);
+#endif
 
 struct XModelDefault // sizeof=0x4C
 {                                       // ...

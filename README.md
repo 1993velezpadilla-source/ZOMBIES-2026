@@ -1,5 +1,17 @@
 # ZOMBIES-2026
 
+> **Desarrollo activo (motor solicitado): KisakCOD IW3 C++ → Android nativo ARM64.**
+> El prototipo Godot se descartó: su PR #3 está cerrado y **no forma parte**
+> del port Android del motor original. No sustituir IW3 por Godot ni
+> presentar un prototipo de otro motor como el APK pedido.
+>
+> **Gate A GREEN:** C++ real de IW3 (`com_math_anglevectors.cpp` y
+> `surfaceflags.cpp`) pasó compilación ARM64 NDK y pruebas de ejecución
+> nativas en host: [Actions 40154663973](https://github.com/1993velezpadilla-source/ZOMBIES-2026/actions/runs/40154663973).
+> Esto entrega solo `libiw3_sp_math.so`, **no un juego ni un APK de IW3**.
+> [Rumbo, blockers y condiciones de validación](docs/IW3_ANDROID_NATIVE_PORT.md).
+
+
 ## Código fuente COD4 / IW3 — KisakCOD (importado)
 
 ✅ **Copia real del motor reconstruido de Call of Duty 4** en [third_party/KisakCOD](third_party/KisakCOD/README.md). Se importaron los **1,111 archivos** del repositorio original y se verificaron **935 archivos en `src/`**. Referencia upstream: `SwagSoftware/KisakCOD`, commit `8aadf94cc82795d6829ca06052996a5ec79001c3`. El archivo [ZOMBIES_2026_IMPORT.md](third_party/KisakCOD/ZOMBIES_2026_IMPORT.md) registra procedencia y licencia GPL-3.0.

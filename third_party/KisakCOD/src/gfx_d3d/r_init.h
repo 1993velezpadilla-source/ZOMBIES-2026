@@ -30,8 +30,10 @@ struct vidConfig_t // sizeof=0x30 — subset needed by r_init; matches client_mp
 #include "r_image.h"
 #include "r_fog.h"
 
+#if !defined(__ANDROID__)
 #include <Windows.h>
 #include <d3d9.h>
+#endif
 
 enum GfxRenderer : __int32
 {                                       // ...
@@ -421,6 +423,9 @@ void __cdecl R_Hwnd_Resize(HWND__ *hwnd, int width, int height);
 #endif
 void R_InitGraphicsApi();
 void R_InitSystems();
+// Build the original renderer's display-mode dvars from dx.displayModes.
+// Platform adapters must provide real modes and set dx.displayModeCount <= 256.
+void __cdecl R_BuildDisplayModeDvars();
 char __cdecl R_PreCreateWindow();
 void __cdecl R_StoreDirect3DCaps(uint32_t adapterIndex);
 void __cdecl R_GetDirect3DCaps(uint32_t adapterIndex, _D3DCAPS9 *caps);

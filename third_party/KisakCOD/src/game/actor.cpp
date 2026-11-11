@@ -130,19 +130,10 @@ void __cdecl VisCache_Update(vis_cache_t *pCache, bool bVisible)
 
 void __cdecl SentientInfo_Clear(sentient_info_t *pInfo)
 {
-    sentient_info_t *v2; // r11
-    int v3; // ctr
-
     iassert(pInfo);
-
-    v2 = pInfo;
-    v3 = 10;
-    do
-    {
-        *(unsigned int *)&v2->VisCache.bVisible = 0;
-        v2 = (sentient_info_t *)((char *)v2 + 4);
-        --v3;
-    } while (v3);
+    // Clear the complete native-width record. The old ten-word loop covered
+    // only the 40-byte Win32 layout and left pointer bytes uncleared on 64-bit.
+    memset(pInfo, 0, sizeof(*pInfo));
 }
 
 void __cdecl SentientInfo_ForceCopy(sentient_info_t *pTo, const sentient_info_t *pFrom)
@@ -1386,7 +1377,8 @@ gentity_s *__cdecl Actor_IsKnownEnemyInRegion(
 {
     int v8; // r27
     unsigned int v9; // r30
-    const float *i; // r31
+    const float *i; // current known-position vector
+    const sentient_info_t *info; // native-width record for this sentient
     sentient_s *v11; // r11
     int v12; // r10
     __int64 v13; // r10
@@ -1402,12 +1394,14 @@ gentity_s *__cdecl Actor_IsKnownEnemyInRegion(
         return 0;
     v8 = 0;
     v9 = 0;
-    for (i = self->sentientInfo[0].vLastKnownPos; ; i += 10)
+    for (;;)
     {
+        info = &self->sentientInfo[v9];
+        i = info->vLastKnownPos;
         v11 = &level.sentients[v9];
         if (!level.sentients[v9].inuse)
             goto LABEL_21;
-        v12 = *((unsigned int *)i - 2);
+        v12 = info->lastKnownPosTime;
         if (!v12)
             goto LABEL_21;
         if (level.time - v12 > 10000)
@@ -4700,9 +4694,6 @@ int __cdecl SP_actor(gentity_s *ent)
     float *currentOrigin; // r26
     float *v10; // r11
     int v11; // r10
-    actor_goal_s *p_scriptGoal; // r28
-    actor_goal_s *p_codeGoal; // r11
-    int v14; // ctr
 
     ent->model = 0;
     if (!g_spawnai->current.enabled)
@@ -4787,7 +4778,6 @@ int __cdecl SP_actor(gentity_s *ent)
             *v10 = 0.0;
             v10 += 2;
         } while (v11);
-        p_scriptGoal = &v3->scriptGoal;
         v3->moveHistoryIndex = 0;
         v3->scriptGoal.pos[0] = *currentOrigin;
         v3->scriptGoal.pos[1] = ent->r.currentOrigin[1];
@@ -4798,15 +4788,9 @@ int __cdecl SP_actor(gentity_s *ent)
             MyAssertHandler("c:\\trees\\cod3\\cod3src\\src\\game\\actor.cpp", 307, 0, "%s", "!actor->scriptGoal.volume");
         Actor_SetGoalRadius(&v3->scriptGoal, 0.0);
         Actor_SetGoalHeight(&v3->scriptGoal, 0.0);
-        p_codeGoal = &v3->codeGoal;
-        v14 = 7;
-        do
-        {
-            p_codeGoal->pos[0] = p_scriptGoal->pos[0];
-            p_scriptGoal = (actor_goal_s *)((char *)p_scriptGoal + 4);
-            p_codeGoal = (actor_goal_s *)((char *)p_codeGoal + 4);
-            --v14;
-        } while (v14);
+        // Copy every semantic field at native pointer width. The old seven-word
+        // loop copied only 28 bytes and truncated pointer-bearing fields on 64-bit.
+        v3->codeGoal = v3->scriptGoal;
         v3->keepClaimedNode = 0;
         v3->keepClaimedNodeInGoal = 0;
         v3->noDodgeMove = 0;

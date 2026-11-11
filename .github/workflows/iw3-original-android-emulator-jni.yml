@@ -1,0 +1,198 @@
+name: IW3 original C++ JNI Android Emulator Runtime Proof (NOT GAME)
+
+on:
+  workflow_dispatch:
+  # pull_request.branches filters the PR BASE branch, not its head.
+  # PR #4 targets feature/zombies-offline-sp-weapons-20261024.
+  pull_request:
+    branches:
+      - feature/zombies-offline-sp-weapons-20261024
+    paths:
+      - .github/workflows/iw3-original-android-emulator-jni.yml
+      - .github/workflows/iw3-original-native-android.yml
+      - .github/workflows/iw3-original-android-jni.yml
+      - android/iw3-native/**
+      - tools/iw3_android/**
+      - third_party/KisakCOD/src/**
+      - tests/test_iw3_android_*.py
+  push:
+    branches:
+      - feature/iw3-native-android-arm64-20261025
+    paths:
+      - .github/workflows/iw3-original-android-emulator-jni.yml
+      - .github/workflows/iw3-original-native-android.yml
+      - .github/workflows/iw3-original-android-jni.yml
+      - android/iw3-native/**
+      - tools/iw3_android/**
+      - third_party/KisakCOD/src/**
+      - tests/test_iw3_android_*.py
+
+permissions:
+  contents: read
+
+# Keep a diagnostic emulator run alive long enough to produce evidence.
+# This workflow is triggered by both push and pull_request; cancelling the active
+# AVD when a duplicate event arrives repeatedly prevented the runtime probe from
+# reaching its evidence-upload step.
+concurrency:
+  group: z2026-iw3-android-runtime-jni-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  android-emulator-real-iw3-cpp-jni:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      NDK_VER: "27.2.12479018"
+      APP_DIR: "android/iw3-native/android_app"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Install actual Android SDK and NDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdk="$RUNNER_TEMP/z2026-emulator-sdk"
+          mkdir -p "$sdk/cmdline-tools/latest"
+          curl -fLsS --retry 3 -o "$RUNNER_TEMP/cli.zip" \
+            'https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip'
+          unzip -qo "$RUNNER_TEMP/cli.zip" -d "$RUNNER_TEMP/cli"
+          mv "$RUNNER_TEMP/cli/cmdline-tools/"* "$sdk/cmdline-tools/latest/"
+          yes | "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" --licenses >/dev/null || true
+          "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" \
+            "platform-tools" "platforms;android-35" "build-tools;35.0.1" \
+            "ndk;${NDK_VER}" "cmake;3.22.1" "emulator" \
+            "system-images;android-35;default;x86_64"
+          echo "ANDROID_HOME=$sdk" >>"$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$sdk" >>"$GITHUB_ENV"
+          echo "$sdk/platform-tools" >>"$GITHUB_PATH"
+          # GitHub hosted Linux runners usually provide KVM acceleration.
+          if [ -e /dev/kvm ]; then sudo chmod 666 /dev/kvm; fi
+
+      - name: Generate actual upstream KisakCOD math surface and game config source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s tests -p 'test_iw3_android_*.py' -v
+          folder="$GITHUB_WORKSPACE/$APP_DIR/build/generated/iw3-source"
+          mkdir -p "$folder"
+          python3 tools/iw3_android/prepare_real_engine_math.py \
+            --engine third_party/KisakCOD \
+            --output "$folder/com_math_anglevectors.cpp" \
+            --surface-output "$folder/surfaceflags.cpp" \
+            --constant-output "$folder/com_constantconfigstrings.cpp" \
+            --report "$RUNNER_TEMP/iw3-on-android-source-evidence.json"
+          python3 tools/iw3_android/prepare_g_runframe_prereqs.py \
+            --engine third_party/KisakCOD \
+            --output "$folder/iw3_frame_memcpy.cpp" \
+            --entity-loop-output "$folder/iw3_g_runframe_entity_loop.inc" \
+            --report "$RUNNER_TEMP/iw3-original-g-runframe-audit.json"
+          python3 tools/iw3_android/prepare_real_engine_pool.py \
+            --engine third_party/KisakCOD \
+            --output "$folder/pool_allocator.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-pool-allocator.json"
+          python3 tools/iw3_android/prepare_real_engine_hitloc.py \
+            --engine third_party/KisakCOD \
+            --output "$folder/iw3_g_combat_hitloc.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-sp-hitloc.json"
+          python3 tools/iw3_android/prepare_real_engine_iwd_names.py \
+            --engine third_party/KisakCOD \
+            --output "$folder/iw3_iwd_names.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-iwd-names.json"
+          python3 tools/iw3_android/prepare_real_engine_unzip.py \
+            --engine third_party/KisakCOD \
+            --output "$folder/unzip.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-unzip-abi.json"
+          python3 tools/iw3_android/prepare_real_engine_iwd_mount.py \
+            --engine third_party/KisakCOD \
+            --output "$folder/fs_load_zip.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-iwd-mount.json"
+          python3 tools/iw3_android/prepare_real_engine_iwd_services.py \
+            --engine third_party/KisakCOD \
+            --output "$folder/iw3_iwd_services.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-iwd-services.json"
+          python3 tools/iw3_android/prepare_real_engine_iwd_searchpath.py \
+            --engine third_party/KisakCOD \
+            --output "$folder/iw3_iwd_searchpath.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-iwd-searchpath.json"
+          python3 tools/iw3_android/prepare_real_engine_iwd_directory.py \
+            --engine third_party/KisakCOD \
+            --output "$folder/iw3_iwd_directory.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-iwd-directory.json"
+          python3 tools/iw3_android/prepare_real_engine_iwd_lookup.py \
+            --engine third_party/KisakCOD \
+            --output "$folder/iw3_iwd_lookup.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-iwd-lookup.json"
+
+          # Stage the exact original FS_Read implementation and preserve an
+          # explicit gate: this does not yet link the original handle lifecycle.
+          python3 tools/iw3_android/prepare_real_engine_fs_read.py \
+            --engine third_party/KisakCOD \
+            --output "$folder/iw3_fs_read.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-fs-read.json"
+          python3 tools/iw3_android/prepare_real_engine_fs_startup.py \
+            --engine third_party/KisakCOD \
+            --output "$folder/iw3_fs_startup.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-fs-startup.json"
+          python3 tools/iw3_android/prepare_real_engine_iwd_read.py \
+            --engine third_party/KisakCOD \
+            --output "$folder/iw3_iwd_read_lifecycle.cpp" \
+            --report "$RUNNER_TEMP/iw3-original-iwd-read-lifecycle.json"
+
+      - name: Compile original IW3 native JNI for real x86 Android emulator (not ARM64 proof)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$APP_DIR"
+          gradle --no-daemon --stacktrace -Piw3EmulatorAbi :app:assembleDebug
+          apk="app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$apk"
+          unzip -Z1 "$apk" | grep -Fx "lib/x86_64/libiw3_sp_math.so"
+          if unzip -Z1 "$apk" | grep -E 'lib/arm64-v8a/'; then
+            echo "Unexpected physical-device ABI inside emulator-only gate" >&2
+            exit 1
+          fi
+          echo "IW3_ORIGINAL_CPP_ANDROID_EMULATOR_ABI_COMPILED"
+
+      - name: Actually boot Android and execute native IW3 functions through Activity JNI
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: default
+          arch: x86_64
+          profile: pixel_4
+          force-avd-creation: false
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-audio -no-boot-anim
+          script: bash tools/iw3_android/run_emulator_probe.sh
+
+      - name: Upload real Android execution log, never claim ARM64 device gameplay
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: IW3-native-original-Cpp-Android-emulator-JNI-log-NOT-GAME
+          path: |
+            ${{ runner.temp }}/iw3-emulator-native-logcat.txt
+            ${{ runner.temp }}/iw3-android-runtime-proof/
+            ${{ runner.temp }}/iw3-on-android-source-evidence.json
+            ${{ runner.temp }}/iw3-original-g-runframe-audit.json
+            ${{ runner.temp }}/iw3-original-pool-allocator.json
+            ${{ runner.temp }}/iw3-original-sp-hitloc.json
+            ${{ runner.temp }}/iw3-original-iwd-names.json
+            ${{ runner.temp }}/iw3-original-unzip-abi.json
+            ${{ runner.temp }}/iw3-original-iwd-mount.json
+            ${{ runner.temp }}/iw3-original-iwd-services.json
+            ${{ runner.temp }}/iw3-original-fs-read.json
+            ${{ runner.temp }}/iw3-original-fs-startup.json
+            ${{ runner.temp }}/iw3-original-iwd-read-lifecycle.json
+          if-no-files-found: warn
+          retention-days: 14

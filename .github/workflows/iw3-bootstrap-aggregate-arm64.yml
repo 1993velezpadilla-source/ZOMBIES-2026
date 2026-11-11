@@ -1,0 +1,162 @@
+name: IW3 authentic SP bootstrap aggregate ARM64 (NOT GAME)
+
+on:
+  pull_request:
+    branches: [feature/zombies-offline-sp-weapons-20261024]
+    paths:
+      - '.github/workflows/iw3-bootstrap-aggregate-arm64.yml'
+      - 'android/iw3-native/bootstrap_compile/**'
+      - 'third_party/KisakCOD/src/**'
+  push:
+    branches: [feature/iw3-native-android-arm64-20261025]
+    paths:
+      - '.github/workflows/iw3-bootstrap-aggregate-arm64.yml'
+      - 'android/iw3-native/bootstrap_compile/**'
+      - 'third_party/KisakCOD/src/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  original-bootstrap-aggregate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify ARM64 symbol-audit regression tests (NOT GAME)
+        run: python3 -m unittest discover -s android/iw3-native/bootstrap_compile -p 'test_*.py' -v
+      - name: Install NDK and original OpenAL API headers
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libopenal-dev
+          sdk="$RUNNER_TEMP/android-sdk"
+          mkdir -p "$sdk/cmdline-tools/latest"
+          curl -fLsS --retry 3 -o "$RUNNER_TEMP/tools.zip" 'https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip'
+          unzip -qo "$RUNNER_TEMP/tools.zip" -d "$RUNNER_TEMP/tools"
+          mv "$RUNNER_TEMP/tools/cmdline-tools/"* "$sdk/cmdline-tools/latest/"
+          yes | "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" --licenses >/dev/null || true
+          "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" 'ndk;27.2.12479018'
+          echo "ANDROID_NDK_HOME=$sdk/ndk/27.2.12479018" >> "$GITHUB_ENV"
+      - name: Stage real OpenAL headers for Android cross-compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f /usr/include/AL/al.h
+          mkdir -p "$RUNNER_TEMP/iw3-openal-headers"
+          cp -a /usr/include/AL "$RUNNER_TEMP/iw3-openal-headers/AL"
+          test -f "$RUNNER_TEMP/iw3-openal-headers/AL/al.h"
+      - name: Configure isolated genuine SP translation-unit compile gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -S android/iw3-native/bootstrap_compile -B "$RUNNER_TEMP/iw3-bootstrap-build" \
+            -DIW3_ENGINE_ROOT="$GITHUB_WORKSPACE/third_party/KisakCOD/src" \
+            -DIW3_OPENAL_HEADERS_ROOT="$RUNNER_TEMP/iw3-openal-headers" \
+            -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake" \
+            -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-26 \
+            -DCMAKE_BUILD_TYPE=Release \
+            2>&1 | tee "$RUNNER_TEMP/bootstrap-build.log"
+      - name: Compile original bootstrap translation units and Android VM adapter
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake --build "$RUNNER_TEMP/iw3-bootstrap-build" --target iw3_sp_bootstrap_compile -j2 2>&1 | tee -a "$RUNNER_TEMP/bootstrap-build.log"
+          echo 'IW3_AUTHENTIC_BOOTSTRAP_AGGREGATE_COMPILE_PASS'
+          echo 'IW3_PLAYABLE_APK=false'
+      - name: Probe strict genuine-engine link and capture missing dependencies (EXPECTED FAILURE, NOT GAME)
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          cmake --build "$RUNNER_TEMP/iw3-bootstrap-build" --target iw3_sp_link_probe -j2 > "$RUNNER_TEMP/bootstrap-link-probe.log" 2>&1
+          rc=$?
+          set -e
+          cat "$RUNNER_TEMP/bootstrap-link-probe.log"
+          echo "IW3_STRICT_LINK_PROBE_EXIT=$rc"
+          if [ "$rc" -eq 0 ]; then
+            echo 'IW3_STRICT_LINK_PROBE_RESOLVED=true (NOT A PLAYABLE GAME)'
+          else
+            echo 'IW3_STRICT_LINK_PROBE_RESOLVED=false (EXPECTED UNTIL ORIGINAL DEPENDENCIES LINK)'
+          fi
+          echo 'IW3_PLAYABLE_APK=false'
+      - name: Audit ARM64 original-object unresolved symbols (NOT a link or game)
+        shell: bash
+        run: |
+          set -euo pipefail
+          nm="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm"
+          test -x "$nm"
+          mapfile -d '' objects < <(find "$RUNNER_TEMP/iw3-bootstrap-build" -type f -name '*.o' -print0)
+          test "${#objects[@]}" -ge 22
+          # Fail the audit if the newly integrated genuine XAnim TU was not built.
+          printf '%s\n' "${objects[@]}" | grep -q '/iw3_xanim.dir/'
+          printf '%s\n' "${objects[@]}" | grep -q '/iw3_sv_main.dir/'
+          # Regression gate: verify the authentic orientation-math TU provides its
+          # functions on AArch64; a successful object compile alone is insufficient.
+          angle_object=$(printf '%s\n' "${objects[@]}" | grep '/iw3_math_anglevectors.dir/' | head -n 1)
+          test -n "$angle_object"
+          "$nm" --defined-only --demangle "$angle_object" > "$RUNNER_TEMP/bootstrap-angle-providers.txt"
+          for symbol in AngleVectors AnglesToAxis; do
+            grep -Fq "$symbol(" "$RUNNER_TEMP/bootstrap-angle-providers.txt" || {
+              echo "Missing genuine ARM64 orientation provider: $symbol" >&2
+              exit 1
+            }
+          done
+          echo 'IW3_ORIGINAL_ANGLE_PROVIDERS_PRESENT=true (NOT LINKED GAME)'
+          # Verify genuine database memory TU is compiled, and inspect its real providers.
+          db_object=$(printf '%s\n' "${objects[@]}" | grep '/iw3_db_memory.dir/' | head -n 1)
+          test -n "$db_object"
+          "$nm" --defined-only --demangle "$db_object" > "$RUNNER_TEMP/bootstrap-db-memory-providers.txt"
+          for symbol in DB_AllocXZoneMemory DB_RecoverGeometryBuffers DB_ReleaseGeometryBuffers; do
+            grep -Fq "$symbol(" "$RUNNER_TEMP/bootstrap-db-memory-providers.txt" || {
+              echo "Missing genuine db_memory provider: $symbol" >&2
+              exit 1
+            }
+          done
+          echo 'IW3_DB_MEMORY_GENUINE_PROVIDERS_PRESENT=true (NOT LINKED GAME)'
+          # Guard against accidentally compiling XAnim without its authentic allocator.
+          tree_object=$(printf '%s\n' "${objects[@]}" | grep '/iw3_script_memorytree.dir/' | head -n 1)
+          test -n "$tree_object"
+          "$nm" --defined-only --demangle "$tree_object" > "$RUNNER_TEMP/bootstrap-script-memorytree-providers.txt"
+          for symbol in MT_Alloc MT_Free; do
+            grep -Fq "$symbol(" "$RUNNER_TEMP/bootstrap-script-memorytree-providers.txt" || {
+              echo "Missing genuine script memory-tree provider: $symbol" >&2
+              exit 1
+            }
+          done
+          echo 'IW3_SCRIPT_MEMORYTREE_GENUINE_PROVIDERS_PRESENT=true (NOT LINKED GAME)'
+          # Verify the Android POSIX path-rename adapter actually exports its provider.
+          # Compilation alone does not establish that the engine's FS rename import resolves.
+          platform_object=$(printf '%s\n' "${objects[@]}" | grep '/iw3_android_platform.dir/' | head -n 1)
+          test -n "$platform_object"
+          "$nm" --defined-only --demangle "$platform_object" > "$RUNNER_TEMP/bootstrap-android-platform-providers.txt"
+          grep -Fq 'z2026_platform_rename_engine_path' "$RUNNER_TEMP/bootstrap-android-platform-providers.txt" || {
+            echo 'Missing Android path-rename provider in ARM64 object' >&2
+            exit 1
+          }
+          echo 'IW3_ANDROID_RENAME_PROVIDER_PRESENT=true (NOT LINKED GAME)'
+          "$nm" --undefined-only --format=posix "${objects[@]}" > "$RUNNER_TEMP/bootstrap-undefined-raw.txt"
+          "$nm" --defined-only --format=posix "${objects[@]}" > "$RUNNER_TEMP/bootstrap-defined-raw.txt"
+          python3 android/iw3-native/bootstrap_compile/audit_bootstrap_symbols.py \
+            "$RUNNER_TEMP/bootstrap-undefined-raw.txt" \
+            "$RUNNER_TEMP/bootstrap-defined-raw.txt" \
+            "$RUNNER_TEMP/bootstrap-unresolved-symbols.txt"
+      - name: Preserve compiler diagnostics (NOT APK)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: iw3-authentic-bootstrap-aggregate-compile-log-NOT-APK
+          path: |
+            ${{ runner.temp }}/bootstrap-build.log
+            ${{ runner.temp }}/bootstrap-link-probe.log
+            ${{ runner.temp }}/bootstrap-undefined-raw.txt
+            ${{ runner.temp }}/bootstrap-defined-raw.txt
+            ${{ runner.temp }}/bootstrap-android-platform-providers.txt
+            ${{ runner.temp }}/bootstrap-angle-providers.txt
+            ${{ runner.temp }}/bootstrap-db-memory-providers.txt
+            ${{ runner.temp }}/bootstrap-script-memorytree-providers.txt
+            ${{ runner.temp }}/bootstrap-unresolved-symbols.txt
+          if-no-files-found: warn
+          retention-days: 30

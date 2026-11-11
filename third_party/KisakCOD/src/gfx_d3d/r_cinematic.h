@@ -1,6 +1,8 @@
 #pragma once
 
+#if !defined(__ANDROID__)
 #include <d3d9.h>
+#endif
 #include <binklib/bink.h>
 #include <binklib/binktextures.h>
 #include "r_material.h"

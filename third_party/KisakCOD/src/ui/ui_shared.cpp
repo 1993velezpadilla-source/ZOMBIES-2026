@@ -18,13 +18,12 @@
 #include "ui.h"
 #include <cgame/cg_main.h>
 #include <gfx_d3d/r_cinematic.h>
+#ifndef KISAK_XBOX
+#include <server/server.h> // SaveType must be defined before savedevice.h on Clang.
+#endif
 #include <game/savedevice.h>
 #include <game/savememory.h>
 #include <game/g_local.h>
-
-#ifndef KISAK_XBOX
-#include <server/server.h>
-#endif
 
 #endif
 
@@ -6730,7 +6729,7 @@ void __cdecl Menu_PaintAll_AppendToVisibleList(char *stringBegin, uint32_t strin
     //    //(std::reverse_iterator<char *>)stringBegin,
     //    &_Val)->current - 1;
     auto it = std::find<std::reverse_iterator<char *>, char>(_Last, _First, _Val); // KISAKTODO: i'd be surprised if this works.
-    lastNewline = it._Get_current() - 1;
+    lastNewline = it.base() - 1;
 
     if (stringEnd - lastNewline <= 80)
         terminus = ", ";

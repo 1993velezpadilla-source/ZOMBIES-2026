@@ -16,7 +16,7 @@ class SPCombatInstrumentationTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.copy = Path(self.temp.name)
-        for file in FILES.values():
+        for file in set(FILES.values()) | {Path("src/game/g_main.cpp")}:
             output = self.copy / file
             output.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(SOURCE / file, output)

@@ -318,7 +318,11 @@ void SV_SendServerCommand(client_t *cl, const char *fmt, ...)
 
     va_start(va, fmt);
 
+#if defined(__ANDROID__)
+    vsnprintf((char *)tempServerCommandBuf, sizeof(tempServerCommandBuf), fmt, va);
+#else
     _vsnprintf((char *)tempServerCommandBuf, 0x20000u, fmt, va);
+#endif
 
     if (cl)
     {
@@ -507,14 +511,22 @@ void __cdecl  SV_ServerThread(unsigned int threadContext)
     int v6; // r29
 
     iassert(threadContext == THREAD_CONTEXT_SERVER);
+#if defined(__ANDROID__) && defined(__aarch64__)
+    // The server error handler uses slot 2 for its setjmp/longjmp context.
+    // On Android there is no Windows TLS bootstrap that installs this slot.
+    // Keep the buffer thread-local: aligned as jmp_buf requires, and alive
+    // throughout the server thread's (normally non-returning) event loop.
+    static thread_local jmp_buf androidServerRecovery;
+    Sys_SetValue(2, &androidServerRecovery);
+#endif
     Value = Sys_GetValue(2);
-    if (setjmp((int*)Value))
+    if (setjmp(*reinterpret_cast<jmp_buf *>(Value)))
     {
         do
         {
             Profile_Recover(1);
             v2 = Sys_GetValue(2);
-        } while (setjmp((int *)v2));
+        } while (setjmp(*reinterpret_cast<jmp_buf *>(v2)));
     }
     Profile_Guard(1);
     Sys_InitServerEvents();

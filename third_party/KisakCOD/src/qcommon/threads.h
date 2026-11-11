@@ -1,7 +1,16 @@
 #pragma once
 
-#include <Windows.h> // literally just for some of the extern types at the bottom
-#include <gfx_d3d/rb_backend.h> // THREAD_CONTEXT_COUNT
+#include <qcommon/thread_context.h>
+#if defined(__ANDROID__)
+#include <cstdint>
+// The original declarations below only need Win32-compatible opaque types;
+// Android runtime services are provided by the POSIX platform boundary.
+using DWORD = std::uint32_t;
+using HANDLE = void *;
+#else
+#include <Windows.h>
+#include <gfx_d3d/rb_backend.h> // preserve the original Windows include surface
+#endif
 
 enum ThreadOwner : __int32
 {                                       // ...
@@ -18,7 +27,12 @@ char __cdecl Sys_SpawnRenderThread(void(__cdecl* function)(uint32_t));
 void __cdecl Sys_CreateEvent(bool manualReset, bool initialState, void** event);
 void __cdecl Sys_CreateThread(void(__cdecl* function)(uint32_t), ThreadContext_t threadContext);
 void __cdecl SetThreadName(uint32_t threadId, const char* threadName);
+#if defined(__ANDROID__)
+// ARM64 uses the platform ABI; Win32 __stdcall is unsupported by Clang here.
+uint32_t Sys_ThreadMain(ThreadContext_t parameter);
+#else
 uint32_t __stdcall Sys_ThreadMain(ThreadContext_t parameter);
+#endif
 char __cdecl Sys_SpawnDatabaseThread(void(__cdecl* function)(uint32_t));
 void __cdecl Sys_SuspendDatabaseThread(ThreadOwner owner);
 void __cdecl Sys_ResetEvent(void** event);

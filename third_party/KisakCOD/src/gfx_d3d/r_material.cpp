@@ -12,6 +12,10 @@
 #include "r_dvars.h"
 #include "r_image.h"
 #include "r_shadowcookie.h"
+#if defined(__ANDROID__)
+#include "r_android_vertex_declaration.h"
+#include "r_android_shader_bytecode.h"
+#endif
 
 #include <algorithm>
 #include <universal/com_files.h>
@@ -291,9 +295,26 @@ void __cdecl Load_CreateMaterialPixelShader(GfxPixelShaderLoadDef *loadDef, Mate
     iassert( loadDef == &mtlShader->prog.loadDef );
     if (r_loadForRenderer->current.enabled && loadDef->loadForRenderer == r_rendererInUse->current.integer)
     {
+#if defined(__ANDROID__)
+        // Original asset contains D3D9 bytecode, NOT GLSL. Never hand it to
+        // GLES or silently replace it with an unrelated synthetic shader.
+        mtlShader->prog.ps = nullptr;
+        IW3AndroidShaderEnvelope envelope{};
+        if (!R_AndroidInspectD3D9Shader(loadDef->program, loadDef->programSize,
+                                        IW3AndroidShaderStage::Pixel, &envelope))
+        {
+            ++g_disableRendering;
+            Com_Error(ERR_FATAL, "IW3 Android invalid original pixel shader bytecode");
+            return;
+        }
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android shader bytecode needs GLES3 translation (pixel)");
+        return;
+#else
         ProfLoad_Begin("Create pixel shader");
         dx.device->CreatePixelShader((DWORD*)loadDef->program, (IDirect3DPixelShader9 **)&mtlShader->prog);
         ProfLoad_End();
+#endif
     }
     else
     {
@@ -306,9 +327,24 @@ void __cdecl Load_CreateMaterialVertexShader(GfxVertexShaderLoadDef *loadDef, Ma
     iassert( loadDef == &mtlShader->prog.loadDef );
     if (r_loadForRenderer->current.enabled && loadDef->loadForRenderer == r_rendererInUse->current.integer)
     {
+#if defined(__ANDROID__)
+        mtlShader->prog.vs = nullptr;
+        IW3AndroidShaderEnvelope envelope{};
+        if (!R_AndroidInspectD3D9Shader(loadDef->program, loadDef->programSize,
+                                        IW3AndroidShaderStage::Vertex, &envelope))
+        {
+            ++g_disableRendering;
+            Com_Error(ERR_FATAL, "IW3 Android invalid original vertex shader bytecode");
+            return;
+        }
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android shader bytecode needs GLES3 translation (vertex)");
+        return;
+#else
         ProfLoad_Begin("Create vertex shader");
         dx.device->CreateVertexShader((DWORD*)loadDef->program, (IDirect3DVertexShader9 **)&mtlShader->prog);
         ProfLoad_End();
+#endif
     }
     else
     {
@@ -430,6 +466,33 @@ IDirect3DVertexDeclaration9 *__cdecl Material_BuildVertexDecl(
 
     elemTable[elemIndex] = declEnd;
 
+#if defined(__ANDROID__)
+    // Preserve original IW3 routing, including D3DCOLOR and two streams.
+    // This records metadata; GLES3 VAO/shader mapping remains pending.
+    static_assert(sizeof(_D3DVERTEXELEMENT9) == sizeof(IW3AndroidVertexElement),
+                  "D3D9 vertex declaration ABI mismatch");
+    if (elemIndex <= 0 || elemIndex > 16) {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "Android original vertex declaration exceeds 16 streams");
+        return nullptr;
+    }
+    IW3AndroidVertexElement androidElements[16] = {};
+    for (int i = 0; i < elemIndex; ++i) {
+        // Copy fields, not a reinterpret_cast across unrelated C++ structs.
+        // Preserves original D3D9 layout without strict-aliasing UB.
+        androidElements[i] = {elemTable[i].Stream, elemTable[i].Offset,
+                              elemTable[i].Type, elemTable[i].Method,
+                              elemTable[i].Usage, elemTable[i].UsageIndex};
+    }
+    decl = reinterpret_cast<IDirect3DVertexDeclaration9 *>(
+        R_AndroidCreateVertexDeclaration(androidElements,
+                                         static_cast<std::size_t>(elemIndex)));
+    if (!decl) {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "Android original vertex declaration metadata invalid");
+        return nullptr;
+    }
+#else
     do
     {
         if (r_logFile && r_logFile->current.integer)
@@ -448,6 +511,7 @@ IDirect3DVertexDeclaration9 *__cdecl Material_BuildVertexDecl(
             } while (alwaysfails);
         }
     } while (alwaysfails);
+#endif
 
     iassert(decl);
     return decl;
@@ -741,6 +805,13 @@ void __cdecl Material_ReleasePassResources(MaterialPass *pass)
     iassert( pass->pixelShader );
     if (pass->pixelShader->prog.ps)
     {
+#if defined(__ANDROID__)
+        // An Android material must never own a D3D9 COM shader. No
+        // translated GLES3 shader handle is available in this phase.
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android unexpected D3D9 pixel shader resource");
+        pass->pixelShader->prog.ps = nullptr;
+#else
         do
         {
             if (r_logFile && r_logFile->current.integer)
@@ -753,10 +824,18 @@ void __cdecl Material_ReleasePassResources(MaterialPass *pass)
                 ".\\r_material.cpp",
                 935);
         } while (alwaysfails);
+    #endif
     }
     iassert( pass->vertexShader );
     if (pass->vertexShader->prog.vs)
     {
+#if defined(__ANDROID__)
+        // An Android material must never own a D3D9 COM shader. No
+        // translated GLES3 shader handle is available in this phase.
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "IW3 Android unexpected D3D9 vertex shader resource");
+        pass->vertexShader->prog.vs = nullptr;
+#else
         do
         {
             if (r_logFile && r_logFile->current.integer)
@@ -765,6 +844,7 @@ void __cdecl Material_ReleasePassResources(MaterialPass *pass)
             pass->vertexShader->prog.vs = 0;
             R_ReleaseAndSetNULL<IDirect3DDevice9>(var, "pass->vertexShader->prog.vs", ".\\r_material.cpp", 939);
         } while (alwaysfails);
+    #endif
     }
     iassert( pass->vertexDecl );
     if (pass->vertexDecl->isLoaded)
@@ -781,6 +861,12 @@ void __cdecl Material_ReleasePassResources(MaterialPass *pass)
                         if (r_logFile->current.integer)
                             RB_LogPrint("pass->vertexDecl->routing.decl[declIndex]->Release()\n");
                     }
+#if defined(__ANDROID__)
+                    const void *identity = pass->vertexDecl->routing.decl[declIndex];
+                    if (!R_AndroidReleaseVertexDeclaration(identity))
+                        Com_Error(ERR_FATAL, "Android original vertex declaration release failed");
+                    pass->vertexDecl->routing.decl[declIndex] = nullptr;
+#else
                     v1 = (IDirect3DSurface9 *)pass->vertexDecl->routing.decl[declIndex];
                     pass->vertexDecl->routing.decl[declIndex] = 0;
                     R_ReleaseAndSetNULL<IDirect3DDevice9>(
@@ -788,6 +874,7 @@ void __cdecl Material_ReleasePassResources(MaterialPass *pass)
                         "pass->vertexDecl->routing.decl[declIndex]",
                         ".\\r_material.cpp",
                         948);
+#endif
                 } while (alwaysfails);
             }
         }

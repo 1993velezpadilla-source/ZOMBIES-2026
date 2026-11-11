@@ -9,7 +9,9 @@
 #include <client/client.h>
 #include <win32/win_net_debug.h>
 #include <bgame/bg_local.h>
+#if !defined(IW3_ANDROID_DISABLE_SCRIPT_DEBUGGER)
 #include <script/scr_debugger.h>
+#endif
 #include "com_bsp.h"
 #include "com_playerprofile.h"
 #include <universal/com_files.h>
@@ -39,6 +41,31 @@
 #include <universal/profile.h>
 
 #include <setjmp.h>
+
+#if defined(__ANDROID__)
+// Bionic provides the bounded C99 interfaces used by the original common
+// module. The engine call sites ignore the MSVC-specific truncation return
+// value and explicitly terminate their destination buffers.
+#ifndef _vsnprintf
+#define _vsnprintf vsnprintf
+#endif
+#ifndef _snprintf
+#define _snprintf snprintf
+#endif
+
+// Preserve the engine's build banner without inheriting a Win32-only macro.
+#ifndef CPUSTRING
+#if defined(__aarch64__)
+#define CPUSTRING "android-arm64"
+#elif defined(__x86_64__)
+#define CPUSTRING "android-x86_64"
+#elif defined(__arm__)
+#define CPUSTRING "android-arm"
+#else
+#define CPUSTRING "android"
+#endif
+#endif
+#endif
 
 
 #ifdef KISAK_SP
@@ -294,7 +321,11 @@ void __cdecl Debug_Frame(int localClientNum)
     ++com_lastFrameIndex;
     while (1)
     {
+#if !defined(IW3_ANDROID_DISABLE_SCRIPT_DEBUGGER)
         newEvent = Scr_UpdateDebugSocket();
+#else
+        newEvent = 0;
+#endif
         newEvent2 = Debug_EventLoop(localClientNum);
         com_frameTime = Sys_Milliseconds();
         if (com_lastFrameTime[lastFrameIndex] > com_frameTime)
@@ -308,12 +339,14 @@ void __cdecl Debug_Frame(int localClientNum)
     cls.realFrametime = Com_ModifyMsec(msec);
     cls.realtime += cls.frametime;
     CL_UpdateSound();
+#if !defined(IW3_ANDROID_DISABLE_SCRIPT_DEBUGGER)
     if (Scr_CanDrawScript())
     {
         R_BeginDebugFrame();
         Scr_DrawScript();
         R_EndDebugFrame();
     }
+#endif
 #ifdef KISAK_MP
     iassert( (bgs == 0) );
     bgs = oldBgs;
@@ -388,7 +421,10 @@ void Com_Prefetch(const void* s, const uint32_t bytes, e_prefetch type)
 	case PRE_WRITE: break;
 	case PRE_READ:
 	case PRE_READ_WRITE:
-#ifdef _M_X686
+#if defined(__ANDROID__)
+        // ARM64 uses the compiler's non-temporal read-prefetch intrinsic.
+        __builtin_prefetch(s, 0, 0);
+#elif defined(_M_X686)
 		__asm
 		{
 			mov		ebx, s
@@ -439,14 +475,23 @@ void Com_OpenLogFile()
 {
     const char* BuildNumber; // eax
     const char* v1; // [esp-4h] [ebp-14h]
+#if defined(__ANDROID__)
+    time_t aclock;
+#else
     __int64 aclock; // [esp+0h] [ebp-10h] BYREF
+#endif
     tm* newtime; // [esp+Ch] [ebp-4h]
 
     if (Sys_IsMainThread() && !opening_qconsole)
     {
         opening_qconsole = 1;
+#if defined(__ANDROID__)
+        time(&aclock);
+        newtime = localtime(&aclock);
+#else
         _time64(&aclock);
         newtime = _localtime64(&aclock);
+#endif
 #ifdef KISAK_MP
         logfile = FS_FOpenTextFileWrite("console_mp.log");
 #elif KISAK_SP
@@ -2127,7 +2172,9 @@ void __cdecl Com_CheckSyncFrame()
 #ifdef KISAK_SP
     SV_WaitSaveGame();
 #endif
+#if !defined(IW3_ANDROID_DISABLE_SCRIPT_DEBUGGER)
     Scr_UpdateRemoteDebugger();
+#endif
     DB_Update();
 }
 
@@ -2383,8 +2430,8 @@ void Com_CheckError()
     Sys_LeaveCriticalSection(CRITSECT_COM_ERROR);
     if (v0)
     {
-        void * value = Sys_GetValue(2);
-        longjmp((int*)value, -1);
+        jmp_buf *value = (jmp_buf *)Sys_GetValue(2);
+        longjmp(*value, -1);
     }
 }
 

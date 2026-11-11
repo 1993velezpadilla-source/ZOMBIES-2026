@@ -9,8 +9,21 @@
 #include <client/client.h>
 #include <win32/win_local.h>
 #include <qcommon/cmd.h>
+#if defined(__ANDROID__)
+// The SP UI only needs these original engine entry points. Avoid importing
+// Windows D3D9/Bink types into the Android translation unit; their genuine
+// implementations remain required by the strict engine link.
+bool __cdecl SaveDevice_IsAccessingDevice(void);
+bool __cdecl SaveDevice_IsSaveSuccessful(void);
+void __cdecl R_Cinematic_DrawStretchPic_Letterboxed(void);
+bool __cdecl R_Cinematic_IsNextReady(void);
+void __cdecl R_Cinematic_StartNextPlayback(void);
+void __cdecl R_Cinematic_StopPlayback(void);
+bool __cdecl R_Cinematic_IsFinished(void);
+#else
 #include <game/savedevice.h>
 #include <gfx_d3d/r_cinematic.h>
+#endif
 #include <stringed/stringed_hooks.h>
 #include <client/cl_demo.h>
 #include <cgame/cg_newdraw.h>
@@ -2644,7 +2657,7 @@ char *__cdecl UI_ReplaceConversionInt(const char *sourceString, int replaceInt)
     *(_QWORD *)&v5.args[3] = v2;
     *(_QWORD *)&v5.args[5] = v2;
     *(_QWORD *)&v5.args[7] = v2;
-    snprintf(v6, ARRAYSIZE(v6), "%d", replaceInt);
+    snprintf(v6, sizeof(v6), "%d", replaceInt);
     v5.argCount = 1;
     v5.args[0] = v6;
     UI_ReplaceConversions(sourceString, &v5, v7, 0x400u);

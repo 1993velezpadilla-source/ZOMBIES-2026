@@ -15,6 +15,11 @@
 #include "r_draw_material.h"
 #include "r_shade.h"
 #include "r_setstate_d3d.h"
+#if defined(__ANDROID__)
+#include "r_android_gpu_fence.h"
+#include "r_android_clear.h"
+#include "r_android_viewport.h"
+#endif
 #include <win32/win_local.h>
 #include "rb_pixelcost.h"
 #include "rb_drawprofile.h"
@@ -26,7 +31,14 @@
 #include <qcommon/threads.h>
 #include "r_workercmds.h"
 #include "rb_tess.h"
+#if defined(__ANDROID__)
+// This original backend only calls the cinematic frame-update entry point.
+// Do not pull Bink/Direct3D9 implementation headers into the Android build.
+// This is a declaration, not a replacement video renderer.
+void __cdecl R_Cinematic_UpdateFrame();
+#else
 #include "r_cinematic.h"
+#endif
 #include "r_model_lighting.h"
 #include "r_draw_bsp.h"
 #include "r_dobj_skin.h"
@@ -79,24 +91,46 @@ materialCommands_t tess;
 
 void __cdecl TRACK_rb_backend()
 {
-    track_static_alloc_internal(&backEnd, 640, "backEnd", 18);
-    track_static_alloc_internal(&tess, 2271584, "tess", 18);
-    track_static_alloc_internal(&gfxCmdBufInput, 1072, "gfxCmdBufInput", 18);
+    track_static_alloc_internal(&backEnd, sizeof(backEnd), "backEnd", 18);
+    track_static_alloc_internal(&tess, sizeof(tess), "tess", 18);
+    track_static_alloc_internal(&gfxCmdBufInput, sizeof(gfxCmdBufInput), "gfxCmdBufInput", 18);
 }
 
 bool __cdecl R_GpuFenceTimeout()
 {
+#if defined(__ANDROID__)
+    // IW3 still owns a D3D9 query here. Do not read x86 TSC or
+    // claim that GLES has finished work before real GLsync integration.
+    Com_Error(ERR_FATAL, "IW3 Android: GPU fence timeout requires real GLES synchronization");
+    return false;
+#else
     if (RB_IsGpuFenceFinished())
         return 1;
     dx.gpuSyncEnd = __rdtsc();
     return dx.gpuSyncEnd - dx.gpuSyncStart >= dx.gpuSyncDelay;
+#endif
 }
 
 void __cdecl R_FinishGpuFence()
 {
+#if defined(__ANDROID__)
+    // Bounded GLES3 wait: five 50ms calls, never an unbounded busy loop.
+    for (int attempt = 0; attempt < 5; ++attempt)
+    {
+        const auto result = R_AndroidGpuFenceOriginalWait(50000000ULL);
+        if (result == IW3AndroidGpuFenceResult::Complete || result == IW3AndroidGpuFenceResult::Idle)
+            return;
+        if (result == IW3AndroidGpuFenceResult::Invalid)
+        {
+            Com_Error(ERR_FATAL, "IW3 Android: GPU wait failed or EGL context lost");
+            return;
+        }
+    }
+    Com_Error(ERR_FATAL, "IW3 Android: GLES3 fence timed out after 250ms");
+#else
     PROF_SCOPED("R_SyncGpu");
-
     while (!RB_IsGpuFenceFinished());
+#endif
 }
 
 void __cdecl R_AcquireGpuFenceLock()
@@ -111,6 +145,10 @@ void __cdecl R_ReleaseGpuFenceLock()
 
 void __cdecl R_InsertGpuFence()
 {
+#if defined(__ANDROID__)
+    if (!R_AndroidGpuFenceOriginalInsert())
+        Com_Error(ERR_FATAL, "IW3 Android: glFenceSync insertion failed or EGL not bound");
+#else
     const char *v0; // eax
     int hr; // [esp+0h] [ebp-4h]
 
@@ -136,15 +174,21 @@ void __cdecl R_InsertGpuFence()
     } while (alwaysfails);
     dx.flushGpuQueryIssued = 1;
     ++dx.flushGpuQueryCount;
+#endif
 }
 
 void RB_AbandonGpuFence()
 {
+#if defined(__ANDROID__)
+    if (!R_AndroidGpuFenceOriginalAbandon())
+        Com_Error(ERR_FATAL, "IW3 Android: cannot abandon GLsync from invalid EGL context");
+#else
     iassert( dx.flushGpuQuery );
     iassert( dx.flushGpuQueryIssued );
     iassert( dx.flushGpuQueryCount == 1 );
     dx.flushGpuQueryIssued = 0;
     --dx.flushGpuQueryCount;
+#endif
 }
 
 void __cdecl RB_CopyBackendStats()
@@ -391,6 +435,11 @@ void __cdecl RB_SplitScreenTexCoords(float x, float y, float w, float h, float *
 
 void __cdecl R_Resolve(GfxCmdBufContext context, GfxImage *image)
 {
+#if defined(__ANDROID__)
+    (void)context;
+    (void)image;
+    Com_Error(ERR_FATAL, "IW3 Android R_Resolve requires GLES render-target resolve");
+#else
     const char *v4; // eax
     int v6; // [esp+0h] [ebp-Ch]
     int hr; // [esp+4h] [ebp-8h]
@@ -440,6 +489,8 @@ void __cdecl R_Resolve(GfxCmdBufContext context, GfxImage *image)
             } while (alwaysfails);
         }
     } while (alwaysfails);
+
+#endif
 }
 
 void __cdecl RB_StretchPicCmd(GfxRenderCommandExecState *execState)
@@ -636,6 +687,11 @@ void __cdecl RB_StretchRawCmd(GfxRenderCommandExecState *execState)
 
 void __cdecl RB_StretchRaw(int x, int y, int w, int h, int cols, int rows, const uint8_t *data)
 {
+#if defined(__ANDROID__)
+    (void)x; (void)y; (void)w; (void)h;
+    (void)cols; (void)rows; (void)data;
+    Com_Error(ERR_FATAL, "IW3 Android RB_StretchRaw requires GLES texture upload and draw");
+#else
     const char *v7; // eax
     int v8; // [esp+8h] [ebp-34h]
     _D3DLOCKED_RECT lockedRect; // [esp+10h] [ebp-2Ch] BYREF
@@ -696,6 +752,8 @@ void __cdecl RB_StretchRaw(int x, int y, int w, int h, int cols, int rows, const
 
         rawSurf->Release();
     }
+
+#endif
 }
 
 void __cdecl R_DrawSurfs(GfxCmdBufContext context, GfxCmdBufState *prepassState, const GfxDrawSurfListInfo *info)
@@ -846,6 +904,16 @@ void __cdecl RB_ClearScreenCmd(GfxRenderCommandExecState *execState)
     if (tess.indexCount)
         RB_EndTessSurface();
 
+#if defined(__ANDROID__)
+    // Consume the real IW3 RC_CLEAR_SCREEN payload with GLES3, not a fake
+    // diagnostic draw. The rest of the original renderer remains incomplete.
+    if (!R_AndroidGlesClear(cmd->whichToClear, cmd->color,
+                            cmd->depth, cmd->stencil))
+    {
+        Com_Error(ERR_FATAL, "IW3 Android: original clear command GLES3 failed");
+        return;
+    }
+#else
     R_ClearScreen(
         gfxCmdBufState.prim.device,
         cmd->whichToClear,
@@ -853,12 +921,17 @@ void __cdecl RB_ClearScreenCmd(GfxRenderCommandExecState *execState)
         cmd->depth,
         cmd->stencil,
         0);
+#endif
 
     execState->cmd = (char *)execState->cmd + cmd->header.byteCount;
 }
 
 void __cdecl RB_SetGammaRamp(const GfxGammaRamp *gammaTable)
 {
+#if defined(__ANDROID__)
+    (void)gammaTable;
+    Com_Error(ERR_FATAL, "IW3 Android RB_SetGammaRamp requires a platform color-mapping path");
+#else
     int colorIndex; // [esp+0h] [ebp-60Ch]
     _D3DGAMMARAMP d3dGammaRamp; // [esp+4h] [ebp-608h] BYREF
 
@@ -872,6 +945,8 @@ void __cdecl RB_SetGammaRamp(const GfxGammaRamp *gammaTable)
         d3dGammaRamp.blue[colorIndex] = gammaTable->entries[colorIndex];
     }
     dx.device->SetGammaRamp(dx.targetWindowIndex, 0, &d3dGammaRamp);
+
+#endif
 }
 
 void __cdecl RB_SaveScreenCmd(GfxRenderCommandExecState *execState)
@@ -1524,6 +1599,19 @@ void __cdecl RB_SetViewportCmd(GfxRenderCommandExecState *execState)
         RB_EndTessSurface();
 
     R_SetViewportStruct(&gfxCmdBufSourceState, &cmd->viewport);
+#if defined(__ANDROID__)
+    // Consume the original RC_SET_VIEWPORT payload. IW3 coordinates are
+    // top-left, while GLES3 expects bottom-left relative to the current
+    // render target (which need not match the Android window size).
+    if (!R_AndroidGlesSetViewport(cmd->viewport.x, cmd->viewport.y,
+                                  cmd->viewport.width, cmd->viewport.height,
+                                  gfxCmdBufSourceState.renderTargetWidth,
+                                  gfxCmdBufSourceState.renderTargetHeight))
+    {
+        Com_Error(ERR_FATAL, "IW3 Android: original viewport command GLES3 failed");
+        return;
+    }
+#endif
 
     execState->cmd = (char *)execState->cmd + cmd->header.byteCount;
 }
@@ -2602,6 +2690,10 @@ void __cdecl RB_ResetStatTracking()
 
 void __cdecl RB_BeginFrame(const GfxBackEndData *data)
 {
+#if defined(__ANDROID__)
+    (void)data;
+    Com_Error(ERR_FATAL, "IW3 Android RB_BeginFrame requires GLES scene begin");
+#else
     int hr; // [esp+0h] [ebp-4h]
 
     backEndData = (GfxBackEndData*)data;
@@ -2638,6 +2730,8 @@ void __cdecl RB_BeginFrame(const GfxBackEndData *data)
         tess.indexCount = 0;
         tess.vertexCount = 0;
     }
+
+#endif
 }
 
 void __cdecl RB_EndFrame(char drawType)
@@ -2662,6 +2756,10 @@ void __cdecl RB_EndFrame(char drawType)
 
 GfxIndexBufferState *RB_SwapBuffers()
 {
+#if defined(__ANDROID__)
+    Com_Error(ERR_FATAL, "IW3 Android RB_SwapBuffers requires real EGL presentation");
+    return nullptr;
+#else
     GfxIndexBufferState *result;
     int hr;
 
@@ -2700,6 +2798,8 @@ GfxIndexBufferState *RB_SwapBuffers()
     result = gfxBuf.dynamicIndexBuffer;
     gfxBuf.dynamicIndexBuffer->used = 0;
     return result;
+
+#endif
 }
 
 void RB_UpdateBackEndDvarOptions()
@@ -2767,6 +2867,10 @@ void __cdecl RB_Draw3D()
 
 int RB_AdaptiveGpuSyncFinal()
 {
+#if defined(__ANDROID__)
+    Com_Error(ERR_FATAL, "IW3 Android RB_AdaptiveGpuSyncFinal requires GLES sync fences");
+    return -1;
+#else
     unsigned __int64 v0; // rax
     int waitedTime; // [esp+18h] [ebp-8h]
     int startTime; // [esp+1Ch] [ebp-4h]
@@ -2804,6 +2908,8 @@ int RB_AdaptiveGpuSyncFinal()
         }
     }
     return v0;
+
+#endif
 }
 
 void __cdecl RB_CallExecuteRenderCommands()
@@ -2881,7 +2987,14 @@ void __cdecl RB_CallExecuteRenderCommands()
             if (r_logFile && r_logFile->current.integer)
                 RB_LogPrint("dx.device->EndScene()\n");
             //hr = ((int(__thiscall *)(IDirect3DDevice9 *, IDirect3DDevice9 *))dx.device->EndScene)(dx.device, dx.device);
+#if defined(__ANDROID__)
+            // The original IW3 command consumer is retained; no D3D9 device
+            // exists on Android. EndScene needs an actual GLES frame boundary.
+            Com_Error(ERR_FATAL, "IW3 Android RB_CallExecuteRenderCommands requires GLES scene end");
+            hr = -1;
+#else
             hr = dx.device->EndScene();
+#endif
             if (hr < 0)
             {
                 do
@@ -3018,6 +3131,10 @@ void __cdecl  RB_RenderThread(uint32_t threadContext)
 
 int __cdecl RB_BackendTimeout()
 {
+#if defined(__ANDROID__)
+    Com_Error(ERR_FATAL, "IW3 Android RB_BackendTimeout requires GLES sync query");
+    return 1;
+#else
     BOOL v1; // [esp+0h] [ebp-Ch]
     _BYTE v2[4]; // [esp+8h] [ebp-4h] BYREF
 
@@ -3029,6 +3146,8 @@ int __cdecl RB_BackendTimeout()
     else
         v1 = 0;
     return !v1;
+
+#endif
 }
 
 void __cdecl RB_RenderCommandFrame(const GfxBackEndData *data)

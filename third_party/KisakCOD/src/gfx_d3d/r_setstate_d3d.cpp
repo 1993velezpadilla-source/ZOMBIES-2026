@@ -1,10 +1,22 @@
 #include <universal/q_shared.h>
 #include "r_setstate_d3d.h"
 #include "r_init.h"
+#if defined(__ANDROID__)
+#include "r_android_gpu_fence.h"
+#endif
 
 
 bool __cdecl RB_IsGpuFinished()
 {
+#if defined(__ANDROID__)
+    const auto result = R_AndroidGpuFenceOriginalPoll();
+    if (result == IW3AndroidGpuFenceResult::Pending)
+        return false;
+    if (result == IW3AndroidGpuFenceResult::Complete)
+        return true;
+    Com_Error(ERR_FATAL, "IW3 Android: direct GPU query without an issued current GLES3 fence");
+    return false;
+#else
     const char *v1; // eax
     int hr; // [esp+0h] [ebp-8h]
 
@@ -46,10 +58,21 @@ bool __cdecl RB_IsGpuFinished()
             --dx.flushGpuQueryCount;
         return hr != 1;
     }
+
+#endif
 }
 
 bool __cdecl RB_IsGpuFenceFinished()
 {
+#if defined(__ANDROID__)
+    const auto result = R_AndroidGpuFenceOriginalPoll();
+    if (result == IW3AndroidGpuFenceResult::Pending)
+        return false;
+    if (result == IW3AndroidGpuFenceResult::Complete || result == IW3AndroidGpuFenceResult::Idle)
+        return true; // Idle is only returned from a valid bound EGL context.
+    Com_Error(ERR_FATAL, "IW3 Android: GPU fence query requires owning current EGL context");
+    return false;
+#else
     if (dx.flushGpuQueryIssued)
     {
     	// KISAKGPUFENCE: Comment asserts out for now. Sometimes goes off when alt-tabbing.
@@ -75,4 +98,6 @@ bool __cdecl RB_IsGpuFenceFinished()
         //    MyAssertHandler(".\\r_setstate_d3d.cpp", 44, 0, "%s", "!dx.flushGpuQueryCount");
         return 1;
     }
+
+#endif
 }

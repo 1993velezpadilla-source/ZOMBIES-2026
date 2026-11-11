@@ -134,6 +134,12 @@ uint32_t __cdecl Sys_GetCurrentThreadId()
 
 void __cdecl Sys_InitThread(ThreadContext_t threadContext)
 {
+    // Never index the per-context TLS table with an invalid thread context.
+    if (static_cast<unsigned int>(threadContext) >= THREAD_CONTEXT_COUNT)
+    {
+        iassert(false);
+        return;
+    }
     //*(uint32_t*)(*((uint32_t*)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index) + 4) = g_threadValues[threadContext];
     g_threadLocals = g_threadValues[threadContext];
     Com_InitThreadData(threadContext);
@@ -168,8 +174,16 @@ void __cdecl Sys_CreateEvent(bool manualReset, bool initialState, void** event)
 
 void __cdecl Sys_CreateThread(void(__cdecl* function)(uint32_t), ThreadContext_t threadContext)
 {
-    iassert( threadFunc[threadContext] == NULL );
-    iassert(threadContext < THREAD_CONTEXT_COUNT);
+    // Validate the index before touching the thread-function array.
+    // A bad context must not become an out-of-bounds access on LP64.
+    if (static_cast<unsigned int>(threadContext) >= THREAD_CONTEXT_COUNT || !function)
+    {
+        iassert(false);
+        return;
+    }
+    iassert(threadFunc[threadContext] == NULL);
+    if (threadFunc[threadContext] != NULL)
+        return;
     threadFunc[threadContext] = function;
     threadHandle[threadContext] = CreateThread(
         0,
@@ -178,6 +192,14 @@ void __cdecl Sys_CreateThread(void(__cdecl* function)(uint32_t), ThreadContext_t
         (LPVOID)threadContext,
         4u,
         &threadId[threadContext]);
+    // CreateThread can fail. Do not retain a callback for a thread that
+    // does not exist: a later retry must be allowed to register it again.
+    if (!threadHandle[threadContext])
+    {
+        threadFunc[threadContext] = nullptr;
+        threadId[threadContext] = 0;
+        return;
+    }
     SetThreadName(threadId[threadContext], s_threadNames[threadContext]);
 }
 
@@ -214,6 +236,12 @@ void __cdecl SetThreadName(uint32_t threadId, const char* threadName)
 
 uint32_t __stdcall Sys_ThreadMain(ThreadContext_t threadContext)
 {
+    // A failed assertion must not fall through to an invalid callback read.
+    if (static_cast<unsigned int>(threadContext) >= THREAD_CONTEXT_COUNT || !threadFunc[threadContext])
+    {
+        iassert(false);
+        return 0;
+    }
     bcassert(threadContext, THREAD_CONTEXT_COUNT);
     iassert(threadFunc[threadContext]);
     SetThreadName(0xFFFFFFFF, s_threadNames[threadContext]);
@@ -311,8 +339,20 @@ bool __cdecl Sys_SpawnWorkerThread(void(__cdecl* function)(uint32_t), uint32_t t
 {
     ThreadContext_t threadContext; // [esp+0h] [ebp-4h]
 
-    threadContext = (ThreadContext_t)(threadIndex + 2);
-    if (threadHandle[threadIndex + 2])
+    // Validate before adding the worker-context offset or indexing handles.
+    // An untrusted worker index must never access beyond THREAD_CONTEXT_COUNT.
+#if defined(KISAK_SP)
+    constexpr uint32_t workerCount = THREAD_CONTEXT_WORKER2 - THREAD_CONTEXT_WORKER0 + 1u;
+#elif defined(KISAK_MP)
+    constexpr uint32_t workerCount = THREAD_CONTEXT_WORKER1 - THREAD_CONTEXT_WORKER0 + 1u;
+#endif
+    if (threadIndex >= workerCount)
+    {
+        iassert(false);
+        return false;
+    }
+    threadContext = static_cast<ThreadContext_t>(THREAD_CONTEXT_WORKER0 + threadIndex);
+    if (threadHandle[threadContext])
         MyAssertHandler(
             ".\\qcommon\\threads.cpp",
             1113,
@@ -525,13 +565,23 @@ bool Sys_IsServerThread()
 
 void __cdecl Sys_SetValue(int valueIndex, void* data)
 {
-    //*(uint32_t*)(*(uint32_t*)(*((uint32_t*)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index) + 4) + 4 * valueIndex) = data;
+    // Each thread context owns exactly four pointer-sized TLS slots.
+    // Reject invalid indices and calls before Sys_InitThread installs TLS.
+    if (valueIndex < 0 || valueIndex >= 4 || !g_threadLocals)
+    {
+        iassert(false);
+        return;
+    }
     g_threadLocals[valueIndex] = data;
 }
 
 void* __cdecl Sys_GetValue(int valueIndex)
 {
-    //return *(void**)(*(uint32_t*)(*((uint32_t*)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index) + 4) + 4 * valueIndex);
+    if (valueIndex < 0 || valueIndex >= 4 || !g_threadLocals)
+    {
+        iassert(false);
+        return nullptr;
+    }
     return g_threadLocals[valueIndex];
 }
 
@@ -772,7 +822,8 @@ int Sys_SpawnServerThread(void(*function)(uint32_t))
     serverSnapshotEvent = CreateEventA(0, 0, 0, 0);
     clientMessageReceived = CreateEventA(0, 1, 1, 0);
     Sys_CreateThread(function, THREAD_CONTEXT_SERVER);
-    result = (int)threadHandle[THREAD_CONTEXT_SERVER];
+    // A thread handle is an opaque pointer, not a 32-bit integer on ARM64.
+    result = threadHandle[THREAD_CONTEXT_SERVER] ? 1 : 0;
 
     if (threadHandle[THREAD_CONTEXT_SERVER])
     {
@@ -919,7 +970,8 @@ int Sys_SpawnServerDemoThread(void(*function)(uint32_t))
     g_saveHistoryEvent = CreateEventA(0, 0, 0, 0);
     g_saveHistoryDoneEvent = CreateEventA(0, 0, 0, 0);
     Sys_CreateThread(function, THREAD_CONTEXT_SERVER_DEMO);
-    result = (int)threadHandle[THREAD_CONTEXT_SERVER_DEMO];
+    // Preserve the boolean success contract without truncating a pointer.
+    result = threadHandle[THREAD_CONTEXT_SERVER_DEMO] ? 1 : 0;
     if (threadHandle[THREAD_CONTEXT_SERVER_DEMO])
     {
         //XSetThreadProcessor(threadHandle[11], 2u);

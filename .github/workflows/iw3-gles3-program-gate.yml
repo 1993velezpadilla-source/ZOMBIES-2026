@@ -1,0 +1,102 @@
+name: IW3 original shader GLES3 program compile gate
+on:
+  push:
+    branches:
+      - feature/iw3-native-android-arm64-20261025
+    paths:
+      - 'third_party/KisakCOD/src/gfx_d3d/r_android_gl_program.*'
+      - '.github/workflows/iw3-gles3-program-gate.yml'
+      - 'android/iw3-native/tests/iw3_gles3_egl_host_smoke.cpp'
+  pull_request:
+    branches:
+      - feature/zombies-offline-sp-weapons-20261024
+    paths:
+      - 'third_party/KisakCOD/src/gfx_d3d/r_android_gl_program.*'
+      - '.github/workflows/iw3-gles3-program-gate.yml'
+      - 'android/iw3-native/tests/iw3_gles3_egl_host_smoke.cpp'
+  workflow_dispatch:
+jobs:
+  host-gles3-syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install GLES3 development headers
+        run: sudo apt-get update && sudo apt-get install -y libgles2-mesa-dev libegl1-mesa-dev libgl1-mesa-dri
+      - name: Compile genuine GLES3 program provider with Android branch enabled
+        run: |
+          g++ -std=c++17 -D__ANDROID__ -Wall -Wextra -Werror -fsyntax-only third_party/KisakCOD/src/gfx_d3d/r_android_gl_program.cpp
+          echo IW3_GLES3_PROGRAM_PROVIDER_HOST_SYNTAX_PASS_NOT_GAME
+      - name: Execute original IW3 shader provider on real host surfaceless EGL GLES3
+        env:
+          EGL_PLATFORM: surfaceless
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: |
+          set -euo pipefail
+          g++ -std=c++17 -D__ANDROID__ -Wall -Wextra -Werror \
+            -Ithird_party/KisakCOD/src/gfx_d3d \
+            android/iw3-native/tests/iw3_gles3_egl_host_smoke.cpp \
+            third_party/KisakCOD/src/gfx_d3d/r_android_gl_program.cpp \
+            -lEGL -lGLESv2 -o "$RUNNER_TEMP/iw3-gles3-egl-smoke"
+          "$RUNNER_TEMP/iw3-gles3-egl-smoke" | tee "$RUNNER_TEMP/iw3-gles3-egl-smoke.log"
+          grep -Fxq IW3_GLES3_REAL_EGL_HOST_DRAW_READBACK_PASS_NOT_GAME "$RUNNER_TEMP/iw3-gles3-egl-smoke.log"
+          echo IW3_GLES3_REAL_EGL_HOST_ONLY=true
+          echo IW3_GLES3_ANDROID_DEVICE_TESTED=false
+          echo IW3_PLAYABLE_APK=false
+
+  android-arm64-provider-object:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Android NDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdk="$RUNNER_TEMP/android-sdk"
+          mkdir -p "$sdk/cmdline-tools/latest"
+          curl --http1.1 -fLsS --retry 5 --retry-all-errors --retry-delay 3 \
+            -o "$RUNNER_TEMP/commandline-tools.zip" \
+            'https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip'
+          unzip -qo "$RUNNER_TEMP/commandline-tools.zip" -d "$RUNNER_TEMP/commandline-tools"
+          mv "$RUNNER_TEMP/commandline-tools/cmdline-tools/"* "$sdk/cmdline-tools/latest/"
+          yes | "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" --licenses >/dev/null || true
+          "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" 'ndk;27.2.12479018'
+          echo "ANDROID_NDK_HOME=$sdk/ndk/27.2.12479018" >> "$GITHUB_ENV"
+      - name: Compile and inspect real Android ARM64 GLES3 provider object
+        shell: bash
+        run: |
+          set -euo pipefail
+          bin="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          src=third_party/KisakCOD/src/gfx_d3d/r_android_gl_program.cpp
+          out="$RUNNER_TEMP/iw3-gles3-program-aarch64.o"
+          "$bin/aarch64-linux-android26-clang++" -std=c++17 -D__ANDROID__ \
+            -Wall -Wextra -Werror -fPIC -c "$src" -o "$out"
+          "$bin/llvm-readelf" -h "$out" | tee "$RUNNER_TEMP/iw3-gles3-elf-header.txt"
+          "$bin/llvm-readelf" -h "$out" | grep -q 'AArch64'
+          "$bin/llvm-nm" -C --defined-only "$out" | grep -F 'R_AndroidLinkTranslatedIW3Program('
+          "$bin/llvm-nm" -C --defined-only "$out" | grep -F 'R_AndroidDeleteTranslatedIW3Program('
+          "$bin/llvm-nm" -C -u "$out" > "$RUNNER_TEMP/iw3-gles3-undefined-symbols.txt"
+          # Link the genuine provider as an Android ARM64 shared object against
+          # the platform GLESv3 ABI; reject unresolved symbols at link time.
+          so="$RUNNER_TEMP/libiw3_gles3_provider_aarch64.so"
+          "$bin/aarch64-linux-android26-clang++" -shared -fPIC \
+            -Wl,--no-undefined "$out" -lGLESv3 -o "$so"
+          "$bin/llvm-readelf" -h "$so" | grep -q 'AArch64'
+          "$bin/llvm-readelf" -d "$so" | tee "$RUNNER_TEMP/iw3-gles3-dynamic.txt"
+          grep -q 'libGLESv3.so' "$RUNNER_TEMP/iw3-gles3-dynamic.txt"
+          "$bin/llvm-nm" -D -C --defined-only "$so" | grep -F 'R_AndroidLinkTranslatedIW3Program('
+          echo 'IW3_GLES3_PROGRAM_AARCH64_PLATFORM_LINK=true'
+          echo 'IW3_GLES3_PROGRAM_EGL_CONTEXT_TESTED=false'
+          echo 'IW3_GLES3_PROGRAM_AARCH64_OBJECT=true'
+          echo 'IW3_GLES3_PROGRAM_LINKED_TO_RENDERER=false'
+          echo 'IW3_REAL_MAP_RENDERED=false'
+          echo 'IW3_PLAYABLE_APK=false'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: iw3-gles3-arm64-object-audit
+          path: |
+            ${{ runner.temp }}/iw3-gles3-elf-header.txt
+            ${{ runner.temp }}/iw3-gles3-undefined-symbols.txt
+            ${{ runner.temp }}/iw3-gles3-dynamic.txt
+          if-no-files-found: ignore

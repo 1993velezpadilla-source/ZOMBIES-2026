@@ -2,25 +2,34 @@
 #include "pool_allocator.h"
 #include "assertive.h"
 #include <cstdint>
+#include <cstddef>
+#include <cstdlib>
 
 void __cdecl Pool_Init(char *pool, pooldata_t *pooldata, uint32_t itemSize, uint32_t itemCount)
 {
-    uint32_t itemIndex; // [esp+4h] [ebp-4h]
-
-    if (!pool)
-        MyAssertHandler(".\\universal\\pool_allocator.cpp", 16, 0, "%s", "pool");
-    if (!pooldata)
-        MyAssertHandler(".\\universal\\pool_allocator.cpp", 17, 0, "%s", "pooldata");
-    if (itemSize < 4)
-        MyAssertHandler(".\\universal\\pool_allocator.cpp", 18, 0, "%s", "itemSize >= sizeof( byte * )");
-    if (itemCount < 2)
-        MyAssertHandler(".\\universal\\pool_allocator.cpp", 19, 0, "%s", "itemCount >= 2");
+    // The original reconstructed IW3 used uint32_t for each free-list link
+    // and truncated pointers via (uint32_t)&pool[offset]. That corrupts
+    // allocations on 64-bit Android. Keep the original freelist algorithm,
+    // but write actual freenode* links on both 32-bit Windows and ARM64.
+    if (!pool || !pooldata ||
+        itemSize < sizeof(freenode) || itemCount < 2 ||
+        (reinterpret_cast<std::uintptr_t>(pool) % alignof(freenode)) != 0 ||
+        (itemSize % alignof(freenode)) != 0)
+    {
+        MyAssertHandler(".\\universal\\pool_allocator.cpp", 18, 0,
+                        "%s", "valid aligned pool and itemSize >= sizeof(freenode)");
+        std::abort(); // Fail closed even if a platform assert handler returns.
+    }
     pooldata->firstFree = pool;
-
-    for (itemIndex = 0; itemIndex < itemCount - 1; ++itemIndex)
-        *(uint32_t *)&pool[itemSize * itemIndex] = (uint32_t)&pool[itemSize * (itemIndex + 1)];
-
-    *(uint32_t *)&pool[itemSize * itemIndex] = 0;
+    for (uint32_t itemIndex = 0; itemIndex < itemCount; ++itemIndex)
+    {
+        freenode *node = reinterpret_cast<freenode *>(
+            pool + static_cast<std::size_t>(itemSize) * itemIndex);
+        node->next = itemIndex + 1 < itemCount
+            ? reinterpret_cast<freenode *>(
+                pool + static_cast<std::size_t>(itemSize) * (itemIndex + 1))
+            : nullptr;
+    }
     pooldata->activeCount = 0;
 }
 

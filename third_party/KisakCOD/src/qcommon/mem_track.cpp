@@ -4,7 +4,9 @@
 #include <universal/assertive.h>
 #include <qcommon/qcommon.h>
 
+#if defined(_WIN32)
 #include <Windows.h>
+#endif
 #include "threads.h"
 #include <xanim/xanim.h>
 #include <mutex>

@@ -7,6 +7,9 @@
 #include "rb_logfile.h"
 #include "r_utils.h"
 #include <universal/profile.h>
+#if defined(__ANDROID__)
+#include "r_android_buffer_handles.h"
+#endif
 
 
 //struct GfxBuffers gfxBuf   85b3aa20     gfx_d3d : r_buffers.obj
@@ -19,6 +22,15 @@ void __cdecl TRACK_r_buffers()
 
 void *__cdecl R_AllocDynamicVertexBuffer(IDirect3DVertexBuffer9 **vb, int sizeInBytes)
 {
+#if defined(__ANDROID__)
+    iassert(vb);
+    iassert(sizeInBytes > 0);
+    if (!r_loadForRenderer->current.enabled) return nullptr;
+    *vb = reinterpret_cast<IDirect3DVertexBuffer9 *>(
+        R_AndroidCreateBufferHandle(false, static_cast<std::size_t>(sizeInBytes), true));
+    if (!*vb) R_FatalInitError("Android GLES3 dynamic vertex allocation failed");
+    return nullptr;
+#else
     int hr; // [esp+0h] [ebp-4h]
 
     iassert(vb);
@@ -33,10 +45,23 @@ void *__cdecl R_AllocDynamicVertexBuffer(IDirect3DVertexBuffer9 **vb, int sizeIn
         R_FatalInitError(va("DirectX didn't create a %i-byte dynamic vertex buffer: %s\n", sizeInBytes, R_ErrorDescription(hr)));
     }
     return 0;
+
+#endif
 }
 
 void *__cdecl R_AllocStaticVertexBuffer(IDirect3DVertexBuffer9 **vb, int sizeInBytes)
 {
+#if defined(__ANDROID__)
+    iassert(vb);
+    iassert(sizeInBytes > 0);
+    if (!r_loadForRenderer->current.enabled) return nullptr;
+    *vb = reinterpret_cast<IDirect3DVertexBuffer9 *>(
+        R_AndroidCreateBufferHandle(false, static_cast<std::size_t>(sizeInBytes), false));
+    if (!*vb) { R_FatalInitError("Android GLES3 static vertex allocation failed"); return nullptr; }
+    void *data = R_AndroidLockBufferHandle(*vb, 0, 0, 0);
+    if (!data) R_FatalLockError(-1);
+    return data;
+#else
     const char *v3; // eax
     const char *v4; // eax
     const char *v5; // eax
@@ -65,10 +90,21 @@ void *__cdecl R_AllocStaticVertexBuffer(IDirect3DVertexBuffer9 **vb, int sizeInB
         R_FatalInitError(v6);
     }
     return vertexBufferData;
+
+#endif
 }
 
 void *__cdecl R_AllocDynamicIndexBuffer(IDirect3DIndexBuffer9 **ib, uint32_t sizeInBytes)
 {
+#if defined(__ANDROID__)
+    iassert(ib);
+    iassert(sizeInBytes > 0);
+    if (!r_loadForRenderer->current.enabled) return nullptr;
+    *ib = reinterpret_cast<IDirect3DIndexBuffer9 *>(
+        R_AndroidCreateBufferHandle(true, static_cast<std::size_t>(sizeInBytes), true));
+    if (!*ib) R_FatalInitError("Android GLES3 dynamic index allocation failed");
+    return nullptr;
+#else
     const char *v3; // eax
     const char *v4; // eax
     int hr; // [esp+0h] [ebp-4h]
@@ -84,10 +120,23 @@ void *__cdecl R_AllocDynamicIndexBuffer(IDirect3DIndexBuffer9 **ib, uint32_t siz
         R_FatalInitError(v4);
     }
     return 0;
+
+#endif
 }
 
 void *__cdecl R_AllocStaticIndexBuffer(IDirect3DIndexBuffer9 **ib, int sizeInBytes)
 {
+#if defined(__ANDROID__)
+    iassert(ib);
+    iassert(sizeInBytes > 0);
+    if (!r_loadForRenderer->current.enabled) return nullptr;
+    *ib = reinterpret_cast<IDirect3DIndexBuffer9 *>(
+        R_AndroidCreateBufferHandle(true, static_cast<std::size_t>(sizeInBytes), false));
+    if (!*ib) return nullptr;
+    void *data = R_AndroidLockBufferHandle(*ib, 0, 0, 0);
+    if (!data) { (void)R_AndroidReleaseBufferHandle(*ib); *ib = nullptr; }
+    return data;
+#else
     void *indexBufferData; // [esp+4h] [ebp-4h] BYREF
 
     iassert( ib );
@@ -117,6 +166,8 @@ void *__cdecl R_AllocStaticIndexBuffer(IDirect3DIndexBuffer9 **ib, int sizeInByt
     }
     (*ib)->Release();
     return 0;
+
+#endif
 }
 
 void __cdecl Load_VertexBuffer(IDirect3DVertexBuffer9 **vb, uint8_t *bufferData, int sizeInBytes)
@@ -211,6 +262,12 @@ void __cdecl R_CreateDynamicBuffers()
 
 void __cdecl R_FinishStaticIndexBuffer(IDirect3DIndexBuffer9 *ib)
 {
+#if defined(__ANDROID__)
+    if (!R_AndroidUnlockBufferHandle(ib)) {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "Android GLES3 static index upload failed");
+    }
+#else
     const char *v1; // eax
     int hr; // [esp+0h] [ebp-4h]
 
@@ -230,6 +287,8 @@ void __cdecl R_FinishStaticIndexBuffer(IDirect3DIndexBuffer9 *ib)
             } while (alwaysfails);
         }
     } while (alwaysfails);
+
+#endif
 }
 
 void __cdecl R_CreateParticleCloudBuffer()
@@ -313,6 +372,12 @@ void __cdecl R_CreateParticleCloudBuffer()
 
 void __cdecl R_FinishStaticVertexBuffer(IDirect3DVertexBuffer9 *vb)
 {
+#if defined(__ANDROID__)
+    if (!R_AndroidUnlockBufferHandle(vb)) {
+        ++g_disableRendering;
+        Com_Error(ERR_FATAL, "Android GLES3 static vertex upload failed");
+    }
+#else
     const char *v1; // eax
     int hr; // [esp+0h] [ebp-4h]
 
@@ -332,16 +397,35 @@ void __cdecl R_FinishStaticVertexBuffer(IDirect3DVertexBuffer9 *vb)
             } while (alwaysfails);
         }
     } while (alwaysfails);
+
+#endif
 }
 
 void __cdecl R_UnlockVertexBuffer(IDirect3DVertexBuffer9* handle)
 {
+#if defined(__ANDROID__)
+    iassert(handle);
+    if (!R_AndroidUnlockBufferHandle(handle))
+        Com_Error(ERR_FATAL, "Android GLES3 dynamic vertex upload failed");
+#else
     iassert( handle );
     handle->Unlock();
+
+#endif
 }
 
 void *__cdecl R_LockVertexBuffer(IDirect3DVertexBuffer9 *handle, int offset, int bytes, int lockFlags)
 {
+#if defined(__ANDROID__)
+    iassert(handle);
+    iassert(!dx.deviceLost);
+    void *data = offset < 0 || bytes < 0 || lockFlags < 0 ? nullptr
+        : R_AndroidLockBufferHandle(handle, static_cast<std::size_t>(offset),
+                                    static_cast<std::size_t>(bytes),
+                                    static_cast<unsigned int>(lockFlags));
+    if (!data) R_FatalLockError(-1);
+    return data;
+#else
     int hr; // [esp+0h] [ebp-8h]
     void *bufferData; // [esp+4h] [ebp-4h] BYREF
 
@@ -358,6 +442,8 @@ void *__cdecl R_LockVertexBuffer(IDirect3DVertexBuffer9 *handle, int offset, int
     if (hr < 0)
         R_FatalLockError(hr);
     return bufferData;
+
+#endif
 }
 
 void __cdecl R_ShutdownTempSkinBuf()
@@ -379,6 +465,10 @@ void __cdecl R_ShutdownTempSkinBuf()
 
 void __cdecl R_FreeStaticVertexBuffer(IDirect3DVertexBuffer9 *vb)
 {
+#if defined(__ANDROID__)
+    if (vb && !R_AndroidReleaseBufferHandle(vb))
+        Com_Error(ERR_FATAL, "Android GLES3 vertex release failed");
+#else
     IDirect3DVertexBuffer9 *varCopy; // [esp+0h] [ebp-4h]
 
     do
@@ -392,10 +482,16 @@ void __cdecl R_FreeStaticVertexBuffer(IDirect3DVertexBuffer9 *vb)
         vb = 0;
         R_ReleaseAndSetNULL<IDirect3DSurface9>((IDirect3DSurface9 *)varCopy, "vb", ".\\r_buffers.cpp", 213);
     } while (alwaysfails);
+
+#endif
 }
 
 void __cdecl R_FreeStaticIndexBuffer(IDirect3DIndexBuffer9 *ib)
 {
+#if defined(__ANDROID__)
+    if (ib && !R_AndroidReleaseBufferHandle(ib))
+        Com_Error(ERR_FATAL, "Android GLES3 index release failed");
+#else
     IDirect3DIndexBuffer9 *varCopy; // [esp+0h] [ebp-4h]
 
     do
@@ -409,6 +505,8 @@ void __cdecl R_FreeStaticIndexBuffer(IDirect3DIndexBuffer9 *ib)
         ib = 0;
         R_ReleaseAndSetNULL<IDirect3DDevice9>((IDirect3DSurface9 *)varCopy, "ib", ".\\r_buffers.cpp", 272);
     } while (alwaysfails);
+
+#endif
 }
 
 void __cdecl R_DestroyParticleCloudBuffer()
@@ -427,6 +525,37 @@ void __cdecl R_DestroyParticleCloudBuffer()
 
 void __cdecl R_DestroyDynamicBuffers()
 {
+#if defined(__ANDROID__)
+    for (auto &entry : gfxBuf.preTessIndexBufferPool) {
+        if (entry.buffer) {
+            if (!R_AndroidReleaseBufferHandle(entry.buffer))
+                Com_Error(ERR_FATAL, "Android GLES3 pre-tess index release failed");
+            entry.buffer = nullptr;
+        }
+    }
+    for (auto &entry : gfxBuf.dynamicIndexBufferPool) {
+        if (entry.buffer) {
+            if (!R_AndroidReleaseBufferHandle(entry.buffer))
+                Com_Error(ERR_FATAL, "Android GLES3 dynamic index release failed");
+            entry.buffer = nullptr;
+        }
+    }
+    for (auto &entry : gfxBuf.skinnedCacheVbPool) {
+        if (entry.buffer) {
+            if (!R_AndroidReleaseBufferHandle(entry.buffer))
+                Com_Error(ERR_FATAL, "Android GLES3 skinned vertex release failed");
+            entry.buffer = nullptr;
+        }
+    }
+    for (auto &entry : gfxBuf.dynamicVertexBufferPool) {
+        if (entry.buffer) {
+            if (!R_AndroidReleaseBufferHandle(entry.buffer))
+                Com_Error(ERR_FATAL, "Android GLES3 dynamic vertex release failed");
+            entry.buffer = nullptr;
+        }
+    }
+    R_ShutdownTempSkinBuf();
+#else
     IDirect3DSurface9 *v0; // [esp+0h] [ebp-14h]
     IDirect3DSurface9 *buffer; // [esp+4h] [ebp-10h]
     IDirect3DSurface9 *var; // [esp+8h] [ebp-Ch]
@@ -512,10 +641,22 @@ void __cdecl R_DestroyDynamicBuffers()
         }
     }
     R_ShutdownTempSkinBuf();
+
+#endif
 }
 
 void *__cdecl R_LockIndexBuffer(IDirect3DIndexBuffer9 *handle, int offset, int bytes, int lockFlags)
 {
+#if defined(__ANDROID__)
+    iassert(handle);
+    iassert(!dx.deviceLost);
+    void *data = offset < 0 || bytes < 0 || lockFlags < 0 ? nullptr
+        : R_AndroidLockBufferHandle(handle, static_cast<std::size_t>(offset),
+                                    static_cast<std::size_t>(bytes),
+                                    static_cast<unsigned int>(lockFlags));
+    if (!data) R_FatalLockError(-1);
+    return data;
+#else
     int hr; // [esp+0h] [ebp-8h]
     void *bufferData; // [esp+4h] [ebp-4h] BYREF
 
@@ -532,12 +673,21 @@ void *__cdecl R_LockIndexBuffer(IDirect3DIndexBuffer9 *handle, int offset, int b
     if (hr < 0)
         R_FatalLockError(hr);
     return bufferData;
+
+#endif
 }
 
 void __cdecl R_UnlockIndexBuffer(IDirect3DIndexBuffer9 *handle)
 {
+#if defined(__ANDROID__)
+    iassert(handle);
+    if (!R_AndroidUnlockBufferHandle(handle))
+        Com_Error(ERR_FATAL, "Android GLES3 dynamic index upload failed");
+#else
     iassert( handle );
     handle->Unlock();
+
+#endif
 }
 
 void __cdecl R_CreateWorldVertexBuffer(IDirect3DVertexBuffer9 **vb, int *srcData, uint32_t sizeInBytes)

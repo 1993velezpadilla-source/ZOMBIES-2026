@@ -3,6 +3,14 @@
 #ifndef KISAK_OPENAL
 #include <msslib/mss.h>
 #else
+#if defined(IW3_ANDROID_COMMON_HEADER_ONLY_OPENAL)
+// common.cpp is an object-only bootstrap audit and needs only the OpenAL ABI
+// types stored in AlLocal. Do not substitute a fake audio implementation or
+// shadow the real OpenAL headers for Android runtime/driver translation units.
+typedef unsigned int ALuint;
+typedef struct ALCdevice_struct ALCdevice;
+typedef struct ALCcontext_struct ALCcontext;
+#else
 #include <AL/al.h>
 #include <AL/alc.h>
 // efx.h only declares its functions as directly-linkable (rather than just LPALGENEFFECTS-
@@ -11,6 +19,7 @@
 // in, direct linkage is simpler than the usual portable-extension-loading dance.
 #define AL_ALEXT_PROTOTYPES
 #include <AL/efx.h>
+#endif
 #endif
 #include "snd_public.h"
 

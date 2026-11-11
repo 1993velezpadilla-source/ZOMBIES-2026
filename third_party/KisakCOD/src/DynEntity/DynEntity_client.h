@@ -45,7 +45,14 @@ struct DynEntityDef // sizeof=0x60
     PhysMass mass;
     int32_t contents;
 };
+// The exact layout below is the original 32-bit IW3 in-memory ABI.
+// ARM64 widens pointer members; do not reject its native in-memory layout.
+// Serialized/on-disk layouts must be validated separately at their readers.
+#if UINTPTR_MAX == UINT32_MAX
 static_assert(sizeof(DynEntityDef) == 0x60);
+#else
+static_assert(sizeof(DynEntityDef) >= 0x60, "Unexpected native DynEntityDef layout");
+#endif
 
 struct DynEntityPose // sizeof=0x20
 {
@@ -81,7 +88,14 @@ struct DynEntityAreaParms // sizeof=0x14
     uint16_t maxCount;          // ...
     uint16_t count;             // ...
 };
+// The exact layout below is the original 32-bit IW3 in-memory ABI.
+// ARM64 widens pointer members; do not reject its native in-memory layout.
+// Serialized/on-disk layouts must be validated separately at their readers.
+#if UINTPTR_MAX == UINT32_MAX
 static_assert(sizeof(DynEntityAreaParms) == 0x14);
+#else
+static_assert(sizeof(DynEntityAreaParms) >= 0x14, "Unexpected native DynEntityAreaParms layout");
+#endif
 
 struct DynEntSortStruct // sizeof=0x8
 {
@@ -102,7 +116,14 @@ struct BreakablePiece // sizeof=0xC
     bool active;                        // ...
     // padding byte
 };
+// The exact layout below is the original 32-bit IW3 in-memory ABI.
+// ARM64 widens pointer members; do not reject its native in-memory layout.
+// Serialized/on-disk layouts must be validated separately at their readers.
+#if UINTPTR_MAX == UINT32_MAX
 static_assert(sizeof(BreakablePiece) == 0xC);
+#else
+static_assert(sizeof(BreakablePiece) >= 0xC, "Unexpected native BreakablePiece layout");
+#endif
 
 struct pointtrace_t;
 struct trace_t;
@@ -256,7 +277,14 @@ struct DynEntityProps // sizeof=0x8
     bool usePhysics;
     bool destroyable;
 };
+// The exact layout below is the original 32-bit IW3 in-memory ABI.
+// ARM64 widens pointer members; do not reject its native in-memory layout.
+// Serialized/on-disk layouts must be validated separately at their readers.
+#if UINTPTR_MAX == UINT32_MAX
 static_assert(sizeof(DynEntityProps) == 0x8);
+#else
+static_assert(sizeof(DynEntityProps) >= 0x8, "Unexpected native DynEntityProps layout");
+#endif
 
 struct DynEntityCreateParams // sizeof=0x1C0
 {                                       // ...

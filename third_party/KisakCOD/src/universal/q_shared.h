@@ -39,6 +39,20 @@
 #include <ctype.h>
 #include <cfloat> // FLT_MAX
 #include <cstdint>
+#include <climits>
+
+// Native platform ABI supplies the calling convention outside Windows.
+#if !defined(_WIN32)
+#ifndef __cdecl
+#define __cdecl
+#endif
+#ifndef __stdcall
+#define __stdcall
+#endif
+#ifndef __fastcall
+#define __fastcall
+#endif
+#endif
 
 // this is the define for determining if we have an asm version of a C function
 #if (defined _M_IX86 || defined __i386__) && !defined __sun__  && !defined __LCC__
@@ -1058,7 +1072,7 @@ struct StringTable // sizeof=0x10
 	int rowCount;
 	const char **values;
 };
-static_assert(sizeof(StringTable) == 16);
+static_assert(sizeof(StringTable) == (sizeof(void*) == 8 ? 24 : 16));
 
 const char *__cdecl StringTable_GetColumnValueForRow(const StringTable *table, int row, int column);
 const char *__cdecl StringTable_Lookup(

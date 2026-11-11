@@ -35,7 +35,12 @@ $report=[ordered]@{
   test_ammo_initialized=$false
   test_weapon_switch_requested=$false
   test_no_compatible_registered_weapon=$false
+  test_client_createcmd_hook_reached=$false
+  test_server_player_weapon_ready=$false
   test_client_attack_button_injected=$false
+  test_attack_usercmd_count=0
+  test_aimed_at_existing_actor=$false
+  test_no_aimable_actor_found=$false
   sp_actor_present=$false
   actual_weapon_fire_callback=$false
   bullet_fire_dispatched=$false
@@ -47,6 +52,8 @@ $report=[ordered]@{
   offline_sp_level_loop_verified=$false
   actual_graphics_verified=$false
   weapon_fired_verified=$false
+  aimed_weapon_damage_verified=$false
+  actor_death_verified=$false
   zombie_spawned_verified=$false
   multiplayer_connection_attempted=$false
   steam_login_attempted_by_test=$false
@@ -91,7 +98,10 @@ try {
 
   # The only game process launched is source-built *single player*.
   # No network address, connect, dedicated, Steam session or user credential.
-  $argsLine='+set fs_basepath "'+$root+'" +set fs_homepath "'+$root+'" +set r_fullscreen 0 +set r_mode 4 +set com_introPlayed 1 +map killhouse +attack'
+  # Attack is injected by instrument_sp_input.py once the authoritative SP
+  # playerState has a weapon, for at most 12 real usercmds. No direct combat calls.
+  # Do not hold +attack on the command line: that would defeat the finite-input gate.
+  $argsLine='+set fs_basepath "'+$root+'" +set fs_homepath "'+$root+'" +set r_fullscreen 0 +set r_mode 4 +set com_introPlayed 1 +map killhouse'
   $report.attack_command_requested=$true
   Write-Host 'Launching KisakCOD-sp, direct offline map killhouse; no multiplayer.'
   $stdout=Join-Path $ReportDir 'sp-stdout.txt'
@@ -141,12 +151,22 @@ finally {
     $report.g_damage_callback=('G_DAMAGE_ENTER' -in $report.combat_trace)
   }
   if(Test-Path $inputTrace) {
-    $report.input_trace=@(Get-Content $inputTrace -TotalCount 10 -ErrorAction SilentlyContinue)
+    $report.input_trace=@(Get-Content $inputTrace -TotalCount 20 -ErrorAction SilentlyContinue)
+    $report.test_client_createcmd_hook_reached=('TEST_CL_CREATECMD_REACHED' -in $report.input_trace)
+    $report.test_server_player_weapon_ready=('TEST_SERVER_PLAYER_WEAPON_READY' -in $report.input_trace)
     $report.test_client_attack_button_injected=('TEST_ATTACK_BUTTON_INJECTED' -in $report.input_trace)
+    if ('TEST_ATTACK_USERCMD_12' -in $report.input_trace) { $report.test_attack_usercmd_count=12 }
+    elseif ('TEST_ATTACK_USERCMD_8' -in $report.input_trace) { $report.test_attack_usercmd_count=8 }
+    elseif ('TEST_ATTACK_USERCMD_4' -in $report.input_trace) { $report.test_attack_usercmd_count=4 }
+    elseif ('TEST_ATTACK_USERCMD_1' -in $report.input_trace) { $report.test_attack_usercmd_count=1 }
+    $report.test_aimed_at_existing_actor=('TEST_AIMED_AT_EXISTING_ACTOR' -in $report.input_trace)
+    $report.test_no_aimable_actor_found=('TEST_NO_AIMABLE_ACTOR' -in $report.input_trace)
   }
   # True weapon fire requires original FireWeapon/Bullet_Fire callbacks.
   # A test-issued button or fake kill command NEVER counts as a shot.
   $report.weapon_fired_verified=$report.actual_weapon_fire_callback -and $report.bullet_fire_dispatched
+  $report.aimed_weapon_damage_verified=$report.weapon_fired_verified -and $report.test_aimed_at_existing_actor -and $report.actor_damage_callback
+  $report.actor_death_verified=$report.actor_death_callback
   $report | ConvertTo-Json -Depth 4 | Set-Content $reportPath -Encoding utf8
   Write-Host 'Z2026_OFFLINE_SP_RUNTIME_BEGIN'
   Get-Content $reportPath

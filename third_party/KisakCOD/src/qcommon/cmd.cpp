@@ -271,7 +271,7 @@ void Cmd_Dumpraw_f(void)
 {
     auto DumpFileType = [](XAssetType type) -> void
     {
-		auto rawDir = std::format("{}\\raw\\", (char*)fs_basepath->current.integer);
+		const std::filesystem::path rawDir = std::filesystem::path(fs_basepath->current.string) / "raw";
 
         XAssetHeader files[10000]{ 0 };
 		int read = DB_GetAllXAssetOfType_FastFile(type, files, 10000);
@@ -285,11 +285,17 @@ void Cmd_Dumpraw_f(void)
 			FILE* f;
             if (type == ASSET_TYPE_STRINGTABLE)
             {
-                std::filesystem::path p(file.rawfile->name);
+                std::filesystem::path p(file.stringTable->name);
                 auto dir = p.parent_path();
                 std::filesystem::create_directories(rawDir / dir);
 
-                fopen_s(&f, std::format("{}\\{}", rawDir, file.stringTable->name).c_str(), "w");
+                const auto outputPath = rawDir / file.stringTable->name;
+                f = fopen(outputPath.string().c_str(), "w");
+                if (!f)
+                {
+                    Com_PrintError(CON_CHANNEL_ERROR, "Could not write %s\n", outputPath.string().c_str());
+                    continue;
+                }
                 for (int row = 0; row < file.stringTable->columnCount; row++)
                 {
                     for (int col = 0; col < file.stringTable->rowCount; col++)
@@ -337,11 +343,15 @@ void Cmd_Dumpraw_f(void)
                         Com_sprintf(realname, 256, "sound/%s", filename);
 
                         // create nested folders
-                        std::filesystem::path sndfilepath = std::format("{}\\{}", rawDir, realname);
-                        sndfilepath.remove_filename();
-                        std::filesystem::create_directories(sndfilepath);
+                        std::filesystem::path sndfilepath = rawDir / realname;
+                        std::filesystem::create_directories(sndfilepath.parent_path());
 
-                        fopen_s(&f, std::format("{}\\{}", rawDir, realname).c_str(), "wb");
+                        f = fopen(sndfilepath.string().c_str(), "wb");
+                        if (!f)
+                        {
+                            Com_PrintError(CON_CHANNEL_ERROR, "Could not write %s\n", sndfilepath.string().c_str());
+                            continue;
+                        }
                         // enjoy this long deref chain
                         WriteWAVHeader(f, file.sound->head->soundFile->u.loadSnd->sound.info.data_len,
                             file.sound->head->soundFile->u.loadSnd->sound.info.rate,
@@ -364,11 +374,15 @@ void Cmd_Dumpraw_f(void)
                 Com_sprintf(realname, 256, "sound/%s", file.loadSnd->name);
 
                 // create nested folders
-                std::filesystem::path sndfilepath = std::format("{}\\{}", rawDir, realname);
-                sndfilepath.remove_filename();
-                std::filesystem::create_directories(sndfilepath);
+                std::filesystem::path sndfilepath = rawDir / realname;
+                std::filesystem::create_directories(sndfilepath.parent_path());
 
-                fopen_s(&f, std::format("{}\\{}", rawDir, realname).c_str(), "wb");
+                f = fopen(sndfilepath.string().c_str(), "wb");
+                if (!f)
+                {
+                    Com_PrintError(CON_CHANNEL_ERROR, "Could not write %s\n", sndfilepath.string().c_str());
+                    continue;
+                }
 
                 WriteWAVHeader(f, file.loadSnd->sound.info.data_len,
                     file.loadSnd->sound.info.rate,
@@ -382,7 +396,14 @@ void Cmd_Dumpraw_f(void)
             }
             else
             {
-                fopen_s(&f, std::format("{}\\{}", rawDir, file.rawfile->name).c_str(), "wb");
+                const auto outputPath = rawDir / file.rawfile->name;
+                std::filesystem::create_directories(outputPath.parent_path());
+                f = fopen(outputPath.string().c_str(), "wb");
+                if (!f)
+                {
+                    Com_PrintError(CON_CHANNEL_ERROR, "Could not write %s\n", outputPath.string().c_str());
+                    continue;
+                }
                 fwrite(file.rawfile->buffer, file.rawfile->len, 1, f);
                 fflush(f);
                 fclose(f);
@@ -390,7 +411,7 @@ void Cmd_Dumpraw_f(void)
 		}
     }; 
 
-    auto zoneDir = std::format("{}\\zone\\english\\", (char *)fs_basepath->current.integer);
+    const std::filesystem::path zoneDir = std::filesystem::path(fs_basepath->current.string) / "zone" / "english";
 
 
     // just dump from common ff's
@@ -1204,7 +1225,7 @@ void __cdecl Cmd_ExecuteSingleCommand(int32_t  localClientNum, int32_t  controll
             Cmd_CheckNotify();
 #endif
             arg0 = Cmd_Argv(0);
-            for (itr = cmd_functions; itr->next; itr = itr->next)
+            for (itr = cmd_functions; itr; itr = itr->next)
             {
                 if (!I_stricmp(arg0, itr->name))
                 {

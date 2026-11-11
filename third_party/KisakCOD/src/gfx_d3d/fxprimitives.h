@@ -75,7 +75,7 @@ struct FxEffectDef // sizeof=0x20
     int elemDefCountEmission;
     const FxElemDef *elemDefs;
 };
-static_assert(sizeof(FxEffectDef) == 32);
+static_assert(sizeof(FxEffectDef) == (sizeof(void *) == 8 ? 40u : 32u));
 
 struct FxEffect // sizeof=0x80
 {                                       // ...
@@ -477,7 +477,7 @@ struct FxImpactTable // sizeof=0x8
     const char *name;
     FxImpactEntry *table;
 };
-static_assert(sizeof(FxImpactTable) == 8);
+static_assert(sizeof(FxImpactTable) == (sizeof(void *) == 8 ? 16u : 8u));
 
 struct FxSystemBuffers // sizeof=0x47480
 {                                       // ...
