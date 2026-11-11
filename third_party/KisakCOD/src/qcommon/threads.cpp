@@ -321,7 +321,12 @@ bool __cdecl Sys_SpawnWorkerThread(void(__cdecl* function)(uint32_t), uint32_t t
 
     // Validate before adding the worker-context offset or indexing handles.
     // An untrusted worker index must never access beyond THREAD_CONTEXT_COUNT.
-    if (threadIndex >= static_cast<uint32_t>(THREAD_CONTEXT_COUNT) - 2u)
+#if defined(KISAK_SP)
+    constexpr uint32_t workerCount = THREAD_CONTEXT_WORKER2 - THREAD_CONTEXT_WORKER0 + 1u;
+#elif defined(KISAK_MP)
+    constexpr uint32_t workerCount = THREAD_CONTEXT_WORKER1 - THREAD_CONTEXT_WORKER0 + 1u;
+#endif
+    if (threadIndex >= workerCount)
     {
         iassert(false);
         return false;
