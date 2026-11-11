@@ -168,8 +168,16 @@ void __cdecl Sys_CreateEvent(bool manualReset, bool initialState, void** event)
 
 void __cdecl Sys_CreateThread(void(__cdecl* function)(uint32_t), ThreadContext_t threadContext)
 {
-    iassert( threadFunc[threadContext] == NULL );
-    iassert(threadContext < THREAD_CONTEXT_COUNT);
+    // Validate the index before touching the thread-function array.
+    // A bad context must not become an out-of-bounds access on LP64.
+    if (static_cast<unsigned int>(threadContext) >= THREAD_CONTEXT_COUNT || !function)
+    {
+        iassert(false);
+        return;
+    }
+    iassert(threadFunc[threadContext] == NULL);
+    if (threadFunc[threadContext] != NULL)
+        return;
     threadFunc[threadContext] = function;
     threadHandle[threadContext] = CreateThread(
         0,
