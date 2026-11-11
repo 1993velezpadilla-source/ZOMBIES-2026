@@ -351,7 +351,7 @@ bool __cdecl Sys_SpawnWorkerThread(void(__cdecl* function)(uint32_t), uint32_t t
         iassert(false);
         return false;
     }
-    threadContext = (ThreadContext_t)(threadIndex + 2u);
+    threadContext = static_cast<ThreadContext_t>(THREAD_CONTEXT_WORKER0 + threadIndex);
     if (threadHandle[threadContext])
         MyAssertHandler(
             ".\\qcommon\\threads.cpp",
