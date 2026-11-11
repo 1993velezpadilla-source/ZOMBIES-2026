@@ -1,0 +1,30 @@
+name: FIX49C independent USE ADS Android control smoke
+on:
+  push:
+    branches:
+      - feature/fix49c-dedicated-use-ads-20261111
+    paths:
+      - 'incoming/luanti-fix49c/**'
+      - '.github/workflows/validate-fix49c-use-ads.yml'
+  pull_request:
+    paths:
+      - 'incoming/luanti-fix49c/**'
+      - '.github/workflows/validate-fix49c-use-ads.yml'
+permissions:
+  contents: read
+jobs:
+  lua-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lua 5.4
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lua5.4
+      - name: Source syntax
+        run: |
+          luac5.4 -p incoming/luanti-fix49c/games/voxelibre/mods/xz_zombies_classic/init.lua
+      - name: Independent USE ADS, ammo crate and universal GUI tests
+        run: |
+          lua5.4 incoming/luanti-fix49c/tests/test_runtime.lua
