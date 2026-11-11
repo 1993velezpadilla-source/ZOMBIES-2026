@@ -1,0 +1,89 @@
+name: FIX50B Android ARM64 preserve COD4 native + independent USE
+on:
+  push:
+    branches:
+      - fix/fix50b-restore-cod4-native-bridge-20261111
+    paths:
+      - '.github/workflows/fix50b-build-arm64-preserved-engine.yml'
+      - 'incoming/luanti-fix50b/**'
+      - 'incoming/luanti-fix50a/native/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build-preserved-engine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 85
+    steps:
+      - uses: actions/checkout@v4
+      - name: Android NDK prerequisites
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends gettext cmake ninja-build binutils
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Restore FIX49C engine and add USE without reverting COD4 work
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch 5.18.0 https://github.com/luanti-org/luanti.git upstream-luanti
+          for p in \
+            incoming/luanti-fix50b/native/working-fix49c-engine.patch \
+            incoming/luanti-fix50b/native/fix49c-texture-streaming.patch \
+            incoming/luanti-fix50a/native/luanti-5.18.0-xz-use.patch; do
+            git -C upstream-luanti apply --check "$GITHUB_WORKSPACE/$p"
+            git -C upstream-luanti apply "$GITHUB_WORKSPACE/$p"
+          done
+          python3 incoming/luanti-fix50a/native/make_xz_use_btn.py upstream-luanti/textures/base/pack/xz_use_btn.png
+          sed -i "s/include 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'/include 'arm64-v8a'/" upstream-luanti/android/native/build.gradle
+          sed -i "s/include 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'/include 'arm64-v8a'/" upstream-luanti/android/app/build.gradle
+          # Android's Java launcher must notice the upgrade and unpack new Lua/assets.
+          sed -i 's/project.ext.set("versionBuild", 0)/project.ext.set("versionBuild", 50)/' upstream-luanti/android/build.gradle
+          grep -Fq 'project.ext.set("versionBuild", 50)' upstream-luanti/android/build.gradle
+          # The original COD4 renderer, skinning and texture replacement must remain.
+          grep -q 'setMaterialTextureResolver' upstream-luanti/irr/src/OpenGL/Driver.cpp
+          grep -q 'KeyType::XZ_USE' upstream-luanti/src/client/game.cpp
+      - name: Compile native Luanti + updated Android versionCode
+        working-directory: upstream-luanti/android
+        env:
+          GRADLE_OPTS: -Dorg.gradle.daemon=false
+        run: |
+          set -euo pipefail
+          ./gradlew :app:assembleRelease --no-daemon --max-workers=2 --stacktrace
+      - name: Gate native bridge signatures and Android update metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p fix50b-output
+          lib="$(find upstream-luanti/android -name libluanti.so -path '*arm64-v8a*' -type f | head -1)"
+          test -n "$lib" && test -s "$lib"
+          cp "$lib" fix50b-output/libluanti.so
+          file fix50b-output/libluanti.so
+          readelf -h fix50b-output/libluanti.so | grep -E 'AArch64|ELF64'
+          for marker in '[weapon_bridge]' 'ak47_hip_idle' 'getWeaponCrosshairOpacity' 'isAK47Aiming'; do
+            if ! grep -a -F -q "$marker" fix50b-output/libluanti.so; then
+              echo "::error::FIX49C weapon native feature missing: $marker"
+              exit 1
+            fi
+          done
+          python3 - <<'PY'
+          from pathlib import Path
+          import zipfile,shutil
+          outs=list(Path('upstream-luanti/android/app/build/outputs/apk/release').glob('*arm64*v8a*.apk'))
+          assert len(outs)==1,outs
+          with zipfile.ZipFile(outs[0]) as z:
+            for name in ('AndroidManifest.xml','classes.dex','classes2.dex','resources.arsc'):
+              if name in z.namelist():Path('fix50b-output',name).write_bytes(z.read(name))
+          shutil.copy2(outs[0],'fix50b-output/native-rebuilt-app.apk')
+          print('Android updated app artifact',outs[0],outs[0].stat().st_size)
+          PY
+          sha256sum fix50b-output/libluanti.so
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FIX50B-preserved-COD4-ARM64-native-and-update
+          path: fix50b-output/
+          if-no-files-found: error
+          retention-days: 7
