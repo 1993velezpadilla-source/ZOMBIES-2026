@@ -40,7 +40,13 @@ bool Sys_WaitForSingleObjectTimeout(void** event, std::uint32_t msec) {
     if (!event || !*event) return false;
     auto& e = *static_cast<Event*>(*event);
     std::unique_lock<std::mutex> lock(e.mutex);
-    if (!e.condition.wait_for(lock, std::chrono::milliseconds(msec), [&] { return e.signaled; })) return false;
+    // Win32 INFINITE (0xffffffff) means an unbounded wait, not a finite timeout.
+    // The original IW3 callers use the Win32 event API contract.
+    if (msec == UINT32_MAX) {
+        e.condition.wait(lock, [&] { return e.signaled; });
+    } else if (!e.condition.wait_for(lock, std::chrono::milliseconds(msec), [&] { return e.signaled; })) {
+        return false;
+    }
     if (!e.manual_reset) e.signaled = false;
     return true;
 }
