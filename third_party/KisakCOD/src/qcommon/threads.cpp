@@ -134,6 +134,12 @@ uint32_t __cdecl Sys_GetCurrentThreadId()
 
 void __cdecl Sys_InitThread(ThreadContext_t threadContext)
 {
+    // Never index the per-context TLS table with an invalid thread context.
+    if (static_cast<unsigned int>(threadContext) >= THREAD_CONTEXT_COUNT)
+    {
+        iassert(false);
+        return;
+    }
     //*(uint32_t*)(*((uint32_t*)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index) + 4) = g_threadValues[threadContext];
     g_threadLocals = g_threadValues[threadContext];
     Com_InitThreadData(threadContext);
@@ -230,6 +236,12 @@ void __cdecl SetThreadName(uint32_t threadId, const char* threadName)
 
 uint32_t __stdcall Sys_ThreadMain(ThreadContext_t threadContext)
 {
+    // A failed assertion must not fall through to an invalid callback read.
+    if (static_cast<unsigned int>(threadContext) >= THREAD_CONTEXT_COUNT || !threadFunc[threadContext])
+    {
+        iassert(false);
+        return 0;
+    }
     bcassert(threadContext, THREAD_CONTEXT_COUNT);
     iassert(threadFunc[threadContext]);
     SetThreadName(0xFFFFFFFF, s_threadNames[threadContext]);
