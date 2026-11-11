@@ -1,0 +1,32 @@
+name: FIX49 universal Luanti editor validation
+on:
+  push:
+    branches:
+      - feature/fix49-universal-responsive-editor-20261111
+    paths:
+      - 'incoming/luanti-fix49/**'
+      - '.github/workflows/fix49-universal-editor-ci.yml'
+  pull_request:
+    paths:
+      - 'incoming/luanti-fix49/**'
+      - '.github/workflows/fix49-universal-editor-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  lua-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Lua 5.4
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lua5.4
+      - name: Parse Luanti mod source
+        run: |
+          luac5.4 -p incoming/luanti-fix49/games/voxelibre/mods/xz_zombies_classic/init.lua
+      - name: Exercise five responsive screen sizes and preserved objects
+        run: |
+          lua5.4 incoming/luanti-fix49/tests/test_runtime.lua
