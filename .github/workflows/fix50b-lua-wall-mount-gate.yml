@@ -1,0 +1,29 @@
+name: FIX50B Lua gun and wall-mount regression
+on:
+  push:
+    branches:
+      - fix/fix50b-restore-cod4-native-bridge-20261111
+    paths:
+      - 'incoming/luanti-fix50b/games/**'
+      - 'incoming/luanti-fix50b/tests/**'
+      - '.github/workflows/fix50b-lua-wall-mount-gate.yml'
+  pull_request:
+    paths:
+      - 'incoming/luanti-fix50b/games/**'
+      - 'incoming/luanti-fix50b/tests/**'
+permissions:
+  contents: read
+jobs:
+  lua-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Lua
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lua5.4
+      - name: Syntax check
+        run: luac5.4 -p incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/init.lua
+      - name: Verify 28 guns, native USE, price, and mount migration
+        run: lua5.4 incoming/luanti-fix50b/tests/test_runtime.lua
