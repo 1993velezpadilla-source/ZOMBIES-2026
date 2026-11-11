@@ -1,0 +1,84 @@
+name: Publish FIX48 XsRealism 256-512 texture optimization APK
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-fix48-textures-256-512.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fix48-texture-optimization-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Download 10 FIX48 signed APK transfer pieces
+        shell: bash
+        env:
+          LINK_01: 'https://sdmntprcentralus.oaiusercontent.com/files/00000000-92dc-81f5-9de8-8cc2679212f1/raw?se=2026-11-11T18%3A02%3A22Z&sp=r&sv=2026-06-06&sr=b&scid=f0542e99-16f8-548a-a5e3-d3f4a80e47e2&skoid=80e81ea6-3c08-46f9-bd84-b87176742bcd&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T02%3A23%3A38Z&ske=2026-11-12T02%3A23%3A38Z&sks=b&skv=2026-06-06&sig=UWXxb68nuil2QqZKkh784bGRSqLIvFsJ9g58i71wjBw%3D'
+          LINK_02: 'https://sdmntpreastus3.oaiusercontent.com/files/00000000-ad8c-8212-bae0-a998e9afaeed/raw?se=2026-11-11T18%3A02%3A19Z&sp=r&sv=2026-06-06&sr=b&scid=93f8d157-4b7d-5f44-a208-19916c1904ba&skoid=80e81ea6-3c08-46f9-bd84-b87176742bcd&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T13%3A56%3A04Z&ske=2026-11-12T13%3A56%3A04Z&sks=b&skv=2026-06-06&sig=x8Pgj%2BCs9N8eqDgzm9KDxO09PBpiVw32eafIDCEb27Y%3D'
+          LINK_03: 'https://sdmntprwestus2.oaiusercontent.com/files/00000000-bf50-81f8-ab94-8e9ca1f05243/raw?se=2026-11-11T18%3A02%3A18Z&sp=r&sv=2026-06-06&sr=b&scid=343fddb3-ce80-5a37-9800-cf6219dcc64c&skoid=80e81ea6-3c08-46f9-bd84-b87176742bcd&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T14%3A00%3A42Z&ske=2026-11-12T14%3A00%3A42Z&sks=b&skv=2026-06-06&sig=64KBrE2ohTudR08AjIBSY5p9xWDOUMHoU/6LgrCtaMw%3D'
+          LINK_04: 'https://sdmntprwestcentralus.oaiusercontent.com/files/00000000-7fbc-81fb-bbf2-d0c61f6d748c/raw?se=2026-11-11T18%3A02%3A16Z&sp=r&sv=2026-06-06&sr=b&scid=ee0102e1-9d8a-508b-aa17-502ae4c5c5c6&skoid=80e81ea6-3c08-46f9-bd84-b87176742bcd&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T13%3A51%3A42Z&ske=2026-11-12T13%3A51%3A42Z&sks=b&skv=2026-06-06&sig=PY/yqxMeDgJ4Si2/GiWB0WmlETu%2Bb2IknpjTstwioWo%3D'
+          LINK_05: 'https://sdmntpreastus3.oaiusercontent.com/files/00000000-f878-8212-b488-88b6bd51490e/raw?se=2026-11-11T18%3A02%3A20Z&sp=r&sv=2026-06-06&sr=b&scid=86cafd4a-64c5-5053-9864-b5b8c0e0d679&skoid=80e81ea6-3c08-46f9-bd84-b87176742bcd&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T02%3A15%3A41Z&ske=2026-11-12T02%3A15%3A41Z&sks=b&skv=2026-06-06&sig=R6NFwEV2sqwHOIJrH4goRuhiBsK3kBxf6xxwPX5B92w%3D'
+          LINK_06: 'https://sdmntprwestcentralus.oaiusercontent.com/files/00000000-9690-81fb-99d1-3ac92c0904d4/raw?se=2026-11-11T18%3A02%3A26Z&sp=r&sv=2026-06-06&sr=b&scid=8fc58fc9-98cd-551d-8e1a-8fb4f10a3d3d&skoid=80e81ea6-3c08-46f9-bd84-b87176742bcd&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T13%3A54%3A47Z&ske=2026-11-12T13%3A54%3A47Z&sks=b&skv=2026-06-06&sig=JXguyWam0AMZ%2Bq8bQkxguCwci9h60LsWkSJL%2BFWuNcc%3D'
+          LINK_07: 'https://sdmntprwestcentralus.oaiusercontent.com/files/00000000-477c-81fb-8069-065250dd056b/raw?se=2026-11-11T18%3A02%3A35Z&sp=r&sv=2026-06-06&sr=b&scid=2a43829b-9fd7-5560-ab02-46c48dbcfb4e&skoid=80e81ea6-3c08-46f9-bd84-b87176742bcd&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T02%3A15%3A41Z&ske=2026-11-12T02%3A15%3A41Z&sks=b&skv=2026-06-06&sig=g%2BTzw8V6zY0DFF%2BmX9i0Itae3sW2zr5k28cDppNT7X0%3D'
+          LINK_08: 'https://sdmntpreastus3.oaiusercontent.com/files/00000000-3cd0-8212-b3c6-d75f92eecd46/raw?se=2026-11-11T18%3A02%3A27Z&sp=r&sv=2026-06-06&sr=b&scid=88b8bb11-61c8-5845-a58b-be117ce62ec3&skoid=80e81ea6-3c08-46f9-bd84-b87176742bcd&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T15%3A44%3A13Z&ske=2026-11-12T15%3A44%3A13Z&sks=b&skv=2026-06-06&sig=ti4vmvkaVkvUiJpaJSa/IkdXGFiNtuR14XvDIO9UgKo%3D'
+          LINK_09: 'https://sdmntprcentralus.oaiusercontent.com/files/00000000-9cfc-81f5-970c-1dd682b3ed63/raw?se=2026-11-11T18%3A02%3A30Z&sp=r&sv=2026-06-06&sr=b&scid=01d7208e-a7eb-53c3-8fb5-1bd0142f1c28&skoid=80e81ea6-3c08-46f9-bd84-b87176742bcd&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T15%3A49%3A52Z&ske=2026-11-12T15%3A49%3A52Z&sks=b&skv=2026-06-06&sig=oz0TmrNoYUHVtKz9M9Ku92JlhYWwu6Ivmu1rqCNR%2B1I%3D'
+          LINK_10: 'https://sdmntprwestcentralus.oaiusercontent.com/files/00000000-7030-81fb-9094-fa9cf0978388/raw?se=2026-11-11T18%3A02%3A31Z&sp=r&sv=2026-06-06&sr=b&scid=da83a8e6-6af8-500e-9e3c-cf84286bea04&skoid=80e81ea6-3c08-46f9-bd84-b87176742bcd&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T02%3A18%3A16Z&ske=2026-11-12T02%3A18%3A16Z&sks=b&skv=2026-06-06&sig=9ryjN4GHJY%2BFcNPqYQmu7tCCPduEQuhOdyc%2Bp6nfWs0%3D'
+        run: |
+          set -euo pipefail
+          mkdir -p parts
+          for n in $(seq -w 1 10); do
+            key="LINK_${n}"
+            echo "Downloading FIX48 part ${n} of 10"
+            curl --fail --show-error --location --retry 5 --retry-delay 3 --connect-timeout 30 \
+              --output "parts/FIX48-APK-PART${n}.bin" "${!key}"
+            expected=62914560
+            if [ "$n" = "10" ]; then expected=57290626; fi
+            actual=$(stat -c%s "parts/FIX48-APK-PART${n}.bin")
+            test "$actual" -eq "$expected" || { echo "::error::Wrong part size ${n}: ${actual}"; exit 1; }
+          done
+
+      - name: Assemble and verify FIX48 signed APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="COD4-ZOMBIES-FIX48-TEXTURES-256-512-ARM64.apk"
+          cat parts/FIX48-APK-PART{01..10}.bin > "$APK"
+          test "$(stat -c%s "$APK")" -eq 623521666
+          echo "53c38034989ebf7fcea87cbe8bceed19ec0f72a0337f016a29bc5dc57be20552  $APK" | sha256sum -c
+          unzip -t "$APK" > /dev/null
+          python3 - "$APK" <<'PY'
+          import sys,struct,zipfile,io
+          p=sys.argv[1]
+          with zipfile.ZipFile(p) as apk:
+            assert len(apk.namelist())==419
+            nested=apk.read('assets/assets.zip')
+            with zipfile.ZipFile(io.BytesIO(nested)) as z:
+              assert z.comment==b'XZ-ASSETS-1:9663'
+              assert z.namelist()==['luanti-assets.zip.xz']
+          print("FIX48: integrity, 419 APK files and compact marker verified.")
+          PY
+
+      - name: Publish FIX48 as separate Android prerelease
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="fix48-xsrealism-256-512-optimized-arm64"
+          APK="COD4-ZOMBIES-FIX48-TEXTURES-256-512-ARM64.apk"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$APK" --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" "$APK" --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" --prerelease \
+              --title "FIX48 TEST — XsRealism 256 / selected 512 textures (ARM64)" \
+              --notes "Android test APK derived from FIX47. Restored original XsRealism photographic source for 112 blocks from pre-existing FIX47 gallery, resampled main construction materials to 256 and selected detail surfaces to 512; reduced 112 gallery source images to 256, retaining preview references. 9,663 Luanti resources preserved by path; 229 modified texture/catalog files, 9,434 unchanged; original 28 weapons and zombies Lua unchanged; Gothic Cathedral world database unchanged. APK 623,521,666 bytes vs FIX47 750,548,042 (127,026,376 bytes / 16.92% smaller). APK SHA256 53c38034989ebf7fcea87cbe8bceed19ec0f72a0337f016a29bc5dc57be20552. Android v2 signature regenerated using the exact FIX47 signing certificate, its cryptographic signature and chunk digest verified locally. XsRealism license MIT preserved. IMPORTANT: LynxArt was NOT yet sourced or included in this test build, so do not misrepresent it as hybrid. On-device launch/gameplay testing pending; back up worlds and install over the old app without uninstalling."
+          fi
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json url,assets
