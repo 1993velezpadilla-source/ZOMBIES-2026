@@ -1,0 +1,1000 @@
+diff --git a/irr/include/IVideoDriver.h b/irr/include/IVideoDriver.h
+index 5d64d74..83975fc 100644
+--- a/irr/include/IVideoDriver.h
++++ b/irr/include/IVideoDriver.h
+@@ -21,6 +21,7 @@
+ #include "S3DVertex.h" // E_VERTEX_TYPE
+ #include "SVertexIndex.h" // E_INDEX_TYPE
+ #include "HWBuffer.h"
++#include <functional>
+ 
+ namespace io
+ {
+@@ -182,6 +183,10 @@ class IVideoDriver : public virtual IReferenceCounted
+ 	\param material: Material to be used from now on. */
+ 	virtual void setMaterial(const SMaterial &material) = 0;
+ 
++	//! Optional 3D binding substitution for textures with identical UV layouts.
++	using MaterialTextureResolver = std::function<ITexture *(ITexture *)>;
++	virtual bool setMaterialTextureResolver(MaterialTextureResolver) { return false; }
++
+ 	//! Get access to a named texture.
+ 	/** Loads the texture from disk if it is not
+ 	already loaded and generates mipmap levels if desired.
+diff --git a/irr/src/OpenGL/Driver.cpp b/irr/src/OpenGL/Driver.cpp
+index 6ba090c..7048e4b 100644
+--- a/irr/src/OpenGL/Driver.cpp
++++ b/irr/src/OpenGL/Driver.cpp
+@@ -1096,6 +1096,10 @@ void COpenGL3DriverBase::setMaterial(const SMaterial &material)
+ 
+ 	for (u32 i = 0; i < Feature.MaxTextureUnits; ++i) {
+ 		auto *texture = material.getTexture(i);
++		if (texture && TextureResolver) {
++			texture = TextureResolver(texture);
++			Material.setTexture(i, texture);
++		}
+ 		CacheHandler->getTextureCache().set(i, texture);
+ 		if (texture) {
+ 			setTransform((E_TRANSFORMATION_STATE)(ETS_TEXTURE_0 + i),
+@@ -1107,6 +1111,12 @@ void COpenGL3DriverBase::setMaterial(const SMaterial &material)
+ 	}
+ }
+ 
++bool COpenGL3DriverBase::setMaterialTextureResolver(MaterialTextureResolver resolver)
++{
++	TextureResolver = std::move(resolver);
++	return true;
++}
++
+ //! prints error if an error happened.
+ bool COpenGL3DriverBase::testGLError(const char *file, int line)
+ {
+@@ -1868,6 +1878,14 @@ IImage *COpenGL3DriverBase::createScreenShot()
+ 
+ void COpenGL3DriverBase::removeTexture(ITexture *texture)
+ {
++	for (u32 i = 0; texture && i < Feature.MaxTextureUnits; ++i) {
++		if (Material.getTexture(i) == texture)
++			Material.setTexture(i, nullptr);
++		if (LastMaterial.getTexture(i) == texture) {
++			LastMaterial.setTexture(i, nullptr);
++			ResetRenderStates = true;
++		}
++	}
+ 	CacheHandler->getTextureCache().remove(texture);
+ 	CNullDriver::removeTexture(texture);
+ }
+diff --git a/irr/src/OpenGL/Driver.h b/irr/src/OpenGL/Driver.h
+index 0297d30..6569542 100644
+--- a/irr/src/OpenGL/Driver.h
++++ b/irr/src/OpenGL/Driver.h
+@@ -90,6 +90,7 @@ class COpenGL3DriverBase : public CNullDriver, public IMaterialRendererServices,
+ 
+ 	//! Sets a material.
+ 	void setMaterial(const SMaterial &material) override;
++	bool setMaterialTextureResolver(MaterialTextureResolver resolver) override;
+ 
+ 	virtual void draw2DImage(const video::ITexture *texture,
+ 			const core::position2d<s32> &destPos,
+@@ -331,6 +332,7 @@ class COpenGL3DriverBase : public CNullDriver, public IMaterialRendererServices,
+ 	STextureFormatInfo TextureFormats[ECF_UNKNOWN] = {};
+ 
+ private:
++	MaterialTextureResolver TextureResolver;
+ 	COpenGL3Renderer2D *MaterialRenderer2DActive;
+ 	COpenGL3Renderer2D *MaterialRenderer2DTexture;
+ 	COpenGL3Renderer2D *MaterialRenderer2DNoTexture;
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index d6ab292..ae41948 100644
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -716,8 +716,15 @@ if(BUILD_CLIENT)
+ 		${extra_windows_SRCS}
+ 	)
+ 
++	set(XZ_WEBP_SOURCE "" CACHE PATH "libwebp source tree for VoxeLibre world detail")
++	if(NOT EXISTS "${XZ_WEBP_SOURCE}/src/webp/decode.h")
++		message(FATAL_ERROR "Set XZ_WEBP_SOURCE to the libwebp source tree")
++	endif()
++	add_subdirectory("${XZ_WEBP_SOURCE}" "${CMAKE_CURRENT_BINARY_DIR}/webp" EXCLUDE_FROM_ALL)
++	target_include_directories(${PROJECT_NAME} PRIVATE "${XZ_WEBP_SOURCE}/src")
+ 	target_link_libraries(
+ 		${PROJECT_NAME}
++		webpdecoder
+ 		${ZLIB_LIBRARIES}
+ 		libzip::zip
+ 		IrrlichtMt::IrrlichtMt
+diff --git a/src/client/CMakeLists.txt b/src/client/CMakeLists.txt
+index 2f68883..4da731a 100644
+--- a/src/client/CMakeLists.txt
++++ b/src/client/CMakeLists.txt
+@@ -74,6 +74,7 @@ set(client_SRCS
+ 	${CMAKE_CURRENT_SOURCE_DIR}/tile.cpp
+ 	${CMAKE_CURRENT_SOURCE_DIR}/texturepaths.cpp
+ 	${CMAKE_CURRENT_SOURCE_DIR}/texturesource.cpp
++	${CMAKE_CURRENT_SOURCE_DIR}/worlddetail.cpp
+ 	${CMAKE_CURRENT_SOURCE_DIR}/imagesource.cpp
+ 	${CMAKE_CURRENT_SOURCE_DIR}/wieldmesh.cpp
+ 	${CMAKE_CURRENT_SOURCE_DIR}/mod_vfs.cpp
+diff --git a/src/client/game.cpp b/src/client/game.cpp
+index f7fbcf4..f91cbf8 100644
+--- a/src/client/game.cpp
++++ b/src/client/game.cpp
+@@ -682,7 +682,9 @@ void Game::shutdown()
+ 
+ bool Game::init(GameStartData &start_data)
+ {
+-	texture_src = createTextureSource();
++	const bool use_bundled_detail = start_data.address.empty() &&
++			start_data.game_spec.id == "voxelibre" && g_settings->get("texture_path").empty();
++	texture_src = createTextureSource(use_bundled_detail ? start_data.game_spec.path : "");
+ 
+ 	showOverlayMessage(N_("Loading..."), 0, 0);
+ 
+diff --git a/src/client/imagesource.cpp b/src/client/imagesource.cpp
+index 3375bde..d0012ba 100644
+--- a/src/client/imagesource.cpp
++++ b/src/client/imagesource.cpp
+@@ -16,6 +16,8 @@
+ #include "util/base64.h"
+ #include "util/numeric.h"
+ #include "util/strfnd.h"
++#include <algorithm>
++#include <cmath>
+ 
+ 
+ ////////////////////////////////
+@@ -73,6 +75,8 @@ video::IImage* SourceImageCache::get(const std::string &name)
+ // Primarily fetches from cache, secondarily tries to read from filesystem
+ video::IImage* SourceImageCache::getOrLoad(const std::string &name)
+ {
++	if (m_loader)
++		return m_loader(name);
+ 	auto n = m_images.find(name);
+ 	if (n != m_images.end()){
+ 		n->second->grab(); // Grab for caller
+@@ -905,6 +909,8 @@ static u32 parseImageTransform(std::string_view s)
+ 			COMPLAIN_INVALID("width"); \
+ 		if ((h) <= 0 || (h) > MAX_IMAGE_DIMENSION) \
+ 			COMPLAIN_INVALID("height"); \
++		if (m_detail && ((w) > 4096 || (h) > 4096)) \
++			COMPLAIN_INVALID("detail image size"); \
+ 	} while(0)
+ 
+ bool ImageSource::generateImagePart(std::string_view part_of_name,
+@@ -952,6 +958,11 @@ bool ImageSource::generateImagePart(std::string_view part_of_name,
+ 				Otherwise images with alpha cannot be blitted on
+ 				images that don't have alpha in the original file.
+ 			*/
++			if (m_detail && image->getColorFormat() == video::ECF_A8R8G8B8) {
++				// The detail loader returns a private image owned by this request.
++				baseimg = image;
++				return true;
++			}
+ 			baseimg = driver->createImage(video::ECF_A8R8G8B8, image->getDimension());
+ 			image->copyTo(baseimg);
+ 		}
+@@ -1018,8 +1029,8 @@ bool ImageSource::generateImagePart(std::string_view part_of_name,
+ 		{
+ 			Strfnd sf(part_of_name);
+ 			sf.next(":");
+-			u32 w0 = stoi(sf.next("x"));
+-			u32 h0 = stoi(sf.next(":"));
++			u32 w0 = detailCoordinate(stoi(sf.next("x")));
++			u32 h0 = detailCoordinate(stoi(sf.next(":")));
+ 			if (!baseimg) {
+ 				CHECK_DIM(w0, h0);
+ 				baseimg = driver->createImage(video::ECF_A8R8G8B8, {w0, h0});
+@@ -1028,8 +1039,8 @@ bool ImageSource::generateImagePart(std::string_view part_of_name,
+ 
+ 			while (!sf.at_end()) {
+ 				v2s32 pos_base;
+-				pos_base.X = stoi(sf.next(","));
+-				pos_base.Y = stoi(sf.next("="));
++				pos_base.X = detailCoordinate(stoi(sf.next(",")));
++				pos_base.Y = detailCoordinate(stoi(sf.next("=")));
+ 				std::string filename = unescape_string(sf.next_esc(":", escape), escape);
+ 
+ 				auto basedim = baseimg->getDimension();
+@@ -1074,14 +1085,14 @@ bool ImageSource::generateImagePart(std::string_view part_of_name,
+ 
+ 			Strfnd sf(part_of_name);
+ 			sf.next(":");
+-			u32 width  = stoi(sf.next("x"));
+-			u32 height = stoi(sf.next(":"));
++			u32 width  = detailCoordinate(stoi(sf.next("x")));
++			u32 height = detailCoordinate(stoi(sf.next(":")));
+ 			std::string color_or_x = sf.next(",");
+ 
+ 			video::SColor color;
+ 			if (!parseColorString(color_or_x, color, true)) {
+-				x = stoi(color_or_x);
+-				y = stoi(sf.next(":"));
++				x = detailCoordinate(stoi(color_or_x));
++				y = detailCoordinate(stoi(sf.next(":")));
+ 				std::string color_str = sf.next(":");
+ 
+ 				if (!parseColorString(color_str, color, false))
+@@ -1456,8 +1467,8 @@ bool ImageSource::generateImagePart(std::string_view part_of_name,
+ 
+ 			Strfnd sf(part_of_name);
+ 			sf.next(":");
+-			u32 width = stoi(sf.next("x"));
+-			u32 height = stoi(sf.next(""));
++			u32 width = detailCoordinate(stoi(sf.next("x")));
++			u32 height = detailCoordinate(stoi(sf.next("")));
+ 			CHECK_DIM(width, height);
+ 
+ 			video::IImage *image = driver->
+@@ -1714,6 +1725,20 @@ ImageSource::ImageSource() :
+ 		m_setting_anisotropic_filter{g_settings->getBool("anisotropic_filter")}
+ {}
+ 
++void ImageSource::configureDetail(SourceImageCache::Loader loader, double coordinate_scale)
++{
++	m_sourcecache.setLoader(std::move(loader));
++	m_detail_scale = coordinate_scale;
++	m_detail = true;
++}
++
++s32 ImageSource::detailCoordinate(s32 value) const
++{
++	if (m_detail_scale == 1.0)
++		return value;
++	return static_cast<s32>(std::lround(std::clamp(value * m_detail_scale, -32768.0, 32768.0)));
++}
++
+ video::IImage* ImageSource::generateImage(std::string_view name,
+ 		std::set<std::string> &source_image_names)
+ {
+diff --git a/src/client/imagesource.h b/src/client/imagesource.h
+index 2ea8649..39b60fa 100644
+--- a/src/client/imagesource.h
++++ b/src/client/imagesource.h
+@@ -5,6 +5,7 @@
+ #pragma once
+ 
+ #include <IImage.h>
++#include <functional>
+ #include <unordered_map>
+ #include <set>
+ #include <string>
+@@ -19,6 +20,8 @@
+ class SourceImageCache {
+ public:
+ 	~SourceImageCache();
++	using Loader = std::function<video::IImage *(const std::string &)>;
++	void setLoader(Loader loader) { m_loader = std::move(loader); }
+ 
+ 	void insert(const std::string &name, video::IImage *img, bool prefer_local);
+ 
+@@ -28,11 +31,13 @@ class SourceImageCache {
+ 	video::IImage *getOrLoad(const std::string &name);
+ private:
+ 	std::unordered_map<std::string, video::IImage*> m_images;
++	Loader m_loader;
+ };
+ 
+ // Generates images using texture modifiers, and caches source images.
+ struct ImageSource {
+ 	ImageSource();
++	void configureDetail(SourceImageCache::Loader loader, double coordinate_scale);
+ 
+ 	/*! Generates an image from a full string like
+ 	 * "stone.png^mineral_coal.png^[crack:1:0".
+@@ -66,6 +71,10 @@ struct ImageSource {
+ 	bool m_setting_bilinear_filter;
+ 	bool m_setting_anisotropic_filter;
+ 
++	s32 detailCoordinate(s32 value) const;
++	double m_detail_scale = 1.0;
++	bool m_detail = false;
++
+ 	// Cache of source images
+ 	SourceImageCache m_sourcecache;
+ };
+diff --git a/src/client/node_visuals.cpp b/src/client/node_visuals.cpp
+index 667d6d3..eaf8aef 100644
+--- a/src/client/node_visuals.cpp
++++ b/src/client/node_visuals.cpp
+@@ -239,7 +239,8 @@ void NodeVisuals::preUpdateTextures(const ContentFeatures &f, ITextureSource *ts
+ 	const auto &consider_tile = [&] (const TileDef &def, const std::string &append) {
+ 		// Animations are chopped into frames later, so we won't actually need
+ 		// the source texture
+-		if (!def.name.empty() && def.animation.type == TAT_NONE) {
++		if (!def.name.empty() && def.animation.type == TAT_NONE &&
++				!tsrc->hasWorldDetailTexture(def.name)) {
+ 			pool.insert(def.name + append);
+ 		}
+ 	};
+diff --git a/src/client/texturesource.cpp b/src/client/texturesource.cpp
+index e53c0b2..0686ead 100644
+--- a/src/client/texturesource.cpp
++++ b/src/client/texturesource.cpp
+@@ -14,6 +14,7 @@
+ #include "settings.h"
+ #include "texturepaths.h"
+ #include "util/thread.h"
++#include "worlddetail.h"
+ 
+ // Represents a to-be-generated texture for queuing purposes
+ struct TextureRequest
+@@ -70,7 +71,7 @@ struct ImageInfo
+ class TextureSource final : public IWritableTextureSource
+ {
+ public:
+-	TextureSource();
++	explicit TextureSource(const std::string &detail_game_path);
+ 	virtual ~TextureSource();
+ 
+ 	u32 getTextureId(const std::string &name);
+@@ -88,6 +89,11 @@ class TextureSource final : public IWritableTextureSource
+ 		return mesh_filter_needed;
+ 	}
+ 
++	bool hasWorldDetailTexture(const std::string &image) const override
++	{
++		return m_world_detail && m_world_detail->hasSource(image);
++	}
++
+ 	Palette *getPalette(const std::string &name);
+ 
+ 	bool isKnownSourceImage(const std::string &name)
+@@ -132,6 +138,7 @@ class TextureSource final : public IWritableTextureSource
+ 	// Generates and caches source images
+ 	// This should be only accessed from the main thread
+ 	ImageSource m_imagesource;
++	std::unique_ptr<WorldDetail> m_world_detail;
+ 
+ 	// Is the image cache enabled?
+ 	bool m_image_cache_enabled = false;
+@@ -179,13 +186,14 @@ class TextureSource final : public IWritableTextureSource
+ 	bool mesh_filter_needed;
+ };
+ 
+-IWritableTextureSource *createTextureSource()
++IWritableTextureSource *createTextureSource(const std::string &detail_game_path)
+ {
+-	return new TextureSource();
++	return new TextureSource(detail_game_path);
+ }
+ 
+-TextureSource::TextureSource()
++TextureSource::TextureSource(const std::string &detail_game_path)
+ {
++	m_world_detail = WorldDetail::create(RenderingEngine::get_video_driver(), detail_game_path);
+ 	m_main_thread = std::this_thread::get_id();
+ 
+ 	// Add a NULL TextureInfo as the first index, named ""
+@@ -204,6 +212,7 @@ TextureSource::TextureSource()
+ 
+ TextureSource::~TextureSource()
+ {
++	m_world_detail.reset();
+ 	video::IVideoDriver *driver = RenderingEngine::get_video_driver();
+ 	u32 textures_before = driver->getTextureCount();
+ 
+@@ -409,6 +418,8 @@ u32 TextureSource::generateTexture(const std::string &name)
+ 	if (img) {
+ 		// Create texture from resulting image
+ 		tex = driver->addTexture(name.c_str(), img);
++		if (m_world_detail)
++			m_world_detail->add(tex, name, source_image_names);
+ 		guiScalingCache(io::path(name.c_str()), driver, img);
+ 		img->drop();
+ 	}
+@@ -520,6 +531,8 @@ Palette* TextureSource::getPalette(const std::string &name)
+ 
+ void TextureSource::processQueue()
+ {
++	if (m_world_detail)
++		m_world_detail->step();
+ 	while (!m_get_texture_queue.empty()) {
+ 		auto request = m_get_texture_queue.pop();
+ 
+@@ -607,6 +620,8 @@ void TextureSource::rebuildTexture(video::IVideoDriver *driver, TextureInfo &ti)
+ 
+ 	// Create texture from resulting image
+ 	video::ITexture *t = nullptr, *t_old = ti.texture;
++	if (m_world_detail)
++		m_world_detail->invalidate(t_old);
+ 	if (!img) {
+ 		// new texture becomes null
+ 	} else if (t_old && t_old->getColorFormat() == img->getColorFormat() && t_old->getSize() == img->getDimension()) {
+diff --git a/src/client/texturesource.h b/src/client/texturesource.h
+index 7cb0982..8a2ac7f 100644
+--- a/src/client/texturesource.h
++++ b/src/client/texturesource.h
+@@ -83,6 +83,9 @@ class ITextureSource : public ISimpleTextureSource
+ 	/// @return true if getTextureForMesh will apply a filter
+ 	virtual bool needFilterForMesh() const = 0;
+ 
++	/// Detail-enabled materials stay separate from the startup texture arrays.
++	virtual bool hasWorldDetailTexture(const std::string &) const { return false; }
++
+ 	/// Filter needed for mesh-suitable textures, including leading ^
+ 	static constexpr const char *FILTER_FOR_MESH = "^[applyfiltersformesh";
+ 
+@@ -139,4 +142,4 @@ class IWritableTextureSource : public ITextureSource
+ 	virtual void rebuildImagesAndTextures()=0;
+ };
+ 
+-IWritableTextureSource *createTextureSource();
++IWritableTextureSource *createTextureSource(const std::string &detail_game_path = {});
+diff --git a/src/client/worlddetail.cpp b/src/client/worlddetail.cpp
+new file mode 100644
+index 0000000..7f1bc95
+--- /dev/null
++++ b/src/client/worlddetail.cpp
+@@ -0,0 +1,558 @@
++// Luanti
++// SPDX-License-Identifier: LGPL-2.1-or-later
++
++#include "worlddetail.h"
++
++#include "imagesource.h"
++#include "irr_ptr.h"
++#include "log.h"
++#include "texturepaths.h"
++#include <IVideoDriver.h>
++#include <webp/decode.h>
++#include <algorithm>
++#include <charconv>
++#include <cmath>
++#include <condition_variable>
++#include <cstdlib>
++#include <deque>
++#include <fstream>
++#include <mutex>
++#include <optional>
++#include <string_view>
++#include <thread>
++#include <unordered_map>
++#include <vector>
++
++namespace {
++using video::IImage;
++using video::ITexture;
++using video::IVideoDriver;
++
++constexpr u64 GPU_BUDGET = 512ULL * 1024 * 1024;
++constexpr u32 MAX_DIMENSION = 4096;
++constexpr u32 MAX_REQUESTS = 32;
++constexpr u32 MAX_DECODED = 2;
++constexpr u32 ANIMATION_LOOKAHEAD = 6;
++
++struct MaterialFile {
++	u32 width, height;
++	u32 preview_width, preview_height;
++	std::vector<std::string> frames;
++};
++
++struct AnimationFrame {
++	size_t start, index_start, end;
++	u32 count, index;
++};
++
++std::optional<AnimationFrame> findAnimationFrame(const std::string &expression)
++{
++	constexpr std::string_view marker = "^[verticalframe:";
++	const size_t start = expression.rfind(marker);
++	if (start == std::string::npos || (start && expression[start - 1] == '\\'))
++		return std::nullopt;
++
++	const char *begin = expression.data();
++	const char *end = begin + expression.size();
++	u32 count = 0, index = 0;
++	auto count_end = std::from_chars(begin + start + marker.size(), end, count);
++	if (count_end.ec != std::errc() || count_end.ptr == end || *count_end.ptr != ':' ||
++			count < 2 || count > 128)
++		return std::nullopt;
++	auto index_end = std::from_chars(count_end.ptr + 1, end, index);
++	if (index_end.ec != std::errc() || index >= count ||
++			(index_end.ptr != end && *index_end.ptr != '^' && *index_end.ptr != ')'))
++		return std::nullopt;
++	return AnimationFrame{start, size_t(count_end.ptr + 1 - begin),
++			size_t(index_end.ptr - begin), count, index};
++}
++
++bool isAssetPath(const std::string &path)
++{
++	return !path.empty() && path.front() != '/' && path.find("..") == std::string::npos &&
++			path.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
++					"0123456789_-/ .") == std::string::npos;
++}
++
++std::vector<std::string> fields(const std::string &line)
++{
++	std::vector<std::string> result;
++	size_t start = 0;
++	for (size_t tab; (tab = line.find('\t', start)) != std::string::npos; start = tab + 1)
++		result.emplace_back(line.substr(start, tab - start));
++	result.emplace_back(line.substr(start));
++	return result;
++}
++
++bool parseU32(const std::string &field, u32 &value)
++{
++	auto end = field.data() + field.size();
++	auto result = std::from_chars(field.data(), end, value);
++	return result.ec == std::errc() && result.ptr == end && value > 0;
++}
++} // namespace
++
++struct WorldDetail::State
++{
++	struct Entry {
++		std::string expression;
++		ITexture *texture = nullptr;
++		u64 bytes = 0;
++		u64 last_draw = 0;
++		u64 requested = 0;
++		bool queued = false;
++		bool failed = false;
++		bool logged = false;
++		const std::vector<ITexture *> *animation = nullptr;
++		u32 animation_index = 0;
++	};
++
++	struct Request {
++		ITexture *preview;
++		std::string expression;
++	};
++
++	struct Result {
++		ITexture *preview;
++		irr_ptr<IImage> image;
++	};
++
++	State(IVideoDriver *driver, std::string path)
++		: driver(driver), game_path(std::move(path)), detail_path(game_path + "/world_detail36/")
++	{}
++
++	~State()
++	{
++		{
++			std::lock_guard lock(mutex);
++			stop = true;
++		}
++		wake.notify_one();
++		if (worker.joinable())
++			worker.join();
++		if (attached) {
++			driver->setMaterialTextureResolver({});
++			actionstream << "World detail: " << uploads << " uploads; "
++					<< peak_resident_bytes << " bytes peak; " << evictions
++					<< " evictions\n";
++		}
++		for (auto &pair : entries)
++			evict(pair.second);
++	}
++
++	bool readIndex()
++	{
++		std::ifstream index(detail_path + "index.tsv");
++		std::string line;
++		if (!std::getline(index, line) || line != "xz-world-detail-1")
++			return false;
++		while (std::getline(index, line)) {
++			auto row = fields(line);
++			MaterialFile file{};
++			if (row.size() < 6 || row.size() > 133 ||
++					!parseU32(row[1], file.width) || !parseU32(row[2], file.height) ||
++					!parseU32(row[3], file.preview_width) || !parseU32(row[4], file.preview_height) ||
++					std::min(file.width, file.height) < 1024 ||
++					std::max(file.width, file.height) > MAX_DIMENSION)
++				return false;
++			for (size_t i = 5; i < row.size(); ++i) {
++				if (!isAssetPath(row[i]))
++					return false;
++				file.frames.push_back(detail_path + row[i]);
++			}
++			if (!files.emplace(row.front(), std::move(file)).second)
++				return false;
++		}
++		std::ifstream preview_index(detail_path + "previews.tsv");
++		while (std::getline(preview_index, line)) {
++			auto row = fields(line);
++			if (row.size() == 2 && isAssetPath(row[1]))
++				previews.emplace(row[0], game_path + "/" + row[1]);
++		}
++		return !files.empty() && !previews.empty();
++	}
++
++	const MaterialFile *findFirstSource(std::string_view expression) const
++	{
++		constexpr auto name_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
++				"0123456789_.-";
++		size_t start = 0;
++		while ((start = expression.find_first_of(name_chars, start)) != std::string_view::npos) {
++			size_t end = expression.find_first_not_of(name_chars, start);
++			if (end == std::string_view::npos)
++				end = expression.size();
++			auto it = files.find(std::string(expression.substr(start, end - start)));
++			if (it != files.end())
++				return &it->second;
++			start = end;
++		}
++		return nullptr;
++	}
++
++	IImage *decode(const MaterialFile &file, u32 frame) const
++	{
++		const auto &path = file.frames[frame];
++		if (path.size() < 5 || path.compare(path.size() - 5, 5, ".webp") != 0)
++			return driver->createImageFromFile(path.c_str());
++
++		std::ifstream stream(path, std::ios::binary | std::ios::ate);
++		const auto bytes = stream.tellg();
++		if (bytes <= 0 || bytes > 16 * 1024 * 1024)
++			return nullptr;
++		std::vector<u8> data(static_cast<size_t>(bytes));
++		stream.seekg(0);
++		if (!stream.read(reinterpret_cast<char *>(data.data()), bytes))
++			return nullptr;
++
++		int width = 0, height = 0;
++		if (!WebPGetInfo(data.data(), data.size(), &width, &height) ||
++				width != static_cast<int>(file.width) || height != static_cast<int>(file.height))
++			return nullptr;
++
++		irr_ptr<IImage> image(driver->createImage(video::ECF_A8R8G8B8, {file.width, file.height}));
++		if (!image || !WebPDecodeBGRAInto(data.data(), data.size(),
++				static_cast<u8 *>(image->getData()), image->getImageDataSizeInBytes(), image->getPitch()))
++			return nullptr;
++		return image.release();
++	}
++
++	irr_ptr<IImage> compose(const std::string &original) const
++	{
++		const MaterialFile *first = findFirstSource(original);
++		if (!first)
++			return {};
++
++		auto animation = findAnimationFrame(original);
++		bool split_frames = animation && first->frames.size() == animation->count;
++		bool positioned = original.find("[combine:") != std::string::npos ||
++				original.find("[resize:") != std::string::npos ||
++				original.find("[fill:") != std::string::npos;
++		// The original preview strip defines timing. Read just the requested
++		// full-sized frame so neither a decoded strip nor a GPU atlas is needed.
++		if (first->frames.size() > 1 && !split_frames && !positioned)
++			return {};
++		std::string expression = original;
++		if (split_frames)
++			expression.erase(animation->start, animation->end - animation->start);
++		const double scale = positioned ? double(first->width) / first->preview_width : 1.0;
++
++		bool missing = false;
++		ImageSource source;
++		source.configureDetail([&](const std::string &name) -> IImage * {
++			auto known = files.find(name);
++			IImage *image = nullptr;
++			u32 preview_w = 0, preview_h = 0;
++			if (known != files.end()) {
++				const MaterialFile &file = known->second;
++				if (file.frames.size() > 1 &&
++						((split_frames && file.frames.size() != animation->count) ||
++						 (!split_frames && !positioned))) {
++					missing = true;
++					return nullptr;
++				}
++				const u32 index = split_frames && file.frames.size() > 1 ? animation->index : 0;
++				image = decode(file, index);
++				preview_w = file.preview_width;
++				preview_h = file.preview_height / file.frames.size();
++			} else {
++				auto preview = previews.find(name);
++				std::string path = preview == previews.end() ? getTexturePath(name) : preview->second;
++				if (!path.empty())
++					image = driver->createImageFromFile(path.c_str());
++				if (image) {
++					preview_w = image->getDimension().Width;
++					preview_h = image->getDimension().Height;
++				}
++			}
++			if (!image) {
++				missing = true;
++				return nullptr;
++			}
++			if (!positioned)
++				return image;
++
++			// Keep every source on the same coordinate grid in a crop or atlas.
++			const u32 w = std::max(1L, std::lround(preview_w * scale));
++			const u32 h = std::max(1L, std::lround(preview_h * scale));
++			if (std::max(w, h) > MAX_DIMENSION) {
++				image->drop();
++				missing = true;
++				return nullptr;
++			}
++			if (image->getDimension() == core::dimension2du(w, h))
++				return image;
++			IImage *scaled = driver->createImage(video::ECF_A8R8G8B8, {w, h});
++			image->copyToScaling(scaled);
++			image->drop();
++			return scaled;
++		}, scale);
++
++		std::set<std::string> unused;
++		irr_ptr<IImage> image(source.generateImage(expression, unused));
++		if (missing || !image)
++			return {};
++		return image;
++	}
++
++	void work()
++	{
++		std::unique_lock lock(mutex);
++		while (true) {
++			wake.wait(lock, [&] { return stop || (!requests.empty() && decoded.size() < MAX_DECODED); });
++			if (stop)
++				return;
++			Request request = std::move(requests.front());
++			requests.pop_front();
++			lock.unlock();
++
++			irr_ptr<IImage> image;
++			try {
++				image = compose(request.expression);
++			} catch (const std::exception &e) {
++				warningstream << "World detail: image preparation failed: " << e.what() << '\n';
++			}
++
++			lock.lock();
++			if (!stop)
++				decoded.push_back({request.preview, std::move(image)});
++		}
++	}
++
++	void enqueue(ITexture *preview, Entry &entry, bool priority)
++	{
++		entry.requested = frame;
++		if (entry.queued || entry.failed || entry.texture)
++			return;
++		std::lock_guard lock(mutex);
++		if (requests.size() == MAX_REQUESTS)
++			return;
++		if (priority)
++			requests.push_front({preview, entry.expression});
++		else
++			requests.push_back({preview, entry.expression});
++		entry.queued = true;
++		wake.notify_one();
++	}
++
++	ITexture *resolve(ITexture *preview)
++	{
++		auto it = entries.find(preview);
++		if (it == entries.end())
++			return preview;
++
++		auto &entry = it->second;
++		if (entry.last_draw != frame) {
++			entry.last_draw = frame;
++			enqueue(preview, entry, true);
++			if (entry.animation) {
++				const auto &frames = *entry.animation;
++				for (u32 i = 1; i <= ANIMATION_LOOKAHEAD && i < frames.size(); ++i) {
++					auto *next = frames[(entry.animation_index + i) % frames.size()];
++					auto candidate = entries.find(next);
++					if (candidate != entries.end())
++						enqueue(next, candidate->second, false);
++				}
++			}
++		}
++		if (!entry.texture)
++			return preview;
++		if (!entry.logged) {
++			entry.logged = true;
++			const auto size = entry.texture->getSize();
++			verbosestream << "World detail bound " << size.Width << 'x' << size.Height
++					<< " " << entry.expression << '\n';
++		}
++		return entry.texture;
++	}
++
++	void evict(Entry &entry)
++	{
++		if (!entry.texture)
++			return;
++		driver->removeTexture(entry.texture);
++		resident_bytes -= entry.bytes;
++		entry.texture = nullptr;
++		entry.bytes = 0;
++	}
++
++	void step()
++	{
++		++frame;
++		Result result{};
++		{
++			std::lock_guard lock(mutex);
++			if (decoded.empty())
++				return;
++			result = std::move(decoded.front());
++			decoded.pop_front();
++			wake.notify_one();
++		}
++
++		auto it = entries.find(result.preview);
++		if (it == entries.end())
++			return;
++		auto &entry = it->second;
++		entry.queued = false;
++		if (frame - entry.requested > 120)
++			return;
++		if (!result.image) {
++			entry.failed = true;
++			verbosestream << "World detail could not compose " << entry.expression << '\n';
++			return;
++		}
++
++		const auto size = result.image->getDimension();
++		const u64 bytes = (u64(size.Width) * size.Height * 16 + 2) / 3;
++		const auto preview_size = result.preview->getOriginalSize();
++		const double aspect = double(size.Width) * preview_size.Height /
++				(double(size.Height) * preview_size.Width);
++		const auto max_size = driver->getLimits().MaxTextureSize;
++		if (!size.Width || !size.Height || size.Width > max_size || size.Height > max_size ||
++				bytes > GPU_BUDGET || std::abs(aspect - 1.0) > 0.025) {
++			entry.failed = true;
++			verbosestream << "World detail incompatible dimensions " << size.Width << 'x' << size.Height
++					<< " for " << preview_size.Width << 'x' << preview_size.Height
++					<< " " << entry.expression << '\n';
++			return;
++		}
++
++		while (resident_bytes + bytes > GPU_BUDGET) {
++			Entry *oldest = nullptr;
++			for (auto &pair : entries) {
++				auto &candidate = pair.second;
++				if (candidate.texture && (!oldest || candidate.last_draw < oldest->last_draw))
++					oldest = &candidate;
++			}
++			if (!oldest || (oldest->last_draw && frame - oldest->last_draw < 2))
++				return;
++			evict(*oldest);
++			++evictions;
++		}
++
++		// GPU creation stays on the render thread. The name is separate from the
++		// ordinary media so its cache and its existing users are unaffected.
++		const std::string name = "__xz_world_detail_" + std::to_string(++texture_number);
++		entry.texture = driver->addTexture(name.c_str(), result.image.get());
++		if (!entry.texture || entry.texture->getSize() != size) {
++			if (entry.texture)
++				driver->removeTexture(entry.texture);
++			entry.texture = nullptr;
++			entry.failed = true;
++			warningstream << "World detail: full size upload failed for " << entry.expression << '\n';
++			return;
++		}
++		entry.bytes = bytes;
++		resident_bytes += bytes;
++		peak_resident_bytes = std::max(peak_resident_bytes, resident_bytes);
++		++uploads;
++	}
++
++	IVideoDriver *const driver;
++	const std::string game_path;
++	const std::string detail_path;
++	std::unordered_map<std::string, MaterialFile> files;
++	std::unordered_map<std::string, std::string> previews;
++	std::unordered_map<ITexture *, Entry> entries;
++	std::unordered_map<std::string, std::vector<ITexture *>> animations;
++	u64 frame = 1;
++	u64 resident_bytes = 0;
++	u64 texture_number = 0;
++	u64 uploads = 0;
++	u64 evictions = 0;
++	u64 peak_resident_bytes = 0;
++	bool attached = false;
++
++	std::thread worker;
++	std::mutex mutex;
++	std::condition_variable wake;
++	std::deque<Request> requests;
++	std::deque<Result> decoded;
++	bool stop = false;
++};
++
++WorldDetail::WorldDetail(std::unique_ptr<State> state) : m_state(std::move(state))
++{}
++WorldDetail::~WorldDetail() = default;
++
++std::unique_ptr<WorldDetail> WorldDetail::create(IVideoDriver *driver, const std::string &path)
++{
++	if (path.empty())
++		return {};
++	auto state = std::make_unique<State>(driver, path);
++	if (!state->readIndex())
++		return {};
++	auto *impl = state.get();
++	state->attached = driver->setMaterialTextureResolver([impl](ITexture *preview) {
++		return impl->resolve(preview);
++	});
++	if (!state->attached)
++		return {};
++	try {
++		state->worker = std::thread([impl] { impl->work(); });
++	} catch (const std::system_error &e) {
++		warningstream << "World detail: could not start decoder: " << e.what() << '\n';
++		return {};
++	}
++	actionstream << "World detail: " << state->files.size()
++			<< " native materials; " << (GPU_BUDGET / (1024 * 1024))
++			<< " MiB detail texture budget\n";
++	return std::unique_ptr<WorldDetail>(new WorldDetail(std::move(state)));
++}
++
++bool WorldDetail::hasSource(const std::string &expression) const
++{
++	return m_state->findFirstSource(expression);
++}
++
++void WorldDetail::add(ITexture *preview, const std::string &expression,
++		const std::set<std::string> &sources)
++{
++	// Small particle crops are sprites, not a surface to stream.
++	const auto preview_size = preview ? preview->getOriginalSize() : core::dimension2du();
++	if (!preview || std::max(preview_size.Width, preview_size.Height) <= 8 || expression.size() > 8192 ||
++			std::none_of(sources.begin(), sources.end(), [&](const auto &name) {
++				return m_state->files.count(name) > 0;
++			}))
++		return;
++	auto [it, inserted] = m_state->entries.try_emplace(preview);
++	if (!inserted)
++		return;
++	auto &entry = it->second;
++	entry.expression = expression;
++	if (auto animation = findAnimationFrame(expression)) {
++		std::string group = expression;
++		group.erase(animation->index_start, animation->end - animation->index_start);
++		auto &frames = m_state->animations[group];
++		frames.resize(animation->count);
++		frames[animation->index] = preview;
++		entry.animation = &frames;
++		entry.animation_index = animation->index;
++	}
++	verbosestream << "World detail registered " << expression << '\n';
++#ifndef __ANDROID__
++	// Opt-in verification uses the same composer without scheduling GPU uploads.
++	static const bool audit = std::getenv("XZ_WORLD_DETAIL_AUDIT") != nullptr;
++	if (audit) {
++		auto image = m_state->compose(expression);
++		const auto old_size = preview->getOriginalSize();
++		const auto size = image ? image->getDimension() : core::dimension2du();
++		actionstream << "World detail audit " << size.Width << 'x' << size.Height
++				<< " (preview " << old_size.Width << 'x' << old_size.Height
++				<< ") " << expression << '\n';
++	}
++#endif
++}
++
++void WorldDetail::invalidate(ITexture *preview)
++{
++	auto it = m_state->entries.find(preview);
++	if (it == m_state->entries.end())
++		return;
++	m_state->evict(it->second);
++	m_state->entries.erase(it);
++}
++
++void WorldDetail::step()
++{
++	m_state->step();
++}
+diff --git a/src/client/worlddetail.h b/src/client/worlddetail.h
+new file mode 100644
+index 0000000..9348282
+--- /dev/null
++++ b/src/client/worlddetail.h
+@@ -0,0 +1,33 @@
++// Luanti
++// SPDX-License-Identifier: LGPL-2.1-or-later
++#pragma once
++
++#include <memory>
++#include <set>
++#include <string>
