@@ -40,6 +40,18 @@ int main() {
     assert(Sys_WaitForSingleObjectTimeout(&initial_auto,0));
     assert(!Sys_WaitForSingleObjectTimeout(&initial_auto,0));
     assert(!Sys_WaitForSingleObjectTimeout(&automatic,0));
+    // A finite unsignaled wait must time out, not accidentally act like INFINITE.
+    auto timeout_start=std::chrono::steady_clock::now();
+    assert(!Sys_WaitForSingleObjectTimeout(&automatic,25));
+    auto timeout_elapsed=std::chrono::steady_clock::now()-timeout_start;
+    assert(timeout_elapsed>=std::chrono::milliseconds(15));
+    assert(timeout_elapsed<std::chrono::seconds(2));
+    // Win32 auto-reset events are binary, not counting semaphores:
+    // repeated SetEvent calls before a wait coalesce into one wakeup.
+    Sys_SetEvent(&automatic);
+    Sys_SetEvent(&automatic);
+    assert(Sys_WaitForSingleObjectTimeout(&automatic,0));
+    assert(!Sys_WaitForSingleObjectTimeout(&automatic,0));
     Sys_SetEvent(&automatic);
     assert(Sys_WaitForSingleObjectTimeout(&automatic,0));
     assert(!Sys_WaitForSingleObjectTimeout(&automatic,0));
