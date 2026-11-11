@@ -1,0 +1,999 @@
+diff --git a/android/app/build.gradle b/android/app/build.gradle
+index 04b2fbc..ed63765 100644
+--- a/android/app/build.gradle
++++ b/android/app/build.gradle
+@@ -3,7 +3,7 @@ apply plugin: 'com.android.application'
+ android {
+ 	ndkVersion "$ndk_version"
+ 	defaultConfig {
+-		applicationId 'net.minetest.minetest'
++		applicationId 'com.xziel.voxelsandbox.ak47combatv9'
+ 		minSdkVersion 21
+ 		compileSdk = 36
+ 		targetSdkVersion 36
+@@ -44,7 +44,7 @@ android {
+ 		abi {
+ 			enable true
+ 			reset()
+-			include 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
++			include 'arm64-v8a'
+ 		}
+ 	}
+ 
+@@ -131,3 +131,17 @@ dependencies {
+ 	implementation project(':native')
+ 	implementation 'androidx.appcompat:appcompat:1.7.1'
+ }
++
++
++// Ship VoxeLibre inside the initial APK, no ContentDB download required.
++tasks.named('prepareAssets') {
++    doLast {
++        copy {
++            from "${projRoot}/games/voxelibre"
++            into "${assetsFolder}/games/voxelibre"
++            exclude ".git/**"
++        }
++    }
++}
++
++android { buildTypes { release { signingConfig signingConfigs.debug } } }
+diff --git a/android/app/src/main/AndroidManifest.xml b/android/app/src/main/AndroidManifest.xml
+index ffe5b8d..6271a7c 100644
+--- a/android/app/src/main/AndroidManifest.xml
++++ b/android/app/src/main/AndroidManifest.xml
+@@ -55,7 +55,7 @@
+ 		<!-- FIXME: we can probably drop this and use the documents provider to share files -->
+ 		<provider
+ 			android:name="androidx.core.content.FileProvider"
+-			android:authorities="net.minetest.minetest.fileprovider"
++			android:authorities="com.xziel.voxelsandbox.ak47combatv9.fileprovider"
+ 			android:grantUriPermissions="true"
+ 			android:exported="false">
+ 			<meta-data
+@@ -65,7 +65,7 @@
+ 
+ 		<provider
+             android:name=".LuantiDocumentsProvider"
+-            android:authorities="net.minetest.minetest.documents"
++            android:authorities="com.xziel.voxelsandbox.ak47combatv9.documents"
+             android:exported="true"
+             android:grantUriPermissions="true"
+             android:permission="android.permission.MANAGE_DOCUMENTS">
+diff --git a/android/app/src/main/java/net/minetest/minetest/GameActivity.java b/android/app/src/main/java/net/minetest/minetest/GameActivity.java
+index 1ddc5ad..4691f16 100644
+--- a/android/app/src/main/java/net/minetest/minetest/GameActivity.java
++++ b/android/app/src/main/java/net/minetest/minetest/GameActivity.java
+@@ -232,7 +232,7 @@ public class GameActivity extends SDLActivity {
+ 			return;
+ 		}
+ 
+-		Uri fileUri = FileProvider.getUriForFile(this, "net.minetest.minetest.fileprovider", file);
++		Uri fileUri = FileProvider.getUriForFile(this, "com.xziel.voxelsandbox.ak47combatv9.fileprovider", file);
+ 
+ 		Intent intent = new Intent(Intent.ACTION_SEND, fileUri);
+ 		intent.setDataAndType(fileUri, getContentResolver().getType(fileUri));
+diff --git a/android/app/src/main/java/net/minetest/minetest/UnzipService.java b/android/app/src/main/java/net/minetest/minetest/UnzipService.java
+index 4a4fdab..73e0241 100644
+--- a/android/app/src/main/java/net/minetest/minetest/UnzipService.java
++++ b/android/app/src/main/java/net/minetest/minetest/UnzipService.java
+@@ -155,6 +155,7 @@ public class UnzipService extends IntentService {
+ 				}
+ 				publishProgress(notificationBuilder, R.string.loading, 100 * ++per / size);
+ 				File destFile = new File(userDataDirectory, ze.getName());
++				Utils.createDirs(destFile.getParentFile(), "");
+ 				try (OutputStream outputStream = new FileOutputStream(destFile)) {
+ 					while ((readLen = zipInputStream.read(readBuffer)) != -1) {
+ 						outputStream.write(readBuffer, 0, readLen);
+diff --git a/android/app/src/main/res/values/strings.xml b/android/app/src/main/res/values/strings.xml
+index 8b8bc62..d9fe709 100644
+--- a/android/app/src/main/res/values/strings.xml
++++ b/android/app/src/main/res/values/strings.xml
+@@ -1,6 +1,6 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <resources>
+-	<string name="label">Luanti</string>
++	<string name="label">AK47 COD4 Combat V9.1</string>
+ 	<string name="loading">Loading&#8230;</string>
+ 	<string name="notification_channel_name">General notification</string>
+ 	<string name="notification_channel_description">Notifications from Luanti</string>
+diff --git a/android/build.gradle b/android/build.gradle
+index 4e3308c..912d08e 100644
+--- a/android/build.gradle
++++ b/android/build.gradle
+@@ -5,7 +5,7 @@ project.ext.set("versionMinor", 18)     // Version Minor
+ project.ext.set("versionPatch", 0)      // Version Patch
+ // ^ keep in sync with cmake
+ 
+-project.ext.set("versionBuild", 0)      // Version Build
++project.ext.set("versionBuild", 13)      // Version Build
+ // ^ fourth version number to allow releasing Android-only fixes and beta versions
+ 
+ buildscript {
+diff --git a/android/native/build.gradle b/android/native/build.gradle
+index 4e24bf9..acfd2b2 100644
+--- a/android/native/build.gradle
++++ b/android/native/build.gradle
+@@ -30,12 +30,13 @@ android {
+ 		abi {
+ 			enable true
+ 			reset()
+-			include 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
++			include 'arm64-v8a'
+ 		}
+ 	}
+ 
+ 	buildTypes {
+ 		release {
++			externalNativeBuild { cmake { arguments "-DCMAKE_BUILD_TYPE=Release" } }
+ 			ndk {
+ 				debugSymbolLevel 'FULL'
+ 			}
+diff --git a/builtin/mainmenu/init.lua b/builtin/mainmenu/init.lua
+index eca3c40..43038ba 100644
+--- a/builtin/mainmenu/init.lua
++++ b/builtin/mainmenu/init.lua
+@@ -30,6 +30,7 @@ dofile(menupath .. DIR_DELIM .. "dlg_config_world.lua")
+ dofile(basepath .. "common" .. DIR_DELIM .. "settings" .. DIR_DELIM .. "init.lua")
+ dofile(menupath .. DIR_DELIM .. "dlg_confirm_exit.lua")
+ dofile(menupath .. DIR_DELIM .. "dlg_create_world.lua")
++dofile(menupath .. DIR_DELIM .. "dlg_zmap_world.lua")
+ dofile(menupath .. DIR_DELIM .. "dlg_delete_content.lua")
+ dofile(menupath .. DIR_DELIM .. "dlg_delete_world.lua")
+ dofile(menupath .. DIR_DELIM .. "dlg_register.lua")
+diff --git a/builtin/mainmenu/tab_local.lua b/builtin/mainmenu/tab_local.lua
+index 1c318fd..3bdc7e5 100644
+--- a/builtin/mainmenu/tab_local.lua
++++ b/builtin/mainmenu/tab_local.lua
+@@ -212,7 +212,7 @@ local function get_formspec(tabview, name, tabdata)
+ 				"button[3.325,0;3.225,0.8;world_configure;".. fgettext("Select Mods") .. "]"
+ 	end
+ 	retval = retval ..
+-			"button[6.65,0;3.225,0.8;world_create;".. fgettext("New") .. "]" ..
++			"button[6.65,0;3.225,0.8;world_create;Survival (New)]" ..
+ 			"container_end[]" ..
+ 			"container[0.375,0.375]" ..
+ 			creative ..
+@@ -266,6 +266,7 @@ local function get_formspec(tabview, name, tabdata)
+ 				"button[10.1875,5.925;4.9375,0.8;play;" .. fgettext("Play Game") .. "]"
+ 	end
+ 
++	retval = retval .. "button[0.375,6.0;4.55,0.85;zmap_create;Create Map]"
+ 	return retval
+ end
+ 
+@@ -399,6 +400,14 @@ local function main_button_handler(this, fields, name, tabdata)
+ 		return true
+ 	end
+ 
++	if fields["zmap_create"] ~= nil then
++		local dlg = create_zmap_world_dlg()
++		dlg:set_parent(this)
++		this:hide()
++		dlg:show()
++		return true
++	end
++
+ 	if fields["world_create"] ~= nil then
+ 		this.dlg_create_world_closed_at = 0
+ 		local create_world_dlg = create_create_world_dlg()
+diff --git a/irr/include/SkinnedMesh.h b/irr/include/SkinnedMesh.h
+index ab10033..a8b9a95 100644
+--- a/irr/include/SkinnedMesh.h
++++ b/irr/include/SkinnedMesh.h
+@@ -61,6 +61,9 @@ class SkinnedMesh : public IAnimatedMesh
+ 	bool needsHwSkinning() const override { return !UseSwSkinning && HasWeights; }
+ 
+ 	bool useSoftwareSkinning() const { return UseSwSkinning; }
++	void setSkinPoseCache(bool enabled) { CacheSkinPose=enabled;LastSkinPose.clear(); }
++	u64 getSkinPosePasses() const { return SkinPosePasses; }
++	u64 getSkinPoseHits() const { return SkinPoseHits; }
+ 
+ 	//! Turns the given array of local matrices into an array of global matrices
+ 	//! by multiplying with respective parent matrices.
+@@ -377,6 +380,9 @@ class SkinnedMesh : public IAnimatedMesh
+ 	bool HasWeights = false;
+ 	bool PreparedForSkinning = false;
+ 	bool UseSwSkinning = false;
++	bool CacheSkinPose = false;
++	std::vector<core::matrix4> LastSkinPose;
++	u64 SkinPosePasses=0,SkinPoseHits=0;
+ 
+ 	SourceFormat SrcFormat;
+ };
+diff --git a/irr/src/AnimatedMeshSceneNode.cpp b/irr/src/AnimatedMeshSceneNode.cpp
+index 01fdc07..76b47e7 100644
+--- a/irr/src/AnimatedMeshSceneNode.cpp
++++ b/irr/src/AnimatedMeshSceneNode.cpp
+@@ -153,6 +153,7 @@ void AnimatedMeshSceneNode::render()
+ 		if (transparent == isTransparentPass) {
+ 			scene::IMeshBuffer *mb = Mesh->getMeshBuffer(i);
+ 			const video::SMaterial &material = ReadOnlyMaterials ? mb->getMaterial() : Materials[i];
++            if(material.ColorMask==video::ECP_NONE && material.ZWriteEnable==video::EZW_OFF) continue;
+ 			if (RenderFromIdentity)
+ 				driver->setTransform(video::ETS_WORLD, core::IdentityMatrix);
+ 			else if (Mesh->getMeshType() == EAMT_SKINNED)
+diff --git a/irr/src/SkinnedMesh.cpp b/irr/src/SkinnedMesh.cpp
+index 9b21ad7..831fc70 100644
+--- a/irr/src/SkinnedMesh.cpp
++++ b/irr/src/SkinnedMesh.cpp
+@@ -57,6 +57,7 @@ void SkinnedMesh::prepareForAnimation(u16 max_hw_joints)
+ 
+ void SkinnedMesh::updateStaticPose()
+ {
++	LastSkinPose.clear();
+ 	if (!UseSwSkinning)
+ 		return;
+ 	for (auto *buf : LocalBuffers) {
+@@ -67,6 +68,7 @@ void SkinnedMesh::updateStaticPose()
+ 
+ void SkinnedMesh::resetAnimation()
+ {
++	LastSkinPose.clear();
+ 	if (!UseSwSkinning)
+ 		return;
+ 	for (auto *buf : LocalBuffers) {
+@@ -179,6 +181,13 @@ void SkinnedMesh::skinMesh(const std::vector<core::matrix4> &global_matrices)
+ {
+ 	if (!IsAnimatable)
+ 		return;
++	if (CacheSkinPose && LastSkinPose.size()==global_matrices.size() &&
++		std::equal(global_matrices.begin(),global_matrices.end(),LastSkinPose.begin(),
++			[](const auto &a,const auto &b) { return std::equal(a.pointer(),a.pointer()+16,b.pointer()); })) {
++		++SkinPoseHits;return;
++	}
++	if (CacheSkinPose) LastSkinPose=global_matrices;
++	++SkinPosePasses;
+ 
+ 	// Premultiply with global inversed matrices, if present
+ 	// (which they should be for joints with weights)
+@@ -263,6 +272,7 @@ void SkinnedMesh::setHardwareMappingHint(E_HARDWARE_MAPPING newMappingHint,
+ //! flags the meshbuffer as changed, reloads hardware buffers
+ void SkinnedMesh::setDirty(E_BUFFER_TYPE buffer)
+ {
++	LastSkinPose.clear();
+ 	for (u32 i = 0; i < LocalBuffers.size(); ++i)
+ 		LocalBuffers[i]->setDirty(buffer);
+ }
+diff --git a/src/client/camera.cpp b/src/client/camera.cpp
+index a1b9848..53d1e71 100644
+--- a/src/client/camera.cpp
++++ b/src/client/camera.cpp
+@@ -12,6 +12,17 @@
+ #include "client/content_cao.h"
+ #include "settings.h"
+ #include "wieldmesh.h"
++#include "AnimatedMeshSceneNode.h"
++#include "client/texturesource.h"
++#include "client/shader.h"
++#include "SkinnedMesh.h"
++#include "IBillboardSceneNode.h"
++#include "ak47_weapon_params.h"
++#include "weapon_bridge.h"
++#include "native_attachment_override.h"
++#include "weapon_hud.h"
++#include "gui/touchcontrols.h"
++#include <cstdlib>
+ #include "noise.h"         // easeCurve
+ #include "mtevent.h"
+ #include "nodedef.h"
+@@ -540,8 +551,14 @@ void Camera::update(LocalPlayer* player, f32 frametime, f32 tool_reload_ratio)
+ 		wield_position.X -= std::sin(bobfrac*M_PI*2.0) * 3.0;
+ 		wield_position.Y += std::sin(my_modf(bobfrac*2.0)*M_PI) * 3.0;
+ 	}
+-	m_wieldnode->setPosition(wield_position);
+-	m_wieldnode->setRotation(wield_rotation);
++	if (weapon_bridge::supports(m_wield_item_next.name) &&
++			m_camera_mode == CAMERA_MODE_FIRST) {
++		updateAK47Viewmodel(frametime);
++	} else {
++		updateAK47Viewmodel(frametime); // restore normal tools
++		m_wieldnode->setPosition(wield_position);
++		m_wieldnode->setRotation(wield_rotation);
++	}
+ 
+ 	m_player_light_color = player->light_color;
+ 	m_wieldnode->setLightColorAndAnimation(m_player_light_color,
+@@ -599,10 +616,160 @@ void Camera::setDigging(s32 button)
+ 	}
+ }
+ 
++
++void Camera::updateAK47Viewmodel(f32 frametime)
++{
++    const f32 dt=std::max(0.0f,frametime);
++    const auto &name=m_wield_item_next.name;
++    const bool equipped=weapon_bridge::supports(name),advanced=weapon_bridge::advanced(name),pistol=weapon_bridge::pistol(name);
++    std::string attachment,mode;
++    m_wield_item_next.metadata.getStringToRef("xz_ak_attachment",attachment);
++    m_wield_item_next.metadata.getStringToRef("xz_ak_mode",mode);
++    auto spec=weapon_bridge::profile(name,attachment,mode);
++    std::string extra_model,extra_texture,extra_key,extra_fov,extra_in,extra_out;
++    std::string extra_scope,extra_reflex,extra_silenced,extra_grenade,extra_reticle,extra_reticle_size;
++    auto extra=[&](const char *field,std::string &value){m_wield_item_next.metadata.getStringToRef(field,value);};
++    extra("xz_ak_model",extra_model);extra("xz_ak_texture",extra_texture);extra("xz_ak_native_key",extra_key);
++    extra("xz_ak_fov",extra_fov);extra("xz_ak_ads_in",extra_in);extra("xz_ak_ads_out",extra_out);
++    extra("xz_ak_grenade",extra_grenade);extra("xz_ak_scope",extra_scope);extra("xz_ak_reflex",extra_reflex);extra("xz_ak_silenced",extra_silenced);
++    extra("xz_ak_reticle",extra_reticle);extra("xz_ak_reticle_size",extra_reticle_size);
++    const bool custom=equipped && extra_key==attachment &&
++        weapon_bridge::extra_asset(name,extra_model,".glb") && weapon_bridge::extra_asset(name,extra_texture,".png");
++    const std::string extra_id=name+":"+attachment+":"+extra_model;
++    if(custom) {
++        spec.id=extra_id.c_str();spec.model=extra_model.c_str();spec.texture=extra_texture.c_str();
++        spec.fov=weapon_bridge::extra_number(extra_fov,spec.fov,10.f,85.f);
++        spec.ads_in=weapon_bridge::extra_number(extra_in,spec.ads_in,.03f,2.f);
++        spec.ads_out=weapon_bridge::extra_number(extra_out,spec.ads_out,.03f,2.f);
++        spec.grenade=extra_grenade=="1";spec.scope=extra_scope=="1";spec.reflex=extra_reflex=="1";spec.silenced=extra_silenced=="1";
++    }
++    const auto &recoil=weapon_bridge::recoil(name,attachment,mode);
++    if(g_touchcontrols) {
++        g_touchcontrols->setWeaponAttachmentsAvailable(equipped,equipped && (attachment.find("gp25")!=std::string::npos || attachment.find("gl")!=std::string::npos));
++        const int action=g_touchcontrols->consumeWeaponAction();
++        if(equipped && action) m_client->sendChatMessage(action==1 ? L"/akattachments" : L"/akalt");
++    }
++    if(!equipped || m_camera_mode!=CAMERA_MODE_FIRST) {
++        if(m_ak47_viewmodel)m_ak47_viewmodel->setVisible(false);
++        m_wieldnode->setVisible(true);m_ak47_action_left=0;m_ak47_ads_alpha=0;m_ak47_hd_active=false;
++        m_ak47_source_recoil.reset();m_ak47_kickback.reset();m_ak47_flash_left=0;
++        if(m_ak47_reticle)m_ak47_reticle->setVisible(false);
++        if(m_ak47_muzzle_flash)m_ak47_muzzle_flash->setVisible(false);
++        return;
++    }
++    if(m_ak47_variant!=spec.id) {
++        if(m_ak47_viewmodel)m_ak47_viewmodel->remove();
++        m_ak47_viewmodel=nullptr;m_ak47_muzzle_flash=nullptr;m_ak47_reticle=nullptr;m_ak47_scope_texture=nullptr;
++        m_ak47_variant=spec.id;m_ak47_mesh_attempted=false;m_ak47_hd_active=false;m_ak47_hd_clip.clear();
++        m_ak47_action_left=0;m_ak47_ads_alpha=0;m_ak47_source_recoil.reset();m_ak47_kickback.reset();m_ak47_flash_left=0;
++    }
++    m_ak47_clock+=dt;
++    if(!m_ak47_viewmodel && (!m_ak47_mesh_attempted || m_ak47_clock>1.f)) {
++        m_ak47_mesh_attempted=true;m_ak47_clock=0;
++        scene::IAnimatedMesh *mesh=m_client->getMesh(spec.model);
++        if(mesh) {
++            if(auto *skin=dynamic_cast<scene::SkinnedMesh*>(mesh))skin->setSkinPoseCache(true);
++            if(mesh->getTrackNumber("ak47_ads_hold") && mesh->getTrackNumber("viewmodel_ak47_reload")) {
++                m_ak47_viewmodel=m_wieldmgr->addAnimatedMeshSceneNode(mesh);
++                auto *textures=m_client->getTextureSource();
++                if(spec.scope)m_ak47_scope_texture=textures->getTexture(weapon_bridge::scope_texture(name,attachment));
++                for(const char *texture:{"ak47dev_tracer.png","ak47dev_bullet_mark.png","ak47dev_impact.png","ak47dev_trail.png","ak47dev_blast.png","ak47dev_dust.png","ak47dev_grenade.png"})textures->getTextureForMesh(texture);
++                for(const char *model:{"ak47dev_tracer.obj","ak47dev_bullet_mark.obj","ak47dev_grenade.obj"})if(auto *effect=m_client->getMesh(model))effect->drop();
++                auto *shaders=m_client->getShaderSource();ShaderFeatures features;features.skinning=mesh->needsHwSkinning();
++                const u32 rifle_shader=shaders->getShaderRaw("ak47_lit_model_shader",false,features),hands_shader=shaders->getShaderRaw("ak47_lit_skin_shader",false,features);
++                for(u32 i=0;m_ak47_viewmodel && i<m_ak47_viewmodel->getMaterialCount();++i) {
++                    auto &material=m_ak47_viewmodel->getMaterial(i);const u32 slot=mesh->getTextureSlot(i);
++                    material.MaterialType=shaders->getShaderInfo(slot==1 ? hands_shader : rifle_shader).material;
++                    material.BackfaceCulling=false;
++                    if(!custom && !weapon_bridge::buffer_enabled(name,attachment,mode,i)){material.ColorMask=video::ECP_NONE;material.ZWriteEnable=video::EZW_OFF;}
++                    material.setTexture(0,textures->getTextureForMesh(slot==1 ? weapon_bridge::hands(name) : spec.texture));
++                }
++                if(auto *muzzle=m_ak47_viewmodel->getJointNode("rifle:tag_flash")) {
++                    m_ak47_muzzle_flash=m_wieldmgr->addBillboardSceneNode(muzzle,core::dimension2df(pistol ? 2.3f : 4.f,pistol ? 2.3f : 4.f));
++                    if(m_ak47_muzzle_flash) {
++                        auto &mat=m_ak47_muzzle_flash->getMaterial(0);mat.MaterialType=video::EMT_TRANSPARENT_ALPHA_CHANNEL;mat.ZWriteEnable=video::EZW_OFF;mat.BackfaceCulling=false;mat.setTexture(0,textures->getTextureForMesh("ak47dev_muzzle.png"));m_ak47_muzzle_flash->setVisible(false);
++                    }
++                }
++                if(spec.reflex) if(auto *anchor=m_ak47_viewmodel->getJointNode("rifle:optic_reticle")) {
++                    const float reticle_size=custom ? weapon_bridge::extra_number(extra_reticle_size,.065f,.01f,2.f) : .065f;
++                    m_ak47_reticle=m_wieldmgr->addBillboardSceneNode(anchor,core::dimension2df(reticle_size,reticle_size));
++                    if(m_ak47_reticle) {
++                        auto &mat=m_ak47_reticle->getMaterial(0);mat.MaterialType=video::EMT_TRANSPARENT_ALPHA_CHANNEL;mat.ZWriteEnable=video::EZW_OFF;mat.BackfaceCulling=false;mat.setTexture(0,textures->getTextureForMesh(custom && weapon_bridge::extra_asset(name,extra_reticle,".png") ? extra_reticle : "ak47dev_red_dot.png"));m_ak47_reticle->setVisible(false);
++                    }
++                }
++                m_ak47_viewmodel->setScale(v3f(1,1,1));
++                infostream<<"[weapon_bridge] native model "<<spec.model<<" tracks="<<mesh->getTrackCount()<<std::endl;
++            }
++            mesh->drop();
++        }
++    }
++    m_wieldnode->setVisible(false);
++    if(!m_ak47_viewmodel)return;
++    std::string flag,event,empty,ammo,fired_text,action_clip;
++    m_wield_item_next.metadata.getStringToRef("xz_ak_ads",flag);m_wield_item_next.metadata.getStringToRef("xz_ak_anim",event);
++    m_wield_item_next.metadata.getStringToRef("xz_ak_empty",empty);m_wield_item_next.metadata.getStringToRef("xz_ak_ammo",ammo);
++    m_wield_item_next.metadata.getStringToRef("xz_ak_fired",fired_text);m_wield_item_next.metadata.getStringToRef("xz_ak_clip",action_clip);
++    const u32 fired=static_cast<u32>(std::strtoul(fired_text.c_str(),nullptr,10));const bool empty_weapon=advanced && !spec.grenade && ammo=="0";
++    if(!m_ak47_hd_active){m_ak47_last_event=!event.empty() && (event[0]=='T' || (advanced && event[0]=='E')) ? "" : event;m_ak47_last_fired=fired;m_ak47_hd_active=true;}
++    const f32 target=flag=="1" ? 1.f : 0.f;
++    const f32 step=dt/std::max(.001f,target>m_ak47_ads_alpha ? spec.ads_in : spec.ads_out);
++    m_ak47_ads_alpha=target>m_ak47_ads_alpha ? std::min(target,m_ak47_ads_alpha+step) : std::max(target,m_ak47_ads_alpha-step);
++    m_ak47_source_recoil.advance(recoil,m_ak47_ads_alpha,dt);m_ak47_kickback.advance(dt);m_ak47_flash_left=std::max(0.f,m_ak47_flash_left-dt);
++    const f32 horizontal=(75.f+(spec.fov-75.f)*m_ak47_ads_alpha)*M_PI/180.f;
++    m_fov_x=horizontal;m_fov_y=2.f*std::atan(std::tan(horizontal*.5f)/m_aspect);m_cameranode->setFOV(m_fov_y);m_cameranode->updateMatrices();
++    m_ak47_hd_elapsed+=dt;m_ak47_action_left=std::max(0.f,m_ak47_action_left-dt);auto *mesh=m_ak47_viewmodel->getMesh();
++    auto begin_action=[&](const std::string &clip,f32 fallback) {
++        m_ak47_hd_action=clip;const auto id=mesh->getTrackNumber(clip);m_ak47_hd_duration=id ? mesh->getMaxFrameNumber(*id) : fallback;
++        m_ak47_action_left=m_ak47_hd_duration;m_ak47_hd_elapsed=0;
++    };
++    if(!event.empty() && event!=m_ak47_last_event) {
++        m_ak47_last_event=event;
++        switch(event[0]) {
++        case 'E':
++            m_ak47_action_left=0;m_ak47_source_recoil.reset();m_ak47_kickback.reset();
++            if(advanced)begin_action(empty_weapon ? "weapon_raise_empty" : "weapon_raise",29.f/30.f);
++            break;
++        case 'T':begin_action("ak47_switch",.8f);break;
++        case 'B':begin_action(action_clip.empty() ? "weapon_bolt" : action_clip,.5f);break;
++        case 'R':
++            m_ak47_source_recoil.reset();m_ak47_kickback.reset();m_ak47_flash_left=0;
++            begin_action(action_clip.empty() ? (empty=="1" ? "viewmodel_ak47_reload_empty" : "viewmodel_ak47_reload") : action_clip,2.7f);break;
++        case 'F': {
++            const bool aim=m_ak47_ads_alpha>.5f;
++            begin_action(empty_weapon ? (aim ? "weapon_ads_lastshot" : "weapon_lastshot") : (aim ? "ak47_ads_fire" : "viewmodel_ak47_fire"),.1667f);
++            m_ak47_hd_elapsed=ak47::first_fire_sample(dt,m_ak47_hd_duration);break;
++        }
++        }
++    }
++    const u32 shots=fired>=m_ak47_last_fired ? std::min(8u,fired-m_ak47_last_fired) : 0;
++    if(shots){m_ak47_source_recoil.fire(recoil,m_ak47_ads_alpha,shots);m_ak47_kickback.fire(m_ak47_ads_alpha,shots);m_ak47_flash_left=spec.silenced ? 0.f : .045f;}
++    m_ak47_last_fired=fired;
++    m_ak47_viewmodel->setPosition(v3f(0,0,-m_ak47_kickback.offset));m_ak47_viewmodel->setRotation(v3f(m_ak47_source_recoil.pitch,-m_ak47_source_recoil.yaw,0));
++    if(m_ak47_muzzle_flash)m_ak47_muzzle_flash->setVisible(m_ak47_flash_left>0);
++    if(m_ak47_reticle)m_ak47_reticle->setVisible(m_ak47_ads_alpha>.8f);
++    const bool scoped=spec.scope && m_ak47_ads_alpha>.985f;m_ak47_viewmodel->setVisible(!scoped);
++    if(scoped)return; // Skip hidden track/pose/skin work during scoped fire.
++    std::string clip;f32 fraction=0;
++    if(m_ak47_action_left>0){clip=m_ak47_hd_action;fraction=std::min(1.f,m_ak47_hd_elapsed/std::max(.001f,m_ak47_hd_duration));}
++    else if(empty_weapon && (m_ak47_ads_alpha<.0001f || m_ak47_ads_alpha>.9999f)){clip=target>.5f ? "weapon_ads_lastshot" : "weapon_lastshot";fraction=1;}
++    else if(m_ak47_ads_alpha>.0001f && m_ak47_ads_alpha<.9999f){clip=target>.5f ? "ak47_ads_enter" : "ak47_ads_exit";fraction=target>.5f ? m_ak47_ads_alpha : 1.f-m_ak47_ads_alpha;}
++    else clip=m_ak47_ads_alpha>.5f ? "ak47_ads_hold" : "ak47_hip_idle";
++    const auto id=mesh->getTrackNumber(clip);if(!id)return;auto &animation=m_ak47_viewmodel->getAnimation();
++    if(m_ak47_hd_clip!=clip){animation.tracks.clear();m_ak47_hd_clip=clip;auto &track=animation.tracks[*id];track.setFrameRange(0.f,mesh->getMaxFrameNumber(*id));track.fps=0;track.loop=false;track.blend_duration=.04f;}
++    animation.tracks[*id].cur_frame=fraction*mesh->getMaxFrameNumber(*id);
++}
++
+ void Camera::wield(const ItemStack &item, bool animate)
+ {
+ 	if (item.name != m_wield_item_next.name ||
+ 			item.metadata != m_wield_item_next.metadata) {
++		// AK visual packets arrive every shot/reload. Keep 3D meshes
++		// loaded without rebuilding or playing generic equip animation.
++		if (weapon_bridge::supports(item.name) &&
++				m_wield_item_next.name == item.name) {
++			m_wield_item_next = item;
++			return;
++		}
+ 		m_wield_item_next = item;
+ 
+ 		if (!animate) {
+@@ -617,16 +784,45 @@ void Camera::wield(const ItemStack &item, bool animate)
+ 	}
+ }
+ 
++bool Camera::isAK47Aiming() const { return weapon_bridge::supports(m_wield_item_next.name) && m_camera_mode==CAMERA_MODE_FIRST && m_ak47_ads_alpha>.02f; }
++bool Camera::isAK47Scoped() const { return isAK47Aiming() && m_ak47_scope_texture && m_ak47_ads_alpha>.985f; }
++
++f32 Camera::getWeaponCrosshairOpacity() const
++{
++    return weapon_hud::crosshair_opacity(m_ak47_ads_alpha,
++            weapon_bridge::supports(m_wield_item_next.name),
++            m_camera_mode == CAMERA_MODE_FIRST);
++}
++
+ void Camera::drawWieldedTool(core::matrix4* translation)
+ {
++ if(isAK47Scoped()) {
++  auto *driver=RenderingEngine::get_video_driver(); const auto size=driver->getScreenSize();
++  const s32 d=std::min(size.Width,size.Height),x=(s32(size.Width)-d)/2,y=(s32(size.Height)-d)/2;
++  const video::SColor black(255,0,0,0);
++  driver->draw2DRectangle(black,core::recti(0,0,x,size.Height));
++  driver->draw2DRectangle(black,core::recti(x+d,0,size.Width,size.Height));
++  driver->draw2DRectangle(black,core::recti(x,0,x+d,y));
++  driver->draw2DRectangle(black,core::recti(x,y+d,x+d,size.Height));
++  const auto tex=m_ak47_scope_texture->getOriginalSize();
++  driver->draw2DImage(m_ak47_scope_texture,core::recti(x,y,x+d,y+d),core::recti(0,0,tex.Width,tex.Height),nullptr,nullptr,true);
++  return;
++ }
++
+ 	// Clear Z buffer so that the wielded tool stays in front of world geometry
+ 	m_wieldmgr->getVideoDriver()->clearBuffers(video::ECBF_DEPTH);
+ 
+ 	// Draw the wielded node (in a separate scene manager)
+ 	scene::ICameraSceneNode* cam = m_wieldmgr->getActiveCamera();
+ 	cam->setAspectRatio(m_cameranode->getAspectRatio());
+-	cam->setFOV(72.0*M_PI/180.0);
+-	cam->setNearValue(10);
++	if (weapon_bridge::supports(m_wield_item_next.name) && m_ak47_viewmodel) {
++		const f32 horizontal = m_fov_x;
++		cam->setFOV(2.0f * std::atan(std::tan(horizontal * 0.5f) / cam->getAspectRatio()));
++		cam->setNearValue(0.25f);
++	} else {
++		cam->setFOV(72.0*M_PI/180.0);
++		cam->setNearValue(10);
++	}
+ 	cam->setFarValue(1000);
+ 	if (translation != NULL)
+ 	{
+diff --git a/src/client/camera.h b/src/client/camera.h
+index 03e4f19..facbcec 100644
+--- a/src/client/camera.h
++++ b/src/client/camera.h
+@@ -3,9 +3,11 @@
+ // Copyright (C) 2010-2013 celeron55, Perttu Ahola <celeron55@gmail.com>
+ 
+ #pragma once
++namespace video { class ITexture; }
+ 
+ #include "irrlichttypes.h"
+ #include "inventory.h" // ItemStack
++#include "ak47_motion.h"
+ #include "util/basic_macros.h"
+ #include "util/numeric.h"
+ #include <plane3d.h>
+@@ -18,6 +20,7 @@ struct MapDrawControl;
+ class Client;
+ class RenderingEngine;
+ class WieldMeshSceneNode;
++namespace scene { class AnimatedMeshSceneNode; class IBillboardSceneNode; }
+ 
+ enum CameraMode : int;
+ 
+@@ -181,12 +184,16 @@ class Camera
+ 
+ 	inline void addArmInertia(f32 player_yaw);
+ 
++    bool isAK47Aiming() const;
++    bool isAK47Scoped() const;
++    f32 getWeaponCrosshairOpacity() const;
+ private:
+ 	// Use getFrustumCuller().
+ 	// This helper just exists to decrease the header's number of includes.
+ 	std::array<core::plane3d<f32>, 4> getFrustumCullPlanes() const;
+ 
+ 	void updateWieldedTool();
++	void updateAK47Viewmodel(f32 frametime);
+ 
+ 	// Nodes
+ 	scene::ISceneNode *m_playernode = nullptr;
+@@ -195,6 +202,29 @@ class Camera
+ 
+ 	scene::ISceneManager *m_wieldmgr = nullptr;
+ 	WieldMeshSceneNode *m_wieldnode = nullptr;
++	// APK V3.2 experimental AK first-person camera-owned renderer.
++	scene::AnimatedMeshSceneNode *m_ak47_viewmodel = nullptr;
++	bool m_ak47_mesh_attempted = false;
++	bool m_ak47_animated = false;
++	bool m_ak47_action_reload = false;
++	f32 m_ak47_ads_alpha = 0.0f;
++	f32 m_ak47_action_left = 0.0f;
++	f32 m_ak47_clock = 0.0f;
++	f32 m_ak47_recoil = 0.0f;
++	std::string m_ak47_last_event;
++    std::string m_ak47_variant;
++    video::ITexture *m_ak47_scope_texture=nullptr;
++    scene::IBillboardSceneNode *m_ak47_reticle=nullptr;
++	bool m_ak47_hd_active = false;
++	f32 m_ak47_hd_elapsed = 0.0f;
++	f32 m_ak47_hd_duration = 0.0f;
++	std::string m_ak47_hd_action;
++	std::string m_ak47_hd_clip;
++	ak47::GunRecoil m_ak47_source_recoil;
++	u32 m_ak47_last_fired=0;
++	ak47::Kickback m_ak47_kickback;
++	scene::IBillboardSceneNode *m_ak47_muzzle_flash=nullptr;
++	f32 m_ak47_flash_left=0.0f;
+ 
+ 	// draw control
+ 	MapDrawControl& m_draw_control;
+diff --git a/src/client/game.cpp b/src/client/game.cpp
+index f901556..f7fbcf4 100644
+--- a/src/client/game.cpp
++++ b/src/client/game.cpp
+@@ -2705,7 +2705,7 @@ void Game::processPlayerInteraction(f32 dtime, bool show_hud)
+ 	}
+ 	shootline.end = shootline.start + camera_direction * BS * d;
+ 
+-	if (isTouchShootlineUsed()) {
++	if (isTouchShootlineUsed() || camera->isAK47Aiming()) {
+ 		shootline = g_touchcontrols->getShootline();
+ 		// Scale shootline to the acual distance the player can reach
+ 		shootline.end = shootline.start +
+@@ -3696,7 +3696,7 @@ void Game::drawScene(ProfilerGraph *graph, RunStats *stats)
+ 			(player->hud_flags & HUD_FLAG_CROSSHAIR_VISIBLE) &&
+ 			(this->camera->getCameraMode() != CAMERA_MODE_THIRD_FRONT));
+ 
+-	if (isTouchShootlineUsed())
++	if (isTouchShootlineUsed() || camera->isAK47Aiming())
+ 		draw_crosshair = false;
+ 
+ 	this->m_rendering_engine->draw_scene(sky_color, this->m_game_ui->m_flags.show_hud,
+diff --git a/src/client/gameui.cpp b/src/client/gameui.cpp
+index 29408ff..a65a3bb 100644
+--- a/src/client/gameui.cpp
++++ b/src/client/gameui.cpp
+@@ -85,6 +85,10 @@ void GameUI::update(const RunStats &stats, Client *client, MapDrawControl *draw_
+ 
+ 	LocalPlayer *player = client->getEnv().getLocalPlayer();
+ 
++	// AK47_REAL_FPS_METER: always show genuine smoothed render FPS.
++	// The previous new StaticText control was hidden on the test phone.
++	m_flags.show_minimal_debug = true;
++	m_flags.show_basic_debug = false; // no pos/yaw/pitch/seed overlay
+ 	s32 minimal_debug_height = 0;
+ 
+ 	// Minimal debug text must only contain info that can't give a gameplay advantage
+@@ -107,10 +111,24 @@ void GameUI::update(const RunStats &stats, Client *client, MapDrawControl *draw_
+ 			<< (draw_control->range_all ? "All" : itos(draw_control->wanted_range))
+ 			<< std::setprecision(2)
+ 			<< " | RTT: " << (client->getRTT() * 1000.0f) << "ms";
+-
+-		m_guitext->setRelativePosition(core::rect<s32>(5, 5, screensize.X, screensize.Y));
+-
+-		setStaticText(m_guitext, utf8_to_wide(os.str()));
++		const auto &skin_stats=RenderingEngine::get_video_driver()->getFrameStats();
++		os << "\nSkin GPU: " << skin_stats.HWSkinnedMeshes << " | CPU: "
++			<< skin_stats.SWSkinnedMeshes << " | triangles: " << skin_stats.PrimitivesDrawn;
++
++		// Right-anchored using the actual window dimension on rotation.
++		m_guitext->setRelativePosition(core::rect<s32>(
++			std::max<s32>(0, static_cast<s32>(screensize.X) - 235),
++			12, static_cast<s32>(screensize.X) - 14, 65));
++		m_guitext->setTextAlignment(gui::EGUIA_LOWERRIGHT, gui::EGUIA_UPPERLEFT);
++		m_guitext->setOverrideColor(video::SColor(255, 255, 235, 122));
++
++		// Show only the frame rate, not the original long debug line.
++		std::ostringstream meter;
++		if (stats.dtime_jitter.avg > 0.0001f && stats.dtime_jitter.avg < 10.0f)
++			meter << "FPS: " << static_cast<int>(1.0f / stats.dtime_jitter.avg + 0.5f);
++		else
++			meter << "FPS: --";
++		setStaticText(m_guitext, utf8_to_wide(meter.str()));
+ 
+ 		minimal_debug_height = m_guitext->getTextHeight();
+ 	}
+@@ -153,7 +171,8 @@ void GameUI::update(const RunStats &stats, Client *client, MapDrawControl *draw_
+ 		setStaticText(m_guitext2, utf8_to_wide(os.str()).c_str());
+ 	}
+ 
+-	m_guitext2->setVisible(m_flags.show_basic_debug);
++	// Suppress world/debug telemetry permanently; keep only upper-right FPS.
++	m_guitext2->setVisible(false);
+ 
+ 	setStaticText(m_guitext_info, m_infotext.c_str());
+ 	m_guitext_info->setVisible(m_flags.show_hud && g_menumgr.menuCount() == 0);
+diff --git a/src/client/hud.cpp b/src/client/hud.cpp
+index 3bcde6f..c27100a 100644
+--- a/src/client/hud.cpp
++++ b/src/client/hud.cpp
+@@ -16,6 +16,7 @@
+ #include "shader.h"
+ #include "localplayer.h"
+ #include "camera.h"
++#include "weapon_hud.h"
+ #include "fontengine.h"
+ #include "guiscalingfilter.h"
+ #include "mesh.h"
+@@ -486,11 +487,18 @@ void Hud::drawLuaElements(const v3s16 &camera_offset, bool only_unhidable)
+ 				[[fallthrough]];
+ 			}
+ 			case HUD_ELEM_IMAGE: {
++				u32 alpha = 255;
++				if (e->name == weapon_hud::managed_crosshair_name) {
++					const f32 opacity = client->getCamera()->getWeaponCrosshairOpacity();
++					if (opacity <= 0.0f)
++						continue;
++					alpha = core::round32(opacity * 255.0f);
++				}
+ 				video::ITexture *texture = tsrc->getTexture(e->text);
+ 				if (!texture)
+ 					continue;
+ 
+-				const video::SColor color(255, 255, 255, 255);
++				const video::SColor color(alpha, 255, 255, 255);
+ 				const video::SColor colors[] = {color, color, color, color};
+ 				core::dimension2di imgsize(texture->getOriginalSize());
+ 				v2s32 dstsize(imgsize.Width * e->scale.X * m_scale_factor,
+diff --git a/src/defaultsettings.cpp b/src/defaultsettings.cpp
+index d0e0562..7c1c358 100644
+--- a/src/defaultsettings.cpp
++++ b/src/defaultsettings.cpp
+@@ -556,7 +556,7 @@ void set_default_settings()
+ 	settings->setDefault("touch_long_tap_delay", "400");
+ 	settings->setDefault("fixed_virtual_joystick", "false");
+ 	settings->setDefault("virtual_joystick_triggers_aux1", "false");
+-	settings->setDefault("touch_interaction_style", "tap");
++	settings->setDefault("touch_interaction_style", "buttons_crosshair");
+ 	settings->setDefault("touch_punch_gesture", "short_tap");
+ 	settings->setDefault("clickable_chat_weblinks", "true");
+ 
+diff --git a/src/gui/touchcontrols.cpp b/src/gui/touchcontrols.cpp
+index 363da65..29aa12a 100644
+--- a/src/gui/touchcontrols.cpp
++++ b/src/gui/touchcontrols.cpp
+@@ -318,6 +318,13 @@ void TouchControls::applyLayout(const ButtonLayout &layout)
+ 			m_guienv->addStaticText(L"", recti(), false, false));
+ 	m_status_text->setVisible(false);
+ 
++    const s32 gap=std::max(6,m_button_size/10),top=std::max(gap,s32(m_screensize.Y/10));
++    m_weapon_acc_rect=recti(s32(m_screensize.X)-m_button_size-gap,top,s32(m_screensize.X)-gap,top+m_button_size);
++    m_weapon_alt_rect=m_weapon_acc_rect; m_weapon_alt_rect-=v2s32(m_button_size+gap,0);
++    auto *acc=m_guienv->addImage(m_weapon_acc_rect,nullptr,-1);loadButtonTexture(acc,"attachments_btn.png");
++    auto *alt=m_guienv->addImage(m_weapon_alt_rect,nullptr,-1);loadButtonTexture(alt,"ak_alt_btn.png");
++    m_weapon_acc=grab_gui_element<IGUIImage>(acc);m_weapon_alt=grab_gui_element<IGUIImage>(alt);
++
+ 	// applyLayout can be called at any time, also e.g. while the overflow menu
+ 	// is open, so this is necessary to restore correct visibility.
+ 	updateVisibility();
+@@ -451,6 +458,19 @@ void TouchControls::translateEvent(const SEvent &event)
+ 	if (event.EventType != EET_TOUCH_INPUT_EVENT)
+ 		return;
+ 
++    const size_t weapon_pointer=event.TouchInput.ID;
++    if(m_weapon_pointers.count(weapon_pointer)) {
++        if(event.TouchInput.Event==ETIE_LEFT_UP)m_weapon_pointers.erase(weapon_pointer);
++        return;
++    }
++    if(event.TouchInput.Event==ETIE_PRESSED_DOWN && m_weapon_available && !m_overflow_open) {
++        const v2s32 pos(event.TouchInput.X,event.TouchInput.Y);
++        if(m_weapon_acc_rect.isPointInside(pos) || (m_weapon_launcher && m_weapon_alt_rect.isPointInside(pos))) {
++            m_weapon_action=m_weapon_acc_rect.isPointInside(pos) ? 1 : 2;
++            m_weapon_pointers.insert(weapon_pointer);return;
++        }
++    }
++
+ 	const s32 half_button_size = m_button_size / 2.0f;
+ 	const s32 fixed_joystick_range_sq = half_button_size * half_button_size * 3 * 3;
+ 	const s32 X = event.TouchInput.X;
+@@ -701,6 +721,10 @@ void TouchControls::toggleOverflowMenu()
+ void TouchControls::updateVisibility()
+ {
+ 	bool regular_visible = m_visible && !m_overflow_open;
++    if(m_weapon_acc)m_weapon_acc->setVisible(regular_visible && m_weapon_available);
++    if(m_weapon_alt)m_weapon_alt->setVisible(regular_visible && m_weapon_available && m_weapon_launcher);
++    if(!m_visible){m_weapon_pointers.clear();m_weapon_action=0;}
++
+ 	for (auto &button : m_buttons)
+ 		button.gui_button->setVisible(regular_visible);
+ 	m_overflow_btn->setVisible(regular_visible);
+diff --git a/src/gui/touchcontrols.h b/src/gui/touchcontrols.h
+index 3885f6f..e09fca1 100644
+--- a/src/gui/touchcontrols.h
++++ b/src/gui/touchcontrols.h
+@@ -1,3 +1,4 @@
++#include <set>
+ // Luanti
+ // SPDX-License-Identifier: LGPL-2.1-or-later
+ // Copyright (C) 2014 sapier
+@@ -114,6 +115,11 @@ class TouchControls
+ 	void registerHotbarRect(u16 index, const recti &rect);
+ 	std::optional<u16> getHotbarSelection();
+ 
++    void setWeaponAttachmentsAvailable(bool available,bool launcher) {
++        if(m_weapon_available==available && m_weapon_launcher==launcher)return;
++        m_weapon_available=available;m_weapon_launcher=launcher;updateVisibility();
++    }
++    int consumeWeaponAction() { int a=m_weapon_action;m_weapon_action=0;return a; }
+ 	bool isStatusTextOverridden() { return m_overflow_open; }
+ 	IGUIStaticText *getStatusText() { return m_status_text.get(); }
+ 
+@@ -123,6 +129,12 @@ class TouchControls
+ 	IEventReceiver *m_receiver = nullptr;
+ 	ISimpleTextureSource *m_texturesource = nullptr;
+ 	bool m_visible = true;
++    bool m_weapon_available=false,m_weapon_launcher=false;
++    int m_weapon_action=0;
++    std::set<size_t> m_weapon_pointers;
++    std::shared_ptr<IGUIImage> m_weapon_acc,m_weapon_alt;
++    recti m_weapon_acc_rect,m_weapon_alt_rect;
++
+ 
+ 	// changes to these two values are handled in TouchControls::step
+ 	v2u32 m_screensize;
+diff --git a/src/network/networkprotocol.h b/src/network/networkprotocol.h
+index 82bd28d..608824d 100644
+--- a/src/network/networkprotocol.h
++++ b/src/network/networkprotocol.h
+@@ -19,10 +19,11 @@ extern const u16 FORMSPEC_API_VERSION;
+ // (applies to all media files, not just textures)
+ #define TEXTURENAME_ALLOWED_CHARS "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.-"
+ 
+-// Due to our network protocol the maximum window size determines the maximum
+-// media size we can safely allow. See the comment and check in Connection::Send().
+-// This is a bit lower to include safety margin.
+-#define MEDIAFILE_MAX_SIZE (16700000U)
++// Decoded media may be larger than a reliable network payload. Protocol 48+
++// compresses each file before sending; sendRequestedMedia checks the final
++// packet against the unchanged MTP transfer budget before Connection::Send.
++#define MEDIAFILE_MAX_SIZE (32U * 1024U * 1024U)
++#define MEDIAFILE_TRANSFER_MAX_SIZE (16700000U)
+ 
+ typedef u16 session_t;
+ 
+diff --git a/src/server.cpp b/src/server.cpp
+index a0b186f..9327808 100644
+--- a/src/server.cpp
++++ b/src/server.cpp
+@@ -2946,6 +2946,16 @@ void Server::sendRequestedMedia(session_t peer_id,
+ 		}
+ 		bunch.clear(); // free memory early
+ 
++		// Bound the serialized wire packet, not the decoded model. Never pass
++		// an oversized reliable payload into the MTP fatal-error path.
++		if (pkt.getSize() > MEDIAFILE_TRANSFER_MAX_SIZE) {
++			warningstream << "Server: media packet exceeds transfer budget for peer "
++				<< peer_id << ": " << pkt.getSize() << std::endl;
++			DenyAccess(peer_id, SERVER_ACCESSDENIED_CUSTOM_STRING,
++				"Media transfer is too large. A client with compressed media support is required.");
++			return;
++		}
++
+ 		verbosestream << "Server::sendRequestedMedia(): bunch "
+ 				<< i << "/" << num_bunches
+ 				<< " files=" << bunch_size
+diff --git a/textures/base/pack/aux1_btn.png b/textures/base/pack/aux1_btn.png
+index 8ceb09542b1ab7d92a6a9fb0f836200e3118ae0b..bbfcc5af54fc7ca91981f81bd18fb16ee3ba3ee7 100644
+GIT binary patch
+literal 1235
+zcmeAS@N?(olHy`uVBq!ia0vp^4Is?H1|$#LC7xzrV43CV;uumf=k48050ONf;~!_5
+zioF%`x}oc_n}5lt7Yh!HJ3j2LQoi_FWAUN|FBEP?a5-*xA+TtX_}&hMT{=yRP8hxQ
+z6>yXa;+(ov@Tc0Ph+ww6Z+oS08|^NBbLR7#H}Ah!Uf0>-|M~wr<HuU7tyBYQq7@_T
+zZgMN^lwh!6W9VaSkXC=>dF!@ySXafon2@-*Z>P?#U%%^PECc&Hx#i6TCJcOWGRvI`
+zRDkq6ALkPm4917ce_KsEeaCM9HfDn;iS~Ck=I3^<Ww@l<(p)}&^7H#e3@hi&X%;`<
+z85vQf+;RB4-pX^kr_L_AY~65A{ON<u?RS6PsMDSS6fb+8sKrn>|GjV8vor~Y?RD=j
+z%<c|knWoPuQ&+axYW^0+g4gGHUp~voWPh;wzO+oGe8c*GcP3@cTUO4n@7La=Z}$Aq
+zPJ96L#a)I;>&5T<+pAfbSM{Co4&wnsh5{Z28D@s#3=}cvOxQ23aQpT2+}TYB9UAW?
+zA3l6|@!!A9w~n8`yFWTQ{>$ARSFgxQ%E$=rb&GsZ-tgzopFIf%0RdanLLXH8cyVdk
+zv-Yd1M~@1puJ;!C!7#~pzL-pWytv-<y?lWR%qv#sznEcIeQ~ZO_w;*f??rt6;`{sd
+z{LcRHwXw1ve*YDC&i2TDX4kUJi{IsU{gOT(Uo*eLMql55u0f*Bk-vf^427#!{rmp@
+z#DfPX*2n*ywd5%WYha~T-TwRL>EG6PvVVK4>uXc@`PyCmP1jVUQW(?^E!-shFkt4r
+zWdB*w`{r9+zM)y+dC7rofx1|?rn>+9*LzBSdQE?`wc|*2gW;-GS__ri#ophG-0ko!
+z%B6{C!Mc457pLT924CIv>iGG2+y8ph=#)Hp@F-REX>jUVUy~CIBCdgpE@r&R_Rmkb
+zKJTx7byc<U$H#W_{cXjp_P9K|<<i8f;CFe;i<`%|-wXBYu3w`OwQ<iTk887Bn)n?8
+zMV=l!?0&!Q%U51ix!aMubN8+J+HnMEq@<*5Z|vT(zrl|-^1i<AJ3n&LZ+np>hU9hk
+zcijE^{QQOe^31<$>`IS+Tl+a>ohJ*ML0ZCt?bk})*ZDu%s5?75O-#)1+v%vu9J}hx
+zC&-J<weCqfDNBV^fjwQ#$zwP<UuohWP2nfJX?8DLtwEXVTnWP-o{H|9l}mXV=JQO8
+z4mx}Jl4`^52J?uS!M7N8a6f4)Dc({ed?Hq1cjVmuM24!b22F34n2Rrty>o@{fOn($
+z%$c*_erMdlog%*b^M$_~GFJN^l69Krlb)2x?(x-ir}T-3N4PIt;!F5)By9eiH-(@6
+z+~zuvAy_8nbnK4B^KHx>#+&~dv;79<R7v&)8hh9$XkHeduFQDEkfm_Wtx#EBg+9d{
+z$6uaasm-X8Ebwh-?SB;&hEs8WrW!!9&v)_jH4W)?GZrfW3o8asS3j3^P6<r_e*`Nt
+
+delta 1646
+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
+
+diff --git a/textures/base/pack/dig_btn.png b/textures/base/pack/dig_btn.png
+index d612d1134b21cb2d313540707e08d42df9778f23..4b3564d6930efefc79fd17687fccbabe44d2a28b 100644
+GIT binary patch
+literal 1322
+zcmb_c`BTz)82%`EgGtkr2b*R&CAv|T$CyAA<W;1S;}!~KDw{4=n%An!x7^a!(zQ&}
+zQga-yn(&;&u)@}IJ*iA7!NpioJW{@ksi^r~oZbIm_lNg+pPA=}_n7y2uLaP(F{ak0
+z004}y4>d@ap|vnJ)ZuTW(>(yJgMF!#<H`3vk1)UA7=r7Bi+rsVm8SUVq0EkGd=|Co
+zO>?u``h(eo$^hEZ&Y>U*<&BTZZ?~cT*$D?bZeF-QwgX?AkN2w#T(<YK-GKiipyFCq
+z%7bf4&+WqWiO15@QR9u{y+t47vzoDv5#lr=<U~p8C$ocGt6eWg*04bBOCZ_<&ZB|M
+zEYQn`%|>DZz32|z5!U>kHeT2(Autc!@`hrJfiiM)YAk+UCu)Dlh&7Hh8s#iDiqG6W
+zGOw}m1a(&~s1#kv{f7(!qPODO((KC+k)D9)VPs3hHW|-REHZ5gvEtNUv*YCZp@EV(
+zHH=Lpm6J`!)PFimd!-qO7PMVTPHd^(`Ke>()vd`ii^YwikDbid+I%#`<VEgu?L4p_
+zu)lWMDdWMjC8unuSNbeS`?4cjo&txwSQ{Wm@4a}lZ1q+b$-R0C%z#l#;9&@I^q@2U
+zjqbXM5bSEmd{)Yi5_%u3Nm^b)R;EV!W)}*cq<eEhkcQb@xh5WAFc?kSwp9#0HA0CA
+z?A7!|Wo_xD1{k)on!1jf0d9kXgTWIQqv@Kf5=Q1Qi6u>iWmUt)#o7lF2Q!qqey(y(
+z)}QnE`eefI8+sT}NxE5K0#bF>I>D)cpqliOy}xrpC{Sz0+~qz+RcF5|xXoy#TM1Ab
+z8=RezrshlXX11~AcoHi(xKe!A-5pCPxNixe!X(JTxUPvJj`*-MttStU4Q^?Pv>BE*
+zV(4V))0R)e1df=z3HHzxaw>SfqIgCWhHSP);CIK?f0dCQB>a+}1tOeW1#H4RNjs;R
+zvB44?UC<&LsZ2uBPWRZzal}OLFDE1Xr~uFBCxl5FAAS3!HI&4glg`d8wPNH3+mGv(
+z#N&=kmX6)HyK5zJqI*D57Rg+Y)Sc^fP84$A?tys9xYm`5_VR`j;XLaboVB$R&K-S-
+ze1}+n_|tGiIB+Y7{Paw<IvE8wR3+T-XK_!qPzQ^3f_Z=Geq?b%t&V^jaua`G*G3av
+z92EAuqxUv7X>D`L1Z7-qEdiIh{OE>%;owj&Z{MPPqMiRv>U(sc`AIN_Q&nBfF(9-!
+z%k)C;d8GV!Dm?rzInU4yeF#x!aO-M9Z=unmmnv2K!|`5m#>>vfu_@<1ytra^Bsk_~
+zJB(nIg|ra!x)X6mpz~i7;ZXlC9k+zOGPh65T_|0n<9AsC)Y>_x8HolCG%l7D#(<Tm
+z`fi1r_&_z7(eJW|pgW*OcLiAa_3cs9?2;}en|a!b!M(}T>tN-+&2?ciiMfbDanTkr
+zRboAXS%?4o6px=yTzqZx(Y&1Ay4R!`B^Yr`Lb+1g>`<QpYdvnR-4T~3=GB0<P1vZd
+z%A>F1w|GMOWGVTK@v(UgGZ7TOiUGH~(=V8q+=sSOz2EWi`yl<RcDbs7+I%o=Nlk97
+lE3-F&6xq)=82;nMRl{=0+d}qrIA8YzfiI0t<sUqC`ENK0VhsQQ
+
+literal 2067
+zcmcJQ`#%%<AICpqY0At!G*MHn%LyecWG<aZCk~|!of&diX<HZ;YikLKBD7rQT2aSk
+z<j6u+IEaJVNG_X6uFEAm>q6UczJI{?r|<WN_xt^LydTfU>-FRFhUbZ+@C}9=003||
+zR~N6f%lLO-Dr>vta6lIT>xbN298bm!ea!O<MV``czaU8V(K%RQk~FZfcpDR4Y{K*^
+zuNc3{OtNld_?~pBVAdu3Hrn}gTtn>s=Bcx;2!TsZLKN$+cpl5L{3$0kV$|KL^S9^>
+zBZXrB&hLk^*=%;ou&I2LJl@`RnccP8gAsl0$u9q7N6L~avJ4$TnI@EB3QQp;s=y7n
+zDq*$29gy~ac@eflI7MEMB-J@=Hf`IHmD4YUh!=KoO}XK}&X=Y4ZdsM#*|DS}82V!h
+z9oul}V<nf%wHkT4?%C#NWUdnD2UZuAMx(V`T3JmNg^M1B(j%(R?6q0(=?Kwk_RsUd
+z#h9#5Oi0k1$ml$G?`<h%UgU+=c@^+M?QwInXfqNiy|*c>ckKCI$)+^AwM&^FOBa-s
+zl;C1xS1hUn3CcW`a9PD*Oep86_p2#iY4;6I+^sG4h8w}%of3Kdq3{XV+({QUtmOiS
+znhcTv1D=pzc&wzz1{oxMd|wqC9sTqzpC7@zH_+ezff5xp02MEaTZB@n6#8k^7eE2e
+zd3Uwu=;!S0Y-A;umQF2K0o2c)uz`*a*I)}EmB}vmpZ|mLbFe>lCE$1M*_H+Vm;A2Z
+zo_KfjoygODTL)4#?DhdQFl~^n8rR+O=wX^jIU^&38lpY9F?6*%5G>L%{evcG22!P?
+zHA_oNfgLbwlQrJk+uJ~zw;|E(%EI(C9`)M5ZYN<2dSM~5JI{X5>_EW|$XIQ{2VRGF
+zoknI?@GbINRmS_K1Gj6_#bPmLI4E5f>9oS?n;B1Y_p7~G`}0Khh5bNqc_e~~%4ttT
+zWrD?zL7kmK;h*^dQ-1rzT8HSil52aij!7<E>?kE`0X#Kfbb7KX@|Y_f2kt#Eev|L)
+z{P!;*Y3?@n{YMKw>J1t^I6dDOmDyxG(@Vxg-2u}z>RXYmGe=U0d%|_iZ`QJkD#DPg
+zTl-I@E%c~d6t$glDXiwouXOHH%~iwZUrAb`*0_q$;FdBEb9s+*X{3B)<ge|>JZq}~
+z0^Ei!deTUI_rW$}uJE)ty*D2Uh_&9iyZD9>a$_l~Gxl0@z@Q=+kH;S-#iwBCqRo8b
+z9>eHYkO@}oZN=~$s2Dm2dR(aLg~(Hzml>&5wQ6T!JU=<<b3jt}x=(V<q~}U9+bJ%_
+zYNffEFef!uBJYm8zQC6T39`))cORU(pIX{v#_<B=B?TWNX@KGI`c><(RT0}}pf7vs
+z6<9sNE`q5>!G3nPxy7*#SCfR*y{M~d+6^{PELxnSIq!kiLBhe*((M_bg5*|E!i0fS
+zzLqw|f}?-TW=5JZ5E<^z%(;)+Wic+OC(uFB4q`tMuLcS)NcL@sJs2BpG(}>;O)u@y
+zn_-p0v8b1E4o3>0hVgYTguW0B1W=z+kUQY<9;C{Eg)rIvr-JdbsS7K`vzbsJ3y-JV
+z&ay^7T;2<e&ZvKnvNZR5soi&zKvJ!81^V@lt&wkjZ4svSZaOHjZ|kdW(5o}RUbeXi
+zV0x2Z_Bm8)2%^-NIbY%O`H<eDm`_%~rCDXOzul(A2cQhW<AzGU;{Fo0e>u$Z2`IfX
+z5~_J=v~EX*(j<$~SE8o;-dmlh8j)oJiXmf-a-)R)^MxS}T9n!K&KAVn@8vjljy~)e
+zV=GZOCm~;FTAm<;z!)$PQ^-%Cyi2lUXs(gZm7<4;XPkg%u6_nbz1Ub?_@A^tdy<9+
+zErj2{al9QOpD#8YIKj?Q!)|=|BydrJdQ+eaUIR{IbBHn1*puoY5g^z<=C}UB1e`6`
+zWZfpG;jSy5Kmg$x&BMA28jITUzgcLuEZ;?g_p;-FmEt<Q3(P8GLl!+g7ygu@aEqO7
+zcQ{&aOI)kq`95F3mx7dYy7aGTFbe_pt-1_*%jDh^nvL9T+?Is~!(3~PaVSv-EP=7Q
+z^Dp2<lD}bP$8D$5Ug!afZbE>n5?LF?h>}|;;(E3Ig^=Gc$WpE^Nn4x~ZTQGr8`SFr
+z%NgsPF1ijkeizh*DLLlRF%ttrDydrYbLM_EHz0VAng*Ixjovct<w<~L*Jzq0&0kj!
+zCu|s|R-P$;9}-5cJw$&8#+=IC;$P`GZ^OBPF?3%LBGqdo&M`<a5X!y-u!F@o4NBFG
+zcgysvZ(r9Jq+cDKWA)>Bfvw6~1PCvJCTm5s*?>0-Bo*M+whNr_&u?#8<vY34ZS~<z
+zW7|7S#|4@y;BL6~yy2v-HiHtGKSGl?C`0j-63QokYSl&%W#FDFVDYz$0}B()8qLFR
+z5X2+}U9)yCYZ>G^;TXqFEqS-M>Nanfp%2cbMS0}ah=+`1hXH3hft@Bh!;U4kQ0NCe
+zMNM*t<S+5OuO!9U`*cmz|ITj*nZOeT`|rB+F$D@GduQFY@!#3GYqAG!M^3m@I^miB
+E0PIGbcmMzZ
+
+diff --git a/textures/base/pack/place_btn.png b/textures/base/pack/place_btn.png
+index f834e62c4e5cca2bec421633addbe8bba16d673f..da3655e7d5d8a961e7c4bc1eae83ceb698be1fac 100644
+GIT binary patch
+literal 2372
+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
+Y+kE4(9<7zk+l~Ok>!$jZR~@7O1r;51$N&HU
