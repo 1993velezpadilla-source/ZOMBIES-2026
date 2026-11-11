@@ -186,6 +186,14 @@ void __cdecl Sys_CreateThread(void(__cdecl* function)(uint32_t), ThreadContext_t
         (LPVOID)threadContext,
         4u,
         &threadId[threadContext]);
+    // CreateThread can fail. Do not retain a callback for a thread that
+    // does not exist: a later retry must be allowed to register it again.
+    if (!threadHandle[threadContext])
+    {
+        threadFunc[threadContext] = nullptr;
+        threadId[threadContext] = 0;
+        return;
+    }
     SetThreadName(threadId[threadContext], s_threadNames[threadContext]);
 }
 
