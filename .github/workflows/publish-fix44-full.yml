@@ -1,0 +1,80 @@
+name: Publish FIX44 FULL APK from split archive
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-fix44-full.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  rebuild-and-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 80
+    env:
+      LINK_01: 'https://sdmntprcentralus.oaiusercontent.com/files/00000000-fc18-81f5-85bc-a379d200ac38/raw?se=2026-11-11T05%3A05%3A43Z&sp=r&sv=2026-06-06&sr=b&scid=ef1348a8-92ea-5316-b632-bc735bc28220&skoid=a1be202a-6464-476c-a496-723317c4a4db&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T02%3A34%3A30Z&ske=2026-11-12T02%3A34%3A30Z&sks=b&skv=2026-06-06&sig=rTjBmUljTX6EB8puGmrRWO2RXTDh09TEPY6bUY9XRm4%3D'
+      LINK_02: 'https://sdmntpreastus2.oaiusercontent.com/files/00000000-ab08-81f6-89e7-36164d4f8de5/raw?se=2026-11-11T05%3A05%3A33Z&sp=r&sv=2026-06-06&sr=b&scid=c0ada7d4-361a-57ae-87fb-9529ce786da2&skoid=dd316919-ffbf-4550-9c54-dfc99f412009&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T00%3A52%3A26Z&ske=2026-11-12T00%3A52%3A26Z&sks=b&skv=2026-06-06&sig=EqeV4Uezk0UA2rcOiudlCobyLw6m8VPskjnGPCOW3Ko%3D'
+      LINK_03: 'https://sdmntprnorthcentralus.oaiusercontent.com/files/00000000-25f8-822f-b8e5-8047ab4c76dc/raw?se=2026-11-11T05%3A05%3A33Z&sp=r&sv=2026-06-06&sr=b&scid=d7b133e8-0129-5eae-a84c-0030bf4c3f8e&skoid=bbd22fc4-f881-4ea4-b2f3-c12033cf6a8b&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T01%3A05%3A27Z&ske=2026-11-12T01%3A05%3A27Z&sks=b&skv=2026-06-06&sig=U6Uig3BTa34lPxlwsR2prLWTLv6fSS9ByNJi/X%2Bkkpc%3D'
+      LINK_04: 'https://sdmntprcentralus.oaiusercontent.com/files/00000000-0610-81f5-92f7-23a2d88177e6/raw?se=2026-11-11T05%3A05%3A35Z&sp=r&sv=2026-06-06&sr=b&scid=f6ef9b2e-04a5-5b12-b53c-19a8504eba37&skoid=a1be202a-6464-476c-a496-723317c4a4db&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T02%3A24%3A54Z&ske=2026-11-12T02%3A24%3A54Z&sks=b&skv=2026-06-06&sig=SnpOCR0v1l2m1JbkfGXSaUd5QMsiNrAlFo%2B/m0K3SL4%3D'
+      LINK_05: 'https://sdmntpreastus3.oaiusercontent.com/files/00000000-b090-8212-8c8d-7394a3f37d7d/raw?se=2026-11-11T05%3A05%3A35Z&sp=r&sv=2026-06-06&sr=b&scid=eceff576-62bc-5176-a73f-364cb9dca79e&skoid=c953efd6-2ae8-41b4-a6d6-34b1475ac07c&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T00%3A41%3A32Z&ske=2026-11-12T00%3A41%3A32Z&sks=b&skv=2026-06-06&sig=G6DmYj72mk1Zr%2BsfsKsQcxKHLHivZNn27sYiHrou1SA%3D'
+      LINK_06: 'https://sdmntpreastus2.oaiusercontent.com/files/00000000-bc48-81f6-a3bd-86c88eee3f2a/raw?se=2026-11-11T05%3A05%3A38Z&sp=r&sv=2026-06-06&sr=b&scid=03f88ac0-3788-50bd-8682-92d20becb680&skoid=dd316919-ffbf-4550-9c54-dfc99f412009&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T00%3A46%3A20Z&ske=2026-11-12T00%3A46%3A20Z&sks=b&skv=2026-06-06&sig=z/DMbmX5qHPPhAWAI4Z5%2B2uthtYDto%2B4CAE9lBY2miY%3D'
+      LINK_07: 'https://sdmntpreastus.oaiusercontent.com/files/00000000-d9e0-81f9-857a-69f824ed2260/raw?se=2026-11-11T05%3A05%3A39Z&sp=r&sv=2026-06-06&sr=b&scid=a6a6444e-11e2-5436-9fd0-85a60c12e2bb&skoid=e96cf01c-9c0f-4e27-b41e-0f2e435e6532&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T02%3A24%3A35Z&ske=2026-11-12T02%3A24%3A35Z&sks=b&skv=2026-06-06&sig=fqY/GVgq6nbdQGw6lw9poM0nazew6bW7PUK2j1rr5RM%3D'
+      LINK_08: 'https://sdmntpreastus2.oaiusercontent.com/files/00000000-527c-81f6-a435-6ebf963d2e5e/raw?se=2026-11-11T05%3A05%3A44Z&sp=r&sv=2026-06-06&sr=b&scid=9a6fe080-aa84-5f0c-ba7b-59d58e45319a&skoid=c953efd6-2ae8-41b4-a6d6-34b1475ac07c&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T00%3A51%3A15Z&ske=2026-11-12T00%3A51%3A15Z&sks=b&skv=2026-06-06&sig=IB4pUah9UG2k6n0Brr6bTqBwd9sboUcaWquP1ZzyIxM%3D'
+      LINK_09: 'https://sdmntprcentralus.oaiusercontent.com/files/00000000-f5e8-81f5-b897-3c1e363aeb13/raw?se=2026-11-11T05%3A05%3A40Z&sp=r&sv=2026-06-06&sr=b&scid=f2f173af-6e3f-5c94-b9ce-4d0878d353a9&skoid=a1be202a-6464-476c-a496-723317c4a4db&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T02%3A15%3A06Z&ske=2026-11-12T02%3A15%3A06Z&sks=b&skv=2026-06-06&sig=/jTPPjJFLxhCKKL0X6TTqhvOb6/1lAsD7qC1yQ5ONF8%3D'
+      LINK_10: 'https://sdmntprsouthcentralus.oaiusercontent.com/files/00000000-887c-81f7-b67e-22537f9b7c86/raw?se=2026-11-11T05%3A05%3A44Z&sp=r&sv=2026-06-06&sr=b&scid=05a44059-b3c2-5700-9857-4b78517e7e06&skoid=c953efd6-2ae8-41b4-a6d6-34b1475ac07c&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T00%3A46%3A16Z&ske=2026-11-12T00%3A46%3A16Z&sks=b&skv=2026-06-06&sig=lv%2B8RMRPftflaTV9jeaR%2B9Gj9CQZhjwN35Ekclkawss%3D'
+      LINK_11: 'https://sdmntprnorthcentralus.oaiusercontent.com/files/00000000-cda4-822f-8812-dc62a7bdc44e/raw?se=2026-11-11T05%3A05%3A47Z&sp=r&sv=2026-06-06&sr=b&scid=782f2c5c-77d7-505f-a13d-62cf95bfea5c&skoid=bbd22fc4-f881-4ea4-b2f3-c12033cf6a8b&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T00%3A57%3A44Z&ske=2026-11-12T00%3A57%3A44Z&sks=b&skv=2026-06-06&sig=6dMZnExtVwictCwVArVPJhrAIZEkB/Je5iD2WvPoVeo%3D'
+      LINK_12: 'https://sdmntpreastus.oaiusercontent.com/files/00000000-3fac-81f9-b291-81ffb812aa9d/raw?se=2026-11-11T05%3A05%3A44Z&sp=r&sv=2026-06-06&sr=b&scid=c5b3167f-1da3-59e0-a379-50e9e48c95cb&skoid=e96cf01c-9c0f-4e27-b41e-0f2e435e6532&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-11T01%3A18%3A57Z&ske=2026-11-12T01%3A18%3A57Z&sks=b&skv=2026-06-06&sig=kBxZA4qU53BjjGO0MdtWYJZO7UyOYQ5SeID2X15qbDI%3D'
+    steps:
+      - name: Install 7-Zip for split ZIP extraction
+        run: sudo apt-get update -qq && sudo apt-get install -y p7zip-full
+
+      - name: Download all 12 FIX44 archive pieces from temporary links
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p parts
+          for n in $(seq 1 11); do
+            num=$(printf '%02d' "$n")
+            key="LINK_${num}"
+            echo "Downloading FIX44-FULL.z${num}"
+            curl --fail --show-error --location --retry 5 --retry-delay 3 --connect-timeout 30 \
+              --output "parts/FIX44-FULL.z${num}" "${!key}"
+          done
+          curl --fail --show-error --location --retry 5 --retry-delay 3 --connect-timeout 30 \
+            --output parts/FIX44-FULL.zip "$LINK_12"
+          test $(find parts -maxdepth 1 -type f | wc -l) -eq 12
+          ls -lh parts/
+
+      - name: Extract and verify original signed FIX44 APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p unpacked
+          7z x parts/FIX44-FULL.zip -ounpacked -y
+          mapfile -d '' apks < <(find unpacked -type f -iname '*.apk' -print0)
+          if [ "${#apks[@]}" -ne 1 ]; then
+            echo "::error::Expected one APK in FIX44-FULL.zip, found ${#apks[@]}"
+            exit 1
+          fi
+          cp "${apks[0]}" COD4-ZOMBIES-CLASSIC-FIX44-FULL-ARM64.apk
+          test "$(stat -c%s COD4-ZOMBIES-CLASSIC-FIX44-FULL-ARM64.apk)" -eq 756181086
+          echo "9f7f98a77bbe05b7d88cb4ecfc1d2c00998be66532d930363a59e91aa3bb0d28  COD4-ZOMBIES-CLASSIC-FIX44-FULL-ARM64.apk" | sha256sum --check
+          echo "FIX44 verified; exact expected original APK."
+
+      - name: Create or update FIX44 GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="fix44-full-android-arm64"
+          APK="COD4-ZOMBIES-CLASSIC-FIX44-FULL-ARM64.apk"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$APK" --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" "$APK" --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" \
+              --title "Zombies Classic — FIX44 FULL (Android ARM64)" \
+              --notes "Reconstructed from the 12 FIX44-FULL split ZIP parts. APK 756181086 bytes; SHA-256 9f7f98a77bbe05b7d88cb4ecfc1d2c00998be66532d930363a59e91aa3bb0d28. Android device startup has not yet been confirmed."
+          fi
