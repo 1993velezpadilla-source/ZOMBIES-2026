@@ -998,3 +998,29 @@ index 0000000..9348282
 +#include <memory>
 +#include <set>
 +#include <string>
++
++namespace video {
++class ITexture;
++class IVideoDriver;
++}
++
++// Streams the bundled VoxeLibre material images for 3D draws. The rest of
++// the client still uses its ordinary media and inventory texture paths.
++class WorldDetail
++{
++public:
++	static std::unique_ptr<WorldDetail> create(video::IVideoDriver *driver,
++			const std::string &game_path);
++	~WorldDetail();
++
++	bool hasSource(const std::string &expression) const;
++	void add(video::ITexture *preview, const std::string &expression,
++			const std::set<std::string> &sources);
++	void invalidate(video::ITexture *preview);
++	void step();
++
++private:
++	struct State;
++	explicit WorldDetail(std::unique_ptr<State> state);
++	std::unique_ptr<State> m_state;
++};
