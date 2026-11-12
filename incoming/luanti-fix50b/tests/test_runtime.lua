@@ -26,7 +26,10 @@ M = {
  formspec_escape=function(x) return tostring(x):gsub(']', '\\]'):gsub(';','\\;') end,
  register_node=function(n,d) assert(n:sub(1,1)==':');nodes[n:sub(2)]=d end,
  register_tool=function(n,d) tools[n:sub(2)]=d end,
- register_lbm=function(def) callbacks.lbms=callbacks.lbms or {};callbacks.lbms[def.name]=def end,
+ register_lbm=function(def)
+  assert(type(def.name)=='string' and (def.name:sub(1,1)==':' or def.name:match('^xz_zombies_classic:')), 'Luanti rejects LBM name outside current mod prefix: '..tostring(def.name))
+  callbacks.lbms=callbacks.lbms or {};callbacks.lbms[def.name]=def
+ end,
  register_on_joinplayer=function(fn) callbacks.join=fn end,
  register_on_leaveplayer=function(fn) callbacks.leave=fn end,
  register_on_player_receive_fields=function(fn) callbacks.fields=fn end,
@@ -253,7 +256,7 @@ assert(wp.on_place('WALL_ITEM',p,floor)=='WALL_ITEM')
 assert(handled.mounted==mount,'Ceiling/floor wall buy was created')
 print('PASS: 28 guns retain original PLACE/ADS; native USE with equipped gun; door/wall/crate; no through-wall use; mounted wall placement')
 -- FIX50B: old map Wall Buys only snap if the closest backing is unambiguous.
-local mount_lbm=callbacks.lbms and callbacks.lbms['xz_zombies:fix50b_reanchor_existing_wall_buys']
+local mount_lbm=callbacks.lbms and callbacks.lbms['xz_zombies_classic:fix50b_reanchor_existing_wall_buys']
 assert(mount_lbm,'wall anchor LBM must coexist with zombie spawner LBM')
 local function key(q) return ('%d/%d/%d'):format(q.x,q.y,q.z) end
 local grid,metas={},{}
