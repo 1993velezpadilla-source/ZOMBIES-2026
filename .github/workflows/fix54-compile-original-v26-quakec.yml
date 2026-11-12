@@ -37,6 +37,7 @@ jobs:
           chmod +x bin/fteqcc-cli-lin
           python3 -m pip install --quiet --break-system-packages pandas fastcrc colorama
           python3 bin/qc_hash_generator.py -i tools/asset_conversion_table.csv -o source/server/hash_table.qc
+          sed -n '1,12p' source/server/hash_table.qc | cut -c 1-240
           mkdir -p build/fte build/standard
           bin/fteqcc-cli-lin -O3 -Ono-compound_jumps -srcfile progs/ssqc.src 2>&1 | tee "$RUNNER_TEMP/v26-ssqc.log"
           test -s build/standard/progs.dat
