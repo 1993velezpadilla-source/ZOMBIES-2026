@@ -1,0 +1,40 @@
+name: FIX50B forensic recovery of exact FIX49C native source
+on:
+  push:
+    branches:
+      - fix/fix50b-restore-cod4-native-bridge-20261111
+    paths:
+      - 'incoming/luanti-fix50b/source_recovery.py'
+      - '.github/workflows/fix50b-recover-native-source.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  recover-exact-header-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download original FIX49C APK from our verified release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p fix50b-source-input
+          gh release download fix49c-dedicated-use-ads-android-arm64-test \
+            --repo "${{ github.repository }}" \
+            --pattern 'COD4-ZOMBIES-FIX49C-DEDICATED-USE-ADS-ARM64.apk' \
+            --dir fix50b-source-input
+          test -s fix50b-source-input/COD4-ZOMBIES-FIX49C-DEDICATED-USE-ADS-ARM64.apk
+      - name: Examine APK and nested source ZIPs; accept only authentic originals
+        run: |
+          python3 incoming/luanti-fix50b/source_recovery.py \
+            fix50b-source-input/COD4-ZOMBIES-FIX49C-DEDICATED-USE-ADS-ARM64.apk
+      - name: Upload forensic report and any actual source headers
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: FIX50B-FIX49C-ORIGINAL-SOURCE-RECOVERY-REPORT
+          path: fix50b-recovery-report/
+          if-no-files-found: warn
+          retention-days: 14
