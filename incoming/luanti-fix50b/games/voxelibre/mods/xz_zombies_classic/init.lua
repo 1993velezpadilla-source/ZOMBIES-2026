@@ -30,6 +30,7 @@ local form_editor = 'xz_zombies:editor'
 local form_buy = 'xz_zombies:configure'
 local form_dev = 'xz_zombies:developer'
 local state = {active=false,round=0,round_quota=0,spawned=0,kills=0,next_spawn=0,round_delay=0,zombies={},next_round=0}
+local v26 -- initialized after node registration
 local viewers, developer, huds, prev_physics, prev_armor = {}, {}, {}, {}, {}
 -- COD HUD is managed by v26_hud.lua, not floating text above the pause button.
 local editor_pages, developer_pages, editor_weapon_index = {}, {}, {}
@@ -98,7 +99,9 @@ local function spawn_native_zombie(at)
   entity.sunlight_damage=0
  end
  obj:set_hp(math.floor(v26_rules.zombie_hp(state.round)))
- state.zombies[#state.zombies+1]={obj=obj}
+ local record={obj=obj}
+ state.zombies[#state.zombies+1]=record
+ if v26 and v26.install_native_ai then v26.install_native_ai(record) end
  state.spawned=state.spawned+1
  return true,name
 end
@@ -424,12 +427,15 @@ M.register_lbm({label='FIX45 recover Zombies spawners',name='xz_zombies_classic:
  end,
 })
 -- NZ:P 0.26 QuakeC gameplay state machine, adapted to Luanti's entity API.
-local v26=assert(loadfile(modpath .. '/v26_runtime.lua'))()(M,v26_rules,{
+v26=assert(loadfile(modpath .. '/v26_runtime.lua'))()(M,v26_rules,{
  active=function()return state.active end,
  get_round=function()return state.round end,
  add_points=function(player,amount)set_points(player,player_points(player)+amount)end,
  get_zombies=function()return state.zombies end,
 })
+-- 1x1 is the original block; multi-cell 1x2 / 2x1 / 2x2 / 3x3
+-- reuse the exact seven NZ:P v26 frames and original repair state machine.
+assert(loadfile(modpath .. '/v26_sized_barricades.lua'))()(M,v26)
 local function reset_perks(p)
   local meta=p:get_meta()
   for id in pairs(PERKS) do meta:set_int('xz_z_perk_'..id,0) end
@@ -529,7 +535,11 @@ local function editor_form(p)
   y=y+0.93
   fs_button(f,0.25,y,cw,0.80,'spawner','ZOMBIE SPAWNER')
   y=y+0.93
-  fs_button(f,0.25,y,cw,0.80,'barricade','BARRICADA V26 (6 TABLAS)')
+  for _,size in ipairs({'1x1','1x2','2x1','2x2','3x3'}) do
+   fs_button(f,0.25,y,cw,0.80,'barricade_'..size,
+     'BARRICADA V26 '..size..' (6 TABLAS)')
+   y=y+0.88
+  end
  elseif page==4 then
   local entries={{'perk_juggernog','JUGGERNOG'},
     {'perk_speedcola','SPEED COLA'},{'perk_doubletap','DOUBLE TAP'},
@@ -697,7 +707,13 @@ M.register_on_player_receive_fields(function(p,form,fields)
  if fields.play then start_game();editor_form(p);return true end
  if fields.stop then stop_game();editor_form(p);return true end
  if fields.developer then if state.active then dev_form(p) else tell(p,'Presiona PLAY para abrir Developer.') end;return true end
- local selections={boxa='xz_zombies:mystery_box_a',boxb='xz_zombies:mystery_box_b',door='xz_zombies:door',spawner='xz_zombies:spawner',barricade='xz_zombies:v26_barricade_6'}
+ local selections={boxa='xz_zombies:mystery_box_a',boxb='xz_zombies:mystery_box_b',door='xz_zombies:door',spawner='xz_zombies:spawner',
+   barricade='xz_zombies:v26_barricade_6',
+   barricade_1x1='xz_zombies:v26_barricade_6',
+   barricade_1x2='xz_zombies:v26_barricade_6_1x2',
+   barricade_2x1='xz_zombies:v26_barricade_6_2x1',
+   barricade_2x2='xz_zombies:v26_barricade_6_2x2',
+   barricade_3x3='xz_zombies:v26_barricade_6_3x3'}
  for id in pairs(PERKS) do selections['perk_'..id]='xz_zombies:perk_'..id end
  if fields.givewall then
   local chosen=tonumber(fields.weapon) or editor_weapon_index[name] or 1
@@ -983,4 +999,4 @@ M.register_globalstep(function(dt)
   end
  end
 end)
-M.log('action','[xz_zombies_classic] FIX52B real hit points + cascading HUD; survival PLAY creative STOP; native COD4 mechanics retained.')
+M.log('action','[xz_zombies_classic] FIX53 native chase/attack plus original NZP 1x1 1x2 2x1 2x2 3x3 barricades; COD4 untouched.')
