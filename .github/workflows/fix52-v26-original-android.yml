@@ -76,8 +76,8 @@ jobs:
           from pathlib import Path
           root=Path('fix52-build/overlay')
           files=sorted(p for p in root.rglob('*') if p.is_file())
-          assert len(files)==14,[p.relative_to(root).as_posix() for p in files]
-          for stage in range(7):
+          assert len(files)==15,[p.relative_to(root).as_posix() for p in files]
+          for stage in range(1,7):
             obj=(root/'models'/f'nzp_v26_window_{stage}.obj').read_text()
             assert '# NZ:P Team original window.mdl' in obj
             assert '\nf ' in obj,stage
@@ -111,11 +111,11 @@ jobs:
           new=pathlib.Path('fix52-build/unsigned.apk')
           report=json.loads(pathlib.Path('fix52-build/packaging_report.json').read_text())
           assert report['assets']['baseline_asset_count']==9667
-          assert report['assets']['candidate_asset_count']==9681
+          assert report['assets']['candidate_asset_count']==9682
           changed=report['assets']['changed']
-          assert len(changed)==15,changed
+          assert len(changed)==16,changed
           assert changed['games/voxelibre/mods/xz_zombies_classic/init.lua']=='replaced'
-          assert len([x for x in changed.values() if x=='added'])==14
+          assert len([x for x in changed.values() if x=='added'])==15
           with zipfile.ZipFile(base) as b,zipfile.ZipFile(new) as n:
             for key in ('lib/arm64-v8a/libluanti.so','AndroidManifest.xml','classes.dex','resources.arsc'):
               assert b.read(key)==n.read(key),f'Original native file modified: {key}'
@@ -124,9 +124,9 @@ jobs:
                 actual=n.getinfo(entry.filename)
                 assert (entry.CRC,entry.file_size)==(actual.CRC,actual.file_size),entry.filename
             with zipfile.ZipFile(io.BytesIO(n.read('assets/assets.zip'))) as outer:
-              assert outer.comment==b'XZ-ASSETS-1:9681',outer.comment
+              assert outer.comment==b'XZ-ASSETS-1:9682',outer.comment
               with zipfile.ZipFile(io.BytesIO(lzma.decompress(outer.read('luanti-assets.zip.xz')))) as assets:
-                assert len(assets.namelist())==9681
+                assert len(assets.namelist())==9682
                 mod='games/voxelibre/mods/xz_zombies_classic/'
                 for key in ('fonts/Arimo-Regular.ttf','fonts/DroidSansFallbackFull.ttf',
                          mod+'init.lua',mod+'v26_rules.lua',mod+'v26_runtime.lua',
