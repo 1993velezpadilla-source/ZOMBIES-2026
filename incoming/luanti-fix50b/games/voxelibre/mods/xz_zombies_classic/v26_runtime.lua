@@ -279,6 +279,44 @@ return function(M,V,hooks)
   return true
  end
 
+ -- v26 weapon_core.qc uses a separate ai_zombie_head collision entity.
+ -- VoxeLibre uses ONE mesh ObjectRef: Luanti's raycast provides a collision
+ -- intersection point, so its existing head_eye_height is the mapping field.
+ -- This is engine compatibility; original QuakeC damage scores remain unchanged.
+ function A.is_head_hit(record,contact)
+  if not contact or not record.obj or not record.obj.get_pos then return false end
+  local origin=record.obj:get_pos()
+  if not origin then return false end
+  local entity=record.obj.get_luaentity and record.obj:get_luaentity()
+  local height=entity and tonumber(entity.head_eye_height)
+  if not height then return false end
+  return contact.y>=origin.y+height-0.10
+ end
+
+ function A.cod4_projectile_impact(record,shooter,before,after,damage,critical)
+  if not hooks.active() or not shooter or not shooter.is_player or not shooter:is_player() then return 0 end
+  if not record or not record.obj or not record.obj:get_pos() or (tonumber(before) or 0)<=0 then return 0 end
+  if (tonumber(damage) or 0)<=0 then return 0 end
+  -- EXACT v26 DamageHandler: nonlethal accepted hit +10; fatal weapon
+  -- class is rewarded in DieHandler (+50 body / +100 headshot).
+  -- Old FIX52B checked after<before synchronously; VoxeLibre often defers
+  -- the HP update until a later tick. An actual COD4 raycast ObjectRef hit
+  -- is authoritative, so grant nonlethal credit on this real impact event.
+  local lethal=type(after)=='number' and after<=0
+  local style=critical and 'headshot' or 'lowertorso'
+  local value=V.damage_score(lethal,style)
+  hooks.add_points(shooter,value)
+  record.attacker=shooter:get_player_name()
+  if lethal then
+   record.v26_kill_awarded=true
+   record.v26_prepaid_last_hit=0
+  else
+   record.v26_prepaid_last_hit=value
+  end
+  record.v26_last_hit_style=style
+  return value
+ end
+
  function A.zombie_on_punch(record,puncher,health_before,health_after)
   if not hooks.active() or not puncher or not puncher.is_player or not puncher:is_player() then return end
   local old=math.max(0,tonumber(health_before) or 0)

@@ -1,0 +1,58 @@
+name: FIX54 source-authentic v26 damage, Xziel Viril HUD, 28 COD4 guns regression
+on:
+  push:
+    branches: [feature/fix54-original-v26-quakec-vm-20261112]
+    paths:
+      - 'incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/**'
+      - 'incoming/luanti-fix50b/tests/**'
+      - 'incoming/luanti-fix50b/build_playable_test.py'
+      - '.github/workflows/fix54-original-hit-gate.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install original Lua parser
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq lua5.4
+      - name: Parse real v26 combat and original Xziel damage display
+        run: |
+          set -euo pipefail
+          for f in incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/*.lua; do luac5.4 -p "$f"; done
+          python3 -m py_compile incoming/luanti-fix50b/build_playable_test.py
+      - name: Source-authentic +10 on confirmed bullet even with deferred HP; fatal headshot +100
+        run: lua5.4 incoming/luanti-fix50b/tests/test_v26_original.lua
+      - name: Exact Viril C combatfx 24 slots, white/yellow numbers, 7 lanes, .62 seconds
+        run: lua5.4 incoming/luanti-fix50b/tests/test_fix54_original_viril_combatfx.lua
+      - name: Five v26 barricade sizes plus actual native zombie chase
+        run: lua5.4 incoming/luanti-fix50b/tests/test_fix53_chase_sizes.lua
+      - name: All original 28 guns, ADS, native USE and Zombies progression
+        run: |
+          lua5.4 incoming/luanti-fix50b/tests/test_runtime.lua
+          lua5.4 incoming/luanti-fix50b/tests/test_fix52b_hud_modes.lua
+      - name: Verify damage source provenance and original native punch untouched
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import importlib.util
+          path=Path('incoming/luanti-fix50b/build_playable_test.py')
+          spec=importlib.util.spec_from_file_location('package',path)
+          p=importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(p)
+          sample=('local function projectile_hit(target,shooter,damage,direction)\n'
+            ' local v26_before=target.get_hp and target:get_hp() or nil\n'
+            ' target:punch(shooter,1,{full_punch_interval=1,damage_groups={fleshy=1}},direction)\n'
+            'api.on_cod4_impact(shooter,target,v26_before,v26_after)\n'
+            'projectile_hit(hit.ref,shooter,damage,normal(b.velocity))\n')
+          new=p.extend_existing_cod4_v26_hit_hook(sample.encode()).decode()
+          assert new.count('target:punch(')==1
+          assert 'api.on_cod4_impact(shooter,target,v26_before,v26_after,damage,intersection)' in new
+          assert 'projectile_hit(hit.ref,shooter,damage,normal(b.velocity),hit.intersection_point)' in new
+          fx=Path('incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/v26_viril_combatfx.lua').read_text()
+          assert 'local MAX=24' in fx and 'DURATION=0.62' in fx
+          assert 'YELLOW={255,215,38}' in fx and 'WHITE={245,245,245}' in fx
+          print('PASS original bullet punch unchanged, actual intersection transmitted and original Viril source values exact')
+          PY

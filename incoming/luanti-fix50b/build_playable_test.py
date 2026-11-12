@@ -66,7 +66,34 @@ def patch_cod4_projectile_hit(source):
     return new.encode("utf-8")
 
 
-def rebuild_inner(old_zip, new_zip, lua_file, btn_file, director_file=None, overlay_dir=None, cod4_hit_hook=False):
+
+def extend_existing_cod4_v26_hit_hook(source):
+    """Extend FIX53's verified ORIGINAL hit hook with damage + actual raycast point.
+
+    We do not alter target:punch, original 28 weapon definitions, ranges,
+    velocities, ADS, or animations. These three strings came from a dump of
+    the ACTUAL FIX53 combat.lua inside the signed Android APK.
+    """
+    old = source.decode("utf-8")
+    changes = {
+        "local function projectile_hit(target,shooter,damage,direction)\n":
+        "local function projectile_hit(target,shooter,damage,direction,intersection)\n",
+        "api.on_cod4_impact(shooter,target,v26_before,v26_after)\n":
+        "api.on_cod4_impact(shooter,target,v26_before,v26_after,damage,intersection)\n",
+        "projectile_hit(hit.ref,shooter,damage,normal(b.velocity))\n":
+        "projectile_hit(hit.ref,shooter,damage,normal(b.velocity),hit.intersection_point)\n",
+    }
+    if any(old.count(k)!=1 for k in changes):
+        raise RuntimeError("Live FIX53 combat.lua changed: refusing uncertain weapon edit")
+    if old.count("target:punch(shooter,1,{full_punch_interval=1,")!=1:
+        raise RuntimeError("Original COD4 punch source not exactly intact")
+    result=old
+    for a,b in changes.items(): result=result.replace(a,b)
+    assert result.count("target:punch(shooter,1,{full_punch_interval=1,")==1
+    return result.encode("utf-8")
+
+
+def rebuild_inner(old_zip, new_zip, lua_file, btn_file, director_file=None, overlay_dir=None, cod4_hit_hook=False, v26_original_hit_details=False):
     original = set()
     changed = {}
     with zipfile.ZipFile(old_zip) as old, zipfile.ZipFile(new_zip, "w", allowZip64=True) as new:
@@ -74,7 +101,8 @@ def rebuild_inner(old_zip, new_zip, lua_file, btn_file, director_file=None, over
         if len(old_names) != len(set(old_names)):
             raise RuntimeError("FIX49C game assets contain duplicate paths")
         assert_unique_archive(old, GAME_PATH)
-        if cod4_hit_hook: assert_unique_archive(old, COMBAT_PATH)
+        if cod4_hit_hook and v26_original_hit_details: raise RuntimeError('Select ONE COD4 patch mode')
+        if cod4_hit_hook or v26_original_hit_details: assert_unique_archive(old, COMBAT_PATH)
         original = {i.filename: (i.CRC, i.file_size) for i in old.infolist()}
         new.comment = old.comment
         changes = {GAME_PATH: lua_file.read_bytes()}
@@ -101,9 +129,10 @@ def rebuild_inner(old_zip, new_zip, lua_file, btn_file, director_file=None, over
             changes.update(overlay_files)
         for info in old.infolist():
             data = changes.pop(info.filename, None)
-            if cod4_hit_hook and info.filename == COMBAT_PATH:
+            if info.filename == COMBAT_PATH and (cod4_hit_hook or v26_original_hit_details):
                 if data is not None: raise RuntimeError("Combat cannot be doubly overwritten")
-                data = patch_cod4_projectile_hit(old.read(info.filename))
+                data = (patch_cod4_projectile_hit(old.read(info.filename))
+                    if cod4_hit_hook else extend_existing_cod4_v26_hit_hook(old.read(info.filename)))
                 changed[info.filename] = "replaced"
             if data is None:
                 with old.open(info) as stream:
@@ -144,6 +173,7 @@ def main():
     p.add_argument("--director", type=Path)
     p.add_argument("--overlay-dir", type=Path)
     p.add_argument("--cod4-hit-hook", action="store_true")
+    p.add_argument("--v26-original-hit-details", action="store_true")
     p.add_argument("--output", type=Path, required=True)
     args = p.parse_args()
     args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -171,7 +201,7 @@ def main():
                 copy_stream(src, dest)
         with lzma.open(old_inner_xz, "rb") as src, old_inner.open("wb") as dest:
             copy_stream(src, dest)
-        report["assets"] = rebuild_inner(old_inner, new_inner, args.lua, args.button, args.director, args.overlay_dir, args.cod4_hit_hook)
+        report["assets"] = rebuild_inner(old_inner, new_inner, args.lua, args.button, args.director, args.overlay_dir, args.cod4_hit_hook, args.v26_original_hit_details)
         with new_inner.open("rb") as src, lzma.open(new_inner_xz, "wb", format=lzma.FORMAT_XZ, preset=3) as dest:
             copy_stream(src, dest)
         with zipfile.ZipFile(new_outer, "w", allowZip64=True) as outer:
