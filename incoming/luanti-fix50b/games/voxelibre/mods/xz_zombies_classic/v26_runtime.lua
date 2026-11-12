@@ -174,9 +174,11 @@ return function(M,V,hooks)
  function A.zombie_think(record,dt)
   local obj=record.obj
   if not obj or not obj:get_pos() or obj:get_hp()<=0 then return end
+  local entity=obj:get_luaentity()
+  local native=entity and type(entity.do_attack)=='function'
   local target,distance=record.v26_target,math.huge
   local t=now()
-  if not target or target:get_hp()<=0 or (record.v26_retarget or 0)<=t then
+  if not target or not target:get_pos() or target:get_hp()<=0 or (record.v26_retarget or 0)<=t then
    target,distance=living_target(obj)
    record.v26_target=target
    record.v26_retarget=t+V.attack_retarget_delay
@@ -186,13 +188,38 @@ return function(M,V,hooks)
   if not target then return end
   local origin=obj:get_pos()
   local barrier=nearest_barricade(origin,target)
+  record.v26_barrier=barrier
   if barrier then
+   -- Original window.qc one plank per hit. Native AI must NOT attack player
+   -- through the window; its do_states() is suspended by the per-mob do_custom
+   -- wrapper below while it rips planks.
+   if native then
+    entity.attack=nil
+    entity.state='stand'
+    if entity.set_velocity then entity:set_velocity(0) end
+   end
    if t>=(record.v26_attack_next or 0) then
     record.v26_attack_next=t+V.attack_min_cooldown+math.random()*V.attack_random_cooldown
     A.zombie_break(barrier)
    end
-   return -- cannot attack through intact planks before breaking them
+   return
   end
+  if native then
+   -- FIX53: the old obj:set_velocity() was overwritten every server step by
+   -- VoxeLibre's mcl_mobs:do_states(). do_attack() is its actual pathfinding
+   -- and animation controller, and respects the real survival gamemode.
+   -- We set native attack damage to the scaled original v26 damage at spawn.
+   entity.force_attack=true
+   entity._aggro=true
+   entity.view_range=math.max(45,entity.view_range or 16)
+   if entity.state~='attack' or entity.attack~=target then
+    if entity.state=='attack' and entity.attack~=target then entity.state='stand' end
+    entity:do_attack(target)
+   end
+   return
+  end
+  -- Compatibility fallback ONLY for custom mobs lacking VoxeLibre's
+  -- do_attack() API. It retains original v26 delay and damage scaling.
   if distance<V.attack_trigger_range_quake/UNIT then
    if t>=(record.v26_attack_next or 0) then
     record.v26_attack_next=t+V.attack_min_cooldown+math.random()*V.attack_random_cooldown
@@ -202,26 +229,47 @@ return function(M,V,hooks)
    end
    return
   end
-  -- Original TryWalkToEnemy uses direct chase when unobstructed, otherwise
-  -- goes through pathfinding. Native VoxeLibre movement/animation survives.
   local goal=target:get_pos()
   if M.line_of_sight and not M.line_of_sight(origin,goal) and M.find_path then
    if t>=(record.v26_path_at or 0) then
-    record.v26_path=M.find_path(origin,goal,12,1,3,"A*")
+    record.v26_path=M.find_path(origin,goal,12,1,3,'A*')
     record.v26_path_at=t+1
    end
-   if record.v26_path and #record.v26_path>=2 then
-    goal=record.v26_path[2]
-   end
+   if record.v26_path and #record.v26_path>=2 then goal=record.v26_path[2] end
   end
   local dx,dz=goal.x-origin.x,goal.z-origin.z
   local flat=math.sqrt(dx*dx+dz*dz)
   if flat>0.03 and obj.set_velocity and obj.get_velocity then
    local old=obj:get_velocity() or {y=0}
-   -- FTE translation: preserve native vertical velocity/animations.
-   local speed=(8/0.12)/UNIT -- zombie_core.qc zombie_walk1: 8 Quake units per .12s
+   local speed=(8/0.12)/UNIT -- v26 zombie_walk1 original Quake units
    obj:set_velocity({x=dx/flat*speed,y=old.y,z=dz/flat*speed})
   end
+ end
+
+ function A.install_native_ai(record)
+  local entity=record.obj and record.obj:get_luaentity()
+  if not entity or type(entity.do_attack)~='function' then return false end
+  local original=entity.do_custom
+  entity.force_attack=true
+  entity._aggro=true
+  entity.type='monster'
+  entity.attack_type='dogfight'
+  entity.view_range=math.max(entity.view_range or 16,45)
+  entity.reach=V.attack_trigger_range_quake/UNIT
+  entity.damage=V.attack_damage/5
+  -- Vanilla Mob on_step invokes do_custom before do_states. Suppress only
+  -- attack state while physically blocked by a live original v26 window.
+  -- This hook belongs to THIS spawned instance, not all VoxeLibre mobs.
+  entity.do_custom=function(self,dtime)
+   if record.v26_barrier and A.get_stage(record.v26_barrier)>0 then
+    self.attack=nil
+    self.state='stand'
+    if self.set_velocity then self:set_velocity(0) end
+    return false
+   end
+   if original then return original(self,dtime) end
+  end
+  return true
  end
 
  function A.zombie_on_punch(record,puncher,health_before,health_after)
