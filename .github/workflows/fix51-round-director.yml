@@ -1,0 +1,111 @@
+name: FIX51 Zombies Round Director ARM64 playtest
+on:
+  push:
+    branches: [feature/zombies-fix51-round-director-20261111]
+    paths:
+      - 'incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/**'
+      - 'incoming/luanti-fix50b/tests/**'
+      - 'incoming/luanti-fix50b/build_playable_test.py'
+      - '.github/workflows/fix51-round-director.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: fix51-round-director-build
+  cancel-in-progress: false
+jobs:
+  round-director-playtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lua 5.4 tests (28 guns, USE, zombie rounds and mod names)
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq && sudo apt-get install -y -qq lua5.4
+          luac5.4 -p incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/init.lua
+          luac5.4 -p incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/round_director.lua
+          lua5.4 incoming/luanti-fix50b/tests/test_round_director.lua
+          lua5.4 incoming/luanti-fix50b/tests/test_runtime.lua
+      - name: Get latest working FIX50B APK, not rebuilt native engine
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p fix51-input fix51-build
+          gh release download fix50b-lbm-startup-repair-arm64-test \
+            --repo "$GITHUB_REPOSITORY" --pattern 'COD4-ZOMBIES-FIX50B-LBM-STARTUP-REPAIR-ARM64.apk' \
+            --dir fix51-input
+      - name: Repack ONLY FIX51 gameplay Lua, preserving original native and USE
+        run: |
+          set -euo pipefail
+          python3 incoming/luanti-fix50b/build_playable_test.py \
+            --fix49c fix51-input/COD4-ZOMBIES-FIX50B-LBM-STARTUP-REPAIR-ARM64.apk \
+            --rebuilt fix51-input/COD4-ZOMBIES-FIX50B-LBM-STARTUP-REPAIR-ARM64.apk \
+            --lua incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/init.lua \
+            --director incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/round_director.lua \
+            --output fix51-build/unsigned.apk
+      - name: Prove 9667 assets, no native gun/ADS changes and correct names
+        run: |
+          python3 - <<'PY'
+          import zipfile,lzma,io,json,pathlib
+          b=pathlib.Path('fix51-input/COD4-ZOMBIES-FIX50B-LBM-STARTUP-REPAIR-ARM64.apk')
+          n=pathlib.Path('fix51-build/unsigned.apk')
+          report=json.loads(pathlib.Path('fix51-build/packaging_report.json').read_text())
+          assert report['assets']['baseline_asset_count']==9666
+          assert report['assets']['candidate_asset_count']==9667
+          assert set(report['assets']['changed'])=={'games/voxelibre/mods/xz_zombies_classic/init.lua','games/voxelibre/mods/xz_zombies_classic/round_director.lua'}
+          with zipfile.ZipFile(b) as old, zipfile.ZipFile(n) as new:
+            for key in ('lib/arm64-v8a/libluanti.so','AndroidManifest.xml','classes.dex','resources.arsc'):
+              assert old.read(key)==new.read(key),key
+            for entry in old.infolist():
+              if entry.filename!='assets/assets.zip' and not entry.filename.startswith('META-INF/'):
+                actual=new.getinfo(entry.filename)
+                assert (entry.CRC,entry.file_size)==(actual.CRC,actual.file_size),entry.filename
+            with zipfile.ZipFile(io.BytesIO(new.read('assets/assets.zip'))) as outer:
+              assert outer.comment==b'XZ-ASSETS-1:9667'
+              with zipfile.ZipFile(io.BytesIO(lzma.decompress(outer.read('luanti-assets.zip.xz')))) as assets:
+                assert len(assets.namelist())==9667
+                for key in ('fonts/Arimo-Regular.ttf','fonts/DroidSansFallbackFull.ttf','games/voxelibre/mods/xz_zombies_classic/round_director.lua','textures/base/pack/xz_use_btn.png'):
+                  assert len(assets.read(key))>0,key
+                lua=assets.read('games/voxelibre/mods/xz_zombies_classic/init.lua')
+                assert b"loadfile(modpath .. '/round_director.lua')" in lua
+                assert b"name='xz_zombies_classic:fix50b_reanchor_existing_wall_buys'" in lua
+          print('PASS: FIX51 only Lua; native COD4 binary and all other APK files preserved')
+          PY
+      - name: Zipalign, sign, verify disposable ARM64 test APK
+        run: |
+          set -euo pipefail
+          TOOLSDIR="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
+          "$TOOLSDIR/zipalign" -f -p 4 fix51-build/unsigned.apk fix51-build/aligned.apk
+          keytool -genkeypair -keystore "$RUNNER_TEMP/fix51.jks" -alias fix51 -storepass android -keypass android \
+            -keyalg RSA -keysize 3072 -validity 3650 -noprompt \
+            -dname 'CN=Zombies FIX51 Test,OU=Development,O=Xziel,C=US'
+          "$TOOLSDIR/apksigner" sign --ks "$RUNNER_TEMP/fix51.jks" --ks-key-alias fix51 \
+            --ks-pass pass:android --key-pass pass:android \
+            --v2-signing-enabled true --v3-signing-enabled true \
+            --out fix51-build/COD4-ZOMBIES-FIX51-ROUND-DIRECTOR-ARM64.apk fix51-build/aligned.apk
+          "$TOOLSDIR/apksigner" verify --verbose fix51-build/COD4-ZOMBIES-FIX51-ROUND-DIRECTOR-ARM64.apk
+          "$TOOLSDIR/aapt" dump badging fix51-build/COD4-ZOMBIES-FIX51-ROUND-DIRECTOR-ARM64.apk | tee fix51-build/package_badging.txt
+          grep -q "package: name='com.xziel.zombies.fix50btest'" fix51-build/package_badging.txt
+          unzip -t fix51-build/COD4-ZOMBIES-FIX51-ROUND-DIRECTOR-ARM64.apk > /dev/null
+          sha256sum fix51-build/COD4-ZOMBIES-FIX51-ROUND-DIRECTOR-ARM64.apk | tee fix51-build/sha256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FIX51-ROUND-DIRECTOR-ARM64-SIGNED-PLAYTEST
+          path: |
+            fix51-build/COD4-ZOMBIES-FIX51-ROUND-DIRECTOR-ARM64.apk
+            fix51-build/packaging_report.json
+            fix51-build/package_badging.txt
+            fix51-build/sha256.txt
+          retention-days: 14
+          if-no-files-found: error
+      - name: Publish distinct prerelease only on success
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create fix51-round-director-arm64-playtest \
+            fix51-build/COD4-ZOMBIES-FIX51-ROUND-DIRECTOR-ARM64.apk \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease \
+            --title 'FIX51 Zombies Round Director Android ARM64 playtest' \
+            --notes 'Real solo/co-op round scaling, 10-12 mobile alive zombie cap, higher HP, faster spawning, multi-zombie kill credits, remaining HUD and /zstatus. Exact FIX50B native COD4 28 guns/ADS/animations/USE preserved byte-for-byte. Same com.xziel.zombies.fix50btest package: back up test worlds, uninstall only previous FIX50B TEST app before installing (different signing key). Do not uninstall FIX49C. Gameplay needs physical phone verification.'
