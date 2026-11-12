@@ -69,6 +69,12 @@ M = {
  log=function(l,s) logs[#logs+1]=s end,
 }
 _G.minetest=M
+local actual_modes={}
+_G.mcl_gamemode={
+ get_gamemode=function(p)return actual_modes[p:get_player_name()] or 'creative' end,
+ set_gamemode=function(p,mode)assert(mode=='survival' or mode=='creative');actual_modes[p:get_player_name()]=mode end,
+}
+M.is_creative_enabled=function(name)return (actual_modes[name] or 'creative')=='creative' end
 _G.vector={new=function(p) return {x=p.x,y=p.y,z=p.z} end}
 _G.ItemStack=function(item) return item end
 local original_loadfile=loadfile
@@ -98,6 +104,7 @@ local function player(n)
  function p:get_meta() return {get_int=function(_,k)return meta[n..k] or 0 end,set_int=function(_,k,v)meta[n..k]=v end} end
  function p:hud_add()return 1 end
  function p:hud_change()end
+ function p:hud_remove()end
  function p:get_armor_groups()return {} end
  function p:set_armor_groups()end
  function p:set_properties()end
@@ -329,6 +336,7 @@ end
 nodes['xz_zombies:spawner'].on_construct(spawner)
 gameclock=50
 callbacks.fields(p,'xz_zombies:editor',{play=true})
+assert(actual_modes['portrait']=='survival','PLAY must switch VoxeLibre to survival mode')
 gameclock=53
 callbacks.step(1.1)
 local active_status,info=callbacks.zstatus('portrait')
@@ -356,6 +364,7 @@ local ok3,status2=callbacks.zstatus('portrait')
 assert(ok3 and status2:find('Ronda 2',1,true),tostring(status2))
 assert(#mobs==V.round_quota(1,1)+1 and mobs[#mobs].hp==V.zombie_hp(2),'v26 round 2 health did not apply')
 callbacks.fields(p,'xz_zombies:editor',{stop=true})
+assert(actual_modes['portrait']=='creative','STOP must restore VoxeLibre creative mode')
 local ok4,status3=callbacks.zstatus('portrait')
 assert(ok4 and status3:find('STOP',1,true),tostring(status3))
 print('PASS: FIX52 v26 round spawn quota, enemy HP, kill points, original mob callback, next round and stop')
