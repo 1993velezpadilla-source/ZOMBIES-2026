@@ -30,6 +30,7 @@ local form_editor = 'xz_zombies:editor'
 local form_buy = 'xz_zombies:configure'
 local form_dev = 'xz_zombies:developer'
 local state = {active=false,round=0,round_quota=0,spawned=0,kills=0,next_spawn=0,round_delay=0,zombies={},next_round=0}
+local v26 -- initialized after node registration
 local viewers, developer, huds, prev_physics, prev_armor = {}, {}, {}, {}, {}
 -- COD HUD is managed by v26_hud.lua, not floating text above the pause button.
 local editor_pages, developer_pages, editor_weapon_index = {}, {}, {}
@@ -98,7 +99,9 @@ local function spawn_native_zombie(at)
   entity.sunlight_damage=0
  end
  obj:set_hp(math.floor(v26_rules.zombie_hp(state.round)))
- state.zombies[#state.zombies+1]={obj=obj}
+ local record={obj=obj}
+ state.zombies[#state.zombies+1]=record
+ if v26 and v26.install_native_ai then v26.install_native_ai(record) end
  state.spawned=state.spawned+1
  return true,name
 end
@@ -424,7 +427,7 @@ M.register_lbm({label='FIX45 recover Zombies spawners',name='xz_zombies_classic:
  end,
 })
 -- NZ:P 0.26 QuakeC gameplay state machine, adapted to Luanti's entity API.
-local v26=assert(loadfile(modpath .. '/v26_runtime.lua'))()(M,v26_rules,{
+v26=assert(loadfile(modpath .. '/v26_runtime.lua'))()(M,v26_rules,{
  active=function()return state.active end,
  get_round=function()return state.round end,
  add_points=function(player,amount)set_points(player,player_points(player)+amount)end,
