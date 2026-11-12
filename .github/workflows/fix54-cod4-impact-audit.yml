@@ -29,7 +29,7 @@ jobs:
             with zipfile.ZipFile(io.BytesIO(a.read('assets/assets.zip'))) as b:
               with zipfile.ZipFile(io.BytesIO(lzma.decompress(b.read('luanti-assets.zip.xz')))) as c:
                 for name,ranges in [
-                  ('games/voxelibre/mods/ak47dev/combat.lua',[(47,62),(235,279)]),
+                  ('games/voxelibre/mods/ak47dev/combat.lua',[(47,66),(265,298)]),
                   ('games/voxelibre/mods/xz_zombies_classic/init.lua',[(912,955)]),
                   ('games/voxelibre/mods/ENTITIES/mcl_mobs/combat.lua',[(285,310)])]:
                   if name not in c.namelist():continue
