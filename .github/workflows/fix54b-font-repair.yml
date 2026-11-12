@@ -1,0 +1,128 @@
+name: FIX54B Android font recovery (original FIX54 gameplay untouched)
+on:
+  push:
+    branches: [feature/fix54-original-v26-quakec-vm-20261112]
+    paths:
+      - '.github/workflows/fix54b-font-repair.yml'
+      - 'incoming/luanti-fix50b/harden_android_font_startup.py'
+      - 'incoming/luanti-fix50b/repack_font_hotfix.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  font-repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 110
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up original Luanti Android build prerequisites
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends gettext cmake ninja-build binutils
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Recover exact FIX50B proven Luanti ARM64 launcher and custom engine sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch 5.18.0 https://github.com/luanti-org/luanti.git upstream-luanti
+          for p in \
+            incoming/luanti-fix50b/native/working-fix49c-engine.patch \
+            incoming/luanti-fix50b/native/fix49c-texture-streaming.patch \
+            incoming/luanti-fix50a/native/luanti-5.18.0-xz-use.patch; do
+            git -C upstream-luanti apply --check "$GITHUB_WORKSPACE/$p"
+            git -C upstream-luanti apply "$GITHUB_WORKSPACE/$p"
+          done
+          git clone --depth 1 --branch v1.4.0 https://github.com/webmproject/libwebp.git upstream-libwebp
+          src=incoming/luanti-fix50b/native/original_headers
+          for header in ak47_motion.h ak47_weapon_params.h m9_weapon_params.h ak47_attachments.h arsenal_profiles.h weapon_bridge.h weapon_hud.h native_attachment_override.h; do
+            test -s "$src/$header"
+            cp "$src/$header" "upstream-luanti/src/client/$header"
+          done
+          echo 'd802ceb47881e81c4fa1477162b646710a3f552661a2a1da7561c164b56afa6d  upstream-luanti/src/client/weapon_bridge.h' | sha256sum -c -
+          echo '85b5d1e259e9387230041e23712412339b5010912ab399d32808b465e1828235  upstream-luanti/src/client/weapon_hud.h' | sha256sum -c -
+          echo '53f59e9498a6433d9dc3f75f368b417c4f8ed95f33062ea0a60c5a4c4c94fd12  upstream-luanti/src/client/native_attachment_override.h' | sha256sum -c -
+          python3 incoming/luanti-fix50a/native/make_xz_use_btn.py upstream-luanti/textures/base/pack/xz_use_btn.png
+          sed -i "s/include 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'/include 'arm64-v8a'/" upstream-luanti/android/native/build.gradle
+          sed -i "s/include 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'/include 'arm64-v8a'/" upstream-luanti/android/app/build.gradle
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          native=Path('upstream-luanti/android/native/build.gradle')
+          content=native.read_text()
+          original='arguments "-DANDROID_STL=c++_shared",'
+          assert content.count(original)==1
+          content=content.replace(original,original+' "-DXZ_WEBP_SOURCE='+os.environ['GITHUB_WORKSPACE']+'/upstream-libwebp", "-DENABLE_LTO=OFF",')
+          native.write_text(content)
+          app=Path('upstream-luanti/android/app/build.gradle')
+          content=app.read_text()
+          old="applicationId 'com.xziel.voxelsandbox.ak47combatv9'"
+          assert content.count(old)==1
+          app.write_text(content.replace(old,"applicationId 'com.xziel.zombies.fix50btest'"))
+          build=Path('upstream-luanti/android/build.gradle')
+          content=build.read_text()
+          old='project.ext.set("versionBuild", 13)'
+          assert content.count(old)==1
+          build.write_text(content.replace(old,'project.ext.set("versionBuild", 55)'))
+          PY
+          python3 incoming/luanti-fix50b/apply_compact_font_extraction.py upstream-luanti
+          python3 incoming/luanti-fix50b/harden_android_font_startup.py upstream-luanti
+          grep -Fq 'mainFont.length() > 100000' upstream-luanti/android/app/src/main/java/net/minetest/minetest/Utils.java
+          grep -Fq 'private boolean isSuccess = false;' upstream-luanti/android/app/src/main/java/net/minetest/minetest/UnzipService.java
+      - name: Compile signed-off upstream Android Java launcher
+        working-directory: upstream-luanti/android
+        env:
+          GRADLE_OPTS: -Dorg.gradle.daemon=false
+        run: |
+          set -euo pipefail
+          ./gradlew :app:assembleRelease --no-daemon --max-workers=2 --stacktrace
+      - name: Recover verified original FIX54 artifact from successful build
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 43251015717
+          artifact-ids: 13958489505
+          github-token: ${{ github.token }}
+          path: original-fix54
+      - name: Repack only launcher, asserting ALL exact FIX54 models and game assets
+        run: |
+          set -euo pipefail
+          mkdir -p fix54b-build
+          test -s original-fix54/COD4-ZOMBIES-FIX54-ORIGINAL-VIRIL-HIT-FX-ARM64.apk
+          echo '5ebdc1ee120b3e02173a5f13e6e4c42f04055fca89020671a4480c712a596d11  original-fix54/COD4-ZOMBIES-FIX54-ORIGINAL-VIRIL-HIT-FX-ARM64.apk' | sha256sum -c -
+          python3 incoming/luanti-fix50b/repack_font_hotfix.py \
+            --fix54 original-fix54/COD4-ZOMBIES-FIX54-ORIGINAL-VIRIL-HIT-FX-ARM64.apk \
+            --compiled upstream-luanti/android/app/build/outputs/apk/release/app-arm64-v8a-release.apk \
+            --output fix54b-build/unsigned.apk
+          TOOLSDIR="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
+          "$TOOLSDIR/aapt" dump badging fix54b-build/unsigned.apk | tee fix54b-build/badging-pre.txt
+          grep -q "package: name='com.xziel.zombies.fix50btest' versionCode='5180055'" fix54b-build/badging-pre.txt
+      - name: Zipalign and sign distinct TEST build, never replace FIX53 or FIX49C
+        run: |
+          set -euo pipefail
+          TOOLS="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
+          "$TOOLS/zipalign" -f -p 4 fix54b-build/unsigned.apk fix54b-build/aligned.apk
+          keytool -genkeypair -keystore "$RUNNER_TEMP/fix54b.jks" -alias fix54b \
+            -storepass android -keypass android -keyalg RSA -keysize 3072 -validity 3650 -noprompt \
+            -dname 'CN=FIX54B Font Recovery Test,OU=Development,O=Xziel,C=US'
+          "$TOOLS/apksigner" sign --ks "$RUNNER_TEMP/fix54b.jks" --ks-key-alias fix54b \
+            --ks-pass pass:android --key-pass pass:android \
+            --v2-signing-enabled true --v3-signing-enabled true \
+            --out fix54b-build/COD4-ZOMBIES-FIX54B-FONT-RECOVERY-ARM64.apk fix54b-build/aligned.apk
+          "$TOOLS/apksigner" verify --verbose fix54b-build/COD4-ZOMBIES-FIX54B-FONT-RECOVERY-ARM64.apk
+          "$TOOLS/aapt" dump badging fix54b-build/COD4-ZOMBIES-FIX54B-FONT-RECOVERY-ARM64.apk | tee fix54b-build/badging.txt
+          unzip -t fix54b-build/COD4-ZOMBIES-FIX54B-FONT-RECOVERY-ARM64.apk >/dev/null
+          sha256sum fix54b-build/COD4-ZOMBIES-FIX54B-FONT-RECOVERY-ARM64.apk | tee fix54b-build/sha256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FIX54B-FONT-RECOVERY-ORIGINAL-GAME-ARM64
+          path: |
+            fix54b-build/COD4-ZOMBIES-FIX54B-FONT-RECOVERY-ARM64.apk
+            fix54b-build/font_repair_report.json
+            fix54b-build/badging.txt
+            fix54b-build/sha256.txt
+          retention-days: 14
+          if-no-files-found: error
