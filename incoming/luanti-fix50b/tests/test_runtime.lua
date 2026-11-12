@@ -86,7 +86,7 @@ assert(loadfile('incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/
 assert(#tools==0) -- map does not have numeric indices
 assert(tools['xz_zombies:editor_tool'])
 local c=0;for k in pairs(nodes) do c=c+1 end
-assert(c==37,'expected exactly 37 registered gameplay nodes, got '..c)
+assert(c==44,'expected exactly 44 registered nodes including original v26 window states, got '..c)
 local meta={}
 local function player(n)
  local inv={contains_item=function() return false end,room_for_item=function() return true end,
@@ -334,10 +334,11 @@ callbacks.step(1.1)
 local active_status,info=callbacks.zstatus('portrait')
 assert(active_status and info:find('Ronda 1',1,true),tostring(info))
 assert(#mobs==1,'first zombie should spawn on round start')
-assert(mobs[1].hp==D.health(1),'mob HP did not scale by round')
+local V=assert(loadfile('incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/v26_rules.lua'))()
+assert(mobs[1].hp==V.zombie_hp(1),'mob HP did not use source v26 scale')
 assert(mobs[1].entity_name=='mobs_mc:zombie' or M.registered_entities[mobs[1].entity_name],'non-native zombie spawned')
 for t=56,90,3 do gameclock=t;callbacks.step(1.1) end
-assert(#mobs==D.quota(1,1),'round 1 spawn quota must be exact; spawned '..#mobs)
+assert(#mobs==V.round_quota(1,1),'v26 round 1 spawn quota must be exact; spawned '..#mobs)
 for _,obj in ipairs(mobs) do
  local entity=obj:get_luaentity()
  M.registered_entities[obj.entity_name].on_punch(entity,p)
@@ -346,15 +347,15 @@ end
 gameclock=94
 callbacks.step(1.1)
 local ok2,status=callbacks.zstatus('portrait')
-assert(ok2 and status:find('Restantes 0',1,true) and status:find('Bajas 8',1,true),tostring(status))
-assert(meta['portraitxz_z_points']==500+100*D.quota(1,1),'kill points were not credited once to shooter')
+assert(ok2 and status:find('Restantes 0',1,true) and status:find('Bajas 6',1,true),tostring(status))
+assert(meta['portraitxz_z_points']==500+V.damage_score(true,'lowertorso')*V.round_quota(1,1),'v26 kill points were not credited once to shooter')
 assert(originalPunchCount==#mobs,'native zombie original on_punch callback not preserved')
 gameclock=100
 callbacks.step(1.1)
 local ok3,status2=callbacks.zstatus('portrait')
 assert(ok3 and status2:find('Ronda 2',1,true),tostring(status2))
-assert(#mobs==D.quota(1,1)+1 and mobs[#mobs].hp==D.health(2),'round 2 growth did not apply')
+assert(#mobs==V.round_quota(1,1)+1 and mobs[#mobs].hp==V.zombie_hp(2),'v26 round 2 health did not apply')
 callbacks.fields(p,'xz_zombies:editor',{stop=true})
 local ok4,status3=callbacks.zstatus('portrait')
 assert(ok4 and status3:find('STOP',1,true),tostring(status3))
-print('PASS: FIX51 round spawn quota, enemy HP, kill points, native callbacks, next round and stop')
+print('PASS: FIX52 v26 round spawn quota, enemy HP, kill points, original mob callback, next round and stop')
