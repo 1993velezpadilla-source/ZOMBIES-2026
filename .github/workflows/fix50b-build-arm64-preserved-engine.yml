@@ -40,7 +40,7 @@ jobs:
           # Restore source taken byte-for-byte from the KNOWN-WORKING FIX49C APK,
           # never substitute dummy headers, empty profiles, or generic guns.
           src=incoming/luanti-fix50b/native/original_headers
-          for header in ak47_motion.h ak47_weapon_params.h m9_weapon_params.h weapon_bridge.h weapon_hud.h native_attachment_override.h; do
+          for header in ak47_motion.h ak47_weapon_params.h m9_weapon_params.h ak47_attachments.h arsenal_profiles.h weapon_bridge.h weapon_hud.h native_attachment_override.h; do
             if [ ! -s "$src/$header" ]; then
               echo "::error::Original COD4 native header missing: $header (FIX50B blocked)"
               exit 1
@@ -51,6 +51,19 @@ jobs:
           echo 'd802ceb47881e81c4fa1477162b646710a3f552661a2a1da7561c164b56afa6d  upstream-luanti/src/client/weapon_bridge.h' | sha256sum -c -
           echo '85b5d1e259e9387230041e23712412339b5010912ab399d32808b465e1828235  upstream-luanti/src/client/weapon_hud.h' | sha256sum -c -
           echo '53f59e9498a6433d9dc3f75f368b417c4f8ed95f33062ea0a60c5a4c4c94fd12  upstream-luanti/src/client/native_attachment_override.h' | sha256sum -c -
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          src = Path('upstream-luanti/src/client')
+          own = ('ak47_', 'arsenal_', 'weapon_', 'native_attachment_')
+          for header in ('ak47_motion.h', 'ak47_weapon_params.h', 'm9_weapon_params.h',
+                         'ak47_attachments.h', 'arsenal_profiles.h',
+                         'weapon_bridge.h', 'weapon_hud.h', 'native_attachment_override.h'):
+              for dependency in re.findall(r'#include\\s+"([^"]+)"', (src / header).read_text()):
+                  if dependency.startswith(own) and not (src / dependency).is_file():
+                      raise SystemExit(f'Custom native header dependency missing: {header} -> {dependency}')
+          print('All custom COD4 native source dependencies present.')
+          PY
           python3 incoming/luanti-fix50a/native/make_xz_use_btn.py upstream-luanti/textures/base/pack/xz_use_btn.png
           sed -i "s/include 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'/include 'arm64-v8a'/" upstream-luanti/android/native/build.gradle
           sed -i "s/include 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'/include 'arm64-v8a'/" upstream-luanti/android/app/build.gradle
