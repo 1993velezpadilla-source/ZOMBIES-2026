@@ -13,8 +13,14 @@ import struct
 import json
 
 FRAMES = {6: 0, 5: 6, 4: 13, 3: 20, 2: 27, 1: 34, 0: 41}
-# Quake unit -> Luanti node conversion only, no geometry redesign.
-UNIT = 100.0
+# V26 source window spans approximately 93 x 100 Quake units.
+# Luanti uses a 1-node / 32-Quake-unit world scale for this game's models.
+# The earlier 1/100 conversion made the barricade incorrectly ~1 node tall.
+# Keep original triangles and UV: only transform vertex coordinates.
+UNIT = 32.0
+WINDOW_Z_FLOOR = -41.73799604177475
+WINDOW_Y_CENTER = 1.41288012266159
+
 
 def i32(data, offset):
     return struct.unpack_from("<i", data, offset)[0]
@@ -74,7 +80,13 @@ def main():
         for (x,y,z) in vertices:
             # Quake Y = horizontal plank direction; Quake Z = height;
             # Quake X = thin window depth. Center only for voxel placement.
-            out.append("v %.6f %.6f %.6f"%(y/UNIT,(z-8)/UNIT,-(x+2.5)/UNIT))
+            # Anchor full-size model at the bottom of the placed node:
+            # x approximately -1.45..+1.45, y -0.5..+2.62.
+            # This makes it a real ~3x3 window, NOT a tiny 1x1 prop.
+            out.append("v %.6f %.6f %.6f"%(
+                (y-WINDOW_Y_CENTER)/UNIT,
+                (z-WINDOW_Z_FLOOR)/UNIT-0.5,
+                -(x+2.5)/UNIT))
         # Generate UV per triangle corner, preserving Quake backside seam.
         uv_idx=0
         tris_kept=0
@@ -113,6 +125,15 @@ def main():
     for stage in sorted(outputs):
         print(f"NZ:P original planks {stage}: frame {outputs[stage]['original_frame']} triangles {outputs[stage]['triangles']}",flush=True)
     assert outputs[6]["triangles"]>outputs[0]["triangles"],"plank disappearance not detected"
+    # Guard against accidentally re-shrinking the genuine v26 window.
+    verts=[]
+    for line in (args.output/"nzp_v26_window_6.obj").read_text().splitlines():
+        if line.startswith("v "): verts.append(tuple(float(x) for x in line.split()[1:]))
+    span_x=max(p[0] for p in verts)-min(p[0] for p in verts)
+    span_y=max(p[1] for p in verts)-min(p[1] for p in verts)
+    assert 2.8 < span_x < 3.1, f"Original window should be ~3 nodes wide, got {span_x}"
+    assert 3.0 < span_y < 3.3, f"Original window should be ~3 nodes high, got {span_y}"
+    assert min(p[1] for p in verts)>-0.52 and min(p[1] for p in verts)<-0.48, "Barricade must rest at placed-node floor"
     print("PASS: 89-frame NZ:P model converted to real 7-state Luanti OBJ meshes")
 if __name__=="__main__":
     main()
