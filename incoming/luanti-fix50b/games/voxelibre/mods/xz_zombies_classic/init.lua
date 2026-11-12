@@ -682,17 +682,35 @@ M.register_chatcommand('zdev',{description='Open Zombies developer mode',func=fu
  if not allowed(p) or not state.active then return false,'Solo administrador en PLAY' end
  dev_form(p);return true
 end})
+-- Read-only diagnostics; no weapon, ADS, or USE handler changes.
+M.register_chatcommand('zstatus',{description='Zombies round, remaining enemies, spawners',func=function(name)
+ local p=M.get_player_by_name(name)
+ if not p then return false,'Jugador no encontrado' end
+ local count=0
+ for _ in pairs(saved_spawners) do count=count+1 end
+ return true,('Zombies %s | Ronda %d | Restantes %d | Vivos %d | Spawners %d | Bajas %d'):format(
+  state.active and 'PLAY' or 'STOP',state.round,
+  director.remaining(state.round_quota,state.spawned,#state.zombies),
+  #state.zombies,count,state.kills)
+end})
 local function update_round()
  local t=M.get_gametime()
  if not state.active then return end
  if state.next_round>0 and t>=state.next_round then
-  state.round=state.round+1;state.next_round=0;state.spawned=0;state.kills=0
-  M.chat_send_all('[Zombies] RONDA '..state.round)
+  state.round=state.round+1
+  state.next_round=0
+  state.spawned=0
+  state.kills=0
+  state.round_quota=director.quota(state.round,#M.get_connected_players())
+  state.next_spawn=t
+  M.chat_send_all(('[Zombies] RONDA %d | %d enemigos'):format(state.round,state.round_quota))
  end
+ -- Account once for each round-owned native mob, never for unrelated world mobs.
  local alive={}
  for _,record in ipairs(state.zombies) do
   local obj=record.obj
-  if obj and obj:get_pos() and obj:get_hp()>0 then alive[#alive+1]=record
+  if obj and obj:get_pos() and obj:get_hp()>0 then
+   alive[#alive+1]=record
   else
    if record.attacker then
     local p=M.get_player_by_name(record.attacker)
@@ -703,40 +721,60 @@ local function update_round()
  end
  state.zombies=alive
  if state.round==0 then return end
- local total=5+state.round*3
- if state.spawned<total and #state.zombies<12 and t>=state.next_spawn then
-  state.next_spawn=t+3
+ if state.spawned<state.round_quota and
+    #state.zombies<director.alive_cap(#M.get_connected_players()) and
+    t>=state.next_spawn then
+  state.next_spawn=t+director.spawn_interval(state.round)
   local candidates={}
   for _,at in pairs(saved_spawners) do
-   local n=M.get_node_or_nil(at)
-   if n and n.name=='xz_zombies:spawner' then
+   local node=M.get_node_or_nil(at)
+   if node and node.name=='xz_zombies:spawner' then
     for _,p in ipairs(M.get_connected_players()) do
-     if vector.distance(p:get_pos(),at)<45 then candidates[#candidates+1]=at;break end
+     if p:get_hp()>0 and vector.distance(p:get_pos(),at)<45 then
+      candidates[#candidates+1]=at
+      break
+     end
     end
    end
   end
   if #candidates>0 then
    local at=candidates[math.random(#candidates)]
    local ok,reason=spawn_native_zombie(at)
-   if not ok and (not state.last_spawn_warning or t-state.last_spawn_warning>=10) then
+   if not ok and (not state.last_spawn_warning or t-state.last_spawn_warning>=12) then
     state.last_spawn_warning=t
     M.log('warning','[xz_zombies_classic] '..reason)
    end
+  elseif not state.last_spawn_warning or t-state.last_spawn_warning>=15 then
+   state.last_spawn_warning=t
+   M.chat_send_all('[Zombies] No hay spawner valido a menos de 45 bloques de un jugador vivo.')
   end
- elseif state.spawned>=total and #state.zombies==0 and state.next_round==0 then
+ elseif state.spawned>=state.round_quota and #state.zombies==0 and state.next_round==0 then
   state.next_round=t+5
+  M.chat_send_all(('[Zombies] RONDA %d COMPLETA | siguiente en 5 segundos'):format(state.round))
  end
 end
 M.register_on_mods_loaded(function()
- local def=M.registered_entities['mobs_mc:zombie']
- if not def then M.log('warning','[xz_zombies_classic] mobs_mc:zombie missing; spawner cannot create zombies.') return end
- -- Track last hit for round-kill points; original AI and on_punch are preserved.
- local original=def.on_punch
- def.on_punch=function(self,puncher,...)
-  if state.active and puncher and puncher:is_player() and self.object then
-   for _,rec in ipairs(state.zombies) do if rec.obj==self.object then rec.attacker=puncher:get_player_name();break end end
+ local seen={}
+ -- Preserve every mob's on_punch and AI; credit all native variants, not only zombie.
+ for _,entity_name in ipairs(ZOMBIE_MODELS) do
+  if not seen[entity_name] then
+   seen[entity_name]=true
+   local def=M.registered_entities[entity_name]
+   if def then
+    local original=def.on_punch
+    def.on_punch=function(self,puncher,...)
+     if state.active and puncher and puncher.is_player and puncher:is_player() and self.object then
+      for _,record in ipairs(state.zombies) do
+       if record.obj==self.object then
+        record.attacker=puncher:get_player_name()
+        break
+       end
+      end
+     end
+     if original then return original(self,puncher,...) end
+    end
+   end
   end
-  if original then return original(self,puncher,...) end
  end
 end)
 -- FIX50A: dedicated native USE button sends one server command per press.
@@ -854,4 +892,4 @@ M.register_globalstep(function(dt)
   end
  end
 end)
-M.log('action','[xz_zombies_classic] FIX50A native USE handler ready; wall mounts require solid backing; 28 guns preserved.')
+M.log('action','[xz_zombies_classic] FIX51 Round Director; native USE and 28 COD4 weapons preserved.')
