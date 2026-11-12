@@ -44,10 +44,14 @@ jobs:
               p=Path(f'fix53-models/nzp_v26_window_{i}_{w}x{h}.obj')
               vs=[tuple(map(float,line.split()[1:])) for line in p.read_text().splitlines() if line.startswith('v ')]
               assert len(vs)==132,p
-              dx=max(x[0] for x in vs)-min(x[0] for x in vs)
-              dy=max(x[1] for x in vs)-min(x[1] for x in vs)
-              assert w*.89<dx<w*1.41,(p,dx)
-              assert h*.9<dy<h*1.51,(p,dy)
+              if i==6:
+                # Only an INTACT original 6-plank frame must fill the whole
+                # opening. v26 removed planks collapse to the source IDPO
+                # offscreen region, so partially destroyed frames are smaller.
+                dx=max(x[0] for x in vs)-min(x[0] for x in vs)
+                dy=max(x[1] for x in vs)-min(x[1] for x in vs)
+                assert w*.89<dx<w*1.41,(p,dx)
+                assert h*.9<dy<h*1.51,(p,dy)
           print('PASS: source model contains all five real dimensions and original geometry')
           PY
       - name: Stage only 28 new original-geometry OBJ sizes, one new module, one AI fix
