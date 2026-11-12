@@ -7,6 +7,8 @@ local root = M.get_modpath('ak47dev')
 local source = assert(loadfile(root .. '/arsenal_catalog.lua'))()
 local director = assert(loadfile(modpath .. '/round_director.lua'))()
 local v26_rules = assert(loadfile(modpath .. '/v26_rules.lua'))()
+local v26_modes = assert(loadfile(modpath .. '/v26_modes.lua'))()(M)
+local v26_hud = assert(loadfile(modpath .. '/v26_hud.lua'))()(M)
 local WEAPONS = {
   {id='ak47', item='ak47dev:ak47',label='AK-47',icon='ak47dev_icon.png', price=1200},
   {id='m9',item='ak47dev:m9',label='M9',icon='m9_icon.png',price=500},
@@ -29,7 +31,7 @@ local form_buy = 'xz_zombies:configure'
 local form_dev = 'xz_zombies:developer'
 local state = {active=false,round=0,round_quota=0,spawned=0,kills=0,next_spawn=0,round_delay=0,zombies={},next_round=0}
 local viewers, developer, huds, prev_physics, prev_armor = {}, {}, {}, {}, {}
-local points_huds = {}
+-- COD HUD is managed by v26_hud.lua, not floating text above the pause button.
 local editor_pages, developer_pages, editor_weapon_index = {}, {}, {}
 local ACTIVE_STORAGE='active'
 local saved_spawners = M.deserialize(storage:get_string('spawner_positions')) or {}
@@ -104,10 +106,13 @@ end
 local function allowed(p) return p and p:is_player() and (M.is_singleplayer() or M.check_player_privs(p,{server=true})) end
 local function player_points(p) return p:get_meta():get_int('xz_z_points') end
 local function set_points(p,n)
-  p:get_meta():set_int('xz_z_points',math.max(0,math.floor(n)))
-  if points_huds[p:get_player_name()] then
-   p:hud_change(points_huds[p:get_player_name()],'text',('%d PTS'):format(player_points(p)))
-  end
+ local previous=player_points(p)
+ local actual=math.max(0,math.floor(n))
+ p:get_meta():set_int('xz_z_points',actual)
+ v26_hud.points(p,actual)
+ if state.active and actual>previous and actual-previous<=200 then
+  v26_hud.award(p,actual-previous)
+ end
 end
 local function tell(p,s) M.chat_send_player(p:get_player_name(), '[Zombies] '..s) end
 local function point_charge(p,amount)
@@ -442,6 +447,9 @@ local function stop_game()
   local name=p:get_player_name()
   if prev_armor[name] then p:set_armor_groups(prev_armor[name]);prev_armor[name]=nil end
   developer[name]=nil
+  local ok,err=v26_modes.stop(p)
+  if not ok then M.log('warning','[xz_zombies_classic] Creative restore: '..tostring(err)) end
+  v26_hud.mode(p,false)
  end
  storage:set_int(ACTIVE_STORAGE,0)
 end
@@ -453,7 +461,17 @@ local function start_game()
  end
  state.active=true;state.round=0;state.round_quota=0;state.next_round=M.get_gametime()+2;state.v26_spawn_delay=2
  state.next_spawn=0
- for _,p in ipairs(M.get_connected_players()) do set_points(p,500) end
+ -- VoxeLibre individual gamemode changes creative->survival for real damage.
+ for _,p in ipairs(M.get_connected_players()) do
+  local ok,err=v26_modes.play(p)
+  if not ok then
+   stop_game()
+   M.chat_send_all('[Zombies] PLAY cancelado: '..tostring(err))
+   return
+  end
+  v26_hud.mode(p,true)
+  set_points(p,500)
+ end
  storage:set_int(ACTIVE_STORAGE,1)
  -- No full-screen debug chatter for PLAY; HUD has the status.
 end
@@ -589,10 +607,11 @@ M.register_tool(':xz_zombies:editor_tool',{
 })
 M.register_on_joinplayer(function(p)
  local name=p:get_player_name()
- huds[name]=p:hud_add({hud_elem_type='text',position={x=0.025,y=0.20},
-  alignment={x=1,y=0},number=0xffd6ad,text='RONDA --',z_index=180})
- points_huds[name]=p:hud_add({hud_elem_type='text',position={x=0.80,y=0.27},
-  alignment={x=1,y=0},number=0xffd6ad,text='0 PTS',z_index=180})
+ -- Compact COD-style HUD at bottom edges; leave original controls visible.
+ v26_hud.attach(p)
+ local ok,err=v26_modes.join(p,state.active)
+ if not ok then M.log('warning','[xz_zombies_classic] Gamemode join: '..tostring(err)) end
+ v26_hud.mode(p,state.active)
  if allowed(p) and not p:get_inventory():contains_item('main','xz_zombies:editor_tool') then
   p:get_inventory():add_item('main','xz_zombies:editor_tool')
  end
@@ -602,7 +621,9 @@ M.register_on_joinplayer(function(p)
  end
 end)
 M.register_on_leaveplayer(function(p)
- local n=p:get_player_name();huds[n]=nil;points_huds[n]=nil;viewers[n]=nil;developer[n]=nil;prev_physics[n]=nil;prev_armor[n]=nil;editor_pages[n]=nil;developer_pages[n]=nil;editor_weapon_index[n]=nil
+ local n=p:get_player_name()
+ v26_hud.detach(p)
+ viewers[n]=nil;developer[n]=nil;prev_physics[n]=nil;prev_armor[n]=nil;editor_pages[n]=nil;developer_pages[n]=nil;editor_weapon_index[n]=nil
 end)
 M.register_on_player_receive_fields(function(p,form,fields)
  local name=p:get_player_name()
@@ -877,6 +898,7 @@ end)
 
 local elapsed=0
 local ai_elapsed=0
+local score_hud_elapsed=0
 M.register_globalstep(function(dt)
  -- Detect actual ZOOM button presses, independently of the PLACE/USE button.
  -- Trigger exactly once per press; do not toggle repeatedly while held.
@@ -891,6 +913,12 @@ M.register_globalstep(function(dt)
   end
   zoom_ads_previous[name]=not not pressed
  end
+ -- Score cascade runs at ~12Hz, independent from slow server wave tick.
+ score_hud_elapsed=score_hud_elapsed+dt
+ if score_hud_elapsed>=0.085 then
+  v26_hud.step(score_hud_elapsed)
+  score_hud_elapsed=0
+ end
  -- NZ:P v26 Zombie_Think compatibility: only round-controlled mobs, not world mobs.
  ai_elapsed=ai_elapsed+dt
  if state.active and ai_elapsed>=0.25 then
@@ -903,13 +931,9 @@ M.register_globalstep(function(dt)
  update_round()
  for _,p in ipairs(M.get_connected_players()) do
   local name=p:get_player_name()
-  if huds[name] then
-    local remaining=director.remaining(state.round_quota,state.spawned,#state.zombies)
-    local label=state.active and state.round>0 and
-      ('RONDA %02d  |  %d ZOMBIS'):format(state.round,remaining) or 'ZOMBIES | PREPARAR'
-    p:hud_change(huds[name],'text',label)
-   end
-   if points_huds[name] then p:hud_change(points_huds[name],'text',('%d PTS'):format(player_points(p))) end
+  local remaining=director.remaining(state.round_quota,state.spawned,#state.zombies)
+  v26_hud.wave(p,state.round,remaining,state.active)
+  v26_hud.points(p,player_points(p))
   local d=developer[name]
   if state.active and d and d.ammo and _G.weapon_bridge then
    local item=p:get_wielded_item():get_name()
@@ -936,4 +960,4 @@ M.register_globalstep(function(dt)
   end
  end
 end)
-M.log('action','[xz_zombies_classic] FIX52 NZ:P v26 QuakeC gameplay adapter ready; native COD4 gun callbacks untouched.')
+M.log('action','[xz_zombies_classic] FIX52B real hit points + cascading HUD; survival PLAY creative STOP; native COD4 mechanics retained.')
