@@ -159,11 +159,15 @@ return function(M,V,hooks)
   return best,bestdist
  end
 
- local function attack_player(p)
-  if p and p:get_hp()>0 then
-   -- QuakeC 50 hit vs 100 health; Luanti default 20 health => 10 HP.
-   -- This is a unit conversion, NOT a newly invented zombie damage value.
-   p:set_hp(math.max(0,p:get_hp()-V.attack_damage/5),{type="punch",from="v26_zombie"})
+ local function attack_player(p,obj)
+  if p and p:get_hp()>0 and obj then
+   -- Original v26 50/100 damage = 10 of VoxeLibre's 20 health points.
+   -- MCL damage requires an actual punch ObjectRef; this is a set_hp hit,
+   -- so use the supported Mob classification rather than type='punch'.
+   -- Passing a fake punch without object is the EXACT cause of the crash.
+   p:set_hp(math.max(0,p:get_hp()-V.attack_damage/5),{
+    type='set_hp',_mcl_type='mob',_mcl_direct=obj,_mcl_source=obj
+   })
   end
  end
 
@@ -193,7 +197,7 @@ return function(M,V,hooks)
    if t>=(record.v26_attack_next or 0) then
     record.v26_attack_next=t+V.attack_min_cooldown+math.random()*V.attack_random_cooldown
     if length(obj:get_pos(),target:get_pos())<V.attack_range_quake/UNIT then
-     attack_player(target)
+     attack_player(target,obj)
     end
    end
    return
