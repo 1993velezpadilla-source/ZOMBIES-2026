@@ -76,6 +76,15 @@ local A=assert(loadfile(folder..'v26_runtime.lua'))()(M,V,{
 })
 local c=0;for _ in pairs(nodes)do c=c+1 end
 assert(c==7,'Missing original seven plank states')
+local full=nodes['xz_zombies:v26_barricade_6']
+assert(full and full.drawtype=='mesh','Native v26 6-board node not registered')
+assert(full.selection_box.fixed[1]<-1.4 and full.selection_box.fixed[4]>1.4,
+ '3-node-wide original barricade selection not restored')
+assert(full.selection_box.fixed[5]>2.5,'3-node-tall original barricade not selectable')
+assert(full.collision_box.fixed[4]>1.4 and full.collision_box.fixed[5]>2.5,
+ 'Collision must extend over the full original window')
+assert(not nodes['xz_zombies:v26_barricade_0'].walkable,
+ 'Fully broken barricade must let player/zombie walk through')
 local spot={x=1,y=0,z=0}
 world[poskey(spot)]={name=A.stage_name(6),param2=2}
 assert(A.zombie_break(spot) and A.get_stage(spot)==5,'One zombie hit must break exactly one board')
@@ -96,12 +105,25 @@ function zombie:get_pos()return self.pos end
 function zombie:get_hp()return self.hp end
 function zombie:get_velocity()return {y=0}end
 function zombie:set_velocity(v)self.vel=v end
+local native_ai={state='stand',view_range=16}
+function native_ai:do_attack(target)
+ assert(self.force_attack==true,'Creative-world mob must force combat during PLAY')
+ self.attack=target;self.state='attack'
+ self.attack_calls=(self.attack_calls or 0)+1
+end
+function zombie:get_luaentity()return native_ai end
 local record={obj=zombie}
 time=10
 A.zombie_think(record,0.3)
+assert(native_ai.attack==player and native_ai.state=='attack',
+ 'Zombie must actually enter mcl_mobs native attack/chase state')
+assert(native_ai.view_range>=45 and native_ai.attack_calls==1,
+ 'Mob AI must target player from original spawner range')
+assert(zombie.vel==nil,'External velocity override would be reset by mcl_mobs:on_step')
 assert(A.get_stage(spot)==5 and player:get_hp()==20,'Must break exactly one board before player damage')
 time=10.2
 A.zombie_think(record,0.3)
+assert(native_ai.attack_calls==1,'Same target must not restart native pathfinding each tick')
 assert(A.get_stage(spot)==5,'Original attack cooldown cannot break entire barricade')
 time=12
 A.zombie_think(record,0.3)
@@ -111,6 +133,8 @@ assert(A.get_stage(spot)==0,'Zombies eventually tear through original barrier')
 time=time+3
 A.zombie_think(record,0.3)
 assert(player.hp==10,'Original 50 Quake zombie damage converted to 10/20 Luanti HP')
+assert(not A.zombie_melee(record) and player.hp==10,
+ 'Native attack animation and globalstep cannot double-damage one frame')
 A.zombie_on_punch(record,player,150,140)
 assert(points==570,'Every nonlethal hit earns original +10')
 A.zombie_on_punch(record,player,10,0)
