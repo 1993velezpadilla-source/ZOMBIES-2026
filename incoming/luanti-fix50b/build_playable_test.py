@@ -42,7 +42,7 @@ def assert_unique_archive(z, name):
         raise RuntimeError(f"{name}: expected one item, found {names.count(name)}")
 
 
-def rebuild_inner(old_zip, new_zip, lua_file, btn_file, director_file=None):
+def rebuild_inner(old_zip, new_zip, lua_file, btn_file, director_file=None, overlay_dir=None):
     original = set()
     changed = {}
     with zipfile.ZipFile(old_zip) as old, zipfile.ZipFile(new_zip, "w", allowZip64=True) as new:
@@ -57,6 +57,23 @@ def rebuild_inner(old_zip, new_zip, lua_file, btn_file, director_file=None):
             changes[BUTTON_PATH] = btn_file.read_bytes()
         if director_file is not None:
             changes[DIRECTOR_PATH] = director_file.read_bytes()
+        overlay_files = {}
+        if overlay_dir is not None:
+            if not overlay_dir.is_dir():
+                raise RuntimeError('Missing staged v26 overlay directory')
+            for file in sorted(overlay_dir.rglob('*')):
+                if not file.is_file():
+                    continue
+                relative = file.relative_to(overlay_dir).as_posix()
+                if relative.startswith('/') or '..' in Path(relative).parts:
+                    raise RuntimeError('Unsafe v26 resource path: ' + relative)
+                inner_path = 'games/voxelibre/mods/xz_zombies_classic/' + relative
+                if inner_path in changes:
+                    raise RuntimeError('Duplicate overlay file: ' + inner_path)
+                overlay_files[inner_path] = file.read_bytes()
+            if not overlay_files:
+                raise RuntimeError('Empty v26 resource overlay')
+            changes.update(overlay_files)
         for info in old.infolist():
             data = changes.pop(info.filename, None)
             if data is None:
@@ -83,6 +100,9 @@ def rebuild_inner(old_zip, new_zip, lua_file, btn_file, director_file=None):
             raise RuntimeError("Native USE button image was not packaged")
         if director_file is not None and new.read(DIRECTOR_PATH) != director_file.read_bytes():
             raise RuntimeError("Round Director Lua was not packaged")
+        for key, raw in overlay_files.items():
+            if new.read(key) != raw:
+                raise RuntimeError('v26 source asset was altered: '+key)
     return {"baseline_asset_count": len(original), "candidate_asset_count": len(names), "changed": changed}
 
 
@@ -93,6 +113,7 @@ def main():
     p.add_argument("--lua", type=Path, required=True)
     p.add_argument("--button", type=Path)
     p.add_argument("--director", type=Path)
+    p.add_argument("--overlay-dir", type=Path)
     p.add_argument("--output", type=Path, required=True)
     args = p.parse_args()
     args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -120,7 +141,7 @@ def main():
                 copy_stream(src, dest)
         with lzma.open(old_inner_xz, "rb") as src, old_inner.open("wb") as dest:
             copy_stream(src, dest)
-        report["assets"] = rebuild_inner(old_inner, new_inner, args.lua, args.button, args.director)
+        report["assets"] = rebuild_inner(old_inner, new_inner, args.lua, args.button, args.director, args.overlay_dir)
         with new_inner.open("rb") as src, lzma.open(new_inner_xz, "wb", format=lzma.FORMAT_XZ, preset=3) as dest:
             copy_stream(src, dest)
         with zipfile.ZipFile(new_outer, "w", allowZip64=True) as outer:
