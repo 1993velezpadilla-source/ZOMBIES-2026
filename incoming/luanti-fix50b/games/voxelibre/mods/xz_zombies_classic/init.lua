@@ -6,6 +6,7 @@ local modpath = M.get_modpath(MOD)
 local root = M.get_modpath('ak47dev')
 local source = assert(loadfile(root .. '/arsenal_catalog.lua'))()
 local director = assert(loadfile(modpath .. '/round_director.lua'))()
+local v26_rules = assert(loadfile(modpath .. '/v26_rules.lua'))()
 local WEAPONS = {
   {id='ak47', item='ak47dev:ak47',label='AK-47',icon='ak47dev_icon.png', price=1200},
   {id='m9',item='ak47dev:m9',label='M9',icon='m9_icon.png',price=500},
@@ -28,6 +29,7 @@ local form_buy = 'xz_zombies:configure'
 local form_dev = 'xz_zombies:developer'
 local state = {active=false,round=0,round_quota=0,spawned=0,kills=0,next_spawn=0,round_delay=0,zombies={},next_round=0}
 local viewers, developer, huds, prev_physics, prev_armor = {}, {}, {}, {}, {}
+local points_huds = {}
 local editor_pages, developer_pages, editor_weapon_index = {}, {}, {}
 local ACTIVE_STORAGE='active'
 local saved_spawners = M.deserialize(storage:get_string('spawner_positions')) or {}
@@ -49,7 +51,7 @@ if persisted_time=='day' or persisted_time=='night' then set_world_time_mode(per
 -- FIX45 test: use native VoxeLibre entities and their existing mesh, texture and AI.
 local ZOMBIE_MODELS = {
  'mobs_mc:zombie', 'mobs_mc:zombie', 'mobs_mc:zombie',
- 'mobs_mc:husk', 'mobs_mc:villager_zombie', 'mobs_mc:baby_zombie',
+ 'mobs_mc:husk', 'mobs_mc:villager_zombie', -- NO baby zombies.
 }
 local function native_zombie()
  local pool={}
@@ -93,7 +95,7 @@ local function spawn_native_zombie(at)
   entity.ignited_by_sunlight=false
   entity.sunlight_damage=0
  end
- obj:set_hp(director.health(state.round))
+ obj:set_hp(math.floor(v26_rules.zombie_hp(state.round)))
  state.zombies[#state.zombies+1]={obj=obj}
  state.spawned=state.spawned+1
  return true,name
@@ -103,7 +105,9 @@ local function allowed(p) return p and p:is_player() and (M.is_singleplayer() or
 local function player_points(p) return p:get_meta():get_int('xz_z_points') end
 local function set_points(p,n)
   p:get_meta():set_int('xz_z_points',math.max(0,math.floor(n)))
-  if huds[p:get_player_name()] then p:hud_change(huds[p:get_player_name()],'text',director.hud(state.round,state.round_quota,state.spawned,#state.zombies,player_points(p),state.active)) end
+  if points_huds[p:get_player_name()] then
+   p:hud_change(points_huds[p:get_player_name()],'text',('%d PTS'):format(player_points(p)))
+  end
 end
 local function tell(p,s) M.chat_send_player(p:get_player_name(), '[Zombies] '..s) end
 local function point_charge(p,amount)
@@ -414,6 +418,13 @@ M.register_lbm({label='FIX45 recover Zombies spawners',name='xz_zombies_classic:
   end
  end,
 })
+-- NZ:P 0.26 QuakeC gameplay state machine, adapted to Luanti's entity API.
+local v26=assert(loadfile(modpath .. '/v26_runtime.lua'))()(M,v26_rules,{
+ active=function()return state.active end,
+ get_round=function()return state.round end,
+ add_points=function(player,amount)set_points(player,player_points(player)+amount)end,
+ get_zombies=function()return state.zombies end,
+})
 local function reset_perks(p)
   local meta=p:get_meta()
   for id in pairs(PERKS) do meta:set_int('xz_z_perk_'..id,0) end
@@ -421,7 +432,7 @@ local function reset_perks(p)
   p:set_properties({hp_max=20});if p:get_hp()>20 then p:set_hp(20) end
 end
 local function stop_game()
- state.active=false;state.round=0;state.round_quota=0;state.spawned=0;state.kills=0;state.next_round=0;state.last_spawn_warning=nil
+ state.active=false;state.round=0;state.round_quota=0;state.spawned=0;state.kills=0;state.next_round=0;state.last_spawn_warning=nil;state.v26_spawn_delay=2
  for _,mob in ipairs(state.zombies) do
   if mob.obj and mob.obj:get_pos() then mob.obj:remove() end
  end
@@ -440,11 +451,11 @@ local function start_game()
   M.chat_send_all('[Zombies] No se encontro el mob de VoxeLibre (mobs_mc). PLAY cancelado.')
   return
  end
- state.active=true;state.round=0;state.round_quota=0;state.next_round=M.get_gametime()+2
+ state.active=true;state.round=0;state.round_quota=0;state.next_round=M.get_gametime()+2;state.v26_spawn_delay=2
  state.next_spawn=0
  for _,p in ipairs(M.get_connected_players()) do set_points(p,500) end
  storage:set_int(ACTIVE_STORAGE,1)
- M.chat_send_all('[Zombies] PLAY listo. Coloca un Spawner y acercate a menos de 45 bloques. Tocalo para TEST instantaneo.')
+ -- No full-screen debug chatter for PLAY; HUD has the status.
 end
 -- FIX49: Universal responsive phone/tablet/desktop formspecs.
 -- Compact pagination avoids a giant fixed 13.2 x 10.3 panel that overlaps controls
@@ -499,6 +510,8 @@ local function editor_form(p)
   fs_button(f,0.25,y,cw,0.80,'door','PUERTA CON PRECIO')
   y=y+0.93
   fs_button(f,0.25,y,cw,0.80,'spawner','ZOMBIE SPAWNER')
+  y=y+0.93
+  fs_button(f,0.25,y,cw,0.80,'barricade','BARRICADA V26 (6 TABLAS)')
  elseif page==4 then
   local entries={{'perk_juggernog','JUGGERNOG'},
     {'perk_speedcola','SPEED COLA'},{'perk_doubletap','DOUBLE TAP'},
@@ -576,7 +589,10 @@ M.register_tool(':xz_zombies:editor_tool',{
 })
 M.register_on_joinplayer(function(p)
  local name=p:get_player_name()
- huds[name]=p:hud_add({hud_elem_type='text',position={x=0.5,y=0.05},alignment={x=0,y=0},number=0xffe4b5,text='ZOMBIES CLASSIC',z_index=180})
+ huds[name]=p:hud_add({hud_elem_type='text',position={x=0.025,y=0.20},
+  alignment={x=1,y=0},number=0xffd6ad,text='RONDA --',z_index=180})
+ points_huds[name]=p:hud_add({hud_elem_type='text',position={x=0.80,y=0.27},
+  alignment={x=1,y=0},number=0xffd6ad,text='0 PTS',z_index=180})
  if allowed(p) and not p:get_inventory():contains_item('main','xz_zombies:editor_tool') then
   p:get_inventory():add_item('main','xz_zombies:editor_tool')
  end
@@ -586,7 +602,7 @@ M.register_on_joinplayer(function(p)
  end
 end)
 M.register_on_leaveplayer(function(p)
- local n=p:get_player_name();huds[n]=nil;viewers[n]=nil;developer[n]=nil;prev_physics[n]=nil;prev_armor[n]=nil;editor_pages[n]=nil;developer_pages[n]=nil;editor_weapon_index[n]=nil
+ local n=p:get_player_name();huds[n]=nil;points_huds[n]=nil;viewers[n]=nil;developer[n]=nil;prev_physics[n]=nil;prev_armor[n]=nil;editor_pages[n]=nil;developer_pages[n]=nil;editor_weapon_index[n]=nil
 end)
 M.register_on_player_receive_fields(function(p,form,fields)
  local name=p:get_player_name()
@@ -660,7 +676,7 @@ M.register_on_player_receive_fields(function(p,form,fields)
  if fields.play then start_game();editor_form(p);return true end
  if fields.stop then stop_game();editor_form(p);return true end
  if fields.developer then if state.active then dev_form(p) else tell(p,'Presiona PLAY para abrir Developer.') end;return true end
- local selections={boxa='xz_zombies:mystery_box_a',boxb='xz_zombies:mystery_box_b',door='xz_zombies:door',spawner='xz_zombies:spawner'}
+ local selections={boxa='xz_zombies:mystery_box_a',boxb='xz_zombies:mystery_box_b',door='xz_zombies:door',spawner='xz_zombies:spawner',barricade='xz_zombies:v26_barricade_6'}
  for id in pairs(PERKS) do selections['perk_'..id]='xz_zombies:perk_'..id end
  if fields.givewall then
   local chosen=tonumber(fields.weapon) or editor_weapon_index[name] or 1
@@ -701,9 +717,11 @@ local function update_round()
   state.next_round=0
   state.spawned=0
   state.kills=0
-  state.round_quota=director.quota(state.round,#M.get_connected_players())
+  state.round_quota=v26_rules.round_quota(state.round,#M.get_connected_players())
+  if state.round>1 then state.v26_spawn_delay=v26_rules.next_spawn_delay(state.v26_spawn_delay or 2,1) end
+  for _,p in ipairs(M.get_connected_players()) do v26.reset_player_round(p,state.round) end
   state.next_spawn=t
-  M.chat_send_all(('[Zombies] RONDA %d | %d enemigos'):format(state.round,state.round_quota))
+  -- Round info is shown in the compact HUD, not debug chat.
  end
  -- Account once for each round-owned native mob, never for unrelated world mobs.
  local alive={}
@@ -714,7 +732,7 @@ local function update_round()
   else
    if record.attacker then
     local p=M.get_player_by_name(record.attacker)
-    if p then set_points(p,player_points(p)+100) end
+    if p and not record.v26_kill_awarded then set_points(p,player_points(p)+v26_rules.damage_score(true,'lowertorso')) end
    end
    state.kills=state.kills+1
   end
@@ -724,7 +742,7 @@ local function update_round()
  if state.spawned<state.round_quota and
     #state.zombies<director.alive_cap(#M.get_connected_players()) and
     t>=state.next_spawn then
-  state.next_spawn=t+director.spawn_interval(state.round)
+  state.next_spawn=t+(state.v26_spawn_delay or 2)
   local candidates={}
   for _,at in pairs(saved_spawners) do
    local node=M.get_node_or_nil(at)
@@ -746,11 +764,11 @@ local function update_round()
    end
   elseif not state.last_spawn_warning or t-state.last_spawn_warning>=15 then
    state.last_spawn_warning=t
-   M.chat_send_all('[Zombies] No hay spawner valido a menos de 45 bloques de un jugador vivo.')
+   -- Avoid on-screen debug warnings while surviving.
   end
  elseif state.spawned>=state.round_quota and #state.zombies==0 and state.next_round==0 then
   state.next_round=t+5
-  M.chat_send_all(('[Zombies] RONDA %d COMPLETA | siguiente en 5 segundos'):format(state.round))
+  -- Wave transitions are visible in the HUD, not persistent chat.
  end
 end
 M.register_on_mods_loaded(function()
@@ -865,7 +883,13 @@ M.register_globalstep(function(dt)
  update_round()
  for _,p in ipairs(M.get_connected_players()) do
   local name=p:get_player_name()
-  if huds[name] then p:hud_change(huds[name],'text',director.hud(state.round,state.round_quota,state.spawned,#state.zombies,player_points(p),state.active)) end
+  if huds[name] then
+    local remaining=director.remaining(state.round_quota,state.spawned,#state.zombies)
+    local label=state.active and state.round>0 and
+      ('RONDA %02d  |  %d ZOMBIS'):format(state.round,remaining) or 'ZOMBIES | PREPARAR'
+    p:hud_change(huds[name],'text',label)
+   end
+   if points_huds[name] then p:hud_change(points_huds[name],'text',('%d PTS'):format(player_points(p))) end
   local d=developer[name]
   if state.active and d and d.ammo and _G.weapon_bridge then
    local item=p:get_wielded_item():get_name()
