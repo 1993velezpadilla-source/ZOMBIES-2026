@@ -10,6 +10,7 @@ local storage_data = {}
 local logs = {}
 local onmods={}
 local tick=0
+local gameclock=20
 local worldnode='xz_zombies:wall_ak47'
 local placed_at={x=4,y=5,z=6}
 local handled={}
@@ -19,7 +20,7 @@ M = {
  registered_nodes=nodes,registered_entities={['mobs_mc:zombie']={}},registered_items={},
  settings={get=function(_,k) return settings_data[k] end,set=function(_,k,v) settings_data[k]=v end},
  get_current_modname=function() return 'xz_zombies_classic' end,
- get_modpath=function(name) return '/fake/'..name end,
+ get_modpath=function(name) if name=='xz_zombies_classic' then return 'incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic' end return '/fake/'..name end,
  get_mod_storage=function() return {get_string=function(_,k) return storage_data[k] or '' end,
   set_string=function(_,k,v) storage_data[k]=v end,set_int=function(_,k,v) storage_data[k]=v end} end,
  deserialize=function() return nil end,serialize=function() return '{}' end,
@@ -61,7 +62,7 @@ M = {
   return nil
  end,
  set_timeofday=function(v) _G.test_timeofday=v end,
- get_gametime=function() return 20 end,
+ get_gametime=function() return gameclock end,
  is_singleplayer=function() return true end,
  get_connected_players=function() return {} end,
  chat_send_player=function() end,chat_send_all=function() end,
@@ -181,6 +182,10 @@ for item in pairs(originals) do
  origPlace[item]=d.on_place
  origSecondary[item]=d.on_secondary_use
 end
+local originalPunchCount=0
+for _,ename in ipairs({'mobs_mc:zombie','mobs_mc:husk','mobs_mc:villager_zombie','mobs_mc:baby_zombie'}) do
+ M.registered_entities[ename]={on_punch=function() originalPunchCount=originalPunchCount+1 end}
+end
 for _,f in ipairs(onmods) do f() end
 for item in pairs(originals) do
  assert(M.registered_items[item].on_place==origPlace[item],item..' PLACE changed')
@@ -292,3 +297,64 @@ grid[key({x=18,y=4,z=20})]={name='mcl_core:stone'}
 mount_lbm.action(amb,grid[key(amb)])
 assert(grid[key(amb)].name=='xz_zombies:wall_ak47','ambiguous wall geometry must be left intact')
 print('PASS: floating wall prop snap, metadata preservation, safe ambiguous cases')
+
+-- FIX51 integration: actually advance rounds, spawn mob entities, credit a native
+-- variant kill, verify inherited punch callbacks and wave transitions.
+local D=assert(loadfile('incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/round_director.lua'))()
+local spawner={x=10,y=3,z=10}
+local mobs={}
+_G.vector.distance=function(a,b)
+ local dx,dy,dz=a.x-b.x,a.y-b.y,a.z-b.z
+ return math.sqrt(dx*dx+dy*dy+dz*dz)
+end
+M.get_meta=function(pos)
+ return {set_string=function()end,set_int=function()end,get_int=function()return 0 end}
+end
+M.get_node_or_nil=function(pos)
+ if pos.x==spawner.x and pos.y==spawner.y and pos.z==spawner.z then return {name='xz_zombies:spawner'} end
+ if pos.y<=spawner.y then return {name='mcl_core:stone'} end
+ return {name='air'}
+end
+M.add_entity=function(pos,entity_name)
+ local obj={alive=true,hp=20,pos=pos,entity_name=entity_name}
+ function obj:get_pos() return self.alive and self.pos or nil end
+ function obj:get_hp() return self.hp end
+ function obj:set_hp(hp) self.hp=hp end
+ function obj:remove() self.alive=false end
+ local entity={object=obj}
+ function obj:get_luaentity()return entity end
+ mobs[#mobs+1]=obj
+ return obj
+end
+nodes['xz_zombies:spawner'].on_construct(spawner)
+gameclock=50
+callbacks.fields(p,'xz_zombies:editor',{play=true})
+gameclock=53
+callbacks.step(1.1)
+local active_status,info=callbacks.zstatus('portrait')
+assert(active_status and info:find('Ronda 1',1,true),tostring(info))
+assert(#mobs==1,'first zombie should spawn on round start')
+assert(mobs[1].hp==D.health(1),'mob HP did not scale by round')
+assert(mobs[1].entity_name=='mobs_mc:zombie' or M.registered_entities[mobs[1].entity_name],'non-native zombie spawned')
+for t=56,90,3 do gameclock=t;callbacks.step(1.1) end
+assert(#mobs==D.quota(1,1),'round 1 spawn quota must be exact; spawned '..#mobs)
+for _,obj in ipairs(mobs) do
+ local entity=obj:get_luaentity()
+ M.registered_entities[obj.entity_name].on_punch(entity,p)
+ obj:set_hp(0)
+end
+gameclock=94
+callbacks.step(1.1)
+local ok2,status=callbacks.zstatus('portrait')
+assert(ok2 and status:find('Restantes 0',1,true) and status:find('Bajas 8',1,true),tostring(status))
+assert(meta['portraitxz_z_points']==500+100*D.quota(1,1),'kill points were not credited once to shooter')
+assert(originalPunchCount==#mobs,'native zombie original on_punch callback not preserved')
+gameclock=100
+callbacks.step(1.1)
+local ok3,status2=callbacks.zstatus('portrait')
+assert(ok3 and status2:find('Ronda 2',1,true),tostring(status2))
+assert(#mobs==D.quota(1,1)+1 and mobs[#mobs].hp==D.health(2),'round 2 growth did not apply')
+callbacks.fields(p,'xz_zombies:editor',{stop=true})
+local ok4,status3=callbacks.zstatus('portrait')
+assert(ok4 and status3:find('STOP',1,true),tostring(status3))
+print('PASS: FIX51 round spawn quota, enemy HP, kill points, native callbacks, next round and stop')

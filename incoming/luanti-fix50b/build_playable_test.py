@@ -21,6 +21,7 @@ import zipfile
 from pathlib import Path
 
 GAME_PATH = "games/voxelibre/mods/xz_zombies_classic/init.lua"
+DIRECTOR_PATH = "games/voxelibre/mods/xz_zombies_classic/round_director.lua"
 BUTTON_PATH = "textures/base/pack/xz_use_btn.png"
 COMPRESSED_ENTRY = "luanti-assets.zip.xz"
 OUTER_PATH = "assets/assets.zip"
@@ -41,7 +42,7 @@ def assert_unique_archive(z, name):
         raise RuntimeError(f"{name}: expected one item, found {names.count(name)}")
 
 
-def rebuild_inner(old_zip, new_zip, lua_file, btn_file):
+def rebuild_inner(old_zip, new_zip, lua_file, btn_file, director_file=None):
     original = set()
     changed = {}
     with zipfile.ZipFile(old_zip) as old, zipfile.ZipFile(new_zip, "w", allowZip64=True) as new:
@@ -51,7 +52,11 @@ def rebuild_inner(old_zip, new_zip, lua_file, btn_file):
         assert_unique_archive(old, GAME_PATH)
         original = {i.filename: (i.CRC, i.file_size) for i in old.infolist()}
         new.comment = old.comment
-        changes = {GAME_PATH: lua_file.read_bytes(), BUTTON_PATH: btn_file.read_bytes()}
+        changes = {GAME_PATH: lua_file.read_bytes()}
+        if btn_file is not None:
+            changes[BUTTON_PATH] = btn_file.read_bytes()
+        if director_file is not None:
+            changes[DIRECTOR_PATH] = director_file.read_bytes()
         for info in old.infolist():
             data = changes.pop(info.filename, None)
             if data is None:
@@ -74,8 +79,10 @@ def rebuild_inner(old_zip, new_zip, lua_file, btn_file):
                     raise RuntimeError("Regression in untouched FIX49C asset " + name)
         if new.read(GAME_PATH) != lua_file.read_bytes():
             raise RuntimeError("FIX50B Lua was not packaged")
-        if new.read(BUTTON_PATH) != btn_file.read_bytes():
+        if btn_file is not None and new.read(BUTTON_PATH) != btn_file.read_bytes():
             raise RuntimeError("Native USE button image was not packaged")
+        if director_file is not None and new.read(DIRECTOR_PATH) != director_file.read_bytes():
+            raise RuntimeError("Round Director Lua was not packaged")
     return {"baseline_asset_count": len(original), "candidate_asset_count": len(names), "changed": changed}
 
 
@@ -84,7 +91,8 @@ def main():
     p.add_argument("--fix49c", type=Path, required=True)
     p.add_argument("--rebuilt", type=Path, required=True)
     p.add_argument("--lua", type=Path, required=True)
-    p.add_argument("--button", type=Path, required=True)
+    p.add_argument("--button", type=Path)
+    p.add_argument("--director", type=Path)
     p.add_argument("--output", type=Path, required=True)
     args = p.parse_args()
     args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -112,7 +120,7 @@ def main():
                 copy_stream(src, dest)
         with lzma.open(old_inner_xz, "rb") as src, old_inner.open("wb") as dest:
             copy_stream(src, dest)
-        report["assets"] = rebuild_inner(old_inner, new_inner, args.lua, args.button)
+        report["assets"] = rebuild_inner(old_inner, new_inner, args.lua, args.button, args.director)
         with new_inner.open("rb") as src, lzma.open(new_inner_xz, "wb", format=lzma.FORMAT_XZ, preset=3) as dest:
             copy_stream(src, dest)
         with zipfile.ZipFile(new_outer, "w", allowZip64=True) as outer:
