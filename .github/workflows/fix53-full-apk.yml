@@ -1,0 +1,159 @@
+name: FIX53 Android native zombie chase and original five-size v26 windows
+on:
+  push:
+    branches: [fix/fix53-v26-chase-multisize-barricades-20261112]
+    paths:
+      - '.github/workflows/fix53-full-apk.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: fix53-native-chase-sized-windows
+  cancel-in-progress: false
+jobs:
+  signed-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test v26 original mechanics, five sizes, native chase, 28 guns and COD points
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq && sudo apt-get install -y -qq lua5.4
+          for f in incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/*.lua; do luac5.4 -p "$f"; done
+          lua5.4 incoming/luanti-fix50b/tests/test_v26_original.lua
+          lua5.4 incoming/luanti-fix50b/tests/test_fix53_chase_sizes.lua
+          lua5.4 incoming/luanti-fix50b/tests/test_fix52b_hud_modes.lua
+          lua5.4 incoming/luanti-fix50b/tests/test_runtime.lua
+      - name: Recover pinned original NZP Quake v26 barricade model
+        run: |
+          set -euo pipefail
+          mkdir -p fix53-input fix53-models fix53-build/overlay/models
+          curl -fL --retry 5 --silent --show-error \
+            https://raw.githubusercontent.com/nzp-team/assets/main/common/models/misc/window.mdl \
+            -o fix53-input/window.mdl
+          test "$(git hash-object fix53-input/window.mdl)" = 871c4beafb26d8a097d5811f7dab726e9839a589
+          python3 incoming/luanti-fix50b/v26/convert_original_window_mdl.py fix53-input/window.mdl fix53-models
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          m=json.loads(Path('fix53-models/nzp_v26_window_manifest.json').read_text())
+          assert len(m['original'])==7 and len(m['variants'])==28
+          for w,h in ((1,2),(2,1),(2,2),(3,3)):
+            for i in range(7):
+              p=Path(f'fix53-models/nzp_v26_window_{i}_{w}x{h}.obj')
+              vs=[tuple(map(float,line.split()[1:])) for line in p.read_text().splitlines() if line.startswith('v ')]
+              assert len(vs)==132,p
+              dx=max(x[0] for x in vs)-min(x[0] for x in vs)
+              dy=max(x[1] for x in vs)-min(x[1] for x in vs)
+              assert w*.89<dx<w*1.41,(p,dx)
+              assert h*.9<dy<h*1.51,(p,dy)
+          print('PASS: source model contains all five real dimensions and original geometry')
+          PY
+      - name: Stage only 28 new original-geometry OBJ sizes, one new module, one AI fix
+        run: |
+          set -euo pipefail
+          for size in 1x2 2x1 2x2 3x3; do
+            for stage in 0 1 2 3 4 5 6; do
+              file="$(printf 'nzp_v26_window_%s_%s.obj' "$stage" "$size")"
+              cp "fix53-models/$file" fix53-build/overlay/models/
+            done
+          done
+          cp incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/v26_runtime.lua fix53-build/overlay/v26_runtime.lua
+          cp incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/v26_sized_barricades.lua fix53-build/overlay/v26_sized_barricades.lua
+          test "$(find fix53-build/overlay -type f | wc -l)" -eq 30
+      - name: Download functional FIX52B with the exact original native COD4 28-gun engine
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release download fix52b-survival-cod4-hits-hud-arm64-playtest \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern COD4-ZOMBIES-FIX52B-SURVIVAL-HITS-HUD-ARM64.apk --dir fix53-input
+          test -s fix53-input/COD4-ZOMBIES-FIX52B-SURVIVAL-HITS-HUD-ARM64.apk
+      - name: Overlay gameplay and models over FIX52B without rebuilding guns
+        run: |
+          set -euo pipefail
+          python3 incoming/luanti-fix50b/build_playable_test.py \
+            --fix49c fix53-input/COD4-ZOMBIES-FIX52B-SURVIVAL-HITS-HUD-ARM64.apk \
+            --rebuilt fix53-input/COD4-ZOMBIES-FIX52B-SURVIVAL-HITS-HUD-ARM64.apk \
+            --lua incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/init.lua \
+            --overlay-dir fix53-build/overlay --output fix53-build/unsigned.apk
+      - name: Strict gate - original 28 guns, APK, exact resource counts and five models
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import io,zipfile,lzma,pathlib,json
+          old=pathlib.Path('fix53-input/COD4-ZOMBIES-FIX52B-SURVIVAL-HITS-HUD-ARM64.apk')
+          new=pathlib.Path('fix53-build/unsigned.apk')
+          r=json.loads(pathlib.Path('fix53-build/packaging_report.json').read_text())
+          assert r['assets']['baseline_asset_count']==9684,r
+          assert r['assets']['candidate_asset_count']==9713,r
+          root='games/voxelibre/mods/xz_zombies_classic/'
+          expected={root+'init.lua':'replaced',root+'v26_runtime.lua':'replaced',root+'v26_sized_barricades.lua':'added'}
+          for size in ('1x2','2x1','2x2','3x3'):
+            for i in range(7): expected[root+f'models/nzp_v26_window_{i}_{size}.obj']='added'
+          assert r['assets']['changed']==expected,r['assets']['changed']
+          with zipfile.ZipFile(old) as o, zipfile.ZipFile(new) as n:
+            for entry in o.infolist():
+              if entry.filename=='assets/assets.zip' or entry.filename.startswith('META-INF/'): continue
+              e=n.getinfo(entry.filename)
+              assert (entry.CRC,entry.file_size)==(e.CRC,e.file_size),entry.filename
+            for key in ('lib/arm64-v8a/libluanti.so','AndroidManifest.xml','classes.dex','resources.arsc'):
+              assert o.read(key)==n.read(key),key
+            with zipfile.ZipFile(io.BytesIO(n.read('assets/assets.zip'))) as outer:
+              assert outer.comment==b'XZ-ASSETS-1:9713'
+              with zipfile.ZipFile(io.BytesIO(lzma.decompress(outer.read('luanti-assets.zip.xz')))) as z:
+                assert len(z.namelist())==9713
+                lua=z.read(root+'init.lua')
+                assert b'v26.install_native_ai(record)' in lua
+                assert b'v26_sized_barricades.lua' in lua
+                assert b"'mobs_mc:baby_zombie'" not in lua
+                assert b'entity:do_attack(target)' in z.read(root+'v26_runtime.lua')
+                for size in ('1x2','2x1','2x2','3x3'):
+                  for i in range(7): assert len(z.read(root+f'models/nzp_v26_window_{i}_{size}.obj'))>0
+                with zipfile.ZipFile(io.BytesIO(o.read('assets/assets.zip'))) as baseouter:
+                  with zipfile.ZipFile(io.BytesIO(lzma.decompress(baseouter.read('luanti-assets.zip.xz')))) as base:
+                    for entry in base.infolist():
+                      if entry.filename in expected:continue
+                      e=z.getinfo(entry.filename)
+                      assert (entry.CRC,entry.file_size)==(e.CRC,e.file_size),entry.filename
+          print('PASS: 9713 resources, native COD4+28 guns, ADS, scoring and USE preserved')
+          PY
+      - name: Zipalign sign and verify Android ARM64 standalone playtest
+        run: |
+          set -euo pipefail
+          TOOLSDIR="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
+          "$TOOLSDIR/zipalign" -f -p 4 fix53-build/unsigned.apk fix53-build/aligned.apk
+          keytool -genkeypair -keystore "$RUNNER_TEMP/fix53.jks" -alias fix53 \
+            -storepass android -keypass android -keyalg RSA -keysize 3072 \
+            -validity 3650 -noprompt \
+            -dname 'CN=FIX53 v26 Original Model Sizes,OU=Development,O=Xziel,C=US'
+          "$TOOLSDIR/apksigner" sign --ks "$RUNNER_TEMP/fix53.jks" \
+            --ks-key-alias fix53 --ks-pass pass:android --key-pass pass:android \
+            --v2-signing-enabled true --v3-signing-enabled true \
+            --out fix53-build/COD4-ZOMBIES-FIX53-CHASE-V26-SIZED-ARM64.apk fix53-build/aligned.apk
+          "$TOOLSDIR/apksigner" verify --verbose fix53-build/COD4-ZOMBIES-FIX53-CHASE-V26-SIZED-ARM64.apk
+          "$TOOLSDIR/aapt" dump badging fix53-build/COD4-ZOMBIES-FIX53-CHASE-V26-SIZED-ARM64.apk | tee fix53-build/badging.txt
+          grep -q "package: name='com.xziel.zombies.fix50btest'" fix53-build/badging.txt
+          unzip -t fix53-build/COD4-ZOMBIES-FIX53-CHASE-V26-SIZED-ARM64.apk >/dev/null
+          sha256sum fix53-build/COD4-ZOMBIES-FIX53-CHASE-V26-SIZED-ARM64.apk | tee fix53-build/sha256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FIX53-V26-NATIVE-CHASE-ORIGINAL-5-SIZE-BARRICADES
+          path: |
+            fix53-build/COD4-ZOMBIES-FIX53-CHASE-V26-SIZED-ARM64.apk
+            fix53-build/packaging_report.json
+            fix53-build/badging.txt
+            fix53-build/sha256.txt
+          if-no-files-found: error
+          retention-days: 14
+      - name: Release FIX53 only after all Lua, model, asset, and signing checks pass
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create fix53-v26-native-chase-five-barricade-sizes \
+            fix53-build/COD4-ZOMBIES-FIX53-CHASE-V26-SIZED-ARM64.apk \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease \
+            --title 'FIX53 original v26 - native zombie chase and five barricade sizes' \
+            --notes 'Original NZP v26 window.mdl triangles, UVs, six board stages; map editor 1x1,1x2,2x1,2x2,3x3 models. Shared original board health and one plank ripped per zombie attack; repair +10 and six boards. Real VoxeLibre native mcl_mobs do_attack and movement replaces overwritten manual velocity; native melee scaled from original v26. APK source preserves identical 28 COD4 guns, ADS, bullet hit scoring, independent USE, bottom HUD, textures, sounds, and original Android executable. Playtest on actual Android device NOT verified yet. Developer APK reuses package com.xziel.zombies.fix50btest with a new disposable signing key: back up saved test maps and uninstall only previous FIX50B-FIX52B test before installing FIX53, NEVER uninstall FIX49C.'
