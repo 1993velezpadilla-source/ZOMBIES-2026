@@ -1,0 +1,177 @@
+name: FIX50B complete isolated ARM64 playtest APK
+on:
+  push:
+    branches:
+      - fix/fix50b-restore-cod4-native-bridge-20261111
+    paths:
+      - 'incoming/luanti-fix50b/build_playable_test.py'
+      - '.github/workflows/fix50b-full-test-apk.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  full-isolated-playtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 105
+    steps:
+      - uses: actions/checkout@v4
+      - name: Android NDK prerequisites
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends gettext cmake ninja-build binutils
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Restore FIX49C engine and add USE without reverting COD4 work
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch 5.18.0 https://github.com/luanti-org/luanti.git upstream-luanti
+          for p in \
+            incoming/luanti-fix50b/native/working-fix49c-engine.patch \
+            incoming/luanti-fix50b/native/fix49c-texture-streaming.patch \
+            incoming/luanti-fix50a/native/luanti-5.18.0-xz-use.patch; do
+            git -C upstream-luanti apply --check "$GITHUB_WORKSPACE/$p"
+            git -C upstream-luanti apply "$GITHUB_WORKSPACE/$p"
+          done
+          # Keep the FIX49C WebP texture pipeline; it requires libwebp source in CMake.
+          git clone --depth 1 --branch v1.4.0 https://github.com/webmproject/libwebp.git upstream-libwebp
+          # Restore source taken byte-for-byte from the KNOWN-WORKING FIX49C APK,
+          # never substitute dummy headers, empty profiles, or generic guns.
+          src=incoming/luanti-fix50b/native/original_headers
+          for header in ak47_motion.h ak47_weapon_params.h m9_weapon_params.h ak47_attachments.h arsenal_profiles.h weapon_bridge.h weapon_hud.h native_attachment_override.h; do
+            if [ ! -s "$src/$header" ]; then
+              echo "::error::Original COD4 native header missing: $header (FIX50B blocked)"
+              exit 1
+            fi
+            cp "$src/$header" "upstream-luanti/src/client/$header"
+          done
+          # Authenticate the three headers extracted from the exact FIX49C APK.
+          echo 'd802ceb47881e81c4fa1477162b646710a3f552661a2a1da7561c164b56afa6d  upstream-luanti/src/client/weapon_bridge.h' | sha256sum -c -
+          echo '85b5d1e259e9387230041e23712412339b5010912ab399d32808b465e1828235  upstream-luanti/src/client/weapon_hud.h' | sha256sum -c -
+          echo '53f59e9498a6433d9dc3f75f368b417c4f8ed95f33062ea0a60c5a4c4c94fd12  upstream-luanti/src/client/native_attachment_override.h' | sha256sum -c -
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          src = Path('upstream-luanti/src/client')
+          own = ('ak47_', 'arsenal_', 'weapon_', 'native_attachment_')
+          for header in ('ak47_motion.h', 'ak47_weapon_params.h', 'm9_weapon_params.h',
+                         'ak47_attachments.h', 'arsenal_profiles.h',
+                         'weapon_bridge.h', 'weapon_hud.h', 'native_attachment_override.h'):
+              for dependency in re.findall(r'#include\\s+"([^"]+)"', (src / header).read_text()):
+                  if dependency.startswith(own) and not (src / dependency).is_file():
+                      raise SystemExit(f'Custom native header dependency missing: {header} -> {dependency}')
+          print('All custom COD4 native source dependencies present.')
+          PY
+          python3 incoming/luanti-fix50a/native/make_xz_use_btn.py upstream-luanti/textures/base/pack/xz_use_btn.png
+          sed -i "s/include 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'/include 'arm64-v8a'/" upstream-luanti/android/native/build.gradle
+          sed -i "s/include 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'/include 'arm64-v8a'/" upstream-luanti/android/app/build.gradle
+          # Wire in exact libwebp path and skip obsolete gold-linker LTO detection.
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          p=Path('upstream-luanti/android/native/build.gradle')
+          s=p.read_text()
+          marker='arguments "-DANDROID_STL=c++_shared",'
+          assert s.count(marker)==1
+          webp=os.environ['GITHUB_WORKSPACE']+'/upstream-libwebp'
+          s=s.replace(marker, marker+' "-DXZ_WEBP_SOURCE='+webp+'", "-DENABLE_LTO=OFF",')
+          p.write_text(s)
+          print('Preserved WebP source and disabled obsolete gold LTO')
+          PY
+          # The test installs next to FIX49C. NEVER overwrite its package ID.
+          python3 - <<'PY'
+          from pathlib import Path
+          app=Path('upstream-luanti/android/app/build.gradle')
+          text=app.read_text()
+          old="applicationId 'com.xziel.voxelsandbox.ak47combatv9'"
+          assert text.count(old)==1, 'Package ID unexpected: refusing to overwrite FIX49C'
+          text=text.replace(old,"applicationId 'com.xziel.zombies.fix50btest'")
+          app.write_text(text)
+          print('Safe side-by-side package configured.')
+          PY
+          # Android's Java launcher must notice the upgrade and unpack new Lua/assets.
+          sed -i 's/project.ext.set("versionBuild", 13)/project.ext.set("versionBuild", 50)/' upstream-luanti/android/build.gradle
+          grep -Fq 'project.ext.set("versionBuild", 50)' upstream-luanti/android/build.gradle
+          # The original COD4 renderer, skinning and texture replacement must remain.
+          grep -q 'setMaterialTextureResolver' upstream-luanti/irr/src/OpenGL/Driver.cpp
+          grep -q 'KeyType::XZ_USE' upstream-luanti/src/client/game.cpp
+      - name: Compile native Luanti + updated Android versionCode
+        working-directory: upstream-luanti/android
+        env:
+          GRADLE_OPTS: -Dorg.gradle.daemon=false
+        run: |
+          set -euo pipefail
+          ./gradlew :app:assembleRelease --no-daemon --max-workers=2 --stacktrace
+      - name: Check preserved original COD4 native features
+        run: |
+          set -euo pipefail
+          lib="$(find upstream-luanti/android -name libluanti.so -path '*arm64-v8a*' -type f | head -1)"
+          test -s "$lib"
+          readelf -h "$lib" | grep -q AArch64
+          for marker in '[weapon_bridge]' 'ak47_hip_idle' 'getWeaponCrosshairOpacity' 'isAK47Aiming'; do
+            grep -aFq "$marker" "$lib"
+          done
+      - name: Repack FIX49C complete source game into FIX50B isolated Android APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p fix50b-base fix50b-test
+          gh release download fix49c-dedicated-use-ads-android-arm64-test \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern 'COD4-ZOMBIES-FIX49C-DEDICATED-USE-ADS-ARM64.apk' \
+            --dir fix50b-base
+          python3 incoming/luanti-fix50b/build_playable_test.py \
+            --fix49c fix50b-base/COD4-ZOMBIES-FIX49C-DEDICATED-USE-ADS-ARM64.apk \
+            --rebuilt upstream-luanti/android/app/build/outputs/apk/release/app-arm64-v8a-release.apk \
+            --lua incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/init.lua \
+            --button upstream-luanti/textures/base/pack/xz_use_btn.png \
+            --output fix50b-test/unsigned.apk
+      - name: Zipalign and sign with a disposable, nonproduction test certificate
+        run: |
+          set -euo pipefail
+          TOOLSDIR="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
+          test -x "$TOOLSDIR/zipalign"
+          test -x "$TOOLSDIR/apksigner"
+          "$TOOLSDIR/zipalign" -f -p 4 fix50b-test/unsigned.apk fix50b-test/aligned.apk
+          keytool -genkeypair -keystore "$RUNNER_TEMP/fix50b-test.jks" \
+            -alias fix50btest -storepass android -keypass android \
+            -keyalg RSA -keysize 3072 -validity 3650 -noprompt \
+            -dname 'CN=Zombies FIX50B Test,OU=Development,O=Xziel,C=US'
+          "$TOOLSDIR/apksigner" sign --ks "$RUNNER_TEMP/fix50b-test.jks" \
+            --ks-key-alias fix50btest --ks-pass pass:android --key-pass pass:android \
+            --v2-signing-enabled true --v3-signing-enabled true \
+            --out fix50b-test/COD4-ZOMBIES-FIX50B-SIDE-BY-SIDE-ARM64-TEST.apk \
+            fix50b-test/aligned.apk
+          "$TOOLSDIR/apksigner" verify --verbose fix50b-test/COD4-ZOMBIES-FIX50B-SIDE-BY-SIDE-ARM64-TEST.apk
+          "$TOOLSDIR/aapt" dump badging fix50b-test/COD4-ZOMBIES-FIX50B-SIDE-BY-SIDE-ARM64-TEST.apk \
+            | tee fix50b-test/package_badging.txt
+          grep -q "package: name='com.xziel.zombies.fix50btest'" fix50b-test/package_badging.txt
+          unzip -t fix50b-test/COD4-ZOMBIES-FIX50B-SIDE-BY-SIDE-ARM64-TEST.apk > /dev/null
+          sha256sum fix50b-test/COD4-ZOMBIES-FIX50B-SIDE-BY-SIDE-ARM64-TEST.apk \
+            | tee fix50b-test/sha256.txt
+      - name: Retain signed APK and preservation report
+        uses: actions/upload-artifact@v4
+        with:
+          name: FIX50B-SIDE-BY-SIDE-ARM64-SIGNED-PLAYTEST
+          path: |
+            fix50b-test/COD4-ZOMBIES-FIX50B-SIDE-BY-SIDE-ARM64-TEST.apk
+            fix50b-test/packaging_report.json
+            fix50b-test/package_badging.txt
+            fix50b-test/sha256.txt
+          if-no-files-found: error
+          retention-days: 14
+      - name: Publish separate prerelease only after all APK checks succeed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create fix50b-side-by-side-arm64-playtest \
+            fix50b-test/COD4-ZOMBIES-FIX50B-SIDE-BY-SIDE-ARM64-TEST.apk \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" --prerelease \
+            --title 'FIX50B Android ARM64 isolated developer playtest' \
+            --notes 'Separate package com.xziel.zombies.fix50btest. Does not overwrite the known-good FIX49C installation. Preserves all original 28-gun game data, built native COD4 bridge, FIX50B Lua, and independent USE. Android installation/gameplay not device-verified. Signed with a disposable test certificate: test APK cannot update over a later unrelated test-signing key.'
