@@ -46,6 +46,7 @@ def main():
         faces.append(struct.unpack_from("<4i",data,cursor))
         cursor+=16
     outputs={}
+    variants={}
     args.output.mkdir(parents=True, exist_ok=True)
     for frame_idx in range(nframes):
         if i32(data,cursor)!=0:raise SystemExit("Frame grouping changed")
@@ -104,15 +105,34 @@ def main():
         out+=face_lines
         path.write_text("\n".join(out)+"\n")
         outputs[stage]={"model":path.name,"original_frame":frame_idx,"triangles":tris_kept}
+        # Expand the exact v26 source triangles to measured block-size openings.
+        # The 1x1 original OBJ is untouched; these are geometry transforms of
+        # the SAME original window.mdl frame/UVs, not newly drawn barricades.
+        for width,height in ((1,2),(2,1),(2,2),(3,3)):
+            scaled=[]
+            for line in out:
+                if line.startswith("v "):
+                    _,a,b,c=line.split()
+                    x=float(a)*width+(width-1)*0.5
+                    y=float(b)*height+(height-1)*0.5
+                    scaled.append(f"v {x:.6f} {y:.6f} {float(c):.6f}")
+                else:
+                    scaled.append(line)
+            key=f"{width}x{height}"
+            dest=args.output/f"nzp_v26_window_{stage}_{key}.obj"
+            dest.write_text("\n".join(scaled)+"\n")
+            variants[f"{stage}_{key}"]={"model":dest.name,"original_frame":frame_idx,
+                                       "triangles":tris_kept,"blocks":(width,height)}
     if cursor!=len(data):
         raise SystemExit(f"Unexpected trailing model data: {cursor}/{len(data)}")
     (args.output/"nzp_v26_window.mtl").write_text(
         "newmtl nzp_v26_window\nKd 1.0 1.0 1.0\nmap_Kd nzp_v26_window.png\n"
     )
-    (args.output/"nzp_v26_window_manifest.json").write_text(json.dumps(outputs,indent=2))
+    (args.output/"nzp_v26_window_manifest.json").write_text(json.dumps({"original":outputs,"variants":variants},indent=2))
     for stage in sorted(outputs):
         print(f"NZ:P original planks {stage}: frame {outputs[stage]['original_frame']} triangles {outputs[stage]['triangles']}",flush=True)
     assert outputs[6]["triangles"]>outputs[0]["triangles"],"plank disappearance not detected"
-    print("PASS: 89-frame NZ:P model converted to real 7-state Luanti OBJ meshes")
+    assert len(variants)==28, f"Expected 4 additional sizes x 7 states; got {len(variants)}"
+    print("PASS: original NZ:P 89-frame model -> 35 original-state OBJ meshes in 1x1 / 1x2 / 2x1 / 2x2 / 3x3")
 if __name__=="__main__":
     main()
