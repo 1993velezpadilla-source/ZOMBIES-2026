@@ -5,6 +5,7 @@ local storage = M.get_mod_storage()
 local modpath = M.get_modpath(MOD)
 local root = M.get_modpath('ak47dev')
 local source = assert(loadfile(root .. '/arsenal_catalog.lua'))()
+local director = assert(loadfile(modpath .. '/round_director.lua'))()
 local WEAPONS = {
   {id='ak47', item='ak47dev:ak47',label='AK-47',icon='ak47dev_icon.png', price=1200},
   {id='m9',item='ak47dev:m9',label='M9',icon='m9_icon.png',price=500},
@@ -25,7 +26,7 @@ end
 local form_editor = 'xz_zombies:editor'
 local form_buy = 'xz_zombies:configure'
 local form_dev = 'xz_zombies:developer'
-local state = {active=false,round=0,spawned=0,kills=0,next_spawn=0,round_delay=0,zombies={},next_round=0}
+local state = {active=false,round=0,round_quota=0,spawned=0,kills=0,next_spawn=0,round_delay=0,zombies={},next_round=0}
 local viewers, developer, huds, prev_physics, prev_armor = {}, {}, {}, {}, {}
 local editor_pages, developer_pages, editor_weapon_index = {}, {}, {}
 local ACTIVE_STORAGE='active'
@@ -92,7 +93,7 @@ local function spawn_native_zombie(at)
   entity.ignited_by_sunlight=false
   entity.sunlight_damage=0
  end
- obj:set_hp(20+state.round*4)
+ obj:set_hp(director.health(state.round))
  state.zombies[#state.zombies+1]={obj=obj}
  state.spawned=state.spawned+1
  return true,name
@@ -102,7 +103,7 @@ local function allowed(p) return p and p:is_player() and (M.is_singleplayer() or
 local function player_points(p) return p:get_meta():get_int('xz_z_points') end
 local function set_points(p,n)
   p:get_meta():set_int('xz_z_points',math.max(0,math.floor(n)))
-  if huds[p:get_player_name()] then p:hud_change(huds[p:get_player_name()],'text',('ZOMBIES  R%d  |  %d PTS'):format(state.round,player_points(p))) end
+  if huds[p:get_player_name()] then p:hud_change(huds[p:get_player_name()],'text',director.hud(state.round,state.round_quota,state.spawned,#state.zombies,player_points(p),state.active)) end
 end
 local function tell(p,s) M.chat_send_player(p:get_player_name(), '[Zombies] '..s) end
 local function point_charge(p,amount)
@@ -396,7 +397,8 @@ M.register_node(':xz_zombies:spawner',{
    tell(p,'Spawner preparado. Presiona PLAY para activar zombis de VoxeLibre.')
    return
   end
-  if #state.zombies>=12 then tell(p,'Limite de 12 zombis vivos alcanzado.');return end
+  if state.round>0 and state.spawned>=state.round_quota then tell(p,'No quedan zombis por crear en esta ronda.');return end
+  if #state.zombies>=director.alive_cap(#M.get_connected_players()) then tell(p,'Limite de zombis vivos alcanzado.');return end
   local ok,desc=spawn_native_zombie(pos)
   if ok then tell(p,'TEST OK: '..desc..' aparecio junto al spawner.')
   else tell(p,'TEST: '..desc);M.log('warning','[xz_zombies_classic] '..desc) end
@@ -419,7 +421,7 @@ local function reset_perks(p)
   p:set_properties({hp_max=20});if p:get_hp()>20 then p:set_hp(20) end
 end
 local function stop_game()
- state.active=false;state.round=0;state.spawned=0;state.kills=0;state.next_round=0
+ state.active=false;state.round=0;state.round_quota=0;state.spawned=0;state.kills=0;state.next_round=0;state.last_spawn_warning=nil
  for _,mob in ipairs(state.zombies) do
   if mob.obj and mob.obj:get_pos() then mob.obj:remove() end
  end
@@ -438,7 +440,7 @@ local function start_game()
   M.chat_send_all('[Zombies] No se encontro el mob de VoxeLibre (mobs_mc). PLAY cancelado.')
   return
  end
- state.active=true;state.round=0;state.next_round=M.get_gametime()+2
+ state.active=true;state.round=0;state.round_quota=0;state.next_round=M.get_gametime()+2
  state.next_spawn=0
  for _,p in ipairs(M.get_connected_players()) do set_points(p,500) end
  storage:set_int(ACTIVE_STORAGE,1)
@@ -825,7 +827,7 @@ M.register_globalstep(function(dt)
  update_round()
  for _,p in ipairs(M.get_connected_players()) do
   local name=p:get_player_name()
-  if huds[name] then p:hud_change(huds[name],'text',('ZOMBIES  R%d  |  %d PTS'):format(state.round,player_points(p))) end
+  if huds[name] then p:hud_change(huds[name],'text',director.hud(state.round,state.round_quota,state.spawned,#state.zombies,player_points(p),state.active)) end
   local d=developer[name]
   if state.active and d and d.ammo and _G.weapon_bridge then
    local item=p:get_wielded_item():get_name()
