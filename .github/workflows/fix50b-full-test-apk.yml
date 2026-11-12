@@ -1,10 +1,11 @@
-name: FIX50B complete isolated ARM64 playtest APK
+name: FIX50B repaired compact assets ARM64 signed playtest
 on:
   push:
     branches:
       - fix/fix50b-restore-cod4-native-bridge-20261111
     paths:
       - 'incoming/luanti-fix50b/build_playable_test.py'
+      - 'incoming/luanti-fix50b/apply_compact_font_extraction.py'
       - '.github/workflows/fix50b-full-test-apk.yml'
   workflow_dispatch:
 permissions:
@@ -93,11 +94,17 @@ jobs:
           print('Safe side-by-side package configured.')
           PY
           # Android's Java launcher must notice the upgrade and unpack new Lua/assets.
-          sed -i 's/project.ext.set("versionBuild", 13)/project.ext.set("versionBuild", 50)/' upstream-luanti/android/build.gradle
-          grep -Fq 'project.ext.set("versionBuild", 50)' upstream-luanti/android/build.gradle
+          sed -i 's/project.ext.set("versionBuild", 13)/project.ext.set("versionBuild", 51)/' upstream-luanti/android/build.gradle
+          grep -Fq 'project.ext.set("versionBuild", 51)' upstream-luanti/android/build.gradle
           # The original COD4 renderer, skinning and texture replacement must remain.
           grep -q 'setMaterialTextureResolver' upstream-luanti/irr/src/OpenGL/Driver.cpp
           grep -q 'KeyType::XZ_USE' upstream-luanti/src/client/game.cpp
+      - name: Fix compact nested XZ asset extraction on clean install
+        run: |
+          set -euo pipefail
+          python3 incoming/luanti-fix50b/apply_compact_font_extraction.py upstream-luanti
+          grep -Fq 'XZInputStream decoded' upstream-luanti/android/app/src/main/java/net/minetest/minetest/UnzipService.java
+          grep -Fq "implementation 'org.tukaani:xz:1.12'" upstream-luanti/android/app/build.gradle
       - name: Compile native Luanti + updated Android versionCode
         working-directory: upstream-luanti/android
         env:
@@ -144,21 +151,40 @@ jobs:
           "$TOOLSDIR/apksigner" sign --ks "$RUNNER_TEMP/fix50b-test.jks" \
             --ks-key-alias fix50btest --ks-pass pass:android --key-pass pass:android \
             --v2-signing-enabled true --v3-signing-enabled true \
-            --out fix50b-test/COD4-ZOMBIES-FIX50B-SIDE-BY-SIDE-ARM64-TEST.apk \
+            --out fix50b-test/COD4-ZOMBIES-FIX50B-XZ-FONT-REPAIR-ARM64-TEST.apk \
             fix50b-test/aligned.apk
-          "$TOOLSDIR/apksigner" verify --verbose fix50b-test/COD4-ZOMBIES-FIX50B-SIDE-BY-SIDE-ARM64-TEST.apk
-          "$TOOLSDIR/aapt" dump badging fix50b-test/COD4-ZOMBIES-FIX50B-SIDE-BY-SIDE-ARM64-TEST.apk \
+          "$TOOLSDIR/apksigner" verify --verbose fix50b-test/COD4-ZOMBIES-FIX50B-XZ-FONT-REPAIR-ARM64-TEST.apk
+          "$TOOLSDIR/aapt" dump badging fix50b-test/COD4-ZOMBIES-FIX50B-XZ-FONT-REPAIR-ARM64-TEST.apk \
             | tee fix50b-test/package_badging.txt
           grep -q "package: name='com.xziel.zombies.fix50btest'" fix50b-test/package_badging.txt
-          unzip -t fix50b-test/COD4-ZOMBIES-FIX50B-SIDE-BY-SIDE-ARM64-TEST.apk > /dev/null
-          sha256sum fix50b-test/COD4-ZOMBIES-FIX50B-SIDE-BY-SIDE-ARM64-TEST.apk \
+          unzip -t fix50b-test/COD4-ZOMBIES-FIX50B-XZ-FONT-REPAIR-ARM64-TEST.apk > /dev/null
+          sha256sum fix50b-test/COD4-ZOMBIES-FIX50B-XZ-FONT-REPAIR-ARM64-TEST.apk \
             | tee fix50b-test/sha256.txt
+      - name: Prove compiled APK includes XZ decoder and original fonts
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import zipfile,io,lzma,re
+          apk=Path('fix50b-test/COD4-ZOMBIES-FIX50B-XZ-FONT-REPAIR-ARM64-TEST.apk')
+          with zipfile.ZipFile(apk) as z:
+            dex=b''.join(z.read(n) for n in z.namelist() if re.fullmatch(r'classes[0-9]*\.dex',n))
+            for token in (b'XZInputStream', b'XZ-ASSETS-1:', b'fonts/Arimo-Regular.ttf'):
+              assert token in dex, f'Android extractor not compiled: {token!r}'
+            with zipfile.ZipFile(io.BytesIO(z.read('assets/assets.zip'))) as outer:
+              assert outer.comment == b'XZ-ASSETS-1:9666',outer.comment
+              inner=lzma.decompress(outer.read('luanti-assets.zip.xz'))
+              with zipfile.ZipFile(io.BytesIO(inner)) as game:
+                assert len(game.namelist()) == 9666,len(game.namelist())
+                for key in ('fonts/Arimo-Regular.ttf','fonts/DroidSansFallbackFull.ttf','builtin/mainmenu/init.lua','games/voxelibre/mods/xz_zombies_classic/init.lua','textures/base/pack/xz_use_btn.png'):
+                  assert len(game.read(key)) > 0,key
+          print('PASS: Android XZ extraction compiled; 9666 preserved assets and fonts present')
+          PY
       - name: Retain signed APK and preservation report
         uses: actions/upload-artifact@v4
         with:
-          name: FIX50B-SIDE-BY-SIDE-ARM64-SIGNED-PLAYTEST
+          name: FIX50B-XZ-FONT-REPAIR-ARM64-SIGNED-PLAYTEST
           path: |
-            fix50b-test/COD4-ZOMBIES-FIX50B-SIDE-BY-SIDE-ARM64-TEST.apk
+            fix50b-test/COD4-ZOMBIES-FIX50B-XZ-FONT-REPAIR-ARM64-TEST.apk
             fix50b-test/packaging_report.json
             fix50b-test/package_badging.txt
             fix50b-test/sha256.txt
@@ -169,9 +195,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          gh release create fix50b-side-by-side-arm64-playtest \
-            fix50b-test/COD4-ZOMBIES-FIX50B-SIDE-BY-SIDE-ARM64-TEST.apk \
+          gh release create fix50b-font-extraction-repair-arm64-test \
+            fix50b-test/COD4-ZOMBIES-FIX50B-XZ-FONT-REPAIR-ARM64-TEST.apk \
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" --prerelease \
-            --title 'FIX50B Android ARM64 isolated developer playtest' \
-            --notes 'Separate package com.xziel.zombies.fix50btest. Does not overwrite the known-good FIX49C installation. Preserves all original 28-gun game data, built native COD4 bridge, FIX50B Lua, and independent USE. Android installation/gameplay not device-verified. Signed with a disposable test certificate: test APK cannot update over a later unrelated test-signing key.'
+            --title 'FIX50B XZ compact assets + fonts repair Android ARM64 playtest' \
+            --notes 'Repair of FIX50B clean-install font failure: Android UnzipService now streams the nested XZ-ASSETS-1 archive and checks all 9666 entries and both required fonts before first launch. Separate package com.xziel.zombies.fix50btest does not overwrite FIX49C. User must uninstall the BROKEN FIX50B test app before installing this new test APK due to disposable signing certificate; DO NOT uninstall FIX49C. Contains original 28 guns, preserved COD4 native bridge and independent USE. Device gameplay remains unverified.'
