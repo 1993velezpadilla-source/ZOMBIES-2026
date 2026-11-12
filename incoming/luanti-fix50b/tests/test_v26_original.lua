@@ -51,7 +51,13 @@ local player={hp=20,pos={x=2,y=0,z=0},score={}}
 function player:get_player_name()return 'survivor' end
 function player:is_player()return true end
 function player:get_hp()return self.hp end
-function player:set_hp(n)self.hp=n end
+function player:set_hp(n,reason)
+ assert(reason and reason.type=="set_hp" and reason._mcl_type=="mob",
+  "VoxeLibre mcl_damage requires a real mob classification, not an unbound punch")
+ assert(reason._mcl_direct and reason._mcl_source==reason._mcl_direct,
+  "VoxeLibre mob damage must include the original attacking ObjectRef")
+ self.hp=n
+end
 function player:get_pos()return self.pos end
 function player:get_meta()
  return {get_int=function(_,k)return self.score[k] or 0 end,set_int=function(_,k,v)self.score[k]=v end}
