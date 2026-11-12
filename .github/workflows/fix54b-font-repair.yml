@@ -87,6 +87,7 @@ jobs:
           artifact-ids: 13958489505
           github-token: ${{ github.token }}
           path: original-fix54
+          merge-multiple: true
       - name: Repack only launcher, asserting ALL exact FIX54 models and game assets
         run: |
           set -euo pipefail
