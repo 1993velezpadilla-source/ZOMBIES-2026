@@ -1,0 +1,45 @@
+name: FIX50B inspect font startup and Android asset layout
+on:
+  push:
+    branches: [fix/fix50b-restore-cod4-native-bridge-20261111]
+    paths: ['.github/workflows/fix50b-font-diagnostic.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download both released APKs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p /tmp/fix50-font
+          gh release download fix49c-dedicated-use-ads-android-arm64-test --repo "$GITHUB_REPOSITORY" --pattern '*.apk' -D /tmp/fix50-font/old --clobber
+          gh release download fix50b-side-by-side-arm64-playtest --repo "$GITHUB_REPOSITORY" --pattern '*.apk' -D /tmp/fix50-font/new --clobber
+      - name: Compare extracted asset file trees and fonts
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import zipfile,lzma,io,pathlib,re,hashlib,tempfile,shutil
+          root=pathlib.Path('/tmp/fix50-font')
+          for tag in ('old','new'):
+            apk=next((root/tag).glob('*.apk'))
+            print('APK',tag,apk,apk.stat().st_size,flush=True)
+            with zipfile.ZipFile(apk) as z:
+              print('apk entries',len(z.namelist()),'outer font names',[n for n in z.namelist() if 'font' in n.lower()][:70],flush=True)
+              print('other assets',[n for n in z.namelist() if n.startswith('assets/')][:35],flush=True)
+              with zipfile.ZipFile(io.BytesIO(z.read('assets/assets.zip'))) as outer:
+                print('outer entries',len(outer.namelist()),'comment',outer.comment,'names',outer.namelist()[:15],flush=True)
+                target=outer.namelist()[0]
+                data=lzma.decompress(outer.read(target))
+                print('inner bytes',len(data),flush=True)
+                with zipfile.ZipFile(io.BytesIO(data)) as inner:
+                  fontfiles=[n for n in inner.namelist() if re.search(r'(font|\\.ttf$|\\.otf$)',n,re.I)]
+                  print('inner entries',len(inner.namelist()),'comment',inner.comment,'font entries',len(fontfiles),fontfiles[:100],flush=True)
+                  print('potential core assets',[n for n in inner.namelist() if n.startswith(('fonts/','builtin/','textures/base/pack/','client/'))][:75],flush=True)
+                  missing=[n for n in ('fonts/Arimo-Regular.ttf','fonts/DroidSansFallbackFull.ttf','fonts/DejaVuSans.ttf','builtin/mainmenu/init.lua','textures/base/pack/xz_use_btn.png') if n not in inner.namelist()]
+                  print('MISSING',missing,flush=True)
+          PY
