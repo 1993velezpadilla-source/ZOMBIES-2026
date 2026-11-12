@@ -31,20 +31,19 @@ jobs:
         run: |
           python3 incoming/luanti-fix50b/source_recovery.py \
             fix50b-source-input/COD4-ZOMBIES-FIX49C-DEDICATED-USE-ADS-ARM64.apk
-      - name: Commit the three byte-for-byte recovered original headers
+      - name: Commit all six byte-for-byte recovered original headers
         run: |
           set -euo pipefail
           src=fix50b-recovery-report/original_headers
           dst=incoming/luanti-fix50b/native/original_headers
           mkdir -p "$dst"
-          for name in weapon_bridge.h weapon_hud.h native_attachment_override.h; do
+          for name in ak47_motion.h ak47_weapon_params.h m9_weapon_params.h weapon_bridge.h weapon_hud.h native_attachment_override.h; do
             test -s "$src/$name"
-            if [ -f "$dst/$name" ]; then cmp "$src/$name" "$dst/$name"; fi
             cp "$src/$name" "$dst/$name"
           done
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add "$dst/weapon_bridge.h" "$dst/weapon_hud.h" "$dst/native_attachment_override.h"
+          git add "$dst/ak47_motion.h" "$dst/ak47_weapon_params.h" "$dst/m9_weapon_params.h" "$dst/weapon_bridge.h" "$dst/weapon_hud.h" "$dst/native_attachment_override.h"
           if ! git diff --cached --quiet; then
             git commit -m 'fix(fix50b): restore exact COD4 bridge headers from working FIX49C APK'
             git push origin "HEAD:${{ github.ref_name }}"
