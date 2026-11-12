@@ -1,0 +1,41 @@
+name: FIX54 audit exact live COD4 projectile events against original v26 damage.qc
+on:
+  push:
+    branches: [feature/fix54-original-v26-quakec-vm-20261112]
+    paths: ['.github/workflows/fix54-cod4-impact-audit.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download actual working FIX53 Android APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/apk
+          gh release download fix53-v26-native-chase-five-barricade-sizes --repo "$GITHUB_REPOSITORY" \
+            --pattern 'COD4-ZOMBIES-FIX53-CHASE-V26-SIZED-ARM64.apk' --dir /tmp/apk
+      - name: Print authoritative live collision/damage and post-impact hook
+        run: |
+          python3 - <<'PY'
+          import zipfile,io,lzma,pathlib
+          p=next(pathlib.Path('/tmp/apk').glob('*.apk'))
+          with zipfile.ZipFile(p) as a:
+            with zipfile.ZipFile(io.BytesIO(a.read('assets/assets.zip'))) as b:
+              with zipfile.ZipFile(io.BytesIO(lzma.decompress(b.read('luanti-assets.zip.xz')))) as c:
+                for name,ranges in [
+                  ('games/voxelibre/mods/ak47dev/combat.lua',[(47,62),(235,279)]),
+                  ('games/voxelibre/mods/xz_zombies_classic/init.lua',[(912,955)]),
+                  ('games/voxelibre/mods/ENTITIES/mcl_mobs/combat.lua',[(285,310)])]:
+                  if name not in c.namelist():continue
+                  lines=c.read(name).decode('utf8').splitlines()
+                  print('--------',name,len(lines))
+                  for st,en in ranges:
+                    for index in range(st-1,min(len(lines),en)):
+                      print(str(index+1)+': '+lines[index])
+          PY
