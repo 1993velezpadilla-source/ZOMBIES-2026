@@ -58,6 +58,24 @@ struct GunRecoil {
     }
 };
 
+// Rearward motion shared by the rifle, hands and attached muzzle flash.
+// Substeps keep the return spring stable across 20/30/60/120 FPS.
+struct Kickback {
+    float offset=0,velocity=0;
+    void reset() {offset=velocity=0;}
+    void fire(float ads,unsigned shots=1) {
+        velocity+=24.f*(1.f-.35f*std::clamp(ads,0.f,1.f))*std::min(shots,8u);
+    }
+    void advance(float elapsed) {
+        for(float left=std::clamp(elapsed,0.f,.5f);left>0;) {
+            const float dt=std::min(.005f,left);left-=dt;
+            velocity+=(-360.f*offset-30.f*velocity)*dt;
+            offset=std::clamp(offset+velocity*dt,0.f,1.4f);
+            if(offset==0 && velocity<0)velocity=0;
+        }
+    }
+};
+
 inline float first_fire_sample(float dt,float duration) {
     // A newly received shot must not repeatedly display source frame zero.
     return std::clamp(dt,0.f,duration*.25f);
