@@ -99,14 +99,14 @@ function zombie:set_velocity(v)self.vel=v end
 local record={obj=zombie}
 time=10
 A.zombie_think(record,0.3)
-assert(A.get_stage(spot)==4 and player:get_hp()==20,'Must break one board before player damage')
+assert(A.get_stage(spot)==5 and player:get_hp()==20,'Must break exactly one board before player damage')
 time=10.2
 A.zombie_think(record,0.3)
-assert(A.get_stage(spot)==4,'Original attack cooldown cannot break entire barricade')
+assert(A.get_stage(spot)==5,'Original attack cooldown cannot break entire barricade')
 time=12
 A.zombie_think(record,0.3)
-assert(A.get_stage(spot)==3,'Second rip removes only one board')
-for j=1,3 do time=time+3;A.zombie_think(record,0.3) end
+assert(A.get_stage(spot)==4,'Second rip removes only one board')
+for j=1,4 do time=time+3;A.zombie_think(record,0.3) end
 assert(A.get_stage(spot)==0,'Zombies eventually tear through original barrier')
 time=time+3
 A.zombie_think(record,0.3)
