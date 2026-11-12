@@ -116,3 +116,23 @@ assert(points==570,'Every nonlethal hit earns original +10')
 A.zombie_on_punch(record,player,10,0)
 assert(points==620 and record.v26_kill_awarded,'Original fatal bodyshot +50, no duplicate kill')
 print('PASS v26 original model stages, USE, +10 repair cap, one-board zombie break, melee and per-hit credits')
+-- FIX54 authoritative FIX53 COD4 projectile hit is independent from delayed
+-- VoxeLibre health changes. Exactly one +10 is due the instant it hits.
+local new_record={obj=zombie}
+local before=points
+local award=A.cod4_projectile_impact(new_record,player,150,150,18,false)
+assert(award==10 and points==before+10,
+ 'Original v26 must grant +10 on a verified nonlethal hit even when HP delta is deferred')
+assert(new_record.v26_prepaid_last_hit==10 and not new_record.v26_kill_awarded)
+local head_record={obj=zombie}
+local old=points
+local v=A.cod4_projectile_impact(head_record,player,150,0,30,true)
+assert(v==100 and points==old+100 and head_record.v26_kill_awarded,
+ 'Original v26 headshot fatal gives exactly 100 and no double death reward')
+function zombie:get_luaentity() return {head_eye_height=1.55} end
+assert(A.is_head_hit({obj=zombie},{x=0,y=1.55,z=0}))
+assert(not A.is_head_hit({obj=zombie},{x=0,y=1.15,z=0}))
+assert(A.cod4_projectile_impact({obj=zombie},player,150,150,0,false)==0,
+ 'Zero damage must not give free score')
+print('PASS v26 original +10 bullet contact, delayed HP immunity, 100-point headshot kill, no duplicate death')
+
