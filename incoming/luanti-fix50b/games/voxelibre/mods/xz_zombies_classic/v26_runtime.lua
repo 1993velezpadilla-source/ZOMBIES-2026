@@ -80,7 +80,10 @@ return function(M,V,hooks)
   paramtype="light",paramtype2="facedir",
   sunlight_propagates=true,
   groups={choppy=2,oddly_breakable_by_hand=2},
-  selection_box={type="fixed",fixed={-0.5,-0.5,-0.2,0.5,0.5,0.2}},
+  -- The authentic 93x100 Quake-unit window is ~3x3 Luanti nodes.
+  -- Extend targeting/collision to match the visible original mesh.
+  selection_box={type="fixed",fixed={-1.48,-0.50,-0.18,1.48,2.63,0.18}},
+  collision_box={type="fixed",fixed={-1.45,-0.50,-0.15,1.45,2.60,0.15}},
   on_rightclick=function(pos,node,clicker)
    A.repair(pos,clicker)
   end,
@@ -171,9 +174,63 @@ return function(M,V,hooks)
   end
  end
 
+ -- Integrate original v26 target selection and melee cooldown with VoxeLibre's
+ -- REAL mob state machine. Merely obj:set_velocity() from an external globalstep
+ -- was being overwritten by mcl_mobs:on_step (stand/walk/attack) every frame.
+ -- Its do_attack() drives engine pathfinding/rotation/animation; v26 retains
+ -- target acquisition, barricade ripping and actual attack damage.
+ local function engage_native_mob(obj,target)
+  if not obj.get_luaentity then return false end
+  local entity=obj:get_luaentity()
+  if not entity or entity.state=='die' then return false end
+  entity.force_attack=true -- mcl_mobs may have cached enable_damage=false for a creative world
+  entity.docile_by_day=false
+  entity.passive=false
+  entity.view_range=math.max(entity.view_range or 16,45)
+  entity.pathfinding=entity.pathfinding or 1
+  local speed=(8/0.12)/UNIT -- zombie_core.qc walk1 source movement distance
+  entity.run_velocity=speed
+  if entity.attack~=target or entity.state~='attack' then
+   -- mcl_mobs:do_attack bails out if state already reads 'attack'.
+   if entity.state=='attack' then entity.state='stand' end
+   if type(entity.do_attack)=='function' then
+    entity:do_attack(target)
+   else
+    -- Older VoxeLibre mcl_mobs revisions use the same public fields.
+    entity.attack=target
+    entity.state='attack'
+   end
+  end
+  return true
+ end
+
+ function A.zombie_melee(record)
+  local obj=record.obj
+  local target=record.v26_target
+  if not hooks.active() or not obj or not target or not obj:get_pos()
+     or not target.get_pos or not target:get_pos() or target:get_hp()<=0 then return false end
+  local t=now()
+  if t<(record.v26_attack_next or 0) then return false end
+  local origin=obj:get_pos()
+  local dis=length(origin,target:get_pos())
+  if dis>=V.attack_range_quake/UNIT then return false end
+  local barrier=nearest_barricade(origin,target)
+  if barrier then return false end
+  -- Match QuakeC's real melee range but never hit through walls.
+  if M.line_of_sight then
+   local src={x=origin.x,y=origin.y+1,z=origin.z}
+   local dst=target:get_pos()
+   if not M.line_of_sight(src,{x=dst.x,y=dst.y+1,z=dst.z}) then return false end
+  end
+  record.v26_attack_next=t+V.attack_min_cooldown+
+     math.random()*V.attack_random_cooldown
+  attack_player(target,obj)
+  return true
+ end
+
  function A.zombie_think(record,dt)
   local obj=record.obj
-  if not obj or not obj:get_pos() or obj:get_hp()<=0 then return end
+  if not hooks.active() or not obj or not obj:get_pos() or obj:get_hp()<=0 then return end
   local target,distance=record.v26_target,math.huge
   local t=now()
   if not target or target:get_hp()<=0 or (record.v26_retarget or 0)<=t then
@@ -181,46 +238,27 @@ return function(M,V,hooks)
    record.v26_target=target
    record.v26_retarget=t+V.attack_retarget_delay
   elseif target then
+   if not target:get_pos() then record.v26_target=nil;return end
    distance=length(obj:get_pos(),target:get_pos())
   end
   if not target then return end
+  -- Tells native VoxeLibre AI to pursue instead of fighting its velocity every tick.
+  engage_native_mob(obj,target)
   local origin=obj:get_pos()
   local barrier=nearest_barricade(origin,target)
   if barrier then
    if t>=(record.v26_attack_next or 0) then
-    record.v26_attack_next=t+V.attack_min_cooldown+math.random()*V.attack_random_cooldown
-    A.zombie_break(barrier)
-   end
-   return -- cannot attack through intact planks before breaking them
-  end
-  if distance<V.attack_trigger_range_quake/UNIT then
-   if t>=(record.v26_attack_next or 0) then
-    record.v26_attack_next=t+V.attack_min_cooldown+math.random()*V.attack_random_cooldown
-    if length(obj:get_pos(),target:get_pos())<V.attack_range_quake/UNIT then
-     attack_player(target,obj)
-    end
+    record.v26_attack_next=t+V.attack_min_cooldown+
+       math.random()*V.attack_random_cooldown
+    A.zombie_break(barrier) -- exactly one v26 source plank per strike
    end
    return
   end
-  -- Original TryWalkToEnemy uses direct chase when unobstructed, otherwise
-  -- goes through pathfinding. Native VoxeLibre movement/animation survives.
-  local goal=target:get_pos()
-  if M.line_of_sight and not M.line_of_sight(origin,goal) and M.find_path then
-   if t>=(record.v26_path_at or 0) then
-    record.v26_path=M.find_path(origin,goal,12,1,3,"A*")
-    record.v26_path_at=t+1
-   end
-   if record.v26_path and #record.v26_path>=2 then
-    goal=record.v26_path[2]
-   end
-  end
-  local dx,dz=goal.x-origin.x,goal.z-origin.z
-  local flat=math.sqrt(dx*dx+dz*dz)
-  if flat>0.03 and obj.set_velocity and obj.get_velocity then
-   local old=obj:get_velocity() or {y=0}
-   -- FTE translation: preserve native vertical velocity/animations.
-   local speed=(8/0.12)/UNIT -- zombie_core.qc zombie_walk1: 8 Quake units per .12s
-   obj:set_velocity({x=dx/flat*speed,y=old.y,z=dz/flat*speed})
+  -- MCL's original attack animation triggers entity.custom_attack, which calls
+  -- this same v26 melee function; both paths share a cooldown to prevent
+  -- duplicate damage during a single hit animation.
+  if distance<V.attack_trigger_range_quake/UNIT then
+   A.zombie_melee(record)
   end
  end
 
