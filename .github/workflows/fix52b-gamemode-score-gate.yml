@@ -1,0 +1,52 @@
+name: FIX52B v26 mcl_damage, survival PLAY and COD score HUD regression
+on:
+  push:
+    branches: [fix/fix52b-v26-safe-damage-cod-hud-20261112]
+    paths:
+      - 'incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/**'
+      - 'incoming/luanti-fix50b/tests/**'
+      - '.github/workflows/fix52b-gamemode-score-gate.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Lua 5.4
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq lua5.4
+      - name: Parse all gameplay scripts
+        run: |
+          set -euo pipefail
+          for script in incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/*.lua; do
+            luac5.4 -p "$script"
+          done
+      - name: Original NZP v26 rules, 6 original plank states and damage reason
+        run: |
+          set -euo pipefail
+          lua5.4 incoming/luanti-fix50b/tests/test_v26_original.lua
+      - name: VoxeLibre creative/survival and rising hit-score HUD
+        run: |
+          set -euo pipefail
+          lua5.4 incoming/luanti-fix50b/tests/test_fix52b_hud_modes.lua
+      - name: Existing 28 COD4 gun, ADS, USE, wall-mount and wave suite
+        run: |
+          set -euo pipefail
+          lua5.4 incoming/luanti-fix50b/tests/test_runtime.lua
+      - name: Check attack reason and native gun impact callback integration
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path('incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic')
+          runtime=(root/'v26_runtime.lua').read_text()
+          init=(root/'init.lua').read_text()
+          assert "type='set_hp',_mcl_type='mob',_mcl_direct=obj" in runtime
+          assert 'type="punch",from="v26_zombie"' not in runtime
+          assert 'v26_modes.play(p)' in init and 'v26_modes.stop(p)' in init
+          assert 'on_cod4_impact=cod4_post_impact' in init
+          assert "local v26_hud = assert(loadfile(modpath .. '/v26_hud.lua'))()(M)" in init
+          assert "'mobs_mc:baby_zombie'" not in init
+          print('PASS: safe mob damage, true VoxeLibre gamemodes, no baby zombies, scored COD4 impact hook')
+          PY
