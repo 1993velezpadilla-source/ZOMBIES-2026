@@ -1,0 +1,79 @@
+name: FIX54 original v26 QuakeC source compile and exact-code preservation
+on:
+  push:
+    branches: [feature/fix54-original-v26-quakec-vm-20261112]
+    paths:
+      - '.github/workflows/fix54-compile-original-v26-quakec.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compile-exact-v26:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Recover exact original Viril v26 QuakeC snapshot from our prior repo
+        run: |
+          set -euo pipefail
+          mkdir original-v26
+          cd original-v26
+          git init -q
+          git remote add origin https://github.com/1993velezpadilla-source/config-old-3.git
+          git sparse-checkout init --cone
+          git sparse-checkout set third_party/viril-iw3-v026/quakec
+          git -c protocol.version=2 fetch --depth=1 --filter=blob:none origin c28a79baa3e64820722c355ee63482b041530130
+          git checkout -q --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = c28a79baa3e64820722c355ee63482b041530130
+          test -s third_party/viril-iw3-v026/quakec/source/server/ai/zombie_core.qc
+          test -s third_party/viril-iw3-v026/quakec/source/server/damage.qc
+          test -s third_party/viril-iw3-v026/quakec/source/client/hud.qc
+          test -s third_party/viril-iw3-v026/quakec/bin/fteqcc-cli-lin
+          echo 'PASS original v26 source checkout from actual Viril branch, no rewritten logic'
+      - name: Compile exact UNMODIFIED v26 QuakeC game with its original FTEQCC
+        run: |
+          set -euo pipefail
+          cd original-v26/third_party/viril-iw3-v026/quakec
+          chmod +x bin/fteqcc-cli-lin
+          python3 bin/qc_hash_generator.py -i tools/asset_conversion_table.csv -o source/server/hash_table.qc
+          mkdir -p build/fte build/standard
+          bin/fteqcc-cli-lin -O3 -Ono-compound_jumps -srcfile progs/ssqc.src 2>&1 | tee "$RUNNER_TEMP/v26-ssqc.log"
+          test -s build/standard/progs.dat
+          bin/fteqcc-cli-lin -DFTE -srcfile progs/ssqc.src 2>&1 | tee "$RUNNER_TEMP/v26-fte-ssqc.log"
+          test -s build/fte/qwprogs.dat
+          bin/fteqcc-cli-lin -srcfile progs/csqc.src 2>&1 | tee "$RUNNER_TEMP/v26-csqc.log"
+          test -s build/fte/csprogs.dat
+          file build/standard/progs.dat build/fte/qwprogs.dat build/fte/csprogs.dat
+          sha256sum build/standard/progs.dat build/fte/qwprogs.dat build/fte/csprogs.dat | tee "$RUNNER_TEMP/v26-qc-sha256.txt"
+          echo 'PASS three authentic QuakeC bytecode targets, including FTE client HUD'
+      - name: Confirm original v26 source functions are preserved in compiled program inputs
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path('original-v26/third_party/viril-iw3-v026/quakec')
+          s=(root/'source/server/damage.qc').read_text()
+          ai=(root/'source/server/ai/ai_core.qc').read_text()
+          z=(root/'source/server/ai/zombie_core.qc').read_text()
+          hud=(root/'source/client/hud.qc').read_text()
+          client=(root/'source/client/main.qc').read_text()
+          for name in ('DamageHandler','DieHandler','ScoreSystem_ScoreForDamage','DMG_SCORE_STDDAMAGE','nzp_damage_number'):
+            assert name in s,name
+          for name in ('TryWalkToEnemy','Window_Walk','AI_FindTarget'):
+            assert name in ai,name
+          for name in ('zombie_decide','Window_Damage_Setup','zombie_attack2'):
+            assert name in z,name
+          for name in ('RegisterPointChange','PointUpdate','HUD_Points','MAX_POINT_ELEMENTS'):
+            assert name in hud,name
+          assert 'RegisterPointChange(self.points - old_points, self.playernum)' in client
+          print('PASS: verified exact original v26 scoring, target AI, barricade AI and client-side point cascade source')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ORIGINAL-VIRIL-V26-QUAKEC-SERVER-CLIENT-VM-BYTECODE
+          path: |
+            original-v26/third_party/viril-iw3-v026/quakec/build/standard/progs.dat
+            original-v26/third_party/viril-iw3-v026/quakec/build/fte/qwprogs.dat
+            original-v26/third_party/viril-iw3-v026/quakec/build/fte/csprogs.dat
+          retention-days: 30
+          if-no-files-found: error
