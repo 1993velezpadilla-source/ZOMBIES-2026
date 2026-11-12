@@ -1,0 +1,52 @@
+name: FIX52B inspect original COD4 hit registration and VoxeLibre game modes
+on:
+  push:
+    branches: [fix/fix52b-v26-safe-damage-cod-hud-20261112]
+    paths: ['.github/workflows/fix52b-gun-hit-audit.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download known working native COD4 engine APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p /tmp/fix52b-audit
+          gh release download fix52-original-v26-zombies-port-arm64-playtest \
+            --repo "$GITHUB_REPOSITORY" --pattern '*.apk' --dir /tmp/fix52b-audit
+      - name: Inspect native gun damage bridge and Lua attack sources
+        run: |
+          python3 - <<'PY'
+          import zipfile,io,lzma,re,pathlib
+          apk=next(pathlib.Path('/tmp/fix52b-audit').glob('*.apk'))
+          with zipfile.ZipFile(apk) as z:
+            with zipfile.ZipFile(io.BytesIO(z.read('assets/assets.zip'))) as outer:
+              with zipfile.ZipFile(io.BytesIO(lzma.decompress(outer.read('luanti-assets.zip.xz')))) as game:
+                lua=[x for x in game.namelist() if x.endswith('.lua')]
+                print('TOTAL LUA FILES',len(lua),flush=True)
+                print('TARGET MODS', [x for x in lua if ('ak47dev' in x or 'arsenal' in x or 'mcl_gamemode/init.lua' in x or 'mcl_damage/init.lua' in x)][:130],flush=True)
+                for name in lua:
+                  if '/mods/ak47dev/' not in name and '/mods/ak47_' not in name and '/mods/mcl_gamemode/' not in name:
+                    continue
+                  source=game.read(name).decode('utf8',errors='replace').splitlines()
+                  hits=[i for i,t in enumerate(source) if re.search(r'(set_hp|:punch\(|on_punch|attack.*zombie|bullet|damage_groups|register_on_damage|register_on_hit|register_on_player_hpchange|mcl_gamemode|is_creative_enabled)',t,re.I)]
+                  if hits:
+                    print('----',name,'total',len(source),'hits',len(hits),flush=True)
+                    selected=set()
+                    for i in hits[:24]:
+                      selected.update(range(max(0,i-2),min(len(source),i+4)))
+                    for i in sorted(selected):
+                      print(f'{i+1} {source[i][:220]}',flush=True)
+                for key in ['games/voxelibre/mods/PLAYER/mcl_gamemode/init.lua','games/voxelibre/mods/CORE/mcl_damage/init.lua']:
+                  if key in game.namelist():
+                    print('---- LIVE GAME',key)
+                    ls=game.read(key).decode().splitlines()
+                    for i,x in enumerate(ls):
+                      if 'set_gamemode' in x or 'get_gamemode' in x or 'from_punch' in x or 'mt_reason.object' in x or 'is_creative_enabled' in x:
+                        print(i+1,':',x)
+          PY
