@@ -312,7 +312,7 @@ local function fix_existing_wall_mount(pos,node)
 end
 if M.register_lbm then
  M.register_lbm({
-  name='xz_zombies:fix50b_reanchor_existing_wall_buys',
+  name='xz_zombies_classic:fix50b_reanchor_existing_wall_buys',
   nodenames=wall_buy_nodes,run_at_every_load=false,
   action=fix_existing_wall_mount,
  })
