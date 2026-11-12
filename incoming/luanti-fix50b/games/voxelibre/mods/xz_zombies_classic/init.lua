@@ -30,6 +30,7 @@ local form_editor = 'xz_zombies:editor'
 local form_buy = 'xz_zombies:configure'
 local form_dev = 'xz_zombies:developer'
 local state = {active=false,round=0,round_quota=0,spawned=0,kills=0,next_spawn=0,round_delay=0,zombies={},next_round=0}
+local v26 -- forward declaration; original v26 adapter is initialized after nodes
 local viewers, developer, huds, prev_physics, prev_armor = {}, {}, {}, {}, {}
 -- COD HUD is managed by v26_hud.lua, not floating text above the pause button.
 local editor_pages, developer_pages, editor_weapon_index = {}, {}, {}
@@ -90,15 +91,30 @@ local function spawn_native_zombie(at)
  if not p then return false,'No hay espacio libre de dos bloques junto al spawner.' end
  local obj=M.add_entity(p,name)
  if not obj then return false,'Luanti no pudo crear '..name end
- -- This is a round-controlled mob: do not despawn or burn before the test.
+ -- FIX52C: register round-owned zombies with VoxeLibre's REAL mcl_mobs AI.
+ -- The old globalstep obj:set_velocity was overwritten every native on_step.
+ local record={obj=obj}
  local entity=obj:get_luaentity()
  if entity then
   entity.can_despawn=false
   entity.ignited_by_sunlight=false
   entity.sunlight_damage=0
+  entity.docile_by_day=false
+  entity.force_attack=true -- creative-created maps may cache damage_enabled=false
+  entity.passive=false
+  entity.view_range=math.max(entity.view_range or 16,45)
+  entity.pathfinding=entity.pathfinding or 1
+  entity.reach=v26_rules.attack_range_quake/32
+  entity.attack_frequency=0.20 -- native animation cadence; QC cooldown is separate
+  entity.run_velocity=(8/0.12)/32
+  -- Native AI keeps original movement/pathfinding/animation. The custom
+  -- melee effect comes from NZ:P v26, without an extra Minecraft punch.
+  entity.custom_attack=function()
+   if state.active and v26 then v26.zombie_melee(record) end
+  end
  end
  obj:set_hp(math.floor(v26_rules.zombie_hp(state.round)))
- state.zombies[#state.zombies+1]={obj=obj}
+ state.zombies[#state.zombies+1]=record
  state.spawned=state.spawned+1
  return true,name
 end
@@ -424,7 +440,7 @@ M.register_lbm({label='FIX45 recover Zombies spawners',name='xz_zombies_classic:
  end,
 })
 -- NZ:P 0.26 QuakeC gameplay state machine, adapted to Luanti's entity API.
-local v26=assert(loadfile(modpath .. '/v26_runtime.lua'))()(M,v26_rules,{
+v26=assert(loadfile(modpath .. '/v26_runtime.lua'))()(M,v26_rules,{
  active=function()return state.active end,
  get_round=function()return state.round end,
  add_points=function(player,amount)set_points(player,player_points(player)+amount)end,
@@ -983,4 +999,4 @@ M.register_globalstep(function(dt)
   end
  end
 end)
-M.log('action','[xz_zombies_classic] FIX52B real hit points + cascading HUD; survival PLAY creative STOP; native COD4 mechanics retained.')
+M.log('action','[xz_zombies_classic] FIX52C original v26 3x3 barricade + real native mob pursuit; COD4 preserved.')
