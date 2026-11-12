@@ -1,0 +1,180 @@
+name: FIX52 original NZP v26 gameplay and barricade model Android ARM64
+on:
+  push:
+    branches:
+      - feature/fix52-v26-original-zombies-compat-20261111
+    paths:
+      - '.github/workflows/fix52-v26-original-android.yml'
+      - 'incoming/luanti-fix50b/v26/**'
+      - 'incoming/luanti-fix50b/build_playable_test.py'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: fix52-original-v26-apk
+  cancel-in-progress: false
+jobs:
+  build-original-v26:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Lua and original asset converter prerequisites
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lua5.4 ffmpeg
+      - name: Verify v26 Lua combat and full 28-gun + USE regression
+        run: |
+          set -euo pipefail
+          for source in incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/*.lua; do luac5.4 -p "$source"; done
+          lua5.4 incoming/luanti-fix50b/tests/test_v26_original.lua
+          lua5.4 incoming/luanti-fix50b/tests/test_runtime.lua
+      - name: Recover exact original NZP assets with pinned git hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p fix52-input/assets fix52-build/overlay/{models,textures,sounds}
+          url=https://raw.githubusercontent.com/nzp-team/assets/main
+          curl -fL --retry 5 --silent --show-error "$url/common/models/misc/window.mdl" -o fix52-input/assets/window.mdl
+          curl -fL --retry 5 --silent --show-error "$url/source/models/misc/window/source.png" -o fix52-input/assets/window.png
+          curl -fL --retry 5 --silent --show-error "$url/pc/nzp/sounds/misc/barricade.wav" -o fix52-input/assets/barricade.wav
+          curl -fL --retry 5 --silent --show-error "$url/pc/nzp/sounds/misc/barricade_destroy.wav" -o fix52-input/assets/barricade_destroy.wav
+          printf '871c4beafb26d8a097d5811f7dab726e9839a589\n' | diff - <(git hash-object fix52-input/assets/window.mdl)
+          printf '88ddc6d6fe5df33774550bfa4763108903d13407\n' | diff - <(git hash-object fix52-input/assets/window.png)
+          printf 'a10bf6722d815391ad8470acf4eb1c287b69ac8a\n' | diff - <(git hash-object fix52-input/assets/barricade.wav)
+          printf '7cf3e6772b4b3fe35e5a39e8caf7f552470ae7eb\n' | diff - <(git hash-object fix52-input/assets/barricade_destroy.wav)
+          echo 'PASS: exact four NZP originals verified by Git blob SHA'
+      - name: Convert original 89-frame Quake window model and preserve skins + sounds
+        run: |
+          set -euo pipefail
+          python3 incoming/luanti-fix50b/v26/convert_original_window_mdl.py \
+            fix52-input/assets/window.mdl fix52-build/overlay/models
+          cp fix52-input/assets/window.png fix52-build/overlay/textures/nzp_v26_window.png
+          ffmpeg -loglevel error -nostdin -y -i fix52-input/assets/barricade.wav \
+            -c:a libvorbis -q:a 4 fix52-build/overlay/sounds/nzp_v26_barricade.ogg
+          ffmpeg -loglevel error -nostdin -y -i fix52-input/assets/barricade_destroy.wav \
+            -c:a libvorbis -q:a 4 fix52-build/overlay/sounds/nzp_v26_barricade_destroy.ogg
+          cp incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/v26_rules.lua fix52-build/overlay/v26_rules.lua
+          cp incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/v26_runtime.lua fix52-build/overlay/v26_runtime.lua
+          cat > fix52-build/overlay/V26_SOURCE_LICENSE.txt <<'LICENSE'
+          NZ:P v0.26 ORIGINAL BARRICADE ART AND AUDIO
+          Copyright NZ:P Team (2025). CC BY-SA 4.0.
+          https://github.com/nzp-team/assets
+          https://github.com/nzp-team/assets/blob/main/LICENSE.md
+          Original: common/models/misc/window.mdl, source/models/misc/window/source.png
+          Audio: pc/nzp/sounds/misc/barricade.wav, barricade_destroy.wav
+          Changes: converted original 89-frame IDPO v6 to seven OBJ stages; WAV transcoded OGG.
+          New derived model files and conversion data CC BY-SA 4.0 under same license.
+          ORIGINAL GAMEPLAY SOURCE
+          Copyright NZ:P Team 2021-2024, GPL-2.0-or-later.
+          https://github.com/1993velezpadilla-source/config-old-3/tree/feature/viril-iw3-v026/third_party/viril-iw3-v026/quakec/source/server
+          Source: entities/window.qc, ai/ai_core.qc, ai/zombie_core.qc, damage.qc, rounds.qc
+          Lua interface adapts v26 game rules to Luanti API; original QC source still required
+          for review of the engine-specific AI/animation and detailed mechanics.
+          LICENSE
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path('fix52-build/overlay')
+          files=sorted(p for p in root.rglob('*') if p.is_file())
+          assert len(files)==14,[p.relative_to(root).as_posix() for p in files]
+          for stage in range(7):
+            obj=(root/'models'/f'nzp_v26_window_{stage}.obj').read_text()
+            assert '# NZ:P Team original window.mdl' in obj
+            assert '\nf ' in obj,stage
+          assert (root/'textures/nzp_v26_window.png').stat().st_size==1628
+          print('PASS: 7 original frame models + original skin + two official sound samples + Lua + license')
+          PY
+      - name: Download last FIX51 known-working full APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p fix52-input/apk
+          gh release download fix51-round-director-arm64-playtest \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern 'COD4-ZOMBIES-FIX51-ROUND-DIRECTOR-ARM64.apk' \
+            --dir fix52-input/apk
+      - name: Repack only gameplay Lua and original v26 sources, no native changes
+        run: |
+          set -euo pipefail
+          python3 incoming/luanti-fix50b/build_playable_test.py \
+            --fix49c fix52-input/apk/COD4-ZOMBIES-FIX51-ROUND-DIRECTOR-ARM64.apk \
+            --rebuilt fix52-input/apk/COD4-ZOMBIES-FIX51-ROUND-DIRECTOR-ARM64.apk \
+            --lua incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/init.lua \
+            --overlay-dir fix52-build/overlay \
+            --output fix52-build/unsigned.apk
+      - name: Strict native, 28-weapon, original asset and namespace gates
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import io,json,lzma,zipfile,pathlib
+          base=pathlib.Path('fix52-input/apk/COD4-ZOMBIES-FIX51-ROUND-DIRECTOR-ARM64.apk')
+          new=pathlib.Path('fix52-build/unsigned.apk')
+          report=json.loads(pathlib.Path('fix52-build/packaging_report.json').read_text())
+          assert report['assets']['baseline_asset_count']==9667
+          assert report['assets']['candidate_asset_count']==9681
+          changed=report['assets']['changed']
+          assert len(changed)==15,changed
+          assert changed['games/voxelibre/mods/xz_zombies_classic/init.lua']=='replaced'
+          assert len([x for x in changed.values() if x=='added'])==14
+          with zipfile.ZipFile(base) as b,zipfile.ZipFile(new) as n:
+            for key in ('lib/arm64-v8a/libluanti.so','AndroidManifest.xml','classes.dex','resources.arsc'):
+              assert b.read(key)==n.read(key),f'Original native file modified: {key}'
+            for entry in b.infolist():
+              if entry.filename!='assets/assets.zip' and not entry.filename.startswith('META-INF/'):
+                actual=n.getinfo(entry.filename)
+                assert (entry.CRC,entry.file_size)==(actual.CRC,actual.file_size),entry.filename
+            with zipfile.ZipFile(io.BytesIO(n.read('assets/assets.zip'))) as outer:
+              assert outer.comment==b'XZ-ASSETS-1:9681',outer.comment
+              with zipfile.ZipFile(io.BytesIO(lzma.decompress(outer.read('luanti-assets.zip.xz')))) as assets:
+                assert len(assets.namelist())==9681
+                mod='games/voxelibre/mods/xz_zombies_classic/'
+                for key in ('fonts/Arimo-Regular.ttf','fonts/DroidSansFallbackFull.ttf',
+                         mod+'init.lua',mod+'v26_rules.lua',mod+'v26_runtime.lua',
+                         mod+'models/nzp_v26_window_0.obj',mod+'models/nzp_v26_window_6.obj',
+                         mod+'textures/nzp_v26_window.png',
+                         mod+'sounds/nzp_v26_barricade.ogg',
+                         mod+'sounds/nzp_v26_barricade_destroy.ogg',
+                         mod+'V26_SOURCE_LICENSE.txt','textures/base/pack/xz_use_btn.png'):
+                  assert len(assets.read(key))>0,key
+                lua=assets.read(mod+'init.lua')
+                assert b"'mobs_mc:baby_zombie'" not in lua
+                assert b'name=\'xz_zombies_classic:fix50b_reanchor_existing_wall_buys\'' in lua
+                assert b"loadfile(modpath .. '/v26_runtime.lua')" in lua
+          print('PASS: exact original COD4 ARM64 engine and 28 gun game assets retained + 7 NZP models')
+          PY
+      - name: Align and sign isolated FIX52 ARM64 testing APK
+        run: |
+          set -euo pipefail
+          TOOLSDIR="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
+          "$TOOLSDIR/zipalign" -f -p 4 fix52-build/unsigned.apk fix52-build/aligned.apk
+          keytool -genkeypair -keystore "$RUNNER_TEMP/fix52.jks" -alias fix52 \
+            -storepass android -keypass android -keyalg RSA -keysize 3072 -validity 3650 -noprompt \
+            -dname 'CN=FIX52 NZP v26 Test,OU=Development,O=Xziel,C=US'
+          "$TOOLSDIR/apksigner" sign --ks "$RUNNER_TEMP/fix52.jks" --ks-key-alias fix52 \
+            --ks-pass pass:android --key-pass pass:android \
+            --v2-signing-enabled true --v3-signing-enabled true \
+            --out fix52-build/COD4-ZOMBIES-FIX52-ORIGINAL-V26-PORT-ARM64.apk fix52-build/aligned.apk
+          "$TOOLSDIR/apksigner" verify --verbose fix52-build/COD4-ZOMBIES-FIX52-ORIGINAL-V26-PORT-ARM64.apk
+          "$TOOLSDIR/aapt" dump badging fix52-build/COD4-ZOMBIES-FIX52-ORIGINAL-V26-PORT-ARM64.apk | tee fix52-build/badging.txt
+          grep -q "package: name='com.xziel.zombies.fix50btest'" fix52-build/badging.txt
+          unzip -t fix52-build/COD4-ZOMBIES-FIX52-ORIGINAL-V26-PORT-ARM64.apk > /dev/null
+          sha256sum fix52-build/COD4-ZOMBIES-FIX52-ORIGINAL-V26-PORT-ARM64.apk | tee fix52-build/sha256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FIX52-ORIGINAL-NZP-V26-ARM64-PLAYTEST
+          path: |
+            fix52-build/COD4-ZOMBIES-FIX52-ORIGINAL-V26-PORT-ARM64.apk
+            fix52-build/packaging_report.json
+            fix52-build/badging.txt
+            fix52-build/sha256.txt
+          retention-days: 14
+          if-no-files-found: error
+      - name: Publish separate release only after all regressions pass
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create fix52-original-v26-zombies-port-arm64-playtest \
+            fix52-build/COD4-ZOMBIES-FIX52-ORIGINAL-V26-PORT-ARM64.apk \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease \
+            --title 'FIX52 original NZP v26 original barricades, scoring and Zombies — Android ARM64' \
+            --notes 'Original source from prior Viril v26 NZP QuakeC branch: damage.qc rounds.qc ai_core.qc zombie_core.qc window.qc. Original 89-frame window.mdl texture and barricade audio from NZP Team; CC BY-SA 4.0 attribution included. Original six-board state mechanics, nonlethal hit +10, body kill +50, +10 repair capped per round, zombie chasing/attacks and removal of baby zombies. Compact phone HUD replaces overlapping debug chat. COD4 original 28-gun ARM64 native library, ADS and USE untouched byte-for-byte from FIX51. Lua port requires physical phone testing; not a byte-identical QuakeC runtime. Same independent test package com.xziel.zombies.fix50btest with new disposable signing key: back up test worlds, uninstall only prior FIX50B/FIX51 test app, NEVER uninstall FIX49C.'
