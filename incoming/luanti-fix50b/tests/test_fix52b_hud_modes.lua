@@ -31,7 +31,7 @@ end
 function p:hud_remove(id) draws[id].removed=true end
 players.survivor=p
 local G=assert(loadfile(root..'v26_modes.lua'))()(game)
-assert(G.join(p,false) and modes.survivor=='creative')
+assert(G.join(p,false) and mcl_gamemode.get_gamemode(p)=='creative')
 assert(G.play(p) and modes.survivor=='survival' and not game.is_creative_enabled('survivor'))
 assert(G.stop(p) and modes.survivor=='creative' and game.is_creative_enabled('survivor'))
 assert(G.join(p,true) and modes.survivor=='survival')
