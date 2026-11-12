@@ -12,7 +12,7 @@ import tempfile
 import zipfile
 from pathlib import Path
 
-WANTED = {"weapon_bridge.h", "weapon_hud.h", "native_attachment_override.h"}
+WANTED = {"ak47_motion.h", "ak47_weapon_params.h", "m9_weapon_params.h", "weapon_bridge.h", "weapon_hud.h", "native_attachment_override.h"}
 REPORT = Path("fix50b-recovery-report")
 REPORT.mkdir(exist_ok=True)
 FOUND = {}
