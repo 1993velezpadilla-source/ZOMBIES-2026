@@ -215,7 +215,7 @@ return function(M,V,hooks)
   if flat>0.03 and obj.set_velocity and obj.get_velocity then
    local old=obj:get_velocity() or {y=0}
    -- FTE translation: preserve native vertical velocity/animations.
-   local speed=1.7
+   local speed=(8/0.12)/UNIT -- zombie_core.qc zombie_walk1: 8 Quake units per .12s
    obj:set_velocity({x=dx/flat*speed,y=old.y,z=dz/flat*speed})
   end
  end
