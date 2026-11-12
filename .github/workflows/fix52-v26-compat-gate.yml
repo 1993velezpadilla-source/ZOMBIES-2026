@@ -1,0 +1,42 @@
+name: FIX52 original NZP v26 QuakeC mechanic compatibility gate
+on:
+  push:
+    branches: [feature/fix52-v26-original-zombies-compat-20261111]
+    paths:
+      - 'incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/**'
+      - 'incoming/luanti-fix50b/tests/**'
+      - '.github/workflows/fix52-v26-compat-gate.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  faithful-v26-mechanics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install official Lua parser
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq lua5.4
+      - name: No baby zombies and original source names
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path('incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic')
+          main=(root/'init.lua').read_text()
+          assert "'mobs_mc:baby_zombie'" not in main
+          assert "v26_barricade_6" in main
+          assert "loadfile(modpath .. '/v26_rules.lua')" in main
+          assert "loadfile(modpath .. '/v26_runtime.lua')" in main
+          assert "name='xz_zombies_classic:fix50b_reanchor_existing_wall_buys'" in main
+          print('Original V26 source referenced; baby zombies excluded; Luanti names preserved')
+          PY
+          for file in incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/*.lua; do luac5.4 -p "$file"; done
+      - name: Original NZP v26 barricades, hit points, attacks and repair rewards
+        run: |
+          set -euo pipefail
+          lua5.4 incoming/luanti-fix50b/tests/test_v26_original.lua
+      - name: Full existing 28 COD4 weapon and native USE regression harness
+        run: |
+          set -euo pipefail
+          lua5.4 incoming/luanti-fix50b/tests/test_runtime.lua
