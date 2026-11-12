@@ -92,7 +92,7 @@ assert(loadfile('incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/
 assert(#tools==0) -- map does not have numeric indices
 assert(tools['xz_zombies:editor_tool'])
 local c=0;for k in pairs(nodes) do c=c+1 end
-assert(c==44,'expected exactly 44 registered nodes including original v26 window states, got '..c)
+assert(c==74,'expected 74 nodes (44 FIX52B plus 28 original-size v26 meshes and two linked cell nodes), got '..c)
 local meta={}
 local function player(n)
  local inv={contains_item=function() return false end,room_for_item=function() return true end,
