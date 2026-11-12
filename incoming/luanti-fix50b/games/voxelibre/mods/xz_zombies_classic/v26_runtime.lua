@@ -159,11 +159,17 @@ return function(M,V,hooks)
   return best,bestdist
  end
 
- local function attack_player(p)
+ local function attack_player(p,obj)
   if p and p:get_hp()>0 then
    -- QuakeC 50 hit vs 100 health; Luanti default 20 health => 10 HP.
    -- This is a unit conversion, NOT a newly invented zombie damage value.
-   p:set_hp(math.max(0,p:get_hp()-V.attack_damage/5),{type="punch",from="v26_zombie"})
+   -- VoxeLibre mcl_damage.from_mt() treats type="punch" as a real
+   -- engine punch and dereferences reason.object:get_luaentity().
+   -- set_hp is not an engine punch: pass the supported Minecraft mob
+   -- damage classification and source ObjectRef explicitly.
+   p:set_hp(math.max(0,p:get_hp()-V.attack_damage/5),{
+    type="set_hp",_mcl_type="mob",_mcl_direct=obj,_mcl_source=obj
+   })
   end
  end
 
@@ -193,7 +199,7 @@ return function(M,V,hooks)
    if t>=(record.v26_attack_next or 0) then
     record.v26_attack_next=t+V.attack_min_cooldown+math.random()*V.attack_random_cooldown
     if length(obj:get_pos(),target:get_pos())<V.attack_range_quake/UNIT then
-     attack_player(target)
+     attack_player(target,obj)
     end
    end
    return
