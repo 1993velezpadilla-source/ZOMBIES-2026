@@ -37,11 +37,8 @@ jobs:
           chmod +x bin/fteqcc-cli-lin
           python3 -m pip install --quiet --break-system-packages pandas fastcrc colorama
           python3 bin/qc_hash_generator.py -i tools/asset_conversion_table.csv -o source/server/hash_table.qc
-          # Original historic qc_hash_generator.py uses assignment into
-          # pandas.DataFrame.values, which is a COPY in modern pandas.
-          # This leaves filenames un-hashed and FTEQCC rejects e.g.
-          # "{misc/buy.wav,...}". Fix ONLY GENERATED build data using the
-          # ORIGINAL IBM-3740 CRC16, not one line of QuakeC gameplay.
+          # Historical generator mutates a pandas.values copy, not the DataFrame.
+          # Repair only GENERATED CRC values with its original IBM-3740 CRC16.
           python3 - <<'PY'
           import re
           from pathlib import Path
@@ -50,56 +47,14 @@ jobs:
           lines=p.read_text().splitlines()
           count=0
           for i,line in enumerate(lines):
-            m=re.match(r'^(\{)([^,]+)(,.*)          mkdir -p build/fte build/standard
-          bin/fteqcc-cli-lin -O3 -Ono-compound_jumps -srcfile progs/ssqc.src 2>&1 | tee "$RUNNER_TEMP/v26-ssqc.log"
-          test -s build/standard/progs.dat
-          bin/fteqcc-cli-lin -DFTE -srcfile progs/ssqc.src 2>&1 | tee "$RUNNER_TEMP/v26-fte-ssqc.log"
-          test -s build/fte/qwprogs.dat
-          bin/fteqcc-cli-lin -srcfile progs/csqc.src 2>&1 | tee "$RUNNER_TEMP/v26-csqc.log"
-          test -s build/fte/csprogs.dat
-          file build/standard/progs.dat build/fte/qwprogs.dat build/fte/csprogs.dat
-          sha256sum build/standard/progs.dat build/fte/qwprogs.dat build/fte/csprogs.dat | tee "$RUNNER_TEMP/v26-qc-sha256.txt"
-          echo 'PASS three authentic QuakeC bytecode targets, including FTE client HUD'
-      - name: Confirm original v26 source functions are preserved in compiled program inputs
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          root=Path('original-v26/third_party/viril-iw3-v026/quakec')
-          s=(root/'source/server/damage.qc').read_text()
-          ai=(root/'source/server/ai/ai_core.qc').read_text()
-          z=(root/'source/server/ai/zombie_core.qc').read_text()
-          hud=(root/'source/client/hud.qc').read_text()
-          client=(root/'source/client/main.qc').read_text()
-          for name in ('DamageHandler','DieHandler','ScoreSystem_ScoreForDamage','DMG_SCORE_STDDAMAGE','nzp_damage_number'):
-            assert name in s,name
-          for name in ('TryWalkToEnemy','Window_Walk','AI_FindTarget'):
-            assert name in ai,name
-          for name in ('zombie_decide','Window_Damage_Setup','zombie_attack2'):
-            assert name in z,name
-          for name in ('RegisterPointChange','PointUpdate','HUD_Points','MAX_POINT_ELEMENTS'):
-            assert name in hud,name
-          assert 'RegisterPointChange(self.points - old_points, self.playernum)' in client
-          print('PASS: verified exact original v26 scoring, target AI, barricade AI and client-side point cascade source')
-          PY
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ORIGINAL-VIRIL-V26-QUAKEC-SERVER-CLIENT-VM-BYTECODE
-          path: |
-            original-v26/third_party/viril-iw3-v026/quakec/build/standard/progs.dat
-            original-v26/third_party/viril-iw3-v026/quakec/build/fte/qwprogs.dat
-            original-v26/third_party/viril-iw3-v026/quakec/build/fte/csprogs.dat
-          retention-days: 30
-          if-no-files-found: error
-,line)
-            if m and '/' in m.group(2):
-              original=m.group(2)
-              crc=crc16.ibm_3740(original.encode('utf8'))
-              lines[i]='{'+str(crc)+m.group(3)
+            match=re.match(r'^\{([^,]+)(,.*)$',line)
+            if match and '/' in match.group(1):
+              raw_name=match.group(1)
+              lines[i]='{'+str(crc16.ibm_3740(raw_name.encode()))+match.group(2)
               count+=1
-          assert count>100,f'Expected original map paths in hash table, got {count}'
+          assert count>100,count
           p.write_text('\n'.join(lines)+'\n')
-          print('PASS: repaired only generated CRC lookup build data, unchanged v26 QuakeC source,',count,'entries')
+          print('PASS: generated QuakeC CRC table corrected; original v26 gameplay source unchanged',count)
           PY
           sed -n '1,7p' source/server/hash_table.qc | cut -c 1-240
           mkdir -p build/fte build/standard
