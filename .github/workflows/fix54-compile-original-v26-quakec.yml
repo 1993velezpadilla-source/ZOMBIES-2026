@@ -35,7 +35,7 @@ jobs:
           set -euo pipefail
           cd original-v26/third_party/viril-iw3-v026/quakec
           chmod +x bin/fteqcc-cli-lin
-          python3 -m pip install --quiet --break-system-packages pandas fastcrc
+          python3 -m pip install --quiet --break-system-packages pandas fastcrc colorama
           python3 bin/qc_hash_generator.py -i tools/asset_conversion_table.csv -o source/server/hash_table.qc
           mkdir -p build/fte build/standard
           bin/fteqcc-cli-lin -O3 -Ono-compound_jumps -srcfile progs/ssqc.src 2>&1 | tee "$RUNNER_TEMP/v26-ssqc.log"
