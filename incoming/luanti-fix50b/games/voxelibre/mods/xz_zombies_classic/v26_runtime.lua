@@ -181,7 +181,7 @@ return function(M,V,hooks)
  function A.zombie_think(record,dt)
   local obj=record.obj
   if not obj or not obj:get_pos() or obj:get_hp()<=0 then return end
-  local entity=obj:get_luaentity()
+  local entity=obj.get_luaentity and obj:get_luaentity()
   local native=entity and type(entity.do_attack)=='function'
   local target,distance=record.v26_target,math.huge
   local t=now()
@@ -254,7 +254,7 @@ return function(M,V,hooks)
  end
 
  function A.install_native_ai(record)
-  local entity=record.obj and record.obj:get_luaentity()
+  local entity=record.obj and record.obj.get_luaentity and record.obj:get_luaentity()
   if not entity or type(entity.do_attack)~='function' then return false end
   local original=entity.do_custom
   entity.force_attack=true
