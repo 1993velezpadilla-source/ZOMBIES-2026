@@ -9,6 +9,7 @@ local director = assert(loadfile(modpath .. '/round_director.lua'))()
 local v26_rules = assert(loadfile(modpath .. '/v26_rules.lua'))()
 local v26_modes = assert(loadfile(modpath .. '/v26_modes.lua'))()(M)
 local v26_hud = assert(loadfile(modpath .. '/v26_hud.lua'))()(M)
+local v26_combatfx = assert(loadfile(modpath .. '/v26_viril_combatfx.lua'))()(M)
 local WEAPONS = {
   {id='ak47', item='ak47dev:ak47',label='AK-47',icon='ak47dev_icon.png', price=1200},
   {id='m9',item='ak47dev:m9',label='M9',icon='m9_icon.png',price=500},
@@ -456,6 +457,7 @@ local function stop_game()
   local ok,err=v26_modes.stop(p)
   if not ok then M.log('warning','[xz_zombies_classic] Creative restore: '..tostring(err)) end
   v26_hud.mode(p,false)
+  v26_combatfx.stop(p)
  end
  storage:set_int(ACTIVE_STORAGE,0)
 end
@@ -633,6 +635,7 @@ end)
 M.register_on_leaveplayer(function(p)
  local n=p:get_player_name()
  v26_hud.detach(p)
+ v26_combatfx.detach(p)
  viewers[n]=nil;developer[n]=nil;prev_physics[n]=nil;prev_armor[n]=nil;editor_pages[n]=nil;developer_pages[n]=nil;editor_weapon_index[n]=nil
 end)
 M.register_on_player_receive_fields(function(p,form,fields)
@@ -769,7 +772,14 @@ local function update_round()
   else
    if record.attacker then
     local p=M.get_player_by_name(record.attacker)
-    if p and not record.v26_kill_awarded then set_points(p,player_points(p)+v26_rules.damage_score(true,'lowertorso')) end
+    if p and not record.v26_kill_awarded then
+     -- v26 DamageHandler already credited +10 for the contact. DieHandler
+     -- credits the remaining fatal award, never 50 twice.
+     local style=record.v26_last_hit_style or 'lowertorso'
+     local kill=v26_rules.damage_score(true,style)
+     local prepaid=record.v26_prepaid_last_hit or 0
+     set_points(p,player_points(p)+math.max(0,kill-prepaid))
+    end
    end
    state.kills=state.kills+1
   end
@@ -811,13 +821,17 @@ end
 -- Native COD4 projectile source (ak47dev/combat.lua) retains the original
 -- target:punch() call.  Post-impact callback gives score for each confirmed
 -- hit, while QuakeC window/damage rules supply the original +10/+50 amounts.
-local function cod4_post_impact(shooter,target,before,after)
+local function cod4_post_impact(shooter,target,before,after,damage,intersection)
  if not state.active or not shooter or not shooter.is_player or not shooter:is_player() then return end
- if not target or type(before)~='number' or type(after)~='number' or after>=before then return end
+ if not target or type(before)~='number' or before<=0 or (tonumber(damage) or 0)<=0 then return end
  for _,record in ipairs(state.zombies) do
   if record.obj==target then
-   record.attacker=shooter:get_player_name()
-   v26.zombie_on_punch(record,shooter,before,after)
+   -- This is an actual COD4 server-side raycast collision. V26's original
+   -- DamageHandler grants per-hit score on the event, not on a synchronous
+   -- health delta, which VoxeLibre can defer to its on_step.
+   local critical=v26.is_head_hit(record,intersection)
+   local value=v26.cod4_projectile_impact(record,shooter,before,after,damage,critical)
+   if value>0 then v26_combatfx.hit(shooter,damage,critical) end
    return
   end
  end
@@ -956,6 +970,7 @@ M.register_globalstep(function(dt)
  score_hud_elapsed=score_hud_elapsed+dt
  if score_hud_elapsed>=0.085 then
   v26_hud.step(score_hud_elapsed)
+  v26_combatfx.step()
   score_hud_elapsed=0
  end
  -- NZ:P v26 Zombie_Think compatibility: only round-controlled mobs, not world mobs.
@@ -999,4 +1014,4 @@ M.register_globalstep(function(dt)
   end
  end
 end)
-M.log('action','[xz_zombies_classic] FIX53 native chase/attack plus original NZP 1x1 1x2 2x1 2x2 3x3 barricades; COD4 untouched.')
+M.log('action','[xz_zombies_classic] FIX54 exact Xziel Viril combat numbers and confirmed bullet hit score, original NZP VM source preserved.')
