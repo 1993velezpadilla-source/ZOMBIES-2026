@@ -18,6 +18,10 @@ return function(M,V,hooks)
   return M.get_meta(p)
  end
  local function get_stage(p)
+  if A.sized_get_stage then
+   local extra=A.sized_get_stage(p)
+   if extra~=nil then return extra end
+  end
   local n=M.get_node_or_nil(p)
   if not n then return nil end
   return tonumber(n.name:match("^xz_zombies:v26_barricade_([0-6])$"))
@@ -29,6 +33,7 @@ return function(M,V,hooks)
  end
 
  local function change_stage(pos,newstage)
+  if A.sized_change_stage and A.sized_change_stage(pos,newstage) then return end
   local old=M.get_node(pos)
   local param2=old and old.param2 or 0
   M.swap_node(pos,{name=stage_name(newstage),param2=param2})
@@ -50,6 +55,7 @@ return function(M,V,hooks)
  end
 
  function A.repair(pos,player)
+  if A.sized_resolve then pos=A.sized_resolve(pos) end
   if not hooks.active() or not player or not player:is_player() then return false end
   if player:get_hp()<=0 then return false end
   if M.is_protected and M.is_protected(pos,player:get_player_name()) then return false end
@@ -67,6 +73,7 @@ return function(M,V,hooks)
  end
 
  function A.zombie_break(pos)
+  if A.sized_resolve then pos=A.sized_resolve(pos) end
   local stage=get_stage(pos)
   if not stage or stage<=0 then return false end
   -- QuakeC Window_Damage: remove exactly ONE board on each rip attack.
