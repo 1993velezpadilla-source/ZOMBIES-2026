@@ -792,6 +792,22 @@ local function update_round()
   -- Wave transitions are visible in the HUD, not persistent chat.
  end
 end
+-- Native COD4 projectile source (ak47dev/combat.lua) retains the original
+-- target:punch() call.  Post-impact callback gives score for each confirmed
+-- hit, while QuakeC window/damage rules supply the original +10/+50 amounts.
+local function cod4_post_impact(shooter,target,before,after)
+ if not state.active or not shooter or not shooter.is_player or not shooter:is_player() then return end
+ if not target or type(before)~='number' or type(after)~='number' or after>=before then return end
+ for _,record in ipairs(state.zombies) do
+  if record.obj==target then
+   record.attacker=shooter:get_player_name()
+   v26.zombie_on_punch(record,shooter,before,after)
+   return
+  end
+ end
+end
+_G.xz_zombies_classic=_G.xz_zombies_classic or {}
+_G.xz_zombies_classic.on_cod4_impact=cod4_post_impact
 M.register_on_mods_loaded(function()
  local seen={}
  -- Preserve every mob's on_punch and AI; credit all native variants, not only zombie.
@@ -816,12 +832,19 @@ M.register_on_mods_loaded(function()
      -- Retain native mob attack/animation/damage behavior exactly.
      local result
      if original then result=original(self,puncher,...) end
+     -- COD4 bullets emit a definite hit event from combat.lua after the
+     -- original punch. Do not also award here or points will double.
+     -- Fists and other non-COD4 melee still score through native on_punch.
      if record and before then
-      local function award_actual_damage()
-       local after=record.obj and record.obj:get_hp()
-       v26.zombie_on_punch(record,puncher,before,after)
+      local stack=puncher:get_wielded_item()
+      local weapon=stack and stack:get_name() or ''
+      if not item_set[weapon] then
+       local function award_melee_damage()
+        local after=record.obj and record.obj:get_hp()
+        v26.zombie_on_punch(record,puncher,before,after)
+       end
+       if M.after then M.after(0,award_melee_damage) else award_melee_damage() end
       end
-      if M.after then M.after(0,award_actual_damage) else award_actual_damage() end
      end
      return result
     end
