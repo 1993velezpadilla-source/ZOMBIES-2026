@@ -21,6 +21,7 @@ import zipfile
 from pathlib import Path
 
 GAME_PATH = "games/voxelibre/mods/xz_zombies_classic/init.lua"
+COMBAT_PATH = "games/voxelibre/mods/ak47dev/combat.lua"
 DIRECTOR_PATH = "games/voxelibre/mods/xz_zombies_classic/round_director.lua"
 BUTTON_PATH = "textures/base/pack/xz_use_btn.png"
 COMPRESSED_ENTRY = "luanti-assets.zip.xz"
@@ -42,7 +43,30 @@ def assert_unique_archive(z, name):
         raise RuntimeError(f"{name}: expected one item, found {names.count(name)}")
 
 
-def rebuild_inner(old_zip, new_zip, lua_file, btn_file, director_file=None, overlay_dir=None):
+def patch_cod4_projectile_hit(source):
+    """Add a post-hit score callback without modifying the weapon's original punch."""
+    old = source.decode("utf-8")
+    signature = "local function projectile_hit(target,shooter,damage,direction)\n"
+    old_body = ("  damage_groups={fleshy=math.max(1,math.floor(damage+.5)),cod4_projectile=1}},direction)\n")
+    if old.count(signature) != 1 or old.count(old_body) != 1:
+        raise RuntimeError("COD4 combat.lua does not match the exact known-good bullet source")
+    new = old.replace(signature, signature +
+        " local v26_before=target.get_hp and target:get_hp() or nil\n")
+    new = new.replace(old_body, old_body +
+        " if v26_before then\n"
+        "  local ok,v26_after=pcall(function() return target:get_hp() end)\n"
+        "  if not ok then v26_after=0 end\n"
+        "  local api=rawget(_G,'xz_zombies_classic')\n"
+        "  if api and api.on_cod4_impact then\n"
+        "   api.on_cod4_impact(shooter,target,v26_before,v26_after)\n"
+        "  end\n"
+        " end\n")
+    if new.count("target:punch(shooter,1,{full_punch_interval=1,") != 1:
+        raise RuntimeError("Original COD4 damage body changed")
+    return new.encode("utf-8")
+
+
+def rebuild_inner(old_zip, new_zip, lua_file, btn_file, director_file=None, overlay_dir=None, cod4_hit_hook=False):
     original = set()
     changed = {}
     with zipfile.ZipFile(old_zip) as old, zipfile.ZipFile(new_zip, "w", allowZip64=True) as new:
@@ -50,6 +74,7 @@ def rebuild_inner(old_zip, new_zip, lua_file, btn_file, director_file=None, over
         if len(old_names) != len(set(old_names)):
             raise RuntimeError("FIX49C game assets contain duplicate paths")
         assert_unique_archive(old, GAME_PATH)
+        if cod4_hit_hook: assert_unique_archive(old, COMBAT_PATH)
         original = {i.filename: (i.CRC, i.file_size) for i in old.infolist()}
         new.comment = old.comment
         changes = {GAME_PATH: lua_file.read_bytes()}
@@ -76,6 +101,10 @@ def rebuild_inner(old_zip, new_zip, lua_file, btn_file, director_file=None, over
             changes.update(overlay_files)
         for info in old.infolist():
             data = changes.pop(info.filename, None)
+            if cod4_hit_hook and info.filename == COMBAT_PATH:
+                if data is not None: raise RuntimeError("Combat cannot be doubly overwritten")
+                data = patch_cod4_projectile_hit(old.read(info.filename))
+                changed[info.filename] = "replaced"
             if data is None:
                 with old.open(info) as stream:
                     data = stream.read()
@@ -114,6 +143,7 @@ def main():
     p.add_argument("--button", type=Path)
     p.add_argument("--director", type=Path)
     p.add_argument("--overlay-dir", type=Path)
+    p.add_argument("--cod4-hit-hook", action="store_true")
     p.add_argument("--output", type=Path, required=True)
     args = p.parse_args()
     args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -141,7 +171,7 @@ def main():
                 copy_stream(src, dest)
         with lzma.open(old_inner_xz, "rb") as src, old_inner.open("wb") as dest:
             copy_stream(src, dest)
-        report["assets"] = rebuild_inner(old_inner, new_inner, args.lua, args.button, args.director, args.overlay_dir)
+        report["assets"] = rebuild_inner(old_inner, new_inner, args.lua, args.button, args.director, args.overlay_dir, args.cod4_hit_hook)
         with new_inner.open("rb") as src, lzma.open(new_inner_xz, "wb", format=lzma.FORMAT_XZ, preset=3) as dest:
             copy_stream(src, dest)
         with zipfile.ZipFile(new_outer, "w", allowZip64=True) as outer:
