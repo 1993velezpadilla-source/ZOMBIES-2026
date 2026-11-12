@@ -1,0 +1,54 @@
+name: FIX53 native zombie chase and five original v26 barricade sizes
+on:
+  push:
+    branches: [fix/fix53-v26-chase-multisize-barricades-20261112]
+    paths:
+      - 'incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/**'
+      - 'incoming/luanti-fix50b/tests/**'
+      - 'incoming/luanti-fix50b/v26/convert_original_window_mdl.py'
+      - '.github/workflows/fix53-chase-size-gate.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Lua
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq lua5.4
+      - name: Compile all v26 Lua modules and preserved main game
+        run: |
+          set -euo pipefail
+          for lua in incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/*.lua; do luac5.4 -p "$lua"; done
+      - name: Original v26 mechanics unchanged, plus five synchronized barricade sizes
+        run: |
+          set -euo pipefail
+          lua5.4 incoming/luanti-fix50b/tests/test_v26_original.lua
+          lua5.4 incoming/luanti-fix50b/tests/test_fix53_chase_sizes.lua
+      - name: All 28 native guns, ADS, USE, editor, rounds and hit HUD
+        run: |
+          set -euo pipefail
+          lua5.4 incoming/luanti-fix50b/tests/test_runtime.lua
+          lua5.4 incoming/luanti-fix50b/tests/test_fix52b_hud_modes.lua
+      - name: Original v26 model shape and slot registry assertions
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path('incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic')
+          main=(root/'init.lua').read_text()
+          ai=(root/'v26_runtime.lua').read_text()
+          for size in ('1x1','1x2','2x1','2x2','3x3'):
+           assert 'barricade_'+size in main,size
+          assert 'v26.install_native_ai(record)' in main
+          assert 'entity:do_attack(target)' in ai
+          assert "entity.damage=V.attack_damage/5" in ai
+          assert 'if record.v26_barrier' in ai
+          assert "'mobs_mc:baby_zombie'" not in main
+          assert 'local v26_hud' in main and "on_cod4_impact=cod4_post_impact" in main
+          assert "v26_sized_barricades.lua" in main
+          source=Path('incoming/luanti-fix50b/v26/convert_original_window_mdl.py').read_text()
+          assert 'for width,height in ((1,2),(2,1),(2,2),(3,3))' in source
+          print('PASS: native movement, intact 28-gun hook and five source-model sizes')
+          PY
