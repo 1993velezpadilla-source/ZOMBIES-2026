@@ -781,15 +781,28 @@ M.register_on_mods_loaded(function()
    if def then
     local original=def.on_punch
     def.on_punch=function(self,puncher,...)
+     local record
      if state.active and puncher and puncher.is_player and puncher:is_player() and self.object then
-      for _,record in ipairs(state.zombies) do
-       if record.obj==self.object then
+      for _,candidate in ipairs(state.zombies) do
+       if candidate.obj==self.object then
+        record=candidate
         record.attacker=puncher:get_player_name()
         break
        end
       end
      end
-     if original then return original(self,puncher,...) end
+     local before=record and self.object:get_hp()
+     -- Retain native mob attack/animation/damage behavior exactly.
+     local result
+     if original then result=original(self,puncher,...) end
+     if record and before then
+      local function award_actual_damage()
+       local after=record.obj and record.obj:get_hp()
+       v26.zombie_on_punch(record,puncher,before,after)
+      end
+      if M.after then M.after(0,award_actual_damage) else award_actual_damage() end
+     end
+     return result
     end
    end
   end
@@ -863,6 +876,7 @@ M.register_on_leaveplayer(function(p)
 end)
 
 local elapsed=0
+local ai_elapsed=0
 M.register_globalstep(function(dt)
  -- Detect actual ZOOM button presses, independently of the PLACE/USE button.
  -- Trigger exactly once per press; do not toggle repeatedly while held.
@@ -876,6 +890,12 @@ M.register_globalstep(function(dt)
    if ads then ads(p) end
   end
   zoom_ads_previous[name]=not not pressed
+ end
+ -- NZ:P v26 Zombie_Think compatibility: only round-controlled mobs, not world mobs.
+ ai_elapsed=ai_elapsed+dt
+ if state.active and ai_elapsed>=0.25 then
+  for _,record in ipairs(state.zombies) do v26.zombie_think(record,ai_elapsed) end
+  ai_elapsed=0
  end
  elapsed=elapsed+dt
  if elapsed<1 then return end
@@ -916,4 +936,4 @@ M.register_globalstep(function(dt)
   end
  end
 end)
-M.log('action','[xz_zombies_classic] FIX51 Round Director; native USE and 28 COD4 weapons preserved.')
+M.log('action','[xz_zombies_classic] FIX52 NZ:P v26 QuakeC gameplay adapter ready; native COD4 gun callbacks untouched.')
