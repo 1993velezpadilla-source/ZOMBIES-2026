@@ -1,4 +1,4 @@
--- FIX55 isolated original RotU targeting/path recovery test; no fake zombie engine.
+-- FIX56: Actual VoxeLibre live combat owns navigation; no fixed trail.
 local path='incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/rotu_ai.lua'
 local clock=0
 local P={}
@@ -20,52 +20,62 @@ local M={
 }
 local rotu=assert(loadfile(path))()(M)
 local record={obj={}}
-function record.obj:get_pos()return {x=0,y=0,z=0}end
+function record.obj:get_pos()return {x=0,y=0,z=0} end
 local selected,d=rotu.acquire(record,{},record.obj:get_pos())
-assert(selected==visible and d==11,'Original RotU bestTarget must choose closest visible living player')
-assert(record.rotu_ai.target==visible)
+assert(selected==visible and d==11,'Original RotU must choose visible living target')
 clock=1;visible.hp=0
-selected,d=rotu.acquire(record,{},record.obj:get_pos())
-assert(selected==blind,'RotU must reject dead player')
-assert(record.rotu_ai.status=='SEARCHING' or record.rotu_ai.target==blind)
-visible.hp=20
-clock=2;isvisible=true
+selected=rotu.acquire(record,{},record.obj:get_pos())
+assert(selected==blind,'Original RotU must not chase dead player')
+clock=2;visible.hp=20
 selected=rotu.acquire(record,{},record.obj:get_pos())
 assert(selected==visible)
-local entity={state='stand',reach=1.875,walk_velocity=.8,run_velocity=1.8,pathfinding=1}
-local routecalls=0
-function entity:gopath(pos,callback)
- routecalls=routecalls+1
- self.path={x=pos.x,y=pos.y,z=pos.z}
- self.callback=callback
- self.state='gowp'
- return true
-end
-function entity:do_attack(player)
- self.target=player
- self.state='attack'
-end
+local legacy_gopath_calls=0
+local entity={state='stand',reach=1.875,walk_velocity=.8,run_velocity=1.8,
+ path={last_seen_target_pos={x=11,y=0,z=0},following=false}}
+function entity:gopath()legacy_gopath_calls=legacy_gopath_calls+1 end
 assert(rotu.think(record,entity,visible,11,0.25,3)==false)
-assert(record.rotu_ai.status=='STALKING','Original RotU state must be stalking from far')
-assert(entity.run_velocity>1.8 and entity.pathfinding==1)
-assert(routecalls==0,'Do not run expensive path when unobstructed')
-clock=3.6;isvisible=false
-assert(rotu.think(record,entity,visible,11,0.25,3)==true,'Lost-sight recovery must ask native pathfinder')
+assert(record.rotu_ai.status=='STALKING')
+assert(entity.pathfinding==1 and entity.run_velocity>1.8)
+assert(legacy_gopath_calls==0,'Never trigger static gopath trail')
+-- LOST LOS: the actual native mob AI continues combat and receives updated goal.
+clock=3.1;isvisible=false;visible.pos.x=18
+entity.path.following=true
+entity.path.way={{x=11,y=0,z=0}}
+assert(rotu.think(record,entity,visible,18,0.25,3)==false)
 assert(record.rotu_ai.status=='REACQUIRE_TARGET')
-assert(routecalls==1 and entity.path.x==11)
-assert(rotu.think(record,entity,visible,11,0.25,3)==true and routecalls==1,
- 'Do not reset native gopath movement at 4 Hz')
-entity.callback(entity)
-assert(entity.state=='attack' and entity.target==visible,
- 'Native route callback must resume VoxeLibre dogfight')
-clock=4.0
-rotu.think(record,entity,visible,11,0.25,3)
-assert(routecalls==1,'Mobile pathfinder must be rate-limited')
-clock=5.0
+assert(entity.path.last_seen_target_pos.x==18,'Current player position, not breadcrumb')
+assert(entity.path.following==false and entity.path.way==nil,'Outdated native route released')
+assert(entity.target_time_lost==nil)
+assert(legacy_gopath_calls==0,'No static gopath allowed')
+-- Tiny movements must not recalculate path or cause thrashing.
+clock=4.2;visible.pos.x=19
+entity.path.following=true
+entity.path.way={{x=18,y=0,z=0}}
+rotu.think(record,entity,visible,19,0.25,3)
+assert(entity.path.following==true and entity.path.way,
+ 'Less than 3 blocks goal drift must retain native path to avoid mobile A* storm')
+-- More than 3 blocks away: abandon old route and let native smart_mobs recalc.
+clock=5.4;visible.pos.x=25
+rotu.think(record,entity,visible,25,0.25,3)
+assert(entity.path.following==false and entity.path.way==nil)
+assert(entity.path.last_seen_target_pos.x==25)
+-- Compatibility: FIX55 existing gowp route cannot lock into former location.
+entity.state='gowp';entity.waypoints={{pos={x=11,y=0,z=0}}}
+entity.current_target={pos={x=11,y=0,z=0}}
+entity._target={x=11,y=0,z=0}
+entity.callback_arrived=function()error('stale callback must be removed') end
+clock=6.4
+rotu.think(record,entity,visible,25,0.25,3)
+assert(entity.state=='stand' and entity.waypoints==nil and entity._target==nil
+  and entity.current_target==nil and entity.callback_arrived==nil,
+ 'FIX55 fixed waypoint chain must be cleared before native do_attack')
+-- On recovered LOS, use original per-step native combat to immediately turn.
+clock=7.4;isvisible=true
+rotu.think(record,entity,visible,7,0.25,3)
+assert(record.rotu_ai.status=='PURSUING')
 rotu.barrier(record)
-assert(record.rotu_ai.status=='BARRICADE' and record.rotu_ai.stuck_for==0)
--- If all candidates are dead the state returns to SEARCHING.
-clock=6.0;blind.hp=0;visible.hp=0
+assert(record.rotu_ai.status=='BARRICADE')
+clock=8.5;blind.hp=0;visible.hp=0
 selected=rotu.acquire(record,entity,record.obj:get_pos())
 assert(selected==nil and record.rotu_ai.status=='SEARCHING')
-print('PASS MIT RotU targeting, visibility priority, pursuit states, native pathfinding recovery, cooldown, barricade and no target')
+print('PASS FIX56: live goal, no pencil trail, native A*, bounded invalidation, old-path cancellation, targets and barricades')
