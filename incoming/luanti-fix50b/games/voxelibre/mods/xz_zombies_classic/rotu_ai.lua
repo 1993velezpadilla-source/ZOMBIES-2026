@@ -1,4 +1,4 @@
--- FIX55: CoD4 Reign of the Undead v2.x bot decision adapter.
+-- FIX56: Retain RotU target priorities, restore native VoxeLibre live pursuit.
 -- Adapted from Reign of the Undead Team (2010-2026), MIT-licensed GSC:
 -- scripts/bots/_bot.gsc: bestTarget(), botStateToString(), setSpeed(), wander()
 -- scripts/include/waypoints.gsc: waypoint navigation and A* route recovery.
@@ -82,46 +82,46 @@ return function(M)
   else
    brain.status=brain.last_seen and 'REACQUIRE_TARGET' or 'SEARCHING'
   end
-  -- Original RotU setSpeed() switches from walk to run on alert. Keep the
-  -- established VoxeLibre speeds/animations rather than setting raw velocities.
+  -- ORIGINAL VoxeLibre mcl_mobs/combat.lua has live chase + smart_mobs A*.
+  -- FIX55's gopath() forced a stale static destination (line-following bug).
+  -- Re-use the native attack controller; DO NOT create a parallel path follower.
   local stage=math.max(1,tonumber(round) or 1)
   entity.walk_velocity=math.max(entity.walk_velocity or .8,.90)
   entity.run_velocity=math.max(entity.run_velocity or 1.8,math.min(3.20,1.95+0.075*(stage-1)))
-  entity.pathfinding=1 -- actual VoxeLibre smart_mobs() A* and stuck logic
-  if brain.last_pos then
-   if sq(pos,brain.last_pos)<0.16 and distance>3 then
-    brain.stuck_for=brain.stuck_for+dt
-   else
-    brain.stuck_for=0
-   end
-  end
-  brain.last_pos={x=pos.x,y=pos.y,z=pos.z}
-  -- While built-in gopath is walking a path, never overwrite it with do_attack.
-  if entity.state=='gowp' then return true end
-  if distance<=3 or distance>23 or type(entity.gopath)~='function' then return false end
+  entity.pathfinding=1
   local clock=now()
-  if clock<(brain.next_route or 0) or clock<NEXT_PATH_BUDGET then return false end
-  -- Repath only if stuck, or after losing sight for at least 1.25 sec.
-  local lost=not visible and brain.last_seen and
-   (clock-(brain.last_sighted_at or clock))>=1.25
-  if brain.stuck_for<1.5 and not lost then return false end
-  local dest=brain.last_seen or goal
-  if sq(pos,dest)>23*23 then dest=goal end
-  brain.next_route=clock+4.0 -- expensive A* pathfinding mobile budget
-  NEXT_PATH_BUDGET=clock+0.35 -- across ALL zombies
-  local ok,result=pcall(entity.gopath,entity,dest,function(mob)
-   mob.order=nil
-   if mob.state~='die' and valid(target) then
-    mob.state='stand'
-    mob:do_attack(target)
-   end
-  end,false)
-  if ok and (result or entity.state=='gowp') then
+  -- Rescue an in-progress FIX55 fixed-position path (this instance only).
+  -- VoxeLibre gopath() explicitly rejects destinations while state='gowp'.
+  if entity.state=='gowp' then
+   entity.state='stand'
+   entity._target=nil
+   entity.current_target=nil
+   entity.waypoints=nil
+   entity.callback_arrived=nil
    brain.status='REACQUIRE_TARGET'
-   brain.stuck_for=0
-   return true
+   brain.next_awareness_at=0
   end
-  return false -- safely delegate back to original v26/native chase
+  -- CoD-like horde awareness: monsters know the current player's general
+  -- position even behind walls, but attack visibility is checked NATIVELY.
+  -- Only update a moving target occasionally; never compute A* in this layer.
+  if not visible and entity.path and clock>=(brain.next_awareness_at or 0) then
+   brain.next_awareness_at=clock+1.0
+   local last=brain.last_awareness_goal
+   if not last or sq(last,goal)>=9 then
+    entity.path.last_seen_target_pos={x=goal.x,y=goal.y,z=goal.z}
+    -- Release outdated VoxeLibre waypoint chain to current live destination.
+    -- The built-in smart_mobs() chooses its own new path when LOS/stuck calls for it.
+    entity.path.following=false
+    entity.path.way=nil
+    brain.last_awareness_goal={x=goal.x,y=goal.y,z=goal.z}
+   end
+   -- Do not give up on the player just because a wall hides them. Only
+   -- the original native controller decides whether melee is possible.
+   entity.target_time_lost=nil
+  end
+  -- Send movement, attack, jump, and pathfinding ownership back to the
+  -- existing, tested VoxeLibre do_states_attack() and smart_mobs().
+  return false
  end
  return A
 end
