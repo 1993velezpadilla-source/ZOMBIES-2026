@@ -11,6 +11,7 @@ local v26_modes = assert(loadfile(modpath .. '/v26_modes.lua'))()(M)
 local v26_hud = assert(loadfile(modpath .. '/v26_hud.lua'))()(M)
 local v26_combatfx = assert(loadfile(modpath .. '/v26_viril_combatfx.lua'))()(M)
 local rotu_ai = assert(loadfile(modpath .. '/rotu_ai.lua'))()(M)
+local dremorn_visual = assert(loadfile(modpath .. '/dremorn_visual.lua'))()(M,modpath)
 local WEAPONS = {
   {id='ak47', item='ak47dev:ak47',label='AK-47',icon='ak47dev_icon.png', price=1200},
   {id='m9',item='ak47dev:m9',label='M9',icon='m9_icon.png',price=500},
@@ -104,6 +105,7 @@ local function spawn_native_zombie(at)
  local record={obj=obj}
  state.zombies[#state.zombies+1]=record
  if v26 and v26.install_native_ai then v26.install_native_ai(record) end
+ if entity then dremorn_visual.apply(entity,obj) end
  state.spawned=state.spawned+1
  return true,name
 end
