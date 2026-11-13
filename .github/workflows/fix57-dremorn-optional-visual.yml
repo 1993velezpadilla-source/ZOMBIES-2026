@@ -7,6 +7,8 @@ on:
       - 'incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/init.lua'
       - 'incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/dremorn_visual.lua'
       - 'incoming/luanti-fix50b/tests/test_fix57_dremorn_visual.lua'
+      - 'incoming/luanti-fix50b/tools/inspect_dremorn_glb.py'
+      - 'incoming/luanti-fix50b/tests/test_fix57_dremorn_glb_preflight.py'
       - '.github/workflows/fix57-dremorn-optional-visual.yml'
   workflow_dispatch:
 permissions:
@@ -25,6 +27,7 @@ jobs:
           MOD=incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic
           for f in "$MOD"/*.lua; do luac5.4 -p "$f"; done
           lua5.4 incoming/luanti-fix50b/tests/test_fix57_dremorn_visual.lua
+          python3 -m unittest incoming/luanti-fix50b/tests/test_fix57_dremorn_glb_preflight.py -v
           lua5.4 incoming/luanti-fix50b/tests/test_fix55_rotu_bot_ai.lua
           lua5.4 incoming/luanti-fix50b/tests/test_v26_original.lua
           lua5.4 incoming/luanti-fix50b/tests/test_fix53_chase_sizes.lua
