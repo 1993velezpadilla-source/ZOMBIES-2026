@@ -25,3 +25,14 @@ Dremorn's original page lists 7,200 triangles, 12 animations, 2 FBX files and 40
 6. Do not commit seller's original art to the public GitHub repo. Do not release commercial APK with extractable raw Dremorn meshes without permissions/licensing review.
 
 Docs: https://docs.luanti.org/for-creators/models/ and https://api.luanti.org/class-reference/
+
+## FIX57 continuation after source audit (2026-11-13)
+
+- Luanti official docs confirm `ObjectRef:play_animation(track, {speed=1,loop=...})` and `ObjectRef:update_animation(track, {speed=...})` for glTF 5.17+.
+- VoxeLibre `mcl_mobs/effects.lua` calls the OLD `set_animation_frame_speed` on each native mob tick. The FIX57 per-instance wrapper now uses **named glTF track updates**, with 0.2 speed change threshold to avoid unnecessary Android updates.
+- VoxeLibre `mcl_mobs/physics.lua` requires `animation.die_start` and `animation.die_end` to play `die` and time corpse removal. The FIX57 per-instance animation table is copied from original, then a **provisional** 1.6 second death duration is set. Adjust based on the authentic GLB action length; common mobs remain untouched.
+- Neither `fx/OBJ` nor `FBX` can run unconverted. FBX import should export the six exact named tracks `idle1`, `walk`, `run`, `atack1`, `atack2`, `death1` to a **skinned GLB**. The seller advertises 12: `idle1`, `idle2`, `walk`, `run`, `rage`, `atack1`, `atack2`, `atack3`, `atack4`, `gethit`, `death1`, `death2`.
+- Run `python3 incoming/luanti-fix50b/tools/inspect_dremorn_glb.py path/to/xz_dremorn_zombie.glb --texture path/to/xz_dremorn_body.png --report dremorn-report.json` before attempting Android packaging. It verifies GLB2, valid scene, skin, named tracks, one material and PNG with no asset extraction.
+- Official documentation: https://api.luanti.org/class-reference/ ; https://docs.luanti.org/for-creators/models/ ; https://github.com/VoxeLibre/VoxeLibre/blob/master/mods/ENTITIES/mcl_mobs/effects.lua ; https://github.com/VoxeLibre/VoxeLibre/blob/master/mods/ENTITIES/mcl_mobs/physics.lua
+
+**APK warning:** The signed FIX57 integration-only build intentionally does **not** contain Dremorn artwork, so in game the zombies still look native. This isolates and protects all existing gameplay functionality; the authentic FBX/PNG and a rights-cleared private Android trial remain outstanding. The build uses an independent test-signing key and the same Android package name as FIX56, so it cannot install as an update over FIX56; back up worlds and uninstall conflicting developer tests before installing.
