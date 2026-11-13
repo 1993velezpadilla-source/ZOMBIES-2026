@@ -1,0 +1,39 @@
+name: FIX57 Dremorn optional visual - safe fallback tests
+on:
+  push:
+    branches:
+      - feature/fix57-dremorn-optional-visual-loader-20261113
+    paths:
+      - 'incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/init.lua'
+      - 'incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/dremorn_visual.lua'
+      - 'incoming/luanti-fix50b/tests/test_fix57_dremorn_visual.lua'
+      - '.github/workflows/fix57-dremorn-optional-visual.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-fallback-and-animation-bridge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test Lua parser and existing core behavior
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lua5.4
+          MOD=incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic
+          for f in "$MOD"/*.lua; do luac5.4 -p "$f"; done
+          lua5.4 incoming/luanti-fix50b/tests/test_fix57_dremorn_visual.lua
+          lua5.4 incoming/luanti-fix50b/tests/test_fix55_rotu_bot_ai.lua
+          lua5.4 incoming/luanti-fix50b/tests/test_v26_original.lua
+          lua5.4 incoming/luanti-fix50b/tests/test_fix53_chase_sizes.lua
+          lua5.4 incoming/luanti-fix50b/tests/test_fix54_original_viril_combatfx.lua
+          lua5.4 incoming/luanti-fix50b/tests/test_runtime.lua
+      - name: Verify Dremorn binaries are NOT published to GitHub
+        run: |
+          set -euo pipefail
+          test ! -f incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/models/xz_dremorn_zombie.glb
+          test ! -f incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/textures/xz_dremorn_body.png
+          grep -q 'if entity then dremorn_visual.apply(entity,obj) end' incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/init.lua
+          echo "PASS: Native zombies are preserved when no Dremorn license-controlled media exists"
