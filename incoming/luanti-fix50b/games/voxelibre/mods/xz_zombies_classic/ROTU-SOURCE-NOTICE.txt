@@ -1,0 +1,44 @@
+Reign of the Undead v2.x — source attribution (FIX55 test)
+
+Original authors: Reign of the Undead Team (2010–2026).
+Original code: https://github.com/marktaff/reign-of-the-undead
+GSC reference: trunk/src/scripts/bots/_bot.gsc,
+               trunk/src/scripts/include/waypoints.gsc
+Original license text: trunk/src/LICENSE.txt and source headers.
+
+The FIX55 rotu_ai.lua is a behavioral adaptation of MIT-licensed bot
+targeting, states, and waypoint/recovery ideas into the original Luanti
+VoxeLibre mob API. It does NOT run CoD4 GSC binaries/engine and it does NOT
+include CoD4 character models, textures, animations, maps, or audio.
+The original NZ:P Viril v26 scores and barricades are independently preserved.
+
+Copyright (c) 2010-2026 Reign of the Undead Team.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+The contents of the end-game credits must be kept, and no modification of its
+appearance may have the effect of failing to give credit to the Reign of the
+Undead creators.
+
+Some assets in this mod are owned by Activision/Infinity Ward, so any use of
+Reign of the Undead must also comply with Activision/Infinity Ward's modtools
+EULA. This Android FIX55 port intentionally includes NO such assets.
+
+BEFORE PUBLIC RELEASE: Provide original-author credit in the game's credits
+screen/end-game credits, in addition to distributing this source notice.
