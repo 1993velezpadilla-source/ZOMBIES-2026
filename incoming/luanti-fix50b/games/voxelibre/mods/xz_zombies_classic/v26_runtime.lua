@@ -185,7 +185,11 @@ return function(M,V,hooks)
   local native=entity and type(entity.do_attack)=='function'
   local target,distance=record.v26_target,math.huge
   local t=now()
-  if not target or not target:get_pos() or target:get_hp()<=0 or (record.v26_retarget or 0)<=t then
+  if native and hooks.rotu_ai then
+   -- RotU visible-first targeting; movement and melee remain native.
+   target,distance=hooks.rotu_ai.acquire(record,entity,obj:get_pos())
+   record.v26_target=target
+  elseif not target or not target:get_pos() or target:get_hp()<=0 or (record.v26_retarget or 0)<=t then
    target,distance=living_target(obj)
    record.v26_target=target
    record.v26_retarget=t+V.attack_retarget_delay
@@ -197,6 +201,7 @@ return function(M,V,hooks)
   local barrier=nearest_barricade(origin,target)
   record.v26_barrier=barrier
   if barrier then
+   if hooks.rotu_ai then hooks.rotu_ai.barrier(record) end
    -- Original window.qc one plank per hit. Native AI must NOT attack player
    -- through the window; its do_states() is suspended by the per-mob do_custom
    -- wrapper below while it rips planks.
@@ -212,6 +217,9 @@ return function(M,V,hooks)
    return
   end
   if native then
+   -- Original RotU decision & route selection without overriding native step physics.
+   if hooks.rotu_ai and hooks.rotu_ai.think(record,entity,target,distance,dt,
+      hooks.get_round and hooks.get_round() or 1) then return end
    -- FIX53: the old obj:set_velocity() was overwritten every server step by
    -- VoxeLibre's mcl_mobs:do_states(). do_attack() is its actual pathfinding
    -- and animation controller, and respects the real survival gamemode.

@@ -1,0 +1,122 @@
+name: FIX55 CoD4 RotU original MIT zombie brains Android playtest
+on:
+  push:
+    branches: [feature/fix55-rotu-original-bot-ai-20261113]
+    paths:
+      - '.github/workflows/fix55-rotu-bot-ai-apk.yml'
+      - 'incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/**'
+      - 'incoming/luanti-fix50b/tests/test_fix55_rotu_bot_ai.lua'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  pack-verified-rotu-ai:
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v4
+      - name: Native zombie Lua syntax, original NZP v26 scoring and barricades, MIT RotU bot decisions
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lua5.4
+          root='incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic'
+          for f in "$root"/*.lua; do luac5.4 -p "$f"; done
+          lua5.4 incoming/luanti-fix50b/tests/test_fix55_rotu_bot_ai.lua
+          lua5.4 incoming/luanti-fix50b/tests/test_v26_original.lua
+          lua5.4 incoming/luanti-fix50b/tests/test_fix53_chase_sizes.lua
+          lua5.4 incoming/luanti-fix50b/tests/test_fix54_original_viril_combatfx.lua
+          lua5.4 incoming/luanti-fix50b/tests/test_runtime.lua
+      - name: Retrieve actual verified signed FIX54B APK, with working fonts and all 28 guns
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 43260327777
+          artifact-ids: 13963708164
+          github-token: ${{ github.token }}
+          path: fix55-base
+          merge-multiple: true
+      - name: Prepare ONLY source-licensed RotU AI overlay
+        run: |
+          set -euo pipefail
+          mkdir -p fix55-build/overlay
+          root='incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic'
+          for f in v26_runtime.lua rotu_ai.lua ROTU-SOURCE-NOTICE.txt; do
+            cp "$root/$f" "fix55-build/overlay/$f"
+          done
+          test "$(find fix55-build/overlay -type f | wc -l)" -eq 3
+          test -s fix55-base/COD4-ZOMBIES-FIX54B-FONT-RECOVERY-ARM64.apk
+      - name: Republish original FIX54 game, replacing only 2 scripts and adding RotU AI + MIT notice
+        run: |
+          set -euo pipefail
+          python3 incoming/luanti-fix50b/build_playable_test.py \
+            --fix49c fix55-base/COD4-ZOMBIES-FIX54B-FONT-RECOVERY-ARM64.apk \
+            --rebuilt fix55-base/COD4-ZOMBIES-FIX54B-FONT-RECOVERY-ARM64.apk \
+            --lua incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/init.lua \
+            --overlay-dir fix55-build/overlay \
+            --output fix55-build/unsigned.apk
+      - name: Verify all 28 native weapons, all other LUA and all models byte-identical
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import zipfile,io,lzma,json,pathlib
+          base=pathlib.Path('fix55-base/COD4-ZOMBIES-FIX54B-FONT-RECOVERY-ARM64.apk')
+          candidate=pathlib.Path('fix55-build/unsigned.apk')
+          report=json.loads(pathlib.Path('fix55-build/packaging_report.json').read_text())
+          root='games/voxelibre/mods/xz_zombies_classic/'
+          expected={root+'init.lua':'replaced',root+'v26_runtime.lua':'replaced',
+                    root+'rotu_ai.lua':'added',root+'ROTU-SOURCE-NOTICE.txt':'added'}
+          assert report['assets']['baseline_asset_count']==9714, report
+          assert report['assets']['candidate_asset_count']==9716, report
+          assert report['assets']['changed']==expected,report
+          with zipfile.ZipFile(base) as old,zipfile.ZipFile(candidate) as new:
+            for original in old.infolist():
+              if original.filename=='assets/assets.zip' or original.filename.startswith('META-INF/'):continue
+              fresh=new.getinfo(original.filename)
+              assert (fresh.CRC,fresh.file_size)==(original.CRC,original.file_size),original.filename
+            for f in ('AndroidManifest.xml','classes.dex','lib/arm64-v8a/libluanti.so','resources.arsc'):
+              assert old.read(f)==new.read(f), 'Original native engine/launcher changed: '+f
+            with zipfile.ZipFile(io.BytesIO(old.read('assets/assets.zip'))) as outer:
+              with zipfile.ZipFile(io.BytesIO(lzma.decompress(outer.read('luanti-assets.zip.xz')))) as original:
+                with zipfile.ZipFile(io.BytesIO(new.read('assets/assets.zip'))) as wrap:
+                  assert wrap.comment==b'XZ-ASSETS-1:9716'
+                  with zipfile.ZipFile(io.BytesIO(lzma.decompress(wrap.read('luanti-assets.zip.xz')))) as target:
+                    assert len(target.namelist())==9716
+                    for item in original.infolist():
+                      if item.filename in expected:continue
+                      newitem=target.getinfo(item.filename)
+                      assert (item.CRC,item.file_size)==(newitem.CRC,newitem.file_size),item.filename
+                    assert b'rotu_ai=rotu_ai' in target.read(root+'init.lua')
+                    assert b'function A.acquire' in target.read(root+'rotu_ai.lua')
+                    assert b'bestTarget()' in target.read(root+'rotu_ai.lua')
+                    assert b'entity.pathfinding=1' in target.read(root+'rotu_ai.lua')
+                    assert b'Reign of the Undead Team' in target.read(root+'ROTU-SOURCE-NOTICE.txt')
+          print('PASS: exact FIX54B native, textures, weapons, animations, original V26 scores, barricades and 9716 assets')
+          PY
+      - name: Sign disposable Android test APK and verify integrity
+        run: |
+          set -euo pipefail
+          TOOLS="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
+          "$TOOLS/zipalign" -f -p 4 fix55-build/unsigned.apk fix55-build/aligned.apk
+          keytool -genkeypair -keystore "$RUNNER_TEMP/fix55.jks" -alias fix55 \
+            -storepass android -keypass android -keyalg RSA -keysize 3072 -validity 3650 -noprompt \
+            -dname 'CN=Xziel RotU Bot AI FIX55 Test,OU=Development,O=Xziel,C=US'
+          "$TOOLS/apksigner" sign --ks "$RUNNER_TEMP/fix55.jks" --ks-key-alias fix55 \
+            --ks-pass pass:android --key-pass pass:android \
+            --v2-signing-enabled true --v3-signing-enabled true \
+            --out fix55-build/COD4-ZOMBIES-FIX55-ROTU-BOT-AI-ARM64.apk fix55-build/aligned.apk
+          "$TOOLS/apksigner" verify --verbose fix55-build/COD4-ZOMBIES-FIX55-ROTU-BOT-AI-ARM64.apk
+          "$TOOLS/aapt" dump badging fix55-build/COD4-ZOMBIES-FIX55-ROTU-BOT-AI-ARM64.apk | tee fix55-build/badging.txt
+          grep -q "package: name='com.xziel.zombies.fix50btest' versionCode='5180055'" fix55-build/badging.txt
+          unzip -t fix55-build/COD4-ZOMBIES-FIX55-ROTU-BOT-AI-ARM64.apk > /dev/null
+          sha256sum fix55-build/COD4-ZOMBIES-FIX55-ROTU-BOT-AI-ARM64.apk | tee fix55-build/sha256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FIX55-ROTU-MIT-ORIGINAL-BOT-AI-ARM64
+          path: |
+            fix55-build/COD4-ZOMBIES-FIX55-ROTU-BOT-AI-ARM64.apk
+            fix55-build/packaging_report.json
+            fix55-build/badging.txt
+            fix55-build/sha256.txt
+          retention-days: 14
+          if-no-files-found: error

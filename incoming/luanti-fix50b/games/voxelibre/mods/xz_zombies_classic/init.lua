@@ -10,6 +10,7 @@ local v26_rules = assert(loadfile(modpath .. '/v26_rules.lua'))()
 local v26_modes = assert(loadfile(modpath .. '/v26_modes.lua'))()(M)
 local v26_hud = assert(loadfile(modpath .. '/v26_hud.lua'))()(M)
 local v26_combatfx = assert(loadfile(modpath .. '/v26_viril_combatfx.lua'))()(M)
+local rotu_ai = assert(loadfile(modpath .. '/rotu_ai.lua'))()(M)
 local WEAPONS = {
   {id='ak47', item='ak47dev:ak47',label='AK-47',icon='ak47dev_icon.png', price=1200},
   {id='m9',item='ak47dev:m9',label='M9',icon='m9_icon.png',price=500},
@@ -433,6 +434,7 @@ v26=assert(loadfile(modpath .. '/v26_runtime.lua'))()(M,v26_rules,{
  get_round=function()return state.round end,
  add_points=function(player,amount)set_points(player,player_points(player)+amount)end,
  get_zombies=function()return state.zombies end,
+ rotu_ai=rotu_ai,
 })
 -- 1x1 is the original block; multi-cell 1x2 / 2x1 / 2x2 / 3x3
 -- reuse the exact seven NZ:P v26 frames and original repair state machine.
