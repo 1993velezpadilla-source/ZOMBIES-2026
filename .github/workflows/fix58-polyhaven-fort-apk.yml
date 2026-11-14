@@ -1,0 +1,141 @@
+name: FIX58 CC0 Modular Fort 01 Android
+on:
+  push:
+    branches: [feature/fix58-polyhaven-modular-fort-01-20261114]
+    paths:
+      - '.github/workflows/fix58-polyhaven-fort-apk.yml'
+      - 'incoming/luanti-fix50b/tools/import_polyhaven_fort.py'
+      - 'incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/init.lua'
+      - 'incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/polyhaven_fort.lua'
+      - 'incoming/luanti-fix50b/tests/test_fix58_fort.lua'
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: read
+jobs:
+  cc0-fort-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare CC0 asset conversion
+        run: |
+          set -euo pipefail
+          python3 -m pip install --disable-pip-version-check numpy Pillow
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lua5.4
+      - name: Fetch official original Poly Haven glTF and 1024px textures
+        run: |
+          set -euo pipefail
+          MOD=incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic
+          python3 incoming/luanti-fix50b/tools/import_polyhaven_fort.py \
+            --mod-dir "$MOD" --scratch fix58-source
+          python3 - <<'PY'
+          import json,pathlib
+          r=json.loads(pathlib.Path('fix58-source/report.json').read_text())
+          assert r['source']=='https://polyhaven.com/a/modular_fort_01'
+          assert r['license']=='CC0' and r['resolution']==1024
+          assert 1<=r['components']<=64 and r['triangles']>0
+          m=pathlib.Path('incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic')
+          assert (m/'textures/xz_fort_atlas.png').read_bytes().startswith(b'\x89PNG')
+          for name in r['models']:
+            obj=(m/'models'/name).read_text()
+            assert '\nv ' in '\n'+obj and '\nvt ' in '\n'+obj and '\nf ' in '\n'+obj
+          print('VERIFIED REAL MESHES:',r['components'])
+          PY
+      - name: Test Luanti registration and FIX57 backwards compatibility
+        run: |
+          set -euo pipefail
+          MOD=incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic
+          for f in "$MOD"/*.lua; do luac5.4 -p "$f"; done
+          lua5.4 incoming/luanti-fix50b/tests/test_fix58_fort.lua "$MOD"
+          lua5.4 incoming/luanti-fix50b/tests/test_fix57_dremorn_visual.lua
+          lua5.4 incoming/luanti-fix50b/tests/test_fix55_rotu_bot_ai.lua
+          lua5.4 incoming/luanti-fix50b/tests/test_v26_original.lua
+          lua5.4 incoming/luanti-fix50b/tests/test_fix53_chase_sizes.lua
+          lua5.4 incoming/luanti-fix50b/tests/test_fix54_original_viril_combatfx.lua
+          lua5.4 incoming/luanti-fix50b/tests/test_runtime.lua
+      - name: Restore original signed FIX56 engine, weapons, fonts and zombie gameplay
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 43406119721
+          artifact-ids: 14026539997
+          github-token: \${{ github.token }}
+          path: fix58-base
+          merge-multiple: true
+      - name: Inject FULL fort meshes into existing complete Android APK
+        run: |
+          set -euo pipefail
+          MOD=incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic
+          mkdir -p fix58-build/overlay
+          cp "$MOD/dremorn_visual.lua" "$MOD/polyhaven_fort.lua" \
+            "$MOD/polyhaven_fort_manifest.lua" fix58-build/overlay/
+          cp -R "$MOD/models" "$MOD/textures" fix58-build/overlay/
+          BASE=fix58-base/COD4-ZOMBIES-FIX56-NATIVE-LIVE-CHASE-ARM64.apk
+          test -s "$BASE"
+          python3 incoming/luanti-fix50b/build_playable_test.py \
+            --fix49c "$BASE" --rebuilt "$BASE" --lua "$MOD/init.lua" \
+            --overlay-dir fix58-build/overlay --output fix58-build/unsigned.apk
+      - name: Reject any altered engine, weapon, barricade or missing art
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import io,json,lzma,pathlib,zipfile
+          base=pathlib.Path('fix58-base/COD4-ZOMBIES-FIX56-NATIVE-LIVE-CHASE-ARM64.apk')
+          new=pathlib.Path('fix58-build/unsigned.apk')
+          root='games/voxelibre/mods/xz_zombies_classic/'
+          rep=json.loads(pathlib.Path('fix58-build/packaging_report.json').read_text())
+          changed=rep['assets']['changed']
+          assert changed[root+'init.lua']=='replaced'
+          for name in ('dremorn_visual.lua','polyhaven_fort.lua','polyhaven_fort_manifest.lua','textures/xz_fort_atlas.png'):
+            assert changed[root+name]=='added'
+          models=[k for k in changed if k.startswith(root+'models/xz_fort_') and k.endswith('.obj')]
+          assert models and len(changed)==len(models)+5,changed
+          with zipfile.ZipFile(base) as a,zipfile.ZipFile(new) as b:
+            assert a.read('lib/arm64-v8a/libluanti.so')==b.read('lib/arm64-v8a/libluanti.so')
+            for x in a.infolist():
+              if x.filename=='assets/assets.zip' or x.filename.startswith('META-INF/'):continue
+              y=b.getinfo(x.filename)
+              assert (x.CRC,x.file_size)==(y.CRC,y.file_size),x.filename
+            def inner(apk):
+              with zipfile.ZipFile(io.BytesIO(apk.read('assets/assets.zip'))) as z:
+                return zipfile.ZipFile(io.BytesIO(lzma.decompress(z.read('luanti-assets.zip.xz'))))
+            with inner(a) as old,inner(b) as current:
+              assert len(current.namelist())==len(old.namelist())+len(models)+4
+              for x in old.infolist():
+                if x.filename in changed:continue
+                y=current.getinfo(x.filename)
+                assert (x.CRC,x.file_size)==(y.CRC,y.file_size),x.filename
+              assert b'polyhaven_fort.lua' in current.read(root+'init.lua')
+              assert current.read(root+'textures/xz_fort_atlas.png').startswith(b'\x89PNG')
+              for m in models:assert b'\nf ' in current.read(m),m
+          print('PASS: 28 guns, barricades, native engine preserved; real 3D modules:',len(models))
+          PY
+      - name: Sign installable independent FIX58 ARM64 APK
+        run: |
+          set -euo pipefail
+          TOOLS="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
+          "$TOOLS/zipalign" -f -p 4 fix58-build/unsigned.apk fix58-build/aligned.apk
+          keytool -genkeypair -keystore "$RUNNER_TEMP/fix58.jks" -alias fix58 \
+            -storepass android -keypass android -keyalg RSA -keysize 3072 -validity 3650 -noprompt \
+            -dname 'CN=FIX58 Fort CC0 Dev Test,OU=Development,O=Xziel,C=US'
+          "$TOOLS/apksigner" sign --ks "$RUNNER_TEMP/fix58.jks" --ks-key-alias fix58 \
+            --ks-pass pass:android --key-pass pass:android \
+            --v2-signing-enabled true --v3-signing-enabled true \
+            --out fix58-build/COD4-ZOMBIES-FIX58-POLYHAVEN-FORT-ARM64.apk fix58-build/aligned.apk
+          "$TOOLS/apksigner" verify --verbose fix58-build/COD4-ZOMBIES-FIX58-POLYHAVEN-FORT-ARM64.apk
+          "$TOOLS/aapt" dump badging fix58-build/COD4-ZOMBIES-FIX58-POLYHAVEN-FORT-ARM64.apk | tee fix58-build/badging.txt
+          grep -q "package: name='com.xziel.zombies.fix50btest' versionCode='5180055'" fix58-build/badging.txt
+          unzip -t fix58-build/COD4-ZOMBIES-FIX58-POLYHAVEN-FORT-ARM64.apk >/dev/null
+          sha256sum fix58-build/COD4-ZOMBIES-FIX58-POLYHAVEN-FORT-ARM64.apk | tee fix58-build/sha256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FIX58-POLYHAVEN-FORT-REAL-3D-ARM64
+          path: |
+            fix58-build/COD4-ZOMBIES-FIX58-POLYHAVEN-FORT-ARM64.apk
+            fix58-build/packaging_report.json
+            fix58-build/badging.txt
+            fix58-build/sha256.txt
+            fix58-source/report.json
+          if-no-files-found: error
+          retention-days: 14
