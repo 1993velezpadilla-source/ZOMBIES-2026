@@ -105,7 +105,7 @@ jobs:
               with zipfile.ZipFile(io.BytesIO(apk.read('assets/assets.zip'))) as z:
                 return zipfile.ZipFile(io.BytesIO(lzma.decompress(z.read('luanti-assets.zip.xz'))))
             with inner(a) as old,inner(b) as current:
-              assert len(current.namelist())==len(old.namelist())+len(models)+4
+              assert len(current.namelist())==len(old.namelist())+len(models)+5
               for x in old.infolist():
                 if x.filename in changed:continue
                 y=current.getinfo(x.filename)
