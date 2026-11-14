@@ -8,6 +8,7 @@ on:
       - 'incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/init.lua'
       - 'incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/polyhaven_fort.lua'
       - 'incoming/luanti-fix50b/tests/test_fix58_fort.lua'
+      - 'incoming/luanti-fix50b/tests/test_runtime.lua'
   workflow_dispatch:
 permissions:
   actions: read
