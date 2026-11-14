@@ -12,9 +12,12 @@ local v26_hud = assert(loadfile(modpath .. '/v26_hud.lua'))()(M)
 local v26_combatfx = assert(loadfile(modpath .. '/v26_viril_combatfx.lua'))()(M)
 local rotu_ai = assert(loadfile(modpath .. '/rotu_ai.lua'))()(M)
 local dremorn_visual = assert(loadfile(modpath .. '/dremorn_visual.lua'))()(M,modpath)
+local state = {active=false,round=0,round_quota=0,spawned=0,kills=0,next_spawn=0,round_delay=0,zombies={},next_round=0}
+-- FIX59: optional premium Fort selection/rotation, active only outside gameplay.
+local fort_editor=assert(loadfile(modpath .. '/fort_editor.lua'))()(M,modpath,function() return not state.active end)
 -- FIX58: place real CC0 Poly Haven modular fort mesh blocks in the map editor.
 -- Missing art is safe: loader does not register placeholders or break FIX57.
-assert(loadfile(modpath .. '/polyhaven_fort.lua'))()(M,modpath)
+assert(loadfile(modpath .. '/polyhaven_fort.lua'))()(M,modpath,fort_editor)
 local WEAPONS = {
   {id='ak47', item='ak47dev:ak47',label='AK-47',icon='ak47dev_icon.png', price=1200},
   {id='m9',item='ak47dev:m9',label='M9',icon='m9_icon.png',price=500},
@@ -35,7 +38,6 @@ end
 local form_editor = 'xz_zombies:editor'
 local form_buy = 'xz_zombies:configure'
 local form_dev = 'xz_zombies:developer'
-local state = {active=false,round=0,round_quota=0,spawned=0,kills=0,next_spawn=0,round_delay=0,zombies={},next_round=0}
 local v26 -- initialized after node registration
 local viewers, developer, huds, prev_physics, prev_armor = {}, {}, {}, {}, {}
 -- COD HUD is managed by v26_hud.lua, not floating text above the pause button.
@@ -621,8 +623,14 @@ local function give_editor_item(p,item)
 end
 M.register_tool(':xz_zombies:editor_tool',{
  description='ZOMBIES CLASSIC | EDITOR / DEVELOPER',inventory_image='mob_spawner.png',
- on_use=function(item,p) editor_form(p);return item end,
- on_secondary_use=function(item,p) editor_form(p);return item end,
+ on_use=function(item,p,pt)
+  if pt and pt.type=='node' and fort_editor.try_select(p,pt.under,true) then return item end
+  editor_form(p);return item
+ end,
+ on_secondary_use=function(item,p,pt)
+  if pt and pt.type=='node' and fort_editor.try_select(p,pt.under,true) then return item end
+  editor_form(p);return item
+ end,
 })
 M.register_on_joinplayer(function(p)
  local name=p:get_player_name()
