@@ -61,7 +61,7 @@ jobs:
         with:
           run-id: 43406119721
           artifact-ids: 14026539997
-          github-token: \${{ github.token }}
+          github-token: ${{ github.token }}
           path: fix58-base
           merge-multiple: true
       - name: Inject FULL fort meshes into existing complete Android APK
