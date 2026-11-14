@@ -187,6 +187,7 @@ def build(moddir:Path, scratch:Path):
         name=name[:38]
         filename=f"xz_{key}.obj"
         (models/filename).write_text("\n".join(lines)+"\n")
+        scale=0.96/max(extent)
         manifest.append((key,f"Modular Fort | {name} {k:02d}",filename,tris,[float(round(-e*scale/2,5)) for e in extent]+[float(round(e*scale/2,5)) for e in extent]))
     if not manifest:raise RuntimeError("No usable components converted")
     def lua_string(value):return json.dumps(value,ensure_ascii=True)
