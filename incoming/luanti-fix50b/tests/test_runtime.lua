@@ -92,7 +92,18 @@ assert(loadfile('incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/
 assert(#tools==0) -- map does not have numeric indices
 assert(tools['xz_zombies:editor_tool'])
 local c=0;for k in pairs(nodes) do c=c+1 end
-assert(c==74,'expected 74 nodes (44 FIX52B plus 28 original-size v26 meshes and two linked cell nodes), got '..c)
+local fort_manifest='incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic/polyhaven_fort_manifest.lua'
+local fort_count=0
+local handle=io.open(fort_manifest,'rb')
+if handle then
+ handle:close()
+ local installed=assert(loadfile(fort_manifest))()
+ fort_count=#installed
+ for _,entry in ipairs(installed) do
+  assert(nodes['xz_zombies:'..entry.id], 'FIX58 fort node not registered: '..entry.id)
+ end
+end
+assert(c==74+fort_count,'expected FIX57 base 74 plus '..fort_count..' FIX58 CC0 fort nodes, got '..c)
 local meta={}
 local function player(n)
  local inv={contains_item=function() return false end,room_for_item=function() return true end,
