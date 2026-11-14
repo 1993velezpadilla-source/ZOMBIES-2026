@@ -26,6 +26,7 @@ M = {
  deserialize=function() return nil end,serialize=function() return '{}' end,
  formspec_escape=function(x) return tostring(x):gsub(']', '\\]'):gsub(';','\\;') end,
  register_node=function(n,d) assert(n:sub(1,1)==':');nodes[n:sub(2)]=d end,
+ register_entity=function(n,d) assert(n:sub(1,1)==':');M.registered_entities[n:sub(2)]=d end,
  register_tool=function(n,d) tools[n:sub(2)]=d end,
  register_lbm=function(def)
   assert(type(def.name)=='string' and (def.name:sub(1,1)==':' or def.name:match('^xz_zombies_classic:')), 'Luanti rejects LBM name outside current mod prefix: '..tostring(def.name))
