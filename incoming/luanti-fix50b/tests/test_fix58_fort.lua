@@ -20,7 +20,7 @@ for _,entry in ipairs(manifest) do
  local handle=assert(io.open(path..'models/'..entry.mesh,'rb'))
  assert(handle:read(2)=='# ','OBJ source header missing')
  handle:close()
- assert(names['xz_zombies:'..entry.id])
+ assert(names[':xz_zombies:'..entry.id])
 end
 assert(io.open(path..'textures/xz_fort_atlas.png','rb'))
 print('PASS: '..count..' Poly Haven meshes are placeable, textured, collision-enabled Lua nodes')
