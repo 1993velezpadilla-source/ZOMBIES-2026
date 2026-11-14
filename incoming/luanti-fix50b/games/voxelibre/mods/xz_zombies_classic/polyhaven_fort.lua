@@ -1,6 +1,6 @@
 -- FIX58 CC0 Poly Haven Modular Fort 01 architecture.
 -- Placeable 3D mesh nodes, NOT cubic terrain; never touches combat/AI/rounds.
-return function(M, modpath)
+return function(M, modpath, editor)
  local manifest_path=modpath..'/polyhaven_fort_manifest.lua'
  local handle=io.open(manifest_path,'rb')
  if not handle then
@@ -49,6 +49,9 @@ return function(M, modpath)
     selection_box={type='fixed',fixed=fixed},
     collision_box={type='fixed',fixed=fixed},
     _doc_items_longdesc='CC0 Poly Haven Modular Fort 01 architecture. Independent rotatable mesh for Zombies map building.',
+    on_rightclick=function(pos,node,player)
+     if editor and editor.try_select then editor.try_select(player,pos,false) end
+    end,
    })
    count=count+1
   end
