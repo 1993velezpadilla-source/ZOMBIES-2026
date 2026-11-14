@@ -11,7 +11,8 @@ local fx={}
 local onfields,onleave
 local active=false
 local blocked=false
-local M={
+local M
+M={
  registered_nodes={},
  is_singleplayer=function() return true end,
  is_protected=function() return blocked end,
