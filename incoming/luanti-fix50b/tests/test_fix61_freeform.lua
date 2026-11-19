@@ -5,7 +5,7 @@ assert(#manifest>0)
 local one=manifest[1]
 assert(type(one.natural_scale)=='number' and one.natural_scale>0)
 assert(type(one.source_extent)=='table' and #one.source_extent==3)
-local mx=math.max(unpack and unpack(one.source_extent) or table.unpack(one.source_extent))
+local mx=math.max(one.source_extent[1],one.source_extent[2],one.source_extent[3])
 assert(math.abs(one.natural_scale-mx/.96)<.002,'glTF source dimension lost')
 local defs,world,entities,forms,store={},{},{},{},{}
 local fields,onleave,globalstep
