@@ -90,6 +90,7 @@ return function(M, modpath, may_edit)
    shaded=true,glow=0
   })
   lua.object:set_yaw(lua.yaw)
+  if lua.object.set_armor_groups then lua.object:set_armor_groups({immortal=1}) end
   return true
  end
 
@@ -121,6 +122,8 @@ return function(M, modpath, may_edit)
    if not self.fort_id or not by_id[self.fort_id] or not M.serialize then return '' end
    return M.serialize({id=self.fort_id,scale=self.scale,yaw=self.yaw,version=1})
   end,
+  -- Architectural entities are terrain: weapons must never destroy them.
+  on_punch=function() return true end,
   on_rightclick=function(self,p)
    if editor then editor.try_select_object(p,self.object,false) end
   end,
