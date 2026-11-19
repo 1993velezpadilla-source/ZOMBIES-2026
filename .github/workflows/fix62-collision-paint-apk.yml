@@ -15,6 +15,7 @@ on:
       - 'incoming/luanti-fix50b/tests/test_fix60_fort_scale.lua'
       - 'incoming/luanti-fix50b/tests/test_fix61_freeform.lua'
       - 'incoming/luanti-fix50b/tests/test_fix62_collision_paint.lua'
+      - 'incoming/luanti-fix50b/tests/test_fix62_paint_touch.lua'
       - 'incoming/luanti-fix50b/tests/test_fix58_fort.lua'
       - 'incoming/luanti-fix50b/tests/test_runtime.lua'
   workflow_dispatch:
@@ -62,6 +63,7 @@ jobs:
           lua5.4 incoming/luanti-fix50b/tests/test_fix60_fort_scale.lua "$MOD"
           lua5.4 incoming/luanti-fix50b/tests/test_fix61_freeform.lua "$MOD"
           lua5.4 incoming/luanti-fix50b/tests/test_fix62_collision_paint.lua "$MOD"
+          lua5.4 incoming/luanti-fix50b/tests/test_fix62_paint_touch.lua "$MOD"
           lua5.4 incoming/luanti-fix50b/tests/test_fix57_dremorn_visual.lua
           lua5.4 incoming/luanti-fix50b/tests/test_fix55_rotu_bot_ai.lua
           lua5.4 incoming/luanti-fix50b/tests/test_v26_original.lua
