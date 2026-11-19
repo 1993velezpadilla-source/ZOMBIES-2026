@@ -34,7 +34,8 @@ return function(M, entries)
   if label:find('stair',1,true) or label:find('ramp',1,true)
    or label:find('steps',1,true) then return 'stairs' end
   if label:find('arch',1,true) or label:find('doorway',1,true)
-   or label:find('gateway',1,true) or label:find('door frame',1,true) then return 'arch' end
+   or label:find('gateway',1,true) or label:find('gate',1,true)
+   or label:find('door frame',1,true) then return 'arch' end
   return 'solid'
  end
  local function bounds(entry,scale)
@@ -88,11 +89,18 @@ return function(M, entries)
   owner.object:set_properties({physical=false,collide_with_objects=false,
    pointable=true,selectionbox=large,collisionbox={0,0,0,0,0,0}})
   if choice=='arch' then
-   local width=hx*2
-   local pillar=math.max(.045,hx*.22)
+   -- Poly Haven's thin gate spans the Z axis (its X is wall THICKNESS).
+   -- Choose the wider horizontal span for the actual passage opening.
    local top=math.max(.045,hy*.20)
-   add(owner,pos,yaw,-hx+pillar,0,0,pillar,hy,hz)
-   add(owner,pos,yaw, hx-pillar,0,0,pillar,hy,hz)
+   if hz>=hx then
+    local pillar=math.max(.045,hz*.22)
+    add(owner,pos,yaw,0,0,-hz+pillar,hx,hy,pillar)
+    add(owner,pos,yaw,0,0, hz-pillar,hx,hy,pillar)
+   else
+    local pillar=math.max(.045,hx*.22)
+    add(owner,pos,yaw,-hx+pillar,0,0,pillar,hy,hz)
+    add(owner,pos,yaw, hx-pillar,0,0,pillar,hy,hz)
+   end
    add(owner,pos,yaw,0,hy-top,0,hx,top,hz)
   elseif choice=='stairs' or choice=='stairs_reverse' then
    local along_x=hx>hz
