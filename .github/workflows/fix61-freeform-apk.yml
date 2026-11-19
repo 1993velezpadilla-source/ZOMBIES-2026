@@ -118,7 +118,7 @@ jobs:
                 y=current.getinfo(x.filename)
                 assert (x.CRC,x.file_size)==(y.CRC,y.file_size),x.filename
               assert b'polyhaven_fort.lua' in current.read(root+'init.lua')
-              assert b'fort_editor.lua' in current.read(root+'init.lua')
+              assert b'fort_editor_v2.lua' in current.read(root+'init.lua')
               assert b'GIRAR -90' in current.read(root+'fort_editor.lua')
               assert b'visual_size={x=10*lua.scale' in current.read(root+'fort_editor.lua')
               assert b'get_staticdata=function(self)' in current.read(root+'fort_editor_v2.lua')
