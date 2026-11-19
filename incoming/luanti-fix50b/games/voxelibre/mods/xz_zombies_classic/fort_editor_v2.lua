@@ -759,9 +759,18 @@ return function(M, modpath, may_edit)
   remove_ghost(placing[name]);placing[name]=nil
   enabled[name]=nil
  end)
+ local function paint_panel(p)
+  if not p or not p.get_player_name or not is_builder(p) then return false end
+  local s=painting[p:get_player_name()]
+  if not s or not s.paint_active or not object_ok(s.object) then return false end
+  s.page=5
+  show(p)
+  return true
+ end
  editor={
   try_select=select,try_select_object=select_obj,place_new=place_new,
   use_target=use_target,set_mode=set_mode,is_enabled=see_mode,place_generic=place_generic,
+  paint_panel=paint_panel,
  }
  return editor
 end
