@@ -98,7 +98,9 @@ return function(M, entries)
    local along_x=hx>hz
    local length=along_x and hx or hz
    local width=along_x and hz or hx
-   local count=10
+   -- Keep height between consecutive steps near a player-climbable rise.
+   -- Cap proxy count to protect mobile CPU on very large meshes.
+   local count=math.min(24,math.max(8,math.ceil(2*hy/.35)))
    for i=1,count do
     local progress=i/count
     local px=-length+(2*i-1)*length/count
