@@ -246,8 +246,16 @@ return function(M, modpath, may_edit)
    button(.26+xoff,2.62,xoff-.09,'right','Y +90')
    button(.18,3.10,xoff-.09,'axis_x_minus','X -15')
    button(.26+xoff,3.10,xoff-.09,'axis_x_plus','X +15')
-   button(.18,3.58,xoff-.09,'axis_z_minus','Z -15')
-   button(.26+xoff,3.58,xoff-.09,'axis_z_plus','Z +15')
+   button(.18,3.58,w-.36,'rotation_advanced','PRECISION  XYZ')
+  elseif pnum==5 then
+   fs[#fs+1]='label[0.20,2.03;AJUSTE FINO   /   1 GRADO]'
+   button(.18,2.16,xoff-.09,'fine_x_minus','X  -1')
+   button(.26+xoff,2.16,xoff-.09,'fine_x_plus','X  +1')
+   button(.18,2.62,xoff-.09,'fine_y_minus','Y  -1')
+   button(.26+xoff,2.62,xoff-.09,'fine_y_plus','Y  +1')
+   button(.18,3.10,xoff-.09,'fine_z_minus','Z  -1')
+   button(.26+xoff,3.10,xoff-.09,'fine_z_plus','Z  +1')
+   button(.18,3.58,w-.36,'rotation_back','VOLVER  /  ROTACION')
   else
    fs[#fs+1]='label[0.20,2.04;COLISION Y PASO LIBRE]'
    button(.18,2.25,xoff-.09,'mode_auto','AUTO')
@@ -337,6 +345,8 @@ return function(M, modpath, may_edit)
   for i=1,4 do
    if fields['tab_'..i] then s.page=i;show(p);return true end
   end
+  if fields.rotation_advanced then s.page=5;show(p);return true end
+  if fields.rotation_back then s.page=3;show(p);return true end
   if fields.precision_1 or fields.precision_2 or fields.precision_3 then
    s.precision=fields.precision_1 and 1 or fields.precision_2 and 2 or 3
    show(p)
@@ -345,7 +355,7 @@ return function(M, modpath, may_edit)
   local has_action=false
   for id in pairs(fields) do
    if id:find('^scale_') or id:find('^move_') or id:find('^axis_')
-    or id:find('^mode_') or id=='left' or id=='right'
+    or id:find('^mode_') or id:find('^fine_') or id=='left' or id=='right'
     or id:find('^turn_') then has_action=true end
   end
   if not has_action then return true end
@@ -400,6 +410,10 @@ return function(M, modpath, may_edit)
   for _,axis in ipairs({'x','z'}) do
    if fields['axis_'..axis..'_minus'] then rot[axis]=turn(rot[axis]-15*rad) end
    if fields['axis_'..axis..'_plus'] then rot[axis]=turn(rot[axis]+15*rad) end
+  end
+  for _,axis in ipairs({'x','y','z'}) do
+   if fields['fine_'..axis..'_minus'] then rot[axis]=turn(rot[axis]-rad) end
+   if fields['fine_'..axis..'_plus'] then rot[axis]=turn(rot[axis]+rad) end
   end
   l.rotation=rot
   for _,mode in ipairs({'auto','solid','arch','stairs','stairs_reverse','none'}) do
