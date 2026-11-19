@@ -49,6 +49,16 @@ return function(M, modpath, editor)
     selection_box={type='fixed',fixed=fixed},
     collision_box={type='fixed',fixed=fixed},
     _doc_items_longdesc='CC0 Poly Haven Modular Fort 01 architecture. Independent rotatable mesh for Zombies map building.',
+    -- FIX61: the same registered inventory item builds a persistent 3D
+    -- object at a floating-point position, rather than placing a 1m node.
+    -- The original node remains registered for all FIX58/FIX60 saved worlds.
+    on_place=function(stack,placer,pt)
+     if editor and editor.place_new then
+      return editor.place_new(stack,placer,pt)
+     end
+     if M.item_place_node then return M.item_place_node(stack,placer,pt) end
+     return stack
+    end,
     on_rightclick=function(pos,node,player)
      if editor and editor.try_select then editor.try_select(player,pos,false) end
     end,
