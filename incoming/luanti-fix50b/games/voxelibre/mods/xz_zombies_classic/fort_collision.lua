@@ -75,19 +75,23 @@ return function(M, entries)
   local ax=c*hx+s*hz
   local az=s*hx+c*hz
   local large={-ax,-hy,-az,ax,hy,az}
+  -- Lua raycast selectionboxes larger than 5 nodes per direction are unreliable.
+  -- Freeform editor has a separate ray-AABB picker for the rest of large walls.
+  local sx,sy,sz=math.min(ax,4.7),math.min(hy,4.7),math.min(az,4.7)
+  local selectable={-sx,-sy,-sz,sx,sy,sz}
   if choice=='none' or choice=='off' then
    owner.object:set_properties({physical=false,collide_with_objects=false,
-    selectionbox=large,collisionbox={0,0,0,0,0,0}})
+    selectionbox=selectable,collisionbox={0,0,0,0,0,0}})
    return choice
   end
   if choice=='solid' then
    owner.object:set_properties({physical=true,collide_with_objects=true,
-    selectionbox=large,collisionbox=large})
+    selectionbox=selectable,collisionbox=large})
    return choice
   end
   -- The visual owner must NOT have a full physics box in compound modes.
   owner.object:set_properties({physical=false,collide_with_objects=false,
-   pointable=true,selectionbox=large,collisionbox={0,0,0,0,0,0}})
+   pointable=true,selectionbox=selectable,collisionbox={0,0,0,0,0,0}})
   if choice=='arch' then
    -- Poly Haven's thin gate spans the Z axis (its X is wall THICKNESS).
    -- Choose the wider horizontal span for the actual passage opening.
@@ -124,7 +128,7 @@ return function(M, entries)
    end
   else
    owner.object:set_properties({physical=true,collide_with_objects=true,
-    selectionbox=large,collisionbox=large})
+    selectionbox=selectable,collisionbox=large})
   end
   return choice
  end
