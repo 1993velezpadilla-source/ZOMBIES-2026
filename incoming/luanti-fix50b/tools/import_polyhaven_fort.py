@@ -188,18 +188,19 @@ def build(moddir:Path, scratch:Path):
         filename=f"xz_{key}.obj"
         (models/filename).write_text("\n".join(lines)+"\n")
         scale=0.96/max(extent)
-        manifest.append((key,f"Modular Fort | {name} {k:02d}",filename,tris,[float(round(-e*scale/2,5)) for e in extent]+[float(round(e*scale/2,5)) for e in extent]))
+        manifest.append((key,f"Modular Fort | {name} {k:02d}",filename,tris,[float(round(-e*scale/2,5)) for e in extent]+[float(round(e*scale/2,5)) for e in extent],float(round(1.0/scale,6)),[float(round(e,5)) for e in extent]))
     if not manifest:raise RuntimeError("No usable components converted")
     def lua_string(value):return json.dumps(value,ensure_ascii=True)
     rows=["-- GENERATED from CC0 Poly Haven modular_fort_01; DO NOT hand-edit","return {"]
-    for key,label,filename,tris,box in manifest:
+    for key,label,filename,tris,box,natural,original_extent in manifest:
         coords=",".join(str(v) for v in box)
-        rows.append(f"  {{id={lua_string(key)}, label={lua_string(label)}, mesh={lua_string(filename)}, tris={tris},box={{{coords}}}}},")
+        rows.append(f"  {{id={lua_string(key)}, label={lua_string(label)}, mesh={lua_string(filename)}, tris={tris},box={{{coords}}},natural_scale={natural},source_extent={{{",".join(str(v) for v in original_extent)}}}}},")
     rows.append("}")
     (moddir/"polyhaven_fort_manifest.lua").write_text("\n".join(rows)+"\n")
     report={"source":SOURCE,"license":"CC0","resolution":1024,
             "components":len(manifest),"triangles":sum(row[3] for row in manifest),
-            "atlas":"xz_fort_atlas.png","models":[r[2] for r in manifest]}
+            "atlas":"xz_fort_atlas.png","models":[r[2] for r in manifest],
+            "pieces":[{"id":r[0],"name":r[1],"natural_scale":r[5],"source_extent":r[6]} for r in manifest]}
     (scratch/"report.json").write_text(json.dumps(report,indent=2))
     print(json.dumps(report,indent=2))
 
