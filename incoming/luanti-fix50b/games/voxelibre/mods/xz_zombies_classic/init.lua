@@ -13,8 +13,8 @@ local v26_combatfx = assert(loadfile(modpath .. '/v26_viril_combatfx.lua'))()(M)
 local rotu_ai = assert(loadfile(modpath .. '/rotu_ai.lua'))()(M)
 local dremorn_visual = assert(loadfile(modpath .. '/dremorn_visual.lua'))()(M,modpath)
 local state = {active=false,round=0,round_quota=0,spawned=0,kills=0,next_spawn=0,round_delay=0,zombies={},next_round=0}
--- FIX60: premium Fort selection, persistent true per-piece scale and rotation outside gameplay.
-local fort_editor=assert(loadfile(modpath .. '/fort_editor.lua'))()(M,modpath,function() return not state.active end)
+-- FIX61: freeform touch 3D builder, separate from live zombie combat.
+local fort_editor=assert(loadfile(modpath .. '/fort_editor_v2.lua'))()(M,modpath,function() return not state.active end)
 -- FIX58: place real CC0 Poly Haven modular fort mesh blocks in the map editor.
 -- Missing art is safe: loader does not register placeholders or break FIX57.
 assert(loadfile(modpath .. '/polyhaven_fort.lua'))()(M,modpath,fort_editor)
@@ -532,6 +532,8 @@ local function editor_form(p)
   y=y+0.98
   fs_label(f,0.25,y,'Antes de PLAY: toca el objeto para el precio')
  elseif page==3 then
+  fs_button(f,0.25,y,cw,0.80,'open3d','3D BUILDER  /  MODO LIBRE')
+  y=y+0.93
   if w >= 6.7 then
    fs_button(f,0.25,y,half,0.80,'boxa','MYSTERY BOX A')
    fs_button(f,0.41+half,y,half,0.80,'boxb','MYSTERY BOX B')
@@ -641,9 +643,7 @@ M.register_on_joinplayer(function(p)
  local ok,err=v26_modes.join(p,state.active)
  if not ok then M.log('warning','[xz_zombies_classic] Gamemode join: '..tostring(err)) end
  v26_hud.mode(p,state.active)
- if allowed(p) and not p:get_inventory():contains_item('main','xz_zombies:editor_tool') then
-  p:get_inventory():add_item('main','xz_zombies:editor_tool')
- end
+ -- FIX61: editor tool no longer occupies a hotbar slot automatically.
  set_points(p,math.max(player_points(p),state.active and 500 or 0))
  if state.active then
   for id in pairs(PERKS) do if p:get_meta():get_int('xz_z_perk_'..id)==1 then perk_apply(p,id) end end
@@ -735,6 +735,11 @@ M.register_on_player_receive_fields(function(p,form,fields)
    barricade_2x2='xz_zombies:v26_barricade_6_2x2',
    barricade_3x3='xz_zombies:v26_barricade_6_3x3'}
  for id in pairs(PERKS) do selections['perk_'..id]='xz_zombies:perk_'..id end
+ if fields.open3d then
+  fort_editor.set_mode(p,true)
+  tell(p,'Modo 3D: apunta a cualquier bloque y pulsa USE, aun con armas equipadas.')
+  return true
+ end
  if fields.givewall then
   local chosen=tonumber(fields.weapon) or editor_weapon_index[name] or 1
   editor_weapon_index[name]=chosen
@@ -750,6 +755,15 @@ M.register_chatcommand('zombies',{description='Open Zombies Classic editor',func
  if not p then return false,'No player' end
  editor_form(p);return true
 end})
+M.register_chatcommand('zedit',{
+ description='Toggle professional 3D builder (native USE selects objects, no hotbar tool)',
+ func=function(name)
+  local p=M.get_player_by_name(name)
+  if not p or not allowed(p) or state.active then return false,'Solo editor con juego detenido' end
+  fort_editor.set_mode(p)
+  return true,'3D Builder actualizado. Selecciona objetos con USE.'
+ end,
+})
 M.register_chatcommand('zdev',{description='Open Zombies developer mode',func=function(name)
  local p=M.get_player_by_name(name)
  if not allowed(p) or not state.active then return false,'Solo administrador en PLAY' end
@@ -937,6 +951,9 @@ M.register_chatcommand('xz_use',{
   local last=recent_native_use[name]
   if last and now-last<0.18 then return true,'' end
   recent_native_use[name]=now
+  -- Native USE can open and adjust 3D objects with weapons equipped.
+  -- Price/use handlers for other gameplay items remain unchanged.
+  if not state.active and fort_editor.use_target(p) then return true,'' end
   local pos,node,def,pt=find_zombies_target(p)
   if not def then return true,'' end
   -- The node callback retains existing server-side price and ownership checks.
