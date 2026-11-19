@@ -11,9 +11,28 @@ return function(M,entries)
  local function key(x,y,z)return x..','..y..','..z end
  local function cp(p)return {x=p.x,y=p.y,z=p.z}end
  local function rot(p,r,inv)
-  local t=inv and -(r and r.y or 0) or (r and r.y or 0)
-  local c,s=math.cos(t),math.sin(t)
-  return {x=c*p.x+s*p.z,y=p.y,z=-s*p.x+c*p.z}
+  r=r or {x=0,y=0,z=0}
+  local x,y,z=p.x,p.y,p.z
+  local ax,ay,az=r.x or 0,r.y or 0,r.z or 0
+  local c,s
+  if not inv then
+   -- Match Luanti vector.rotate() and entity rotation: extrinsic Z-X-Y.
+   c,s=math.cos(az),math.sin(az)
+   x,y=c*x-s*y,s*x+c*y
+   c,s=math.cos(ax),math.sin(ax)
+   y,z=c*y-s*z,s*y+c*z
+   c,s=math.cos(ay),math.sin(ay)
+   x,z=c*x+s*z,-s*x+c*z
+  else
+   -- Inverse uses reverse Y-X-Z order, not merely negated angles.
+   c,s=math.cos(-ay),math.sin(-ay)
+   x,z=c*x+s*z,-s*x+c*z
+   c,s=math.cos(-ax),math.sin(-ax)
+   y,z=c*y-s*z,s*y+c*z
+   c,s=math.cos(-az),math.sin(-az)
+   x,y=c*x-s*y,s*x+c*y
+  end
+  return {x=x,y=y,z=z}
  end
  local function point(p)return {x=round(p.x),y=round(p.y),z=round(p.z)}end
  local function size_box(e,scale)
@@ -135,12 +154,13 @@ return function(M,entries)
     if kind_mode=='stairs_reverse' then t=1-t end
     t=math.max(0,math.min(1,t))
     local surface=-hy+2*hy*t
-    local center_y=math.floor(center.y+surface+.5)
-    local frac=(center.y+surface)-(center_y-.5)
-    local level=math.max(1,math.min(8,math.ceil(frac/step)))
     loop(-minor,minor,function(width)
      local lx,lz=along_x and dist or width,along_x and width or dist
-     local v=rot({x=lx,y=0,z=lz},rotation)
+     local v=rot({x=lx,y=surface,z=lz},rotation)
+     local world_y=center.y+v.y
+     local center_y=math.floor(world_y+.5)
+     local frac=world_y-(center_y-.5)
+     local level=math.max(1,math.min(8,math.ceil(frac/step)))
      mark_world({x=center.x+v.x,y=center_y,z=center.z+v.z},level)
      -- A stair has a FULL wedge underneath each tread. Supporting the
      -- entire lower volume (not only side rails) prevents the player from
