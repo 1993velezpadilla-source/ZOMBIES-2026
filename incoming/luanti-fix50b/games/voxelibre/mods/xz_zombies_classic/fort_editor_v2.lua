@@ -17,6 +17,7 @@ return function(M, modpath, may_edit)
  local ghost_name='xz_zombies_classic:fort_select_fx'
  local form='xz_zombies:fort_transform'
  local chosen,placing,enabled={}, {}, {}
+ local editor -- Forward-declared for callbacks on registered entities.
  local low,high=.10,256
  local control_steps={.05,.25,1,5}
  local function finite(v) return type(v)=='number' and v==v and v~=math.huge and v~=-math.huge end
@@ -544,7 +545,7 @@ return function(M, modpath, may_edit)
   remove_ghost(placing[name]);placing[name]=nil
   enabled[name]=nil
  end)
- local editor={
+ editor={
   try_select=select,try_select_object=select_obj,place_new=place_new,
   use_target=use_target,set_mode=set_mode,is_enabled=see_mode,
  }
