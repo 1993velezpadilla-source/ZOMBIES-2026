@@ -6,7 +6,10 @@ return function(M, modpath, may_edit)
  if not m then return {try_select=function()return false end,try_select_object=function()return false end} end
  m:close()
  local entries=assert(loadfile(modpath..'/polyhaven_fort_manifest.lua'))()
- local collision=assert(loadfile(modpath..'/fort_collision.lua'))()(M,entries)
+ -- Node-backed collision for real engines; older offline stubs retain FIX61 physics.
+ local collision=M.set_node and M.get_meta
+   and assert(loadfile(modpath..'/fort_collision_paint.lua'))()(M,entries)
+   or assert(loadfile(modpath..'/fort_collision.lua'))()(M,entries)
  local by_id,by_node={},{}
  for _,entry in ipairs(entries) do
   entry.kind='mesh'
@@ -17,6 +20,7 @@ return function(M, modpath, may_edit)
  local ghost_name='xz_zombies_classic:fort_select_fx'
  local form='xz_zombies:fort_transform'
  local chosen,placing,enabled={}, {}, {}
+ local painting={} -- player_name -> selected editable object while using the USE brush
  local editor -- Forward-declared for callbacks on registered entities.
  local low,high=.10,256
  local control_steps={.05,.25,1,5}
@@ -127,20 +131,26 @@ return function(M, modpath, may_edit)
    self.rotation=type(dat.rotation)=='table' and dat.rotation
        or {x=0,y=dat.yaw or 0,z=0}
    self.collision_mode=dat.collision_mode or 'auto'
+   self.collider_uid=dat.collider_uid
+   self.paint_deltas=type(dat.paint_deltas)=='table' and dat.paint_deltas or {}
+   self._paint_nodes=type(dat.collision_cells)=='table' and dat.collision_cells or {}
    apply(self)
   end,
   get_staticdata=function(self)
    if not self.arch_id or not M.serialize then return '' end
    return M.serialize({id=self.arch_id,kind=self.kind or 'mesh',
     scale=self.scale,rotation=self.rotation,collision_mode=self.collision_mode,
-    version=2})
+    collider_uid=self.collider_uid,paint_deltas=self.paint_deltas,
+    collision_cells=self._paint_nodes,version=3})
   end,
   on_punch=function() return true end,
   on_rightclick=function(self,p)
    if editor then editor.try_select_object(p,self.object,true) end
   end,
-  on_deactivate=function(self)
-   collision.clear(self)
+  on_deactivate=function(self,removal)
+   -- Mapblock unloading is NOT object deletion: keep physical collision nodes.
+   if removal then collision.clear(self)
+   elseif collision.clear_preview then collision.clear_preview(self) end
   end,
  })
  M.register_entity(':'..ghost_name,{
@@ -158,7 +168,16 @@ return function(M, modpath, may_edit)
   if a then a.ghost=nil end
  end
  local function dismiss(name)
-  remove_ghost(chosen[name])
+  local s=chosen[name]
+  remove_ghost(s)
+  if s and s.kind=='object' then
+   local l=object_ok(s.object)
+   if l then
+    l.paint_visible=false
+    if collision.clear_preview then collision.clear_preview(l) end
+   end
+  end
+  painting[name]=nil
   chosen[name]=nil
  end
  local function draw(s)
