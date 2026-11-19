@@ -202,7 +202,7 @@ return function(M, modpath, may_edit)
   local fs={
    'formspec_version[4]',
    ('size[%.2f,%.2f]'):format(w,h),
-   'position[0.5,0.97]anchor[0.5,1]',
+   'position[0.985,0.97]anchor[1,1]',
    'no_prepend[]bgcolor[#06101CE8;false]',
    'style_type[button;bgcolor=#19334A;bgcolor_hovered=#266B91;textcolor=#F7FBFF;border=false]',
    'style_type[button_exit;bgcolor=#1B3D55;bgcolor_hovered=#286E91;textcolor=#FFFFFF;border=false]',
@@ -218,18 +218,18 @@ return function(M, modpath, may_edit)
   end
   local pnum=s.page or 1
   local function button(x,y,width,id,label)
-   fs[#fs+1]=('button[%.2f,%.2f;%.2f,0.50;%s;%s]'):format(x,y,width,id,M.formspec_escape(label))
+   fs[#fs+1]=('button[%.2f,%.2f;%.2f,0.43;%s;%s]'):format(x,y,width,id,M.formspec_escape(label))
   end
   if pnum==1 then
    fs[#fs+1]='label[0.20,2.03;POSICION LIBRE  /  XYZ]'
    for i,axis in ipairs({'X','Y','Z'}) do
-    local y=2.17+(i-1)*.51
+    local y=2.14+(i-1)*.47
     button(.18,y,xoff-.09,'move_'..axis..'_minus',axis..'  -')
     button(.26+xoff,y,xoff-.09,'move_'..axis..'_plus',axis..'  +')
    end
-   button(.18,3.81,(w-.54)/3,'precision_1','FINO')
-   button(.27+(w-.54)/3,3.81,(w-.54)/3,'precision_2','MEDIO')
-   button(.36+2*(w-.54)/3,3.81,(w-.54)/3,'precision_3','1.0')
+   button(.18,3.57,(w-.54)/3,'precision_1','FINO')
+   button(.27+(w-.54)/3,3.57,(w-.54)/3,'precision_2','MEDIO')
+   button(.36+2*(w-.54)/3,3.57,(w-.54)/3,'precision_3','1.0')
   elseif pnum==2 then
    fs[#fs+1]=('label[0.20,2.04;ESCALA ACTUAL  %sx]'):format(number(scale))
    button(.18,2.23,xoff-.09,'scale_minus','-0.25')
@@ -240,14 +240,14 @@ return function(M, modpath, may_edit)
    fs[#fs+1]='label[0.20,4.02;PRECISION 0.10x - 256x]'
   elseif pnum==3 then
    fs[#fs+1]='label[0.20,2.03;ROTACION  /  GRADOS]'
-   button(.18,2.22,xoff-.09,'turn_minus','Y -15')
-   button(.26+xoff,2.22,xoff-.09,'turn_plus','Y +15')
-   button(.18,2.79,xoff-.09,'left','Y -90')
-   button(.26+xoff,2.79,xoff-.09,'right','Y +90')
-   button(.18,3.35,xoff-.09,'axis_x_minus','X -15')
-   button(.26+xoff,3.35,xoff-.09,'axis_x_plus','X +15')
-   button(.18,3.91,xoff-.09,'axis_z_minus','Z -15')
-   button(.26+xoff,3.91,xoff-.09,'axis_z_plus','Z +15')
+   button(.18,2.16,xoff-.09,'turn_minus','Y -15')
+   button(.26+xoff,2.16,xoff-.09,'turn_plus','Y +15')
+   button(.18,2.62,xoff-.09,'left','Y -90')
+   button(.26+xoff,2.62,xoff-.09,'right','Y +90')
+   button(.18,3.10,xoff-.09,'axis_x_minus','X -15')
+   button(.26+xoff,3.10,xoff-.09,'axis_x_plus','X +15')
+   button(.18,3.58,xoff-.09,'axis_z_minus','Z -15')
+   button(.26+xoff,3.58,xoff-.09,'axis_z_plus','Z +15')
   else
    fs[#fs+1]='label[0.20,2.04;COLISION Y PASO LIBRE]'
    button(.18,2.25,xoff-.09,'mode_auto','AUTO')
@@ -256,7 +256,7 @@ return function(M, modpath, may_edit)
    button(.26+xoff,2.83,xoff-.09,'mode_stairs','ESCALERA')
    button(.18,3.40,xoff-.09,'mode_stairs_reverse','ESCALERA INV')
    button(.26+xoff,3.40,xoff-.09,'mode_none','SIN COLISION')
-   fs[#fs+1]='label[0.20,4.06;FISICA SIMPLE  /  1 TOQUE]'
+   fs[#fs+1]='label[0.20,3.96;COLISION A TU GUSTO]'
   end
   fs[#fs+1]=('button_exit[%.2f,%.2f;%.2f,0.48;close;LISTO]'):format(.18,h-.57,w-.36)
   return table.concat(fs)
