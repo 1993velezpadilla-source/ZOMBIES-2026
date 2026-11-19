@@ -13,7 +13,7 @@ local v26_combatfx = assert(loadfile(modpath .. '/v26_viril_combatfx.lua'))()(M)
 local rotu_ai = assert(loadfile(modpath .. '/rotu_ai.lua'))()(M)
 local dremorn_visual = assert(loadfile(modpath .. '/dremorn_visual.lua'))()(M,modpath)
 local state = {active=false,round=0,round_quota=0,spawned=0,kills=0,next_spawn=0,round_delay=0,zombies={},next_round=0}
--- FIX59: optional premium Fort selection/rotation, active only outside gameplay.
+-- FIX60: premium Fort selection, persistent true per-piece scale and rotation outside gameplay.
 local fort_editor=assert(loadfile(modpath .. '/fort_editor.lua'))()(M,modpath,function() return not state.active end)
 -- FIX58: place real CC0 Poly Haven modular fort mesh blocks in the map editor.
 -- Missing art is safe: loader does not register placeholders or break FIX57.
@@ -625,10 +625,12 @@ M.register_tool(':xz_zombies:editor_tool',{
  description='ZOMBIES CLASSIC | EDITOR / DEVELOPER',inventory_image='mob_spawner.png',
  on_use=function(item,p,pt)
   if pt and pt.type=='node' and fort_editor.try_select(p,pt.under,true) then return item end
+  if pt and pt.type=='object' and fort_editor.try_select_object(p,pt.ref,true) then return item end
   editor_form(p);return item
  end,
  on_secondary_use=function(item,p,pt)
   if pt and pt.type=='node' and fort_editor.try_select(p,pt.under,true) then return item end
+  if pt and pt.type=='object' and fort_editor.try_select_object(p,pt.ref,true) then return item end
   editor_form(p);return item
  end,
 })

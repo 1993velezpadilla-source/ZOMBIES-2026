@@ -18,9 +18,14 @@ M={
  is_protected=function() return blocked end,
  formspec_escape=function(s) return tostring(s):gsub('\\','\\\\'):gsub(']', '\\]'):gsub(';', '\\;') end,
  register_entity=function(name,def)
-  assert(name==':xz_zombies_classic:fort_select_fx')
-  assert(def.initial_properties.static_save==false)
-  captures.entity_def=def
+  assert(name==':xz_zombies_classic:fort_select_fx' or name==':xz_zombies_classic:fort_architecture')
+  if name==':xz_zombies_classic:fort_select_fx' then
+   assert(def.initial_properties.static_save==false)
+   captures.entity_def=def
+  else
+   assert(def.initial_properties.static_save==true)
+   captures.architecture_def=def
+  end
  end,
  register_node=function(name,def)
   M.registered_nodes[name:sub(2)]=def
@@ -69,7 +74,9 @@ assert(text:find('ZOMBIES  /  3D EDITOR',1,true))
 assert(text:find('#20C9FF',1,true))
 assert(text:find('GIRAR %-90'))
 assert(text:find('GIRAR %+90'))
-assert(text:find('size%[5%.15,3%.45%]'))
+assert(text:find('size%[5%.15,4%.50%]'))
+assert(text:find('scale_plus',1,true) and text:find('scale_minus',1,true))
+assert(captures.architecture_def and captures.architecture_def.get_staticdata)
 assert(#fx==1 and fx[1].props.mesh==entry.mesh)
 assert(fx[1].props.pointable==false and fx[1].props.physical==false)
 -- Rotate the ORIGINAL node, preserving mesh, metadata and node scale.
@@ -96,4 +103,4 @@ assert(adapter.try_select(p,location,true)==true)
 -- Undo form closure leaves no lingering hologram entity.
 onfields(p,'xz_zombies:fort_transform',{quit=true})
 assert(fx[#fx]:get_pos()==nil)
-print('PASS FIX59: premium responsive cyan selection, rotation, permissions, cleanup and original mesh integrity')
+print('PASS FIX59 backwards compatibility: original 90-degree node rotation, premium selection, protected maps, and no unintended conversion')
