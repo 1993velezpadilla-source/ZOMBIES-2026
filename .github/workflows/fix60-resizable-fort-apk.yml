@@ -53,7 +53,7 @@ jobs:
           MOD=incoming/luanti-fix50b/games/voxelibre/mods/xz_zombies_classic
           for f in "$MOD"/*.lua; do luac5.4 -p "$f"; done
           lua5.4 incoming/luanti-fix50b/tests/test_fix58_fort.lua "$MOD"
-          lua5.4 incoming/luanti-fix50b/tests/test_fix59_fort_editor.lua
+          lua5.4 incoming/luanti-fix50b/tests/test_fix59_fort_editor.lua "$MOD"
           lua5.4 incoming/luanti-fix50b/tests/test_fix60_fort_scale.lua "$MOD"
           lua5.4 incoming/luanti-fix50b/tests/test_fix57_dremorn_visual.lua
           lua5.4 incoming/luanti-fix50b/tests/test_fix55_rotu_bot_ai.lua
