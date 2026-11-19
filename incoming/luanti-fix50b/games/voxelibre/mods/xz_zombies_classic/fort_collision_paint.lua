@@ -117,6 +117,7 @@ return function(M,entries)
   -- Keep two axis-aligned proxy lanes across thick walls, not a monolithic
   -- unrotatable entity AABB. The source architecture may extend 16+ blocks.
   local function loop(lo,hi,fn)
+   if hi<lo then return end
    if hi-lo<1 then fn((lo+hi)/2);return end
    local k=math.floor(lo)
    while k<=hi+.50 do
