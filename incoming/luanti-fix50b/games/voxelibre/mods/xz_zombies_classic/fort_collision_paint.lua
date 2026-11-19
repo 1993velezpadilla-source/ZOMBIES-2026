@@ -202,20 +202,32 @@ return function(M,entries)
   owner.rotation=rotation
   local mode=manual or 'auto'
   owner.collider_uid=owner_id(owner)
-  clear(owner)
+  clear_preview(owner)
   local planned=desired(owner,e,scale,rotation,mode)
   for k,v in pairs(mapped_mask(owner)) do
    if v.op=='erase' then planned[k]=nil
    else planned[k]={pos=v.pos,level=8} end
   end
   local accepted={}
+  local before={}
+  for _,p in ipairs(owner._paint_nodes or {}) do
+   before[key(p.x,p.y,p.z)]=p
+  end
+  for k,p in pairs(before) do
+   if not planned[k] and owns(p,owner.collider_uid) then
+    M.set_node(p,{name='air'})
+   end
+  end
   for k,v in pairs(planned) do
    local p=v.pos
    local old=current_node(p)
    if old and (old.name=='air' or owns(p,owner.collider_uid)) then
     local level=math.max(1,math.min(8,math.floor(v.level+.5)))
-    M.set_node(p,{name=base..level})
-    M.get_meta(p):set_string('xz_collision_owner',owner.collider_uid)
+    local wanted=base..level
+    if old.name~=wanted then
+     M.set_node(p,{name=wanted})
+     M.get_meta(p):set_string('xz_collision_owner',owner.collider_uid)
+    end
     accepted[#accepted+1]=cp(p)
    end
   end
