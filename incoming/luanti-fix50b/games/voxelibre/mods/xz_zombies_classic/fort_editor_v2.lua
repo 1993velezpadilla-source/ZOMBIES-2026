@@ -528,6 +528,48 @@ return function(M, modpath, may_edit)
     return false
    end
   end
+  -- Large Poly Haven modules can be >15m long. Native Luanti point/raycast
+  -- doesn't reliably hit an entity whose selectionbox extends >5m.
+  -- On deliberate USE ONLY, intersect the look ray with nearby
+  -- architecture bounds without scanning every frame.
+  if M.get_objects_inside_radius then
+   local closest,closest_t
+   for _,candidate in ipairs(M.get_objects_inside_radius(eye,40)) do
+    local l=object_ok(candidate)
+    if l then
+     local e=entry_for(l.arch_id,l.kind)
+     local center=candidate:get_pos()
+     local yaw=l.rotation and l.rotation.y or 0
+     local c,s=math.cos(yaw),math.sin(yaw)
+     local x=eye.x-center.x
+     local z=eye.z-center.z
+     local origin={c*x-s*z,eye.y-center.y,s*x+c*z}
+     local velocity={c*dir.x-s*dir.z,dir.y,s*dir.x+c*dir.z}
+     local b=e and e.box or {-.5,-.5,-.5,.5,.5,.5}
+     local hx=math.max(math.abs(b[1]),math.abs(b[4]))*l.scale
+     local hy=math.max(math.abs(b[2]),math.abs(b[5]))*l.scale
+     local hz=math.max(math.abs(b[3]),math.abs(b[6]))*l.scale
+     local ext={hx,hy,hz}
+     local t0,t1=0,5
+     for axis=1,3 do
+      local o,d,h=origin[axis],velocity[axis],ext[axis]
+      if math.abs(d)<.00001 then
+       if o < -h or o>h then t0=100 end
+      else
+       local a=(-h-o)/d
+       local b1=(h-o)/d
+       if a>b1 then a,b1=b1,a end
+       t0=math.max(t0,a)
+       t1=math.min(t1,b1)
+      end
+     end
+     if t0<=t1 and t0<=5 and (not closest_t or t0<closest_t) then
+      closest,closest_t=candidate,t0
+     end
+    end
+   end
+   if closest then return select_obj(p,closest,true) end
+  end
   return false
  end
  -- Same ghost appears before placement; it follows the aiming ray.
