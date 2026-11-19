@@ -59,6 +59,7 @@ M={
   function obj:get_pos()return self.location end
   function obj:remove()self.location=nil;self.removed=true end
   function obj:set_yaw(n)self.yaw=n end
+  function obj:set_armor_groups(groups) self.armor=groups end
   function obj:get_luaentity()return lua end
   lua.object=obj
   obj.lua=lua
@@ -78,6 +79,7 @@ local n=assert(loadfile(mod..'/polyhaven_fort.lua'))()(M,mod,editor)
 assert(n==#manifest)
 assert(type(defs[objtype].get_staticdata)=='function','persistent staticdata missing')
 assert(defs[objtype].initial_properties.static_save==true)
+assert(defs[objtype].on_punch()==true,'gunfire should never destroy terrain entities')
 assert(defs['xz_zombies_classic:fort_select_fx'].initial_properties.static_save==false)
 
 local function current()
@@ -110,6 +112,7 @@ assert(e.properties.mesh==entry.mesh,'new model generated instead of reusing ori
 assert(e.properties.textures[1]=='xz_fort_atlas.png')
 assert(e.properties.static_save==true)
 assert(e.properties.physical==true and e.properties.collide_with_objects==true)
+assert(e.armor and e.armor.immortal==1,'fort walls must resist zombie and weapon damage')
 assert(e.properties.pointable==true and #e.properties.collisionbox==6)
 assert(e.properties.collisionbox[4]>0 and e.properties.collisionbox[6]>0)
 assert(e.properties.selectionbox[4]>=.045)
