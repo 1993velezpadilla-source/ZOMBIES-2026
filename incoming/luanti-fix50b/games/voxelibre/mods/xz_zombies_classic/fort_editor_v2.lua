@@ -217,7 +217,7 @@ return function(M, modpath, may_edit)
   local rot=l and l.rotation or {x=0,y=forward_yaw(s.node and s.node.param2 or 0),z=0}
   local step=control_steps[s.precision or 2]
   local xoff=(w-.56)/2
-  local cell=(w-.52)/4
+  local cell=(w-.52)/5
   local fs={
    'formspec_version[4]',
    ('size[%.2f,%.2f]'):format(w,h),
@@ -232,7 +232,7 @@ return function(M, modpath, may_edit)
    ('label[0.18,0.85;%s]'):format(M.formspec_escape((s.entry.label or 'OBJECT'):sub(1,35))),
    ('label[0.18,1.20;TAMANO  %sx    |    PASO  %s]'):format(number(scale),number(step)),
   }
-  for i,tab in ipairs({'MOVER','ESCALA','ROTAR','FISICA'}) do
+  for i,tab in ipairs({'MOVER','ESCALA','ROTAR','FISICA','PAINT'}) do
    fs[#fs+1]=('button[%.2f,1.42;%.2f,0.47;tab_%d;%s]'):format(.18+(i-1)*cell,cell-.025,i,tab)
   end
   local pnum=s.page or 1
@@ -266,7 +266,7 @@ return function(M, modpath, may_edit)
    button(.18,3.10,xoff-.09,'axis_x_minus','X -15')
    button(.26+xoff,3.10,xoff-.09,'axis_x_plus','X +15')
    button(.18,3.58,w-.36,'rotation_advanced','PRECISION  XYZ')
-  elseif pnum==5 then
+  elseif pnum==6 then
    fs[#fs+1]='label[0.20,2.03;AJUSTE FINO   /   1 GRADO]'
    button(.18,2.16,xoff-.09,'fine_x_minus','X  -1')
    button(.26+xoff,2.16,xoff-.09,'fine_x_plus','X  +1')
@@ -275,6 +275,18 @@ return function(M, modpath, may_edit)
    button(.18,3.10,xoff-.09,'fine_z_minus','Z  -1')
    button(.26+xoff,3.10,xoff-.09,'fine_z_plus','Z  +1')
    button(.18,3.58,w-.36,'rotation_back','VOLVER  /  ROTACION')
+  elseif pnum==5 then
+   local tool=s.paint_tool or 'brush'
+   local brush=s.brush_size or 0
+   fs[#fs+1]='label[0.20,2.01;PINTAR COLISION INVISIBLE]'
+   button(.18,2.18,xoff-.09,'tool_brush',(tool=='brush' and '[OK] ' or '')..'BROCHA')
+   button(.26+xoff,2.18,xoff-.09,'tool_erase',(tool=='erase' and '[OK] ' or '')..'BORRAR')
+   button(.18,2.65,xoff-.09,'tool_bucket',(tool=='bucket' and '[OK] ' or '')..'CUBETA')
+   button(.26+xoff,2.65,xoff-.09,'paint_stop','TERMINAR')
+   button(.18,3.12,xoff-.09,'brush_minus','BROCHA -')
+   button(.26+xoff,3.12,xoff-.09,'brush_plus','BROCHA +')
+   fs[#fs+1]=('label[0.20,3.56;BROCHA  %d]'):format(brush+1)
+   button(.18,3.73,w-.36,'paint_start','PINTAR EN EL MUNDO')
   else
    fs[#fs+1]='label[0.20,2.04;COLISION Y PASO LIBRE]'
    button(.18,2.25,xoff-.09,'mode_auto','AUTO')
@@ -361,10 +373,10 @@ return function(M, modpath, may_edit)
   local s=chosen[name]
   if not s then return true end
   if fields.quit or fields.close then dismiss(name);return true end
-  for i=1,4 do
+  for i=1,5 do
    if fields['tab_'..i] then s.page=i;show(p);return true end
   end
-  if fields.rotation_advanced then s.page=5;show(p);return true end
+  if fields.rotation_advanced then s.page=6;show(p);return true end
   if fields.rotation_back then s.page=3;show(p);return true end
   if fields.precision_1 or fields.precision_2 or fields.precision_3 then
    s.precision=fields.precision_1 and 1 or fields.precision_2 and 2 or 3
