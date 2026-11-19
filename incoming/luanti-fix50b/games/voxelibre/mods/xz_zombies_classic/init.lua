@@ -977,6 +977,31 @@ M.register_on_mods_loaded(function()
  end
  M.log('action','[xz_zombies_classic] FIX50A native USE independent; original gun callbacks preserved: '..count)
 end)
+-- FIX61: Simple solid cubes can also be freely placed as resizable entities,
+-- but ONLY when the user deliberately enables 3D Builder. Combat, chests,
+-- scripted interactables, and special orientation nodes retain native place.
+M.register_on_mods_loaded(function()
+ if not M.override_item or not M.registered_nodes or not M.registered_items then return end
+ for id,def in pairs(M.registered_nodes) do
+  if def and M.registered_items[id]
+    and not id:find('^xz_zombies:')
+    and (def.drawtype==nil or def.drawtype=='normal')
+    and not def.paramtype2 and not def.on_place
+    and not def.on_rightclick and not def.on_construct
+    and not def.after_place_node and not def.on_timer
+    and def.walkable~=false then
+   M.override_item(id,{on_place=function(stack,p,pt)
+    if p and fort_editor.is_enabled(p) then
+     local result=fort_editor.place_generic(stack,p,pt)
+     if result then return result end
+    end
+    if M.item_place then return M.item_place(stack,p,pt) end
+    if M.item_place_node then return M.item_place_node(stack,p,pt) end
+    return stack
+   end})
+  end
+ end
+end)
 M.register_on_leaveplayer(function(p)
  local name=p:get_player_name()
  recent_native_use[name]=nil
