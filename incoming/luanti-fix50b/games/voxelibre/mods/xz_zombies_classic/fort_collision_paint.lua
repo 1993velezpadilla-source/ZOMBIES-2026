@@ -142,15 +142,13 @@ return function(M,entries)
      local lx,lz=along_x and dist or width,along_x and width or dist
      local v=rot({x=lx,y=0,z=lz},rotation)
      mark_world({x=center.x+v.x,y=center_y,z=center.z+v.z},level)
-    end)
-    -- The visible stair sides are walls, not walk-through holograms.
-    -- Fill the two lateral retaining faces beneath the step surfaces.
-    for _,side in ipairs({-minor+.30,minor-.30}) do
-     loop(-hy,surface-1.0,function(wall_y)
-      local lx,lz=along_x and dist or side,along_x and side or dist
+     -- A stair has a FULL wedge underneath each tread. Supporting the
+     -- entire lower volume (not only side rails) prevents the player from
+     -- walking through its front faces and getting half-buried.
+     loop(-hy,surface-1.05,function(wall_y)
       sample(lx,wall_y,lz,8)
      end)
-    end
+    end)
    end)
   else
    -- Open gate: side supports + overhead lintel. Center of the door is EMPTY.
