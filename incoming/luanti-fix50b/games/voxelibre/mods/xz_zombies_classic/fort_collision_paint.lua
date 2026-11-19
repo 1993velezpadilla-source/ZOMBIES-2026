@@ -97,10 +97,10 @@ return function(M,entries)
   local center=owner.object and owner.object.get_pos and owner.object:get_pos()
   if not center then return {} end
   local hx,hy,hz=size_box(e,scale)
-  local kind_mode=mode=='auto' or not mode and kind(e) or mode
+  local kind_mode=(mode==nil or mode=='auto') and kind(e) or mode
   if kind_mode=='auto' then kind_mode=kind(e) end
   if kind_mode=='stairs_reverse' then kind_mode='stairs_reverse' end
-  local output={},count=0
+  local output,count={},0
   local function mark_world(p,level)
    local q=point(p)
    local k=key(q.x,q.y,q.z)
