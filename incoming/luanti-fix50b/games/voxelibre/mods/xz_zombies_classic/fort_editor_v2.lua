@@ -372,7 +372,40 @@ return function(M, modpath, may_edit)
   local name=p:get_player_name()
   local s=chosen[name]
   if not s then return true end
+  if fields.quit and s.paint_active then return true end
   if fields.quit or fields.close then dismiss(name);return true end
+  if fields.tool_brush or fields.tool_erase or fields.tool_bucket then
+   s.paint_tool=fields.tool_brush and 'brush' or
+     fields.tool_erase and 'erase' or 'bucket'
+   s.page=5;show(p);return true
+  end
+  if fields.brush_minus or fields.brush_plus then
+   s.brush_size=math.max(0,math.min(2,(s.brush_size or 0)+(fields.brush_plus and 1 or -1)))
+   s.page=5;show(p);return true
+  end
+  if fields.paint_start or fields.paint_stop then
+   if not is_builder(p,s.kind=='object' and s.object:get_pos() or s.pos) then return true end
+   local l=s.kind=='object' and object_ok(s.object) or convert(s)
+   if not l then return true end
+   if fields.paint_stop then
+    s.paint_active=false
+    painting[name]=nil
+    l.paint_visible=false
+    if collision.clear_preview then collision.clear_preview(l) end
+    s.page=5;show(p)
+   elseif collision.paint then
+    s.paint_active=true
+    s.paint_tool=s.paint_tool or 'brush'
+    s.brush_size=s.brush_size or 0
+    painting[name]=s
+    l.paint_visible=true
+    collision.update(l,s.entry,l.scale,l.rotation,l.collision_mode)
+    if M.close_formspec then M.close_formspec(name,form) end
+   else
+    if M.chat_send_player then M.chat_send_player(name,'Collision Paint necesita Luanti con colisiones de nodos.') end
+   end
+   return true
+  end
   for i=1,5 do
    if fields['tab_'..i] then s.page=i;show(p);return true end
   end
