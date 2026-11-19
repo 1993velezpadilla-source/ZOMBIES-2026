@@ -175,9 +175,9 @@ return function(M,entries)
   local d={x=p.x-pos.x,y=p.y-pos.y,z=p.z-pos.z}
   local v=rot(d,owner.rotation,true)
   local scale=owner.scale or 1
-  return {x=math.floor(v.x/scale*100+.5)/100,
-          y=math.floor(v.y/scale*100+.5)/100,
-          z=math.floor(v.z/scale*100+.5)/100}
+  return {x=math.floor(v.x/scale*10000+.5)/10000,
+          y=math.floor(v.y/scale*10000+.5)/10000,
+          z=math.floor(v.z/scale*10000+.5)/10000}
  end
  local function map_world(owner,p)
   local pos=owner.object:get_pos()
@@ -273,7 +273,9 @@ return function(M,entries)
    local k=key(p.x,p.y,p.z)
    local entry=map_relative(owner,p)
    entry.op=action=='erase' and 'erase' or 'add'
-   if mask[k] then list[mask[k]]=entry
+   if mask[k] then
+    if list[mask[k]].op~=entry.op then n=n+1 end
+    list[mask[k]]=entry
    elseif #list<limits.max_paint then
     list[#list+1]=entry;n=n+1;mask[k]=#list
    end
