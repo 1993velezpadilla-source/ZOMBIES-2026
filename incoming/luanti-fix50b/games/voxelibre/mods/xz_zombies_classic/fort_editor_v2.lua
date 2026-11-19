@@ -463,6 +463,22 @@ return function(M, modpath, may_edit)
   select_obj(p,obj,true)
   return stack
  end
+ local function place_generic(stack,p,pt)
+  if not p or not enabled[p:get_player_name()] or not is_builder(p) then return nil end
+  local id=stack and stack.get_name and stack:get_name()
+  local e=entry_for(id,'node')
+  local d=M.registered_nodes and M.registered_nodes[id or '']
+  if not e or not d or d.on_rightclick or d.on_construct or d.on_timer
+    or d.after_place_node or not pt or pt.type~='node' then return nil end
+  local pos=placement_position(p,pt,e,1)
+  if not pos or (M.is_protected and M.is_protected(pos,p:get_player_name())) then return stack end
+  local obj=create(pos,id,'node',1,{x=0,y=0,z=0})
+  if not obj then return stack end
+  if not (M.is_creative_enabled and M.is_creative_enabled(p:get_player_name()))
+   and stack.take_item then stack:take_item(1) end
+  select_obj(p,obj,true)
+  return stack
+ end
  local function see_mode(p)
   if p and p.get_player_name then return enabled[p:get_player_name()] end
  end
@@ -547,7 +563,7 @@ return function(M, modpath, may_edit)
  end)
  editor={
   try_select=select,try_select_object=select_obj,place_new=place_new,
-  use_target=use_target,set_mode=set_mode,is_enabled=see_mode,
+  use_target=use_target,set_mode=set_mode,is_enabled=see_mode,place_generic=place_generic,
  }
  return editor
 end
