@@ -736,6 +736,7 @@ M.register_on_player_receive_fields(function(p,form,fields)
    barricade_3x3='xz_zombies:v26_barricade_6_3x3'}
  for id in pairs(PERKS) do selections['perk_'..id]='xz_zombies:perk_'..id end
  if fields.open3d then
+  if fort_editor.paint_panel and fort_editor.paint_panel(p) then return true end
   fort_editor.set_mode(p,true)
   tell(p,'Modo 3D: apunta a cualquier bloque y pulsa USE, aun con armas equipadas.')
   return true
