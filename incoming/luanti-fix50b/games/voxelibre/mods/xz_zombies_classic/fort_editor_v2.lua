@@ -574,8 +574,86 @@ return function(M, modpath, may_edit)
   end
   return enabled[p:get_player_name()]
  end
+ local function brush_hit(p,s)
+  if not p or not p.get_pos or not p.get_look_dir or not s or not s.object then return nil,nil end
+  local loc=p:get_pos()
+  local props=p.get_properties and p:get_properties() or {}
+  local eye={x=loc.x,y=loc.y+(props.eye_height or 1.47),z=loc.z}
+  local dir=p:get_look_dir()
+  local dest={x=eye.x+dir.x*8,y=eye.y+dir.y*8,z=eye.z+dir.z*8}
+  local plane=math.abs(dir.y)>.6 and 'xz' or math.abs(dir.x)>math.abs(dir.z) and 'yz' or 'xy'
+  if M.raycast then
+   for pt in M.raycast(eye,dest,true,false) do
+    if pt.type=='object' and pt.ref==s.object and pt.intersection_point then
+     return pt.intersection_point,plane
+    end
+    -- Stop at an intervening terrain wall instead of painting through it.
+    if pt.type=='node' and pt.intersection_point then return nil,plane end
+   end
+  end
+  -- Long meshes extend far beyond the selectable 4.7-node box. Intersect
+  -- their full oriented AABB instead of painting arbitrarily at camera origin.
+  local obj=s.object
+  local l=object_ok(obj)
+  if not l then return nil,plane end
+  local e=s.entry
+  local b=e.box or {-.5,-.5,-.5,.5,.5,.5}
+  local hx=math.max(math.abs(b[1]),math.abs(b[4]))*l.scale
+  local hy=math.max(math.abs(b[2]),math.abs(b[5]))*l.scale
+  local hz=math.max(math.abs(b[3]),math.abs(b[6]))*l.scale
+  local c=math.cos(l.rotation and l.rotation.y or 0)
+  local si=math.sin(l.rotation and l.rotation.y or 0)
+  local center=obj:get_pos()
+  local dx,dz=eye.x-center.x,eye.z-center.z
+  local o={c*dx-si*dz,eye.y-center.y,si*dx+c*dz}
+  local d={c*dir.x-si*dir.z,dir.y,si*dir.x+c*dir.z}
+  local ext={hx,hy,hz}
+  local entering,leaving=0,8
+  local inside=true
+  for i=1,3 do
+   if math.abs(o[i])>ext[i] then inside=false end
+   if math.abs(d[i])<1e-6 then
+    if math.abs(o[i])>ext[i] then return nil,plane end
+   else
+    local t1=(-ext[i]-o[i])/d[i]
+    local t2=( ext[i]-o[i])/d[i]
+    if t1>t2 then t1,t2=t2,t1 end
+    entering=math.max(entering,t1)
+    leaving=math.min(leaving,t2)
+   end
+  end
+  if leaving<entering or leaving<0 then return nil,plane end
+  local t=inside and leaving or entering
+  if t>8 then return nil,plane end
+  -- Half-node inset places the invisible voxel at the selected visual edge.
+  local inset=math.max(0,t-.35)
+  return {x=eye.x+dir.x*inset,y=eye.y+dir.y*inset,z=eye.z+dir.z*inset},plane
+ end
  local function use_target(p)
   if not p or not p.get_pos or not p.get_look_dir or not M.raycast or not is_builder(p) then return false end
+  local n=p:get_player_name()
+  local s=painting[n]
+  if s and s.paint_active then
+   local l=s.kind=='object' and object_ok(s.object)
+   if not l or not collision.paint then
+    painting[n]=nil
+    return true
+   end
+   local at,plane=brush_hit(p,s)
+   if not at then
+    if M.chat_send_player then M.chat_send_player(n,'[Collision Paint] Apunta al objeto antes de pintar.') end
+    return true
+   end
+   local action=s.paint_tool=='bucket' and 'bucket' or
+     s.paint_tool=='erase' and 'erase' or 'brush'
+   local amount,msg=collision.paint(l,s.entry,l.collision_mode or 'auto',at,action,s.brush_size or 0,plane)
+   if M.chat_send_player then
+    if msg=='open' then M.chat_send_player(n,'[Collision Paint] La figura esta abierta. Dibuja un contorno cerrado para usar CUBETA.')
+    elseif amount and amount>0 then M.chat_send_player(n,'[Collision Paint] '..amount..' posiciones actualizadas.')
+    else M.chat_send_player(n,'[Collision Paint] Sin cambios; intenta cerca de la superficie.') end
+   end
+   return true
+  end
   local loc=p:get_pos()
   local properties=p.get_properties and p:get_properties() or {}
   local eye={x=loc.x,y=loc.y+(properties.eye_height or 1.47),z=loc.z}
